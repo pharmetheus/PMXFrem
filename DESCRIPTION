@@ -1,0 +1,20 @@
+Package: FREMfunctions
+Type: Package
+Title: Support functions for FREM analyses in NONMEM
+Version: 0.1.2
+Authors@R: c(
+    person("Niclas", "Jonsson", email = "niclas.jonsson@pharmetheus.com", role = c("aut", "cre")),
+    person("Joakim", "Nyberg", email = "joakim.nyberg@pharmetheus.com", role = c("aut"))
+  )
+Maintainer: Niclas Jonsson <niclas.jonsson@pharmetheus.com>
+Description: Support functions for FREM analyses in NONMEM that will facilitate pre- and post-processing.
+License: Propriety
+Encoding: UTF-8
+LazyData: true
+Author: Niclas Jonsson [aut, cre],
+  Joakim Nyberg [aut]
+RoxygenNote: 6.0.1
+Depends: foreach, doParallel, tidyverse (>= 1.0.0), stringr, data.table, rlang
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr
+NeedsCompilation: no
