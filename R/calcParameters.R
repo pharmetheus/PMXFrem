@@ -55,9 +55,9 @@ calcParameters <- function(runno,modName=NULL,modDevDir,noBaseThetas,noEtas=noBa
   # addEtas = TRUE: Add etas to the individual parameters
   
   ## Read the parTab
-  parTab <- fread(parTab,skip=1,h=T,data.table=FALSE,check.names = TRUE,verbose=FALSE,showProgress=FALSE) %>% 
-    select(one_of(c("ID",paste0("TV",parNames),paste0("ETA",1:noEtas)))) %>% distinct(ID,.keep_all=TRUE)
-
+    parTab <- fread(parTab,skip=1,h=T,data.table=FALSE,check.names = TRUE,verbose=FALSE,showProgress=FALSE) %>% 
+      select(one_of(c("ID",paste0("TV",parNames),paste0("ETA",1:noEtas)))) %>% distinct(ID,.keep_all=TRUE)
+  
   ## If we are not interested in any covariates
   if(is.null(availCov) || availCov!="none") {
     

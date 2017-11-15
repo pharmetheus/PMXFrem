@@ -64,8 +64,8 @@ createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("B
   
   if(is.null(modDevDir)) {
     if(is.null(modName)) {
-    modFile    <- paste0("run",runno,".mod")
-    extFile    <- paste0("run",runno,".ext")
+      modFile    <- paste0("run",runno,".mod")
+      extFile    <- paste0("run",runno,".ext")
     } else {
       modFile    <- paste0(modName,".mod")
       extFile    <- paste0(modName,".ext")
@@ -79,7 +79,7 @@ createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("B
       extFile    <- paste0(modDevDir,"/",modName,".ext")
     }
   }
-
+  
   covNames <- getCovNames(modFile)$covNames
   fremCovs <- getCovNames(modFile)$polyCatCovs
   orgCovs  <- getCovNames(modFile)$orgCovNames
@@ -89,34 +89,22 @@ createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("B
   
   ## Run this to get the omega matrix to use in the vpc
   if(is.null(availCov)) availCov    <- covNames
-
+  
   tmp <- calcFFEM(noBaseThetas=noBaseThetas,noCovThetas=length(covNames),noSigmas,dfext=theExtFile,parNames=parNames,covNames=covNames,availCov=availCov,quiet=quiet,...)
   
   ## Create a data set with all the original covariates + the frem-specific ones
   # Read the FFEM data set and rename the id column to ID (to simplify the coding below. The id column will get its original name in the new data file.)
   data <- fread(dataFile,h=T,data.table=FALSE,showProgress=FALSE) %>% 
-      renameColumn(oldvar=idvar,newvar="ID")
+    renameColumn(oldvar=idvar,newvar="ID")
   
   ## Add the FREM covariates to the data file
   data <- addFremCovariates(dfFFEM = data,modFile)
   
   dataI <- data %>% distinct(ID,.keep_all=TRUE)
   dataI <- dataI[,c("ID",orgCovs,covNames)]
-
+  
   ## Go through the individuals to make sure that missing values for polycats are coded properly
-  
-  # dataICopy <- dataI
-  # 
-  # for(id in 1:nrow(dataI)) {
-  #   for(cc in orgCovs) {
-  #     if(dataI[id,cc]==-99 & length(grepl(cc,names(dataI))) > 1) {
-  #       dataI[id,grepl(cc,names(dataI))] <- -99
-  #     }
-  #   }
-  # }
-  
   registerDoParallel(cores=cores)
-  
   mapFun <- function(data,cov,orgCovs)  {
     for(cov in orgCovs) {
       if(data[1,cov]==-99 & length(grepl(cov,names(data))) > 1) {
@@ -126,21 +114,22 @@ createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("B
     return(data)
   }
   
-  #test <- dataICopy %>% group_by(ID) %>% do(mapFun(data=.,cov=cov,orgCovs=orgCovs))
-  
-  dataI <- foreach(k = 1:nrow(dataI),.combine="rbind",.packages=c("dplyr")) %dopar% {
-    tmp <- dataI[k,] %>% do(mapFun(data=.,cov=cov,orgCovs=orgCovs))
+  dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
+    mapFun(data=dataI[k,],cov=cov,orgCovs=orgCovs)
   }
   
-  dataI <- dataI[,c("ID",covNames)]
+  dataI <- data.frame(rbindlist(dataI))
   
+  
+  
+  dataI <- dataI[,c("ID",covNames)]
   dataMap <- dataI[]
   dataMap[,covNames] <- TRUE
   
   for(c in covNames) {
     dataMap[,c] <- ifelse(dataI[,c]==-99,FALSE,TRUE)
   }
-
+  
   ## Loop over each individual to compute their covariate contributions ##
   myFun <- function(data,parNames,dataMap=dataMap,availCov=NULL) {
     ID <- data$ID
@@ -163,14 +152,12 @@ createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("B
   
   dataOne <- data %>% distinct(ID,.keep_all=TRUE)
   
-  # registerDoParallel(cores=cores)
-  
-  covEff <- foreach(k = 1:nrow(dataOne),.combine="rbind",.packages=c("dplyr")) %dopar% {
-    tmp <- dataOne[k,] %>% do(myFun(data=.,parNames,dataMap=dataMap,availCov=availCov))
+  covEff <- foreach(k = 1:nrow(dataOne)) %dopar% {
+    myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov)
   }
   
-  ## This is the pure dplyr version. I case the doParallell implementation doesn't work
-  #covEff  <- dataOne %>% group_by(ID) %>% do(myFun(data=.,parNames,dataMap=dataMap,availCov=availCov))
+  covEff <- data.frame(rbindlist(covEff))
+  
   
   data2 <- left_join(data,covEff)
   
