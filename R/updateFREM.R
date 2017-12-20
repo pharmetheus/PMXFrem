@@ -3,7 +3,7 @@
 #' @description Appends or removes covariates in a FREM data set and FREM model.
 #' @param strFREMModel File name of the FREM-model to append covariates to.
 #' @param strFREMData Name of FREM-dataset to append covariates to (not used with strUpdateType "NoData").
-#' @param strFMEMData Name of FFEM-dataset (normal dataset) that will be used to append the FREM-dataset, (not used with strUpdateType "NoData").
+#' @param strFFEMData Name of FFEM-dataset (normal dataset) that will be used to append the FREM-dataset, (not used with strUpdateType "NoData").
 #' @param cstrContCovsToAdd A vector of continuous covariate names to add, default = NULL, (not used with strUpdateType "NoData").
 #' @param cstrCatCovsToAdd A vector of categorical covariate names to add, default = NULL, (not used with strUpdateType "NoData").
 #' @param cstrCovsToAddOrder A vector of the order of the covariate names to add, default = NULL (i.e. alphabetic order will be used), (not used with strUpdateType "NoData").
@@ -12,7 +12,7 @@
 #' @param strUpdateType Update function to run: "OldInits" - Use the old values in the frem model (default), "NewInits" - Use new values from a ext file,
 #' "NoData" - Do not create data or add variables to model, only a updated frem model in terms of new inits
 #' @param quiet If set to FALSE, the function outputs verbose information on what it is doing.
-#' @param strID A string with the ID identifier column in the FMEM dataset.
+#' @param strID A string with the ID identifier column in the FFEM dataset.
 #' @param basenames A vector of strings with the names of the base variables (used for commenting), should be the same length as number of base thetas in the model, if NULL, BASE1,BASE2,etc are used as names.
 #' @param cstrKeepCols A vector of columns to keep in the dataset (for the updated (small) dataset).
 #' @param bWriteData If FALSE; add new variables to the model file but do not write new datasets, has no effect when "NoData" is used.
@@ -21,6 +21,7 @@
 #' @param cstrRemoveCov A vector of strings for covariates that should be remove, note that FREMTYPEs for remaining covariates might/will change. The removal of covariates are done before any adding of data and/or new covariates.
 #' Note that if this functionality is used to remove the last existing category of a categorical covariate, this should be done by removing the orginal name of the covariate and not the specific categorical covariate, i.e. "SITEID" instead of "SITEID_1" to ensure consistent renumbering of FREMTYPEs
 #' @param covEpsNum The number of the epsilons parameter to be used for the covariates.
+#' @param overrideExistingCheck If TRUE, the existing check will be overriden and covariates will be added even though they are present in $DATA of the modefile
 #'
 #' @return Will write a new fremdata set to disc. WIll also write a stub model file with the new covariates and initial estimates (the name will be runX_new.txt).
 #' @export
@@ -29,26 +30,27 @@
 #' \dontrun{
 #' ## Adding CHLDADLT, FAGE, FHTCM, INCTOT, NROOMS, SMOKED
 #' updateFREM(strFREMModel="run21.mod",
-#'            strFREMData="fremData20.csv",strFMEMData="../../ProducedData/Dataset/smv1DatasetWHZ3.csv",cstrRemoveCov=NULL,cstrCatCovsToAdd=c("INCTOT", "SMOKED"),
+#'            strFREMData="fremData20.csv",strFFEMData="../../ProducedData/Dataset/smv1DatasetWHZ3.csv",cstrRemoveCov=NULL,cstrCatCovsToAdd=c("INCTOT", "SMOKED"),
 #'            cstrContCovsToAdd=c("CHLDADLT", "FAGE", "FHTCM","NROOMS"),strID="ID",
 #'            strNewFREMData="fremData21.csv",bWriteData = TRUE,quiet=F,bWriteFIX = TRUE,cstrKeepCols=c("ID","SUBJID","SITEID","AGE","AGEYI","DV","FREMTYPE","HO","TYPE"),
 #'            covEpsNum=3)
 #'
 #' # Removing MMARITN
 #' updateFREM(strFREMModel="run48.mod",
-#'            strFREMData="frem_dataset_run47small.csv",strFMEMData="../../ProducedData/Dataset/smv1Dataset16small.csv",cstrRemoveCov=c("MMARITN"),cstrCatCovsToAdd=NULL,cstrContCovsToAdd=NULL,strID="ID",
+#'            strFREMData="frem_dataset_run47small.csv",strFFEMData="../../ProducedData/Dataset/smv1Dataset16small.csv",cstrRemoveCov=c("MMARITN"),cstrCatCovsToAdd=NULL,cstrContCovsToAdd=NULL,strID="ID",
 #'            strNewFREMData="frem_dataset_run48small.csv",bWriteData = TRUE,quiet=F,bWriteFIX = TRUE)
 #'            
 #' ## Only updating the initial estimates
 #' updateFREM(strFREMModel="run23.mod",cstrRemoveCov=NULL,strID="ID",bWriteData = FALSE,quiet=F,covEpsNum=3,strUpdateType="NoData")
 #'            
 #' }
-updateFREM <- function(strFREMModel,strFREMData="",strFMEMData="",cstrContCovsToAdd=NULL,
+updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsToAdd=NULL,
                        cstrCatCovsToAdd=NULL,cstrCovsToAddOrder=NULL,strNewFREMData=NULL,
                        strUpdateType="OldInits",quiet=TRUE,strID="ID",
                        basenames=c("BASE","PLMAX","HLKON","HLKOFF","BASSL","BP","BASEWHZ","PLMAXWHZ","HLKONWHZ","HLKOFFWHZ","BASSLWHZ"),
                        cstrKeepCols=c("ID","SUBJID","SITEID","AGE","AGEYI","DV","FREMTYPE"),
-                       bWriteData=TRUE,bWriteFIX=TRUE,cstrDV="DV",cstrRemoveCov=NULL,covEpsNum = 2) {
+                       bWriteData=TRUE,bWriteFIX=TRUE,cstrDV="DV",cstrRemoveCov=NULL,covEpsNum = 2,
+                       overrideExistingCheck=FALSE) {
 
 
   iFremTypeIncrease<-100 #The FREMTYPE INCREASE TO USE
@@ -65,7 +67,7 @@ updateFREM <- function(strFREMModel,strFREMData="",strFMEMData="",cstrContCovsTo
 
   if (strUpdateType!="NoData") {
     if (is.null(strNewFREMData))  strNewFREMData<-paste0(file_path_sans_ext(strFREMData),"_new.",file_ext(strFREMData))
-    if ((is.null(strFREMData) || strFREMData=="") || (is.null(strFMEMData) || strFMEMData==""))  stop("strFREMData and strFMEMData must be set to dataset")
+    if ((is.null(strFREMData) || strFREMData=="") || (is.null(strFFEMData) || strFFEMData==""))  stop("strFREMData and strFFEMData must be set to dataset")
   }
 
   if (strUpdateType=="NoData" || strUpdateType=="NewInits") {
@@ -118,7 +120,7 @@ updateFREM <- function(strFREMModel,strFREMData="",strFMEMData="",cstrContCovsTo
   printq(paste0(iNumOM," OMEGAs/ETAs found in modelfile"),quiet=quiet)
 
 
-  dfFMEM<-NULL
+  dfFFEM<-NULL
   dfFREM<-NULL
 
   covnames<-getCovNames(modFile = strFREMModel)
@@ -126,10 +128,10 @@ updateFREM <- function(strFREMModel,strFREMData="",strFMEMData="",cstrContCovsTo
   addedList<-c()
   noBaseThetas<-iNumTHETA-length(covnames$covNames)
   if (strUpdateType!="NoData") {
-    if (file.exists(strFMEMData)) {
-      dfFMEM <- fread(strFMEMData,h=T,data.table=FALSE,check.names=TRUE,showProgress=!quiet)
+    if (file.exists(strFFEMData)) {
+      dfFFEM <- fread(strFFEMData,h=T,data.table=FALSE,check.names=TRUE,showProgress=!quiet)
     } else {
-      stop("Cannot find FMEM dataset: ",strFMEMData)
+      stop("Cannot find FFEM dataset: ",strFFEMData)
     }
     if (file.exists(strFREMData)) {
       dfFREM <- fread(strFREMData,h=T,data.table=FALSE,check.names=TRUE,showProgress=!quiet)
@@ -210,8 +212,8 @@ updateFREM <- function(strFREMModel,strFREMData="",strFMEMData="",cstrContCovsTo
     covList<-list()
     for (strCov in cstrCovsToAddOrder) { #Generate values, mean/variance for each covariate
       if (strCov %in% cstrContCovsToAdd) {#Add a continuous covariate to the fremdataset
-        if (!strCov %in% covnames$covNames) {
-          tmp<-dfFMEM[dfFMEM[[strCov]]!=-99,]
+        if (!strCov %in% covnames$covNames || overrideExistingCheck==TRUE) {
+          tmp<-dfFFEM[dfFFEM[[strCov]]!=-99,]
           tmp<-tmp[!duplicated(tmp[[strID]]),c(strID,strCov)]
           iFremType=iFremType+iFremTypeIncrease
           l<-list(Name=strCov,Mean=mean(tmp[[strCov]]),Var=var(tmp[[strCov]]),Fremtype=iFremType)
@@ -223,17 +225,17 @@ updateFREM <- function(strFREMModel,strFREMData="",strFMEMData="",cstrContCovsTo
           printq(paste0("Skipping continuous covariate: ",strCov,", already existing as fremtype"),quiet=quiet)
         }
       } else { ###Add a categorical covariate to the fremdataset
-        covValues<-sort(unique(dfFMEM[dfFMEM[[strCov]]!=-99,strCov]))
+        covValues<-sort(unique(dfFFEM[dfFFEM[[strCov]]!=-99,strCov]))
         for (j in 2:length(covValues)) {
           strCov2<-paste0(strCov,"_",covValues[j])
 
-          if (!strCov2 %in% covnames$covNames) {
+          if (!strCov2 %in% covnames$covNames || overrideExistingCheck==TRUE) {
 
-            dfFMEM[[strCov2]]<-dfFMEM[[strCov]]
-            dfFMEM[[strCov2]][dfFMEM[[strCov]]!=-99 & dfFMEM[[strCov]]==covValues[j]]<-1
-            dfFMEM[[strCov2]][dfFMEM[[strCov]]!=-99 & dfFMEM[[strCov]]!=covValues[j]]<-0
+            dfFFEM[[strCov2]]<-dfFFEM[[strCov]]
+            dfFFEM[[strCov2]][dfFFEM[[strCov]]!=-99 & dfFFEM[[strCov]]==covValues[j]]<-1
+            dfFFEM[[strCov2]][dfFFEM[[strCov]]!=-99 & dfFFEM[[strCov]]!=covValues[j]]<-0
 
-            tmp<-dfFMEM[dfFMEM[[strCov2]]!=-99,] #Get all which are not missing
+            tmp<-dfFFEM[dfFFEM[[strCov2]]!=-99,] #Get all which are not missing
             tmp<-tmp[!duplicated(tmp[[strID]]),c(strID,strCov2)]
             iFremType=iFremType+iFremTypeIncrease
             l<-list(Name=strCov2,Mean=mean(tmp[[strCov2]]),Var=var(tmp[[strCov2]]),Fremtype=iFremType)
@@ -249,7 +251,7 @@ updateFREM <- function(strFREMModel,strFREMData="",strFMEMData="",cstrContCovsTo
     }
 
     ### Add new individuals to the FREM dataset and update the already existing FREMTYPES, i.e. the individuals to add are the individuals in FFEM data which does not exist in FREM data
-    dataToAdd<-dfFMEM[!(dfFMEM[[strID]] %in% dfFREM[[strID]]),]
+    dataToAdd<-dfFFEM[!(dfFFEM[[strID]] %in% dfFREM[[strID]]),]
     printq(paste0("Found ",nrow(dataToAdd[!duplicated(dataToAdd[[strID]]),])," individuals that should be added to the FREM dataset"),quiet = quiet)
 
 
@@ -283,7 +285,7 @@ updateFREM <- function(strFREMModel,strFREMData="",strFMEMData="",cstrContCovsTo
           dfDVData$DV<-dfDVData[[strDV]]
           if (!(strDV %in% names(dfFREM))) dfDVData[[strDV]]<-NULL
           dfDVData$FREMTYPE<-iFremtypeDV[i]
-          if (length(names(dfDVData))==length(names(dfFREM)) && all(sort(names(dfDVData))==sort(names(dfFREM)))) { #If match in names between FREM and FMEM dataset
+          if (length(names(dfDVData))==length(names(dfFREM)) && all(sort(names(dfDVData))==sort(names(dfFREM)))) { #If match in names between FREM and FFEM dataset
             dfDVData<-dfDVData[,names(dfFREM)]
             dfAddList[[i]]<-dfDVData
             printq(paste0("Adding ",nrow(dfDVData)," observations (",strDV,") from ",nrow(dfDVData[!duplicated(dfDVData[[strID]]),]), " individuals as fremtype ",iFremtypeDV[i]),quiet = quiet)
@@ -303,7 +305,7 @@ updateFREM <- function(strFREMModel,strFREMData="",strFMEMData="",cstrContCovsTo
       ### Add new DVs for all individuals
       for (i in 1:length(iNewFremtypeDV)) {
         strDV<-cstrDV[length(iFremtypeDV)+i]
-        dfDVData<-dfFMEM[dfFMEM[[strDV]]!=-99,unique(c(names(dfFMEM)[names(dfFMEM) %in% names(dfFREM)],strDV)),] #Get the dataset with non-missing new DV values
+        dfDVData<-dfFFEM[dfFFEM[[strDV]]!=-99,unique(c(names(dfFFEM)[names(dfFFEM) %in% names(dfFREM)],strDV)),] #Get the dataset with non-missing new DV values
         if (nrow(dfDVData)==0) { #If no non-missing DVs
           printq(paste0("No observations for ",strDV," (fremtype=",iNewFremtypeDV[i],"); not adding any observations!"),quiet = quiet)
           warning(paste0("Note that it might be inconsistencies in DV fremtypes since fremtype ",iNewFremtypeDV[i]," is not present!"))
@@ -311,7 +313,7 @@ updateFREM <- function(strFREMModel,strFREMData="",strFMEMData="",cstrContCovsTo
           dfDVData$DV<-dfDVData[[strDV]]
           if (!(strDV %in% names(dfFREM))) dfDVData[[strDV]]<-NULL
           dfDVData$FREMTYPE<-iNewFremtypeDV[i]
-          if (length(names(dfDVData))==length(names(dfFREM)) && all(sort(names(dfDVData))==sort(names(dfFREM)))) { #If match in names between FREM and FMEM dataset
+          if (length(names(dfDVData))==length(names(dfFREM)) && all(sort(names(dfDVData))==sort(names(dfFREM)))) { #If match in names between FREM and FFEM dataset
             dfDVData<-dfDVData[,names(dfFREM)]
             dfAddList[[i]]<-dfDVData
             printq(paste0("Adding ",nrow(dfDVData)," observations (",strDV,") from ",nrow(dfDVData[!duplicated(dfDVData[[strID]]),]), " individuals as fremtype ",iNewFremtypeDV[i]),quiet = quiet)
@@ -329,6 +331,7 @@ updateFREM <- function(strFREMModel,strFREMData="",strFMEMData="",cstrContCovsTo
 
     ### Add old FREM variables for new individuals
     dfAddList<-list()
+    if (nrow(dataToAdd)>0) {
     for (i in 1:length(covnames$covNames)) { #For all existing covariates (fremtypes)
       strCov<-covnames$covNames[i]
       iFremtype=iFremTypeIncrease*i
@@ -363,6 +366,7 @@ updateFREM <- function(strFREMModel,strFREMData="",strFMEMData="",cstrContCovsTo
     #Add old Covariates (new individuals) to FREM dataset
     dfFREM<-rbind(dfFREM,as.data.frame(data.table::rbindlist(dfAddList)))
 
+    }
 
     dfAddList<-list()
     ### Add the new FREM variables to the FREM dataset, note the variables are not added as columns
@@ -394,7 +398,7 @@ updateFREM <- function(strFREMModel,strFREMData="",strFMEMData="",cstrContCovsTo
 
     #Writing the FREM dataset to disc!!
     dfFREM <- dfFREM %>% arrange(ID,AGE,FREMTYPE)
-    tmp <- dfFREM %>% select(one_of(cstrKeepCols))
+   # tmp <- dfFREM %>% select(one_of(cstrKeepCols))
 
     if (bWriteData) {
       write.csv(tmp,file=strNewFREMData,row.names = FALSE,quote = FALSE)
