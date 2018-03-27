@@ -3,6 +3,7 @@
 export(addFremCovariates)
 export(calcFFEM)
 export(calcParameters)
+export(createFREMData)
 export(createVPCdata)
 export(getCovNames)
 export(getExt)

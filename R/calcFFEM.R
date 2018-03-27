@@ -100,7 +100,7 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,dfe
       for(c in 1:ncol(COEFF)) {
         if(c==1) cat(parNames[p],":",sep="")
         if(length(availCov)==0) {
-          cat(paste("0","*","(",covNames[c],"-",paste(round(df_thm[c],3),")",sep=""),sep=""))
+            cat(paste("0","*","(",covNames[c],"-",paste(round(df_thm[c],3),")",sep=""),sep=""))
         } else {
           cat(paste(round(COEFF[p,c],3),"*","(",covNames[c],"-",paste(round(df_thm[c],3),")",sep=""),sep=""))
         }
@@ -117,7 +117,7 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,dfe
     myExpr[p] <- ""
     for(c in 1:ncol(COEFF)) {
       if(length(availCov)==0) {
-        myExpr[p] <- paste(myExpr[p],"0","*","(data$",covNames[c],"-",df_thm[c],")",sep="")
+          myExpr[p] <- paste(myExpr[p],"0","*","(data$",covNames[c],"-",df_thm[c],")",sep="")
       } else {
         myExpr[p] <- paste(myExpr[p],COEFF[p,c],"*","(data$",covNames[c],"-",df_thm[c],")",sep="")
       }
