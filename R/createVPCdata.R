@@ -7,8 +7,7 @@
 #' @param noBaseThetas The number of thetas in the base model, i.e. the number of non-covariate thetas.
 #' @param noSigmas The number of sigma parameters in the model (including the sigma(s) associated with the covariates).
 #' @param parNames Vector of the names of the parameters names in the base model, i.e. the names of the non-covariate parameters.
-#' @param dataFile The name of the data file used in the base model, i.e. the original data file.
-#' @param fremDataFile The name of the data file used in the frem model.
+#' @param dataFile The name of the data file used in the base model, i.e. the original data file, or a data.frame with the same data.
 #' @param newDataFile The name of a new data file with the FFEM columns added. Default is vpcData{runno}.csv. If NULL, will return a data frame with the data instead of writing it to disk.
 #' @param availCov The names of the covariates to use when computing the FFEM coefficients (using the FREM names, which will be different for categorical covaroates). Will use all covariates if NULL.
 #' @param idvar The name of the ID column,
@@ -58,8 +57,8 @@
 #'               parNames=c("BASE","PLMAX","HLKON","HLKOFF","BASSL","BP","BASEW","PLMAXW","HLKONW","HLKOFFW","BASSLW"),newDataFile="vpcData13.csv")
 #' }
 createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("BASE","PLMAX","HLKON","HLKOFF","BASSL"),
-                          dataFile,fremDataFile,newDataFile=paste("vpcData",runno,".csv",sep=""),availCov=NULL,idvar="ID",
-                          modDevDir=NULL,quiet=FALSE,cores=1,...) {
+                          dataFile,newDataFile=paste("vpcData",runno,".csv",sep=""),availCov=NULL,idvar="ID",
+                          modDevDir=NULL,quiet=FALSE,cores=1,dfext=NULL,...) {
   
   
   if(is.null(modDevDir)) {
@@ -84,9 +83,14 @@ createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("B
   fremCovs <- getCovNames(modFile)$polyCatCovs
   orgCovs  <- getCovNames(modFile)$orgCovNames
   
-  # It is much faster to send in extdf than to create it fo reach ID
-  theExtFile <- getExt(extFile)
-  
+  # It is much faster to send in extdf than to create it fo reach ID.
+  # Only read it from file if it isn't passed via dfext
+  if(is.null(dfext)) {
+    theExtFile <- getExt(extFile)
+  } else {
+    theExtFile <- dfext
+  }
+
   ## Run this to get the omega matrix to use in the vpc
   if(is.null(availCov)) availCov    <- covNames
   
@@ -94,9 +98,13 @@ createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("B
   
   ## Create a data set with all the original covariates + the frem-specific ones
   # Read the FFEM data set and rename the id column to ID (to simplify the coding below. The id column will get its original name in the new data file.)
-  data <- fread(dataFile,h=T,data.table=FALSE,showProgress=FALSE) %>% 
-    renameColumn(oldvar=idvar,newvar="ID")
-  
+  if(!is.data.frame(dataFile)) {
+    data <- fread(dataFile,h=T,data.table=FALSE,showProgress=FALSE) %>% 
+      renameColumn(oldvar=idvar,newvar="ID")
+  } else { ## The dataFile was supplied as a data frame and not a name
+    data <- dataFile %>% 
+      renameColumn(oldvar=idvar,newvar="ID")
+  }
   ## Add the FREM covariates to the data file
   data <- addFremCovariates(dfFFEM = data,modFile)
   
