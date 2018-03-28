@@ -397,12 +397,10 @@ updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsTo
 
 
     #Writing the FREM dataset to disc!!
-    dfFREM <- dfFREM %>% arrange(ID,AGE,FREMTYPE)
-   # tmp <- dfFREM %>% select(one_of(cstrKeepCols))
+    dfFREM <- dfFREM %>% arrange(ID,AGE,FREMTYPE) %>% select(one_of(cstrKeepCols))
 
     if (bWriteData) {
-      write.csv(tmp,file=strNewFREMData,row.names = FALSE,quote = FALSE)
-      #write.csv(dfFREM ,file=paste0(strNewFREMData,"_full"),row.names = FALSE,quote = FALSE)
+      write.csv(dfFREM,file=strNewFREMData,row.names = FALSE,quote = FALSE)
     }
 
   }
