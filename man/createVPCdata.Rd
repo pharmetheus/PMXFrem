@@ -6,9 +6,9 @@
 \usage{
 createVPCdata(runno, modName = NULL, noBaseThetas, noSigmas,
   parNames = c("BASE", "PLMAX", "HLKON", "HLKOFF", "BASSL"), dataFile,
-  fremDataFile, newDataFile = paste("vpcData", runno, ".csv", sep = ""),
-  availCov = NULL, idvar = "ID", modDevDir = NULL, quiet = FALSE,
-  cores = 1, ...)
+  newDataFile = paste("vpcData", runno, ".csv", sep = ""), availCov = NULL,
+  idvar = "ID", modDevDir = NULL, quiet = FALSE, cores = 1,
+  dfext = NULL, ...)
 }
 \arguments{
 \item{runno}{The run number to use to construct the file names (see Details).}
@@ -21,9 +21,7 @@ createVPCdata(runno, modName = NULL, noBaseThetas, noSigmas,
 
 \item{parNames}{Vector of the names of the parameters names in the base model, i.e. the names of the non-covariate parameters.}
 
-\item{dataFile}{The name of the data file used in the base model, i.e. the original data file.}
-
-\item{fremDataFile}{The name of the data file used in the frem model.}
+\item{dataFile}{The name of the data file used in the base model, i.e. the original data file, or a data.frame with the same data.}
 
 \item{newDataFile}{The name of a new data file with the FFEM columns added. Default is vpcData{runno}.csv. If NULL, will return a data frame with the data instead of writing it to disk.}
 

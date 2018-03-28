@@ -6,7 +6,9 @@
 \usage{
 createFREMData(strFREMData = "", strFFEMData = "", quiet = TRUE,
   strID = "ID", cstrKeepCols = c("ID", "ID2", "AGE", "DV", "BIRTHWT",
-  "BIRTHLEN", "SEXN", "FREMTYPE"), cstrDV = "DV")
+  "BIRTHLEN", "SEXN", "FREMTYPE"), cstrDV = "DV", cstrContCovs = NULL,
+  cstrCatCovs = NULL, bRecodeDichotomous = TRUE, cSortCols = c("ID",
+  "AGE", "FREMTYPE"), cSortDirection = c(1, 1, -1), cFremtypes = NULL)
 }
 \arguments{
 \item{strFREMData}{Name of FREM-dataset to create.}
@@ -18,6 +20,18 @@ createFREMData(strFREMData = "", strFFEMData = "", quiet = TRUE,
 \item{cstrKeepCols}{A vector of columns to keep in the dataset (for the updated new dataset).}
 
 \item{cstrDV}{A vector of strings with DV variables that should be added, default="HAZ" (i.e. HAZ assumed fremtype=0), additional DVs are added with fremtype 1,2,3...etc.}
+
+\item{cstrContCovs}{A vector of strings with continuous covariates to create. Default=NULL, i.e. no continous covariates will be added}
+
+\item{cstrCatCovs}{A vector of strings with categorical covariates to create. Default=NULL, i.e. no categorical covariates will be added}
+
+\item{bRecodeDichotomous}{Set to true if dichotomous covariates should be re-scaled to 1,0. E.g. if set to TRUE and SEX is coded as 1 or 2, a new variable SEXN_2 will be created with the values of 0 or 1. Only applicable if cstrCatCov is not zero and at least one of the cat covariates is dichotomous}
+
+\item{cSortCols}{The column names to sort by (must  be present in cstrKeepCols)}
+
+\item{cSortDirection}{The sort column order, ascending = 1, descending = -1, must be the same length as cSortCols}
+
+\item{cFremtypes}{A vector of FREMTYPE values that each DV and covariate should use. The order should be: DV variables, continuous covariates, categorical covariates. Default=NULL, i.e.FREMTYPE of DV1=0, DV2=1,..,CONT1=100, ..CONTN=N*100, CAT1=(N+1+NumLevels1)*100, CATM=(N+M*NumLevelsM)*100}
 
 \item{strFMEMData}{Name of FFEM-dataset (normal dataset) that will be used to create the FREM-dataset.}
 }

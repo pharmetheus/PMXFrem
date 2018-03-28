@@ -6,7 +6,7 @@
 \usage{
 calcParameters(runno, modName = NULL, modDevDir, noBaseThetas,
   noEtas = noBaseThetas, noSigmas = 2, noParCov = noEtas, dataFile,
-  fremDataFile, parTab, parNames, availCov = NULL, cores = 4)
+  parTab, parNames, availCov = NULL, cores = 4, ...)
 }
 \arguments{
 \item{runno}{The run number to use to construct the file names (see Details).}
@@ -23,7 +23,7 @@ calcParameters(runno, modName = NULL, modDevDir, noBaseThetas,
 
 \item{noParCov}{Number of parameters for which covariate relations are sought (often the same as noBaseThetas).}
 
-\item{dataFile}{The name of the data file used in the base model, i.e. the original data file.}
+\item{dataFile}{The name of the data file used in the base model, i.e. the original data file, or a data,frame with the same data.}
 
 \item{parTab}{The path to a NONMEM table file that should contain at least the columns ID, TVPAR names and etas (see Details).}
 
@@ -32,8 +32,6 @@ calcParameters(runno, modName = NULL, modDevDir, noBaseThetas,
 \item{availCov}{NULL, "none" or a vector of strings specifying the covariates to compute the covariate effects for.}
 
 \item{cores}{The number of cores to use for the calculation of the covariate effects.}
-
-\item{fremData}{File The name of the data file used for the frem model.}
 }
 \value{
 A three element list: tvpar, etas and covs. Each of the elements is a data.frame with the same number of rows as parTab.
@@ -62,7 +60,6 @@ tmp <- calcParameters(45,modDevDir="/PMX/Projects/Pharmetheus/PMX-FREMPRES-PMX-1
 parNames = c("CL","V1","Q","V2","VM","KM","MIX"),
 parTab = "/PMX/Projects/Pharmetheus/PMX-FREMPRES-PMX-1/Analysis/Model/Tanezumab/xptab45",
 dataFile="/PMX/Projects/Pharmetheus/PMX-FREMPRES-PMX-1/Analysis/ProducedData/Dataset/tanezumabFREMPresData3.csv",
-fremDataFile="/PMX/Projects/Pharmetheus/PMX-FREMPRES-PMX-1/Analysis/Model/Tanezumab/frem44.dir/frem_dataset.dta",
 availCov="LBBSA",cores=4)
 }
 }
