@@ -95,7 +95,7 @@ createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("B
   if(is.null(availCov)) availCov    <- covNames
   
   tmp <- calcFFEM(noBaseThetas=noBaseThetas,noCovThetas=length(covNames),noSigmas,dfext=theExtFile,parNames=parNames,covNames=covNames,availCov=availCov,quiet=quiet,...)
-  
+  browser()
   ## Create a data set with all the original covariates + the frem-specific ones
   # Read the FFEM data set and rename the id column to ID (to simplify the coding below. The id column will get its original name in the new data file.)
   if(!is.data.frame(dataFile)) {

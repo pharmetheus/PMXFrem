@@ -5,6 +5,7 @@
 #' @param noCovThetas  Number of FREM covariates that are tested, i.e. number of thetas associated with covariate effects.
 #' @param noSigmas  Number of sigma (epsilon) parameters in the model.
 #' @param noParCov Number of parameters for which covariate relations are sought (often the same as noBaseThetas).
+#' @param noSkipOm Number of omegas that should not be part of the FREM calculations. Such omegas has to come before the large FREM omega block.
 #' @param dfExt A data frame of the ext file for the model. In case of mutiple $EST, the dfext should contain the estimates of the *one* relevant $EST.
 #' @param parNames Names of the parameters
 #' @param covNames Names of the covariates
@@ -22,7 +23,7 @@
 #' covList <- getCovNames(modFile="fremModel.mod")
 #' }
 
-calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,dfext,
+calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noSkipOm=0,dfext,
                      parNames=paste("Par",1:noParCov,sep=""),covNames=paste("Cov",1:noCovThetas,sep=""),
                      availCov=covNames,quiet=FALSE) {
 
@@ -50,13 +51,14 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,dfe
   df_th  <- as.numeric(dfext[,2:(noBaseThetas+1)])
   df_thm <- as.numeric(dfext[,(noBaseThetas+2):(noBaseThetas+1+noCovThetas)])
   #df_om  <- as.numeric(dfext[,(noBaseThetas+5+noCovThetas):(noBaseThetas+4+noCovThetas+iNumFREMOM)])
-  df_om  <- as.numeric(dfext[,(noBaseThetas+iNumSigma+2+noCovThetas):(ncol(dfext)-1)])
+  df_om  <- as.numeric(dfext[,(noBaseThetas+iNumSigma+2+noCovThetas+noSkipOm):(ncol(dfext)-1)])
 
   num_om <- -1/2+sqrt(1/4+2*iNumFREMOM)
 
  # transformed_params <- data.frame()
   om_matrix          <- as.numeric(df_om)
 
+  browser()
   #Get the om-matrix
   OM                             <- matrix(0, nrow=num_om, ncol=num_om) #Define an empty matrix
   OM[upper.tri(OM,diag = TRUE)]  <- om_matrix #Assign upper triangular + diag
