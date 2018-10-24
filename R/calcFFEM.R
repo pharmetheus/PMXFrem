@@ -58,7 +58,6 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noS
  # transformed_params <- data.frame()
   om_matrix          <- as.numeric(df_om)
 
-  browser()
   #Get the om-matrix
   OM                             <- matrix(0, nrow=num_om, ncol=num_om) #Define an empty matrix
   OM[upper.tri(OM,diag = TRUE)]  <- om_matrix #Assign upper triangular + diag

@@ -25,7 +25,7 @@ calcParameters(runno, modName = NULL, modDevDir, noBaseThetas,
 
 \item{dataFile}{The name of the data file used in the base model, i.e. the original data file, or a data,frame with the same data.}
 
-\item{parTab}{The path to a NONMEM table file that should contain at least the columns ID, TVPAR names and etas (see Details).}
+\item{parTab}{NULL or the path to a NONMEM table file that should contain at least the columns ID, TVPAR names and etas (see Details).}
 
 \item{parNames}{Vector of the names of the parameters names in the base model, i.e. the names of the non-covariate parameters.}
 
@@ -42,6 +42,8 @@ Collects the typical individual parameters, etas and covariate effects from a FR
 \details{
 The function will generate three data.frames (returned as a list) with the typical individual parameters, etas and covariate effects for the specified 
 covariates (availCov). 
+
+If parTab is NULL, the tvpar and etas components of the returned list will be NULL.
 
 The typical parameters have to be named "TV" followed by the names in parNames. E.g. if one element in parNames is CL, then the 
 corresponding typical individual parameter name should be TVCL. Unless the model includes structural covariates (covairiates that are included in the model "outside" the
