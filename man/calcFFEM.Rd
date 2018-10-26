@@ -4,9 +4,10 @@
 \alias{calcFFEM}
 \title{calcFFEM}
 \usage{
-calcFFEM(noBaseThetas, noCovThetas, noSigmas, noParCov = noBaseThetas, dfext,
-  parNames = paste("Par", 1:noParCov, sep = ""), covNames = paste("Cov",
-  1:noCovThetas, sep = ""), availCov = covNames, quiet = FALSE)
+calcFFEM(noBaseThetas, noCovThetas, noSigmas, noParCov = noBaseThetas,
+  noSkipOm = 0, dfext, parNames = paste("Par", 1:noParCov, sep = ""),
+  covNames = paste("Cov", 1:noCovThetas, sep = ""), availCov = covNames,
+  quiet = FALSE)
 }
 \arguments{
 \item{noBaseThetas}{Number of thetas that are not covariates}
@@ -16,6 +17,8 @@ calcFFEM(noBaseThetas, noCovThetas, noSigmas, noParCov = noBaseThetas, dfext,
 \item{noSigmas}{Number of sigma (epsilon) parameters in the model.}
 
 \item{noParCov}{Number of parameters for which covariate relations are sought (often the same as noBaseThetas).}
+
+\item{noSkipOm}{Number of omegas that should not be part of the FREM calculations. Such omegas has to come before the large FREM omega block.}
 
 \item{parNames}{Names of the parameters}
 

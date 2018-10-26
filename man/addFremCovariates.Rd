@@ -15,7 +15,7 @@ addFremCovariates(dfFFEM, modFile)
 A data frame
 }
 \description{
-Adds the FREM covariates to teh FFEM file. Internal function
+Adds the FREM covariates to the FFEM file. Internal function
 }
 \examples{
 \dontrun{

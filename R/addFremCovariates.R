@@ -1,6 +1,6 @@
 #' addFremCovariates
 #'
-#' @description Adds the FREM covariates to teh FFEM file. Internal function
+#' @description Adds the FREM covariates to the FFEM file. Internal function
 #' @param dfFFEM Data frame with FFEM data
 #' @param modFile name of the FREM model file.
 #'

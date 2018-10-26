@@ -4,21 +4,22 @@
 \alias{updateFREM}
 \title{updateFREM}
 \usage{
-updateFREM(strFREMModel, strFREMData = "", strFMEMData = "",
+updateFREM(strFREMModel, strFREMData = "", strFFEMData = "",
   cstrContCovsToAdd = NULL, cstrCatCovsToAdd = NULL,
   cstrCovsToAddOrder = NULL, strNewFREMData = NULL,
   strUpdateType = "OldInits", quiet = TRUE, strID = "ID",
   basenames = c("BASE", "PLMAX", "HLKON", "HLKOFF", "BASSL", "BP", "BASEWHZ",
   "PLMAXWHZ", "HLKONWHZ", "HLKOFFWHZ", "BASSLWHZ"), cstrKeepCols = c("ID",
   "SUBJID", "SITEID", "AGE", "AGEYI", "DV", "FREMTYPE"), bWriteData = TRUE,
-  bWriteFIX = TRUE, cstrDV = "DV", cstrRemoveCov = NULL, covEpsNum = 2)
+  bWriteFIX = TRUE, cstrDV = "DV", cstrRemoveCov = NULL, covEpsNum = 2,
+  overrideExistingCheck = FALSE)
 }
 \arguments{
 \item{strFREMModel}{File name of the FREM-model to append covariates to.}
 
 \item{strFREMData}{Name of FREM-dataset to append covariates to (not used with strUpdateType "NoData").}
 
-\item{strFMEMData}{Name of FFEM-dataset (normal dataset) that will be used to append the FREM-dataset, (not used with strUpdateType "NoData").}
+\item{strFFEMData}{Name of FFEM-dataset (normal dataset) that will be used to append the FREM-dataset, (not used with strUpdateType "NoData").}
 
 \item{cstrContCovsToAdd}{A vector of continuous covariate names to add, default = NULL, (not used with strUpdateType "NoData").}
 
@@ -34,7 +35,7 @@ Note: if used, this should contain all covariates in cstrCatCovsToAdd as well as
 
 \item{quiet}{If set to FALSE, the function outputs verbose information on what it is doing.}
 
-\item{strID}{A string with the ID identifier column in the FMEM dataset.}
+\item{strID}{A string with the ID identifier column in the FFEM dataset.}
 
 \item{basenames}{A vector of strings with the names of the base variables (used for commenting), should be the same length as number of base thetas in the model, if NULL, BASE1,BASE2,etc are used as names.}
 
@@ -50,6 +51,8 @@ Note: if used, this should contain all covariates in cstrCatCovsToAdd as well as
 Note that if this functionality is used to remove the last existing category of a categorical covariate, this should be done by removing the orginal name of the covariate and not the specific categorical covariate, i.e. "SITEID" instead of "SITEID_1" to ensure consistent renumbering of FREMTYPEs}
 
 \item{covEpsNum}{The number of the epsilons parameter to be used for the covariates.}
+
+\item{overrideExistingCheck}{If TRUE, the existing check will be overriden and covariates will be added even though they are present in $DATA of the modefile}
 }
 \value{
 Will write a new fremdata set to disc. WIll also write a stub model file with the new covariates and initial estimates (the name will be runX_new.txt).
@@ -61,14 +64,14 @@ Appends or removes covariates in a FREM data set and FREM model.
 \dontrun{
 ## Adding CHLDADLT, FAGE, FHTCM, INCTOT, NROOMS, SMOKED
 updateFREM(strFREMModel="run21.mod",
-           strFREMData="fremData20.csv",strFMEMData="../../ProducedData/Dataset/smv1DatasetWHZ3.csv",cstrRemoveCov=NULL,cstrCatCovsToAdd=c("INCTOT", "SMOKED"),
+           strFREMData="fremData20.csv",strFFEMData="../../ProducedData/Dataset/smv1DatasetWHZ3.csv",cstrRemoveCov=NULL,cstrCatCovsToAdd=c("INCTOT", "SMOKED"),
            cstrContCovsToAdd=c("CHLDADLT", "FAGE", "FHTCM","NROOMS"),strID="ID",
            strNewFREMData="fremData21.csv",bWriteData = TRUE,quiet=F,bWriteFIX = TRUE,cstrKeepCols=c("ID","SUBJID","SITEID","AGE","AGEYI","DV","FREMTYPE","HO","TYPE"),
            covEpsNum=3)
 
 # Removing MMARITN
 updateFREM(strFREMModel="run48.mod",
-           strFREMData="frem_dataset_run47small.csv",strFMEMData="../../ProducedData/Dataset/smv1Dataset16small.csv",cstrRemoveCov=c("MMARITN"),cstrCatCovsToAdd=NULL,cstrContCovsToAdd=NULL,strID="ID",
+           strFREMData="frem_dataset_run47small.csv",strFFEMData="../../ProducedData/Dataset/smv1Dataset16small.csv",cstrRemoveCov=c("MMARITN"),cstrCatCovsToAdd=NULL,cstrContCovsToAdd=NULL,strID="ID",
            strNewFREMData="frem_dataset_run48small.csv",bWriteData = TRUE,quiet=F,bWriteFIX = TRUE)
            
 ## Only updating the initial estimates
