@@ -1,7 +1,7 @@
 #' createFREMData
 #'
 #' @description Creates a FREM dataset from a standard NONMEM dataset. Only the basic DV are added (FREMTYPE=0)
-#' @param strFREMData Name of FREM-dataset to create.
+#' @param strFREMData Name of FREM-dataset to create. Default=NULL => no dataset is written to disc
 #' @param strFMEMData Name of FFEM-dataset (normal dataset) that will be used to create the FREM-dataset.
 #' @param quiet If set to FALSE, the function outputs verbose information on what it is doing.
 #' @param strID A string with the ID identifier column in the FMEM dataset.
@@ -14,13 +14,13 @@
 #' @param cSortDirection The sort column order, ascending = 1, descending = -1, must be the same length as cSortCols
 #' @param cFremtypes A vector of FREMTYPE values that each DV and covariate should use. The order should be: DV variables, continuous covariates, categorical covariates. Default=NULL, i.e.FREMTYPE of DV1=0, DV2=1,..,CONT1=100, ..CONTN=N*100, CAT1=(N+1+NumLevels1)*100, CATM=(N+M*NumLevelsM)*100
 #'
-#' @return Will write a new fremdata set to disc.
+#' @return Will write a new fremdata set to disc if strFREMData is not NULL and return the FREM dataframe
 #' @export
 #'
 #' @examples
 #' \dontrun{
 #' }
-createFREMData <- function(strFREMData="",strFFEMData="",quiet=TRUE,strID="ID",
+createFREMData <- function(strFREMData=NULL,strFFEMData="",quiet=TRUE,strID="ID",
                        cstrKeepCols=c("ID","ID2","AGE","DV","BIRTHWT","BIRTHLEN","SEXN","FREMTYPE"),cstrDV="DV",
                        cstrContCovs=NULL, cstrCatCovs=NULL, bRecodeDichotomous=TRUE,
                        cSortCols=c("ID","AGE","FREMTYPE"), cSortDirection=c(1,1,-1),
@@ -58,11 +58,9 @@ createFREMData <- function(strFREMData="",strFFEMData="",quiet=TRUE,strID="ID",
     stop("Cannot find FFEM dataset: ",strFFEMData)
   }
   
-  
   printq(paste0("Read the FFEM dataset, consisting of ",ncol(dfFFEM)," columns and ",nrow(dfFFEM)," rows"),quiet = quiet)
   
 
-  
   dfAddList<-list()
       ### Add new DVs for all individuals
       for (i in 1:length(cstrDV)) {
@@ -160,6 +158,9 @@ createFREMData <- function(strFREMData="",strFFEMData="",quiet=TRUE,strID="ID",
   }
   
   dfFREM<-dfFREM[,cstrKeepCols] #Only keep the specified columns
+  if (!is.null(strFREMData)) {
+    write.csv(dfFREM,file=strFREMData,row.names = FALSE,quote = FALSE)
+  }
   
-  write.csv(dfFREM,file=strFREMData,row.names = FALSE,quote = FALSE)
+  return(dfFREM)
 }
