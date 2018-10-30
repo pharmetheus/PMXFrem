@@ -4,14 +4,14 @@
 \alias{createFREMData}
 \title{createFREMData}
 \usage{
-createFREMData(strFREMData = "", strFFEMData = "", quiet = TRUE,
+createFREMData(strFREMData = NULL, strFFEMData = "", quiet = TRUE,
   strID = "ID", cstrKeepCols = c("ID", "ID2", "AGE", "DV", "BIRTHWT",
   "BIRTHLEN", "SEXN", "FREMTYPE"), cstrDV = "DV", cstrContCovs = NULL,
   cstrCatCovs = NULL, bRecodeDichotomous = TRUE, cSortCols = c("ID",
   "AGE", "FREMTYPE"), cSortDirection = c(1, 1, -1), cFremtypes = NULL)
 }
 \arguments{
-\item{strFREMData}{Name of FREM-dataset to create.}
+\item{strFREMData}{Name of FREM-dataset to create. Default=NULL => no dataset is written to disc}
 
 \item{quiet}{If set to FALSE, the function outputs verbose information on what it is doing.}
 
@@ -36,7 +36,7 @@ createFREMData(strFREMData = "", strFFEMData = "", quiet = TRUE,
 \item{strFMEMData}{Name of FFEM-dataset (normal dataset) that will be used to create the FREM-dataset.}
 }
 \value{
-Will write a new fremdata set to disc.
+Will write a new fremdata set to disc if strFREMData is not NULL and return the FREM dataframe
 }
 \description{
 Creates a FREM dataset from a standard NONMEM dataset. Only the basic DV are added (FREMTYPE=0)
