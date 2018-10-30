@@ -14,8 +14,11 @@
 #' ## To extract the final parameter estimates
 #' dfext    <- subset(getExt(extFile = "myExtFile.ext"),ITERATION=="-1000000000")
 #' }                                     
+
+                                        
 mvrnorm_vector <- function(mu,sigma,fixed_mu=NULL,dSeed=NULL,iSampleIndex=1)
  {
+  
   ####################################################################################
   ##
   ## Generate a vector of multivariate samples,
@@ -29,13 +32,14 @@ mvrnorm_vector <- function(mu,sigma,fixed_mu=NULL,dSeed=NULL,iSampleIndex=1)
   ##
   ## by Joakim Nyberg 2014
   ####################################################################################
-     require(MASS) #For mvrnorm
+   require(MASS) #For mvrnorm
    if (iSampleIndex==0) return (mu)
    if (is.null(fixed_mu)) fixed_mu<-rep(0,length(mu))
    tmp_mu<-mu[which(fixed_mu==0)] #Get the non-fixed mu
    if (!is.null(dSeed)) set.seed(dSeed)
    samples<-mvrnorm(n=iSampleIndex,tmp_mu,sigma)
-   if (iSampleIndex==1) mu[which(fixed_mu==0)]<-samples
-   if (iSampleIndex!=1) mu[which(fixed_mu==0)]<-samples[iSampleIndex,]
-   return (mu)
+   #if (iSampleIndex==1) mu[which(fixed_mu==0)]<-samples
+   #if (iSampleIndex!=1) mu[which(fixed_mu==0)]<-samples[iSampleIndex,]
+   return (samples)
  }
+
