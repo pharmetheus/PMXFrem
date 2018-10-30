@@ -6,6 +6,7 @@
 #' @param functionListName A vector of strings (names) of the parameters for each function in the functionList
 #' @param nobaseThetas the number of structural thetas in the model
 #' @param dfParameters A data frame with parameter samples from the uncertainty distribution. The final estimate vector is assumed to be at the first row. The column order is assumed the same as in the NONMEM ext file except the ITERATION and OBJ columns which are not expected.
+#' @param probs A vector of probabilities (uncertainty of the parameters)
 #' @param dfRefRow A data frame (one row) with the covariate values that will be used as the reference, if NULL the typical subject is used as reference
 
 #' 

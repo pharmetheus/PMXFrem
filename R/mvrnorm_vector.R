@@ -20,7 +20,7 @@ mvrnorm_vector <- function(mu,sigma,fixed_mu=NULL,dSeed=NULL,iSampleIndex=1)
    tmp_mu<-mu[which(fixed_mu==0)] #Get the non-fixed mu
    if (!is.null(dSeed)) set.seed(dSeed)
    samples<-mvrnorm(n=iSampleIndex,tmp_mu,sigma)
-   if (iSampleIndex==1) mu[which(fixed_mu==0)]<-samples
-   if (iSampleIndex!=1) mu[which(fixed_mu==0)]<-samples[iSampleIndex,]
-   return (mu)
+   #if (iSampleIndex==1) mu[which(fixed_mu==0)]<-samples
+   #if (iSampleIndex!=1) mu[which(fixed_mu==0)]<-samples[iSampleIndex,]
+   return (samples)
  }
