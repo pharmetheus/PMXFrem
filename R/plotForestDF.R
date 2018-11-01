@@ -8,6 +8,7 @@
 #' @param decdig number of digits after the comma in the CI table, only used with addTable = TRUE, default=2 
 #' @param percentscalexmax increase of xmax, default 1.5 (fraction of x-axis), only used with addTable = TRUE
 #' @param xtextoffset textoffset, default 0.25 on x-axis scale, only used with addTable = TRUE
+#' @param xtextoffsetpercent default = 1.1, used in addTable = TRUE
 #' @param vlinecol color of vertical reference line, default "lightgrey"
 #' @param vlinesize size of vertical reference line, default 1.5
 #' @param pointsize size of geom point (e.g. median value), default 3
@@ -19,7 +20,7 @@
 #'
 #' @examples
 plotForestDF <-function(df,plotRelative=TRUE,addTable=TRUE,strxlab="Covariate-Parameter effect",strylab="",decdig=2,
-                        percentscalexmax=1.5,xtextoffset=0.25,vlinecol="lightgrey",vlinesize=1.5,pointsize=3,errorbarsize=1,
+                        percentscalexmax=1.5,xtextoffset=0.25,xtextoffsetpercent=1.1,vlinecol="lightgrey",vlinesize=1.5,pointsize=3,errorbarsize=1,
                         freescalex_wrap=(!plotRelative || addTable))
 {
   
