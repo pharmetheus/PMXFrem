@@ -6,9 +6,9 @@
 \usage{
 plotForestDF(df, plotRelative = TRUE, addTable = TRUE,
   strxlab = "Covariate-Parameter effect", strylab = "", decdig = 2,
-  percentscalexmax = 1.5, xtextoffset = 0.25, vlinecol = "lightgrey",
-  vlinesize = 1.5, pointsize = 3, errorbarsize = 1,
-  freescalex_wrap = (!plotRelative || addTable))
+  percentscalexmax = 1.5, xtextoffset = 0.25, xtextoffsetpercent = 1.1,
+  textsize = 1, vlinecol = "lightgrey", vlinesize = 1.5, pointsize = 3,
+  errorbarsize = 1, freescalex_wrap = (!plotRelative || addTable))
 }
 \arguments{
 \item{df}{the forest plot data frame, should be based on a call to getForestDF or manually created accfording to the getForestDF structure}
@@ -26,6 +26,10 @@ plotForestDF(df, plotRelative = TRUE, addTable = TRUE,
 \item{percentscalexmax}{increase of xmax, default 1.5 (fraction of x-axis), only used with addTable = TRUE}
 
 \item{xtextoffset}{textoffset, default 0.25 on x-axis scale, only used with addTable = TRUE}
+
+\item{xtextoffsetpercent}{default = 1.1, scale the xaxis by the fraction, only used if addTable = TRUE}
+
+\item{textsize}{default = 1, text size of the CI text, only used if addTable = TRUE}
 
 \item{vlinecol}{color of vertical reference line, default "lightgrey"}
 

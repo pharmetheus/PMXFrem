@@ -8,7 +8,8 @@
 #' @param decdig number of digits after the comma in the CI table, only used with addTable = TRUE, default=2 
 #' @param percentscalexmax increase of xmax, default 1.5 (fraction of x-axis), only used with addTable = TRUE
 #' @param xtextoffset textoffset, default 0.25 on x-axis scale, only used with addTable = TRUE
-#' @param xtextoffsetpercent default = 1.1, used in addTable = TRUE
+#' @param xtextoffsetpercent default = 1.1, scale the xaxis by the fraction, only used if addTable = TRUE
+#' @param textsize default = 6, text size of the CI text, only used if addTable = TRUE
 #' @param vlinecol color of vertical reference line, default "lightgrey"
 #' @param vlinesize size of vertical reference line, default 1.5
 #' @param pointsize size of geom point (e.g. median value), default 3
@@ -20,7 +21,7 @@
 #'
 #' @examples
 plotForestDF <-function(df,plotRelative=TRUE,addTable=TRUE,strxlab="Covariate-Parameter effect",strylab="",decdig=2,
-                        percentscalexmax=1.5,xtextoffset=0.25,xtextoffsetpercent=1.1,vlinecol="lightgrey",vlinesize=1.5,pointsize=3,errorbarsize=1,
+                        percentscalexmax=1.5,xtextoffset=0.25,xtextoffsetpercent=1.1,textsize=6,vlinecol="lightgrey",vlinesize=1.5,pointsize=3,errorbarsize=1,
                         freescalex_wrap=(!plotRelative || addTable))
 {
   
@@ -58,10 +59,10 @@ plotForestDF <-function(df,plotRelative=TRUE,addTable=TRUE,strxlab="Covariate-Pa
   if (addTable) { #Insert CI table
 
     if (plotRelative) {
-      p<-p+geom_text(aes(y=Y,x=XMAX+xtextoffset,label=paste0(formatC(q2/REFMEDIAN,format="f",decdig)," [",formatC(q1/REFMEDIAN,format="f",decdig)," - ",formatC(q3/REFMEDIAN,format="f",decdig),"]")),hjust = 0)
+      p<-p+geom_text(aes(y=Y,x=XMAX+xtextoffset,label=paste0(formatC(q2/REFMEDIAN,format="f",decdig)," [",formatC(q1/REFMEDIAN,format="f",decdig)," - ",formatC(q3/REFMEDIAN,format="f",decdig),"]")),hjust = 0,size=textsize)
       p<-p+geom_segment(aes(y=Y,x=q1/REFMEDIAN,yend=Y,xend=q3/REFMEDIAN*percentscalexmax),color="NA")
     } else {
-      p<-p+geom_text(aes(y=Y,x=XMAX*xtextoffsetpercent,label=paste0(formatC(q2,format="f",decdig)," [",formatC(q1,format="f",decdig)," - ",formatC(q3,format="f",decdig),"]")),hjust = 0)
+      p<-p+geom_text(aes(y=Y,x=XMAX*xtextoffsetpercent,label=paste0(formatC(q2,format="f",decdig)," [",formatC(q1,format="f",decdig)," - ",formatC(q3,format="f",decdig),"]")),hjust = 0,size=textsize)
       p<-p+geom_segment(aes(y=Y,x=q1,yend=Y,xend=q3*percentscalexmax),color="NA")
     }
   }
