@@ -4,15 +4,19 @@
 \alias{getForestDF}
 \title{getForestDF()}
 \usage{
-getForestDF(dfCovs, functionList = list(function(thetas, coveffects, ...) {   
-   return(thetas[1] * exp(coveffects[1])) }), functionListName = "PAR1",
-  noBaseThetas, noCovThetas, noSigmas, noParCov = noBaseThetas, dfParameters,
+getForestDF(dfCovs, cdfCovsNames = NULL,
+  functionList = list(function(thetas, coveffects, ...) {     return(thetas[1]
+  * exp(coveffects[1])) }), functionListName = "PAR1", noBaseThetas,
+  noCovThetas, noSigmas, noParCov = noBaseThetas, dfParameters,
   parNames = paste("Par", 1:noParCov, sep = ""), covNames = paste("Cov",
   1:noCovThetas, sep = ""), availCov = covNames, quiet = FALSE,
-  probs = c(0.025, 0.5, 0.0975), dfRefRow = NULL)
+  probs = c(0.025, 0.5, 0.975), dfRefRow = NULL, cGrouping = NULL,
+  fixedSpacing = TRUE, groupdist = 0.2, withingroupdist = 0.1)
 }
 \arguments{
 \item{dfCovs}{A data frame with covariates to include, if a covariate value is set -99 or NA, they are assumed missing and hence not include in the FFEM transformations}
+
+\item{cdfCovsNames}{A string vector}
 
 \item{functionList}{A list of functions with input (thetas, coveffects and ...) for in which the change from the reference value will be calculated}
 
@@ -20,11 +24,21 @@ getForestDF(dfCovs, functionList = list(function(thetas, coveffects, ...) {
 
 \item{dfParameters}{A data frame with parameter samples from the uncertainty distribution. The final estimate vector is assumed to be at the first row. The column order is assumed the same as in the NONMEM ext file except the ITERATION and OBJ columns which are not expected.}
 
+\item{quiet}{If output should be allowed during the function call, default= FALSE,}
+
 \item{probs}{A vector of probabilities (uncertainty of the parameters)}
 
 \item{dfRefRow}{A data frame (one row) with the covariate values that will be used as the reference, if NULL the typical subject is used as reference}
 
+\item{cGrouping}{A vector of numbers on how to group the y-axis of the forest plot, the length of the vector should match the number of rows in dfCovs. If NULL (default) a educated guess of the grouping will be set}
+
+\item{fixedSpacing}{A boolean (TRUE/FALSE) if fixed spacing between covariate groups should be applied, otherwise the y coordinates are calculated relative to the number of groups and numbers of covriates within a group. If fixed spacing are used, groupdist and withingroupdist will be used as well.}
+
 \item{nobaseThetas}{the number of structural thetas in the model}
+
+\item{groupeddist}{A number defining the y distance between groups of covariates}
+
+\item{withingroupeddist}{A number defining the y distance within groups of covariates}
 }
 \value{
 a data frame with summary statistics for each parameters and covariate combinations:
