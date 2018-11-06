@@ -7,7 +7,7 @@
 plotForestDF(df, plotRelative = TRUE, addTable = TRUE,
   strxlab = "Covariate-Parameter effect", strylab = "", decdig = 2,
   percentscalexmax = 1.5, xtextoffset = 0.25, xtextoffsetpercent = 1.1,
-  textsize = 1, vlinecol = "lightgrey", vlinesize = 1.5, pointsize = 3,
+  textsize = 6, vlinecol = "lightgrey", vlinesize = 1.5, pointsize = 3,
   errorbarsize = 1, freescalex_wrap = (!plotRelative || addTable))
 }
 \arguments{
@@ -29,7 +29,7 @@ plotForestDF(df, plotRelative = TRUE, addTable = TRUE,
 
 \item{xtextoffsetpercent}{default = 1.1, scale the xaxis by the fraction, only used if addTable = TRUE}
 
-\item{textsize}{default = 1, text size of the CI text, only used if addTable = TRUE}
+\item{textsize}{default = 6, text size of the CI text, only used if addTable = TRUE}
 
 \item{vlinecol}{color of vertical reference line, default "lightgrey"}
 
@@ -46,4 +46,9 @@ a ggplot2 object with a forest plot
 }
 \description{
 plotForestDF()
+}
+\examples{
+#' \dontrun{
+p <- plotForestDF()
+}
 }

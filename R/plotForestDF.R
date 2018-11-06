@@ -20,6 +20,9 @@
 #' @export
 #'
 #' @examples
+#' #' \dontrun{
+#' p <- plotForestDF()
+#' }
 plotForestDF <-function(df,plotRelative=TRUE,addTable=TRUE,strxlab="Covariate-Parameter effect",strylab="",decdig=2,
                         percentscalexmax=1.5,xtextoffset=0.25,xtextoffsetpercent=1.1,textsize=6,vlinecol="lightgrey",vlinesize=1.5,pointsize=3,errorbarsize=1,
                         freescalex_wrap=(!plotRelative || addTable))

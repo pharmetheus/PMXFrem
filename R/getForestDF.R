@@ -55,7 +55,7 @@ getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(thet
   counter<-1
   for (k in 1:nrow(dfParameters)) {
     dfext<-cbind(first = 0, dfParameters[k,]) #Dummy to get same format as ext file
-    thetas=as.numeric(dfext[2:noBaseThetas])
+    thetas=as.numeric(dfext[2:(noBaseThetas+1)])
     for (i in 1:nrow(dfCovs)) {
       currentNames<-names(dfCovs[i,])[as.numeric(dfCovs[i,])!=-99]
       if (any(!currentNames %in% covNames$covNames)) {
