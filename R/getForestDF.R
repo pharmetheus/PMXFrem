@@ -3,7 +3,7 @@
 #' @description Get a data frame with Forest border for each univariate or multivariate covariate (and value(s)) in the input data frame
 #' @param dfCovs A data frame with covariates to include, if a covariate value is set -99 or NA, they are assumed missing and hence not include in the FFEM transformations
 #' @param cdfCovsNames A string vector 
-#' @param functionList A list of functions with input (thetas, coveffects and ...) for in which the change from the reference value will be calculated
+#' @param functionList A list of functions with input (thetas, coveffects and ...) for in which the change from the reference value will be calculated. If the function returns a vector of values, each value will be used but functionListName must contain the names with a length of all return for all functions in the functionList
 #' @param functionListName A vector of strings (names) of the parameters for each function in the functionList
 #' @param nobaseThetas the number of structural thetas in the model
 #' @param dfParameters A data frame with parameter samples from the uncertainty distribution. The final estimate vector is assumed to be at the first row. The column order is assumed the same as in the NONMEM ext file except the ITERATION and OBJ columns which are not expected.
@@ -14,7 +14,7 @@
 #' @param fixedSpacing A boolean (TRUE/FALSE) if fixed spacing between covariate groups should be applied, otherwise the y coordinates are calculated relative to the number of groups and numbers of covriates within a group. If fixed spacing are used, groupdist and withingroupdist will be used as well.
 #' @param groupeddist A number defining the y distance between groups of covariates
 #' @param withingroupeddist A number defining the y distance within groups of covariates
-
+#' @param ... additional variables to be forwarded to the the functionList functions
 #' 
 #'
 #' @return a data frame with summary statistics for each parameters and covariate combinations:
@@ -27,7 +27,7 @@
 #' }
 getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(thetas,coveffects,...){return(thetas[1]*exp(coveffects[1]))}),functionListName="PAR1",noBaseThetas, noCovThetas, noSigmas, noParCov = noBaseThetas, dfParameters,
                         parNames = paste("Par", 1:noParCov, sep = ""), covNames = paste("Cov",1:noCovThetas, sep = ""),
-                        availCov = covNames, quiet = FALSE,probs=c(0.025,0.5,0.975),dfRefRow=NULL,cGrouping=NULL,fixedSpacing=TRUE,groupdist=0.2,withingroupdist=0.1) {
+                        availCov = covNames, quiet = FALSE,probs=c(0.025,0.5,0.975),dfRefRow=NULL,cGrouping=NULL,fixedSpacing=TRUE,groupdist=0.2,withingroupdist=0.1,...) {
 
   
   resList<-list()
@@ -80,15 +80,21 @@ getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(thet
            coveffects_base[j]<-as.numeric(eval(parse(text=ffem_expr_base)))
         }
       }
+      n=1
       for (j in 1:length(functionList)) {
-        val<-functionList[[j]](thetas,coveffects,dfext)
-        if (!is.null(dfRefRow)) { ## Add a new reference line based on some cvoariate values
-          valbase=functionList[[j]](thetas,coveffects_base,dfext)
+        val<-functionList[[j]](thetas,coveffects,...)
+        if (!is.null(dfRefRow)) { ## Add a new reference line based on some covariate values
+          valbase=functionList[[j]](thetas,coveffects_base,...)
         } else {
-          valbase=functionList[[j]](thetas,rep(0,length(parNames)),dfext)
+          valbase=functionList[[j]](thetas,rep(0,length(parNames)),...)
         }
-        resList[[counter]]<-data.frame(ITER=k,COVS=i,NAME=functionListName[j],VALUE=val,VALUEBASE=valbase)
-        counter<-counter+1
+        listcount<-length(val) 
+        
+        for (l in 1:listcount) {
+          resList[[counter]]<-data.frame(ITER=k,COVS=i,NAME=functionListName[n],VALUE=val[[l]],VALUEBASE=valbase[[l]])
+          counter<-counter+1
+          n<-n+1
+        }
       }
     }
   }
@@ -118,7 +124,7 @@ getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(thet
       covname<-cdfCovsNames[i]
     }
     group<-cGrouping[i]
-    for (j in 1:length(functionList)) {
+    for (j in 1:length(functionListName)) {
       dft<-dfres[dfres$COVS==i & dfres$NAME==functionListName[j],] #Subset each covariate and parameter
       quant<-quantile(dft$VALUE,probs = probs,names = FALSE)
       mean_base<-mean(dft$VALUEBASE)
