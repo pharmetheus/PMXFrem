@@ -11,14 +11,15 @@ getForestDF(dfCovs, cdfCovsNames = NULL,
   parNames = paste("Par", 1:noParCov, sep = ""), covNames = paste("Cov",
   1:noCovThetas, sep = ""), availCov = covNames, quiet = FALSE,
   probs = c(0.025, 0.5, 0.975), dfRefRow = NULL, cGrouping = NULL,
-  fixedSpacing = TRUE, groupdist = 0.2, withingroupdist = 0.1)
+  fixedSpacing = TRUE, groupdist = 0.2, withingroupdist = 0.1,
+  ncores = 1, cstrPackages = NULL, cstrExports = NULL, ...)
 }
 \arguments{
 \item{dfCovs}{A data frame with covariates to include, if a covariate value is set -99 or NA, they are assumed missing and hence not include in the FFEM transformations}
 
-\item{cdfCovsNames}{A string vector}
+\item{cdfCovsNames}{A string vector with names of the rows in dfCovs, if not used, names will be automaticaly assigned based on the covariate values and column names}
 
-\item{functionList}{A list of functions with input (thetas, coveffects and ...) for in which the change from the reference value will be calculated}
+\item{functionList}{A list of functions with input (thetas, coveffects and ...) for in which the change from the reference value will be calculated. If the function returns a vector of values, each value will be used but functionListName must contain the names with a length of all return for all functions in the functionList}
 
 \item{functionListName}{A vector of strings (names) of the parameters for each function in the functionList}
 
@@ -34,17 +35,25 @@ getForestDF(dfCovs, cdfCovsNames = NULL,
 
 \item{fixedSpacing}{A boolean (TRUE/FALSE) if fixed spacing between covariate groups should be applied, otherwise the y coordinates are calculated relative to the number of groups and numbers of covriates within a group. If fixed spacing are used, groupdist and withingroupdist will be used as well.}
 
+\item{ncores}{the number of cores to use for the calculations, default = 1 which means no parallellization}
+
+\item{cstrExports}{a character vector with variables needed to run the calculations in parallel, default = NULL}
+
+\item{...}{additional variables to be forwarded to the the functionList functions}
+
 \item{nobaseThetas}{the number of structural thetas in the model}
 
 \item{groupeddist}{A number defining the y distance between groups of covariates}
 
 \item{withingroupeddist}{A number defining the y distance within groups of covariates}
+
+\item{cstrpackages}{a character vector with package names needed to run the calculations in parallel, default = NULL}
 }
 \value{
 a data frame with summary statistics for each parameters and covariate combinations:
 }
 \description{
-Get a data frame with Forest border for each univariate or multivariate covariate (and value(s)) in the input data frame
+Get a data frame with Forest border for each univariate or multivariate covariate (and value(s)) in the input data frame. If a list a data frame will be created from the list, see function dfCreateInputForestData
 }
 \examples{
 \dontrun{

@@ -72,6 +72,14 @@ dfCovs<-data.frame(LBWT=c(3.12,5.13,4.72,-99,-99,-99,-99,-99,-99),
 
 print(dfCovs)
 
+# Or similarly
+
+dfCreateInputForestData(list(list("LBWT"=c(3.12,5.13,4.72),"LBLBW"=c(3.3)),
+                             "LBBSA"=c(0.79,0.91),
+                             "LBLBW"=c(3.3,3.8),
+                             "LBBSA"=c(0.45,-99)),
+                        iMiss=-99)
+
 ```
 
 In this first example the forest plot will be based on the covariance matrix for NONMEM `.cov`file. After reading in the covariance matrix, multivariate samples will be drawn for the a multivariate normal with the mean as the final estimates and covariance matrix as the uncertainty from NONMEM:
@@ -86,7 +94,7 @@ if (file.exists(covFile)) {
 }
 
 mu<-as.numeric(dfExt[,-(c(1,ncol(dfExt)))]) #The mean is the final estimates
-dfParameters<-as.data.frame(FREMfunctions::mvrnorm_vector(mu=mu,sigma = sigma,iSampleIndex = 1000)) #Draw 1000 samples for cov matrix
+dfParameters<-as.data.frame(FREMfunctions::mvrnorm_vector(mu=mu,sigma = sigma,iSampleIndex = 100)) #Draw 100 samples from cov matrix
 dfParameters<-cbind(dfParameters,OBJ=0) #Add a dummy column with the OBJ to make it look more like a ext file
 
 ```
