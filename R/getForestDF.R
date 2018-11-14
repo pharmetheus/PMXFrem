@@ -92,9 +92,9 @@ getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(thet
       for (j in 1:length(functionList)) {
         val<-functionList[[j]](thetas,coveffects,...)
         if (!is.null(dfRefRow)) { ## Add a new reference line based on some covariate values
-          valbase=functionList[[j]](thetas,coveffects_base,...)
+          valbase=functionList[[j]](basethetas=thetas,covthetas=coveffects_base,...)
         } else {
-          valbase=functionList[[j]](thetas,rep(0,length(parNames)),...)
+          valbase=functionList[[j]](basethetas=thetas,covthetas=rep(0,length(parNames)),...)
         }
         listcount<-length(val) 
         

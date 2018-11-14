@@ -74,7 +74,8 @@ print(dfCovs)
 
 # Or similarly
 
-dfCreateInputForestData(list(list("LBWT"=c(3.12,5.13,4.72),"LBLBW"=c(3.3)),
+dfCovs<-dfCreateInputForestData(list(
+                            list("LBWT"=c(3.12,5.13,4.72),"LBLBW"=c(3.3)),
                              "LBBSA"=c(0.79,0.91),
                              "LBLBW"=c(3.3,3.8),
                              "LBBSA"=c(0.45,-99)),
@@ -103,8 +104,8 @@ As a last step of the pre-requisite, a list of functions that defines the parame
 
 ```{r}
 #The parameter function list
-functionList=list(function(thetas,coveffects,...){return(thetas[1]*exp(coveffects[1]))}, 
-                                     function(thetas,coveffects,...){return(thetas[2]*exp(coveffects[2]))})
+functionList=list(function(basethetas,covthetas,...){return(basethetas[1]*exp(covthetas[1]))}, 
+                                     function(basethetas,covthetas,...){return(basethetas[2]*exp(covthetas[2]))})
 #Name of the parameters
 functionListName=c("CL","V1")
 ```
