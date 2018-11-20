@@ -3,7 +3,7 @@
 #' @description Get a data frame with Forest border for each univariate or multivariate covariate (and value(s)) in the input data frame. If a list a data frame will be created from the list, see function dfCreateInputForestData
 #' @param dfCovs A data frame with covariates to include, if a covariate value is set -99 or NA, they are assumed missing and hence not include in the FFEM transformations
 #' @param cdfCovsNames A string vector with names of the rows in dfCovs, if not used, names will be automaticaly assigned based on the covariate values and column names
-#' @param functionList A list of functions with input (thetas, coveffects and ...) for in which the change from the reference value will be calculated. If the function returns a vector of values, each value will be used but functionListName must contain the names with a length of all return for all functions in the functionList
+#' @param functionList A list of functions with input (basethetas, covthetas,dfrow and ...) for in which the change from the reference value will be calculated. If the function returns a vector of values, each value will be used but functionListName must contain the names with a length of all return for all functions in the functionList
 #' @param functionListName A vector of strings (names) of the parameters for each function in the functionList
 #' @param nobaseThetas the number of structural thetas in the model
 #' @param dfParameters A data frame with parameter samples from the uncertainty distribution. The final estimate vector is assumed to be at the first row. The column order is assumed the same as in the NONMEM ext file except the ITERATION and OBJ columns which are not expected.
@@ -28,7 +28,7 @@
 #' \dontrun{
 #' dfForest <- getForestDF(dfCovs)
 #' }
-getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(thetas,coveffects,...){return(thetas[1]*exp(coveffects[1]))}),functionListName="PAR1",noBaseThetas, noCovThetas, noSigmas, noParCov = noBaseThetas, dfParameters,
+getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(basethetas,covthetas,dfrow,...){return(basethetas[1]*exp(covthetas[1]))}),functionListName="PAR1",noBaseThetas, noCovThetas, noSigmas, noParCov = noBaseThetas, dfParameters,
                         parNames = paste("Par", 1:noParCov, sep = ""), covNames = paste("Cov",1:noCovThetas, sep = ""),
                         availCov = covNames, quiet = FALSE,probs=c(0.025,0.5,0.975),dfRefRow=NULL,cGrouping=NULL,fixedSpacing=TRUE,groupdist=0.2,withingroupdist=0.1,ncores=1,cstrPackages=NULL,cstrExports=NULL,...) {
 
@@ -90,11 +90,11 @@ getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(thet
       n=1
       
       for (j in 1:length(functionList)) {
-        val<-functionList[[j]](thetas,coveffects,...)
+        val<-functionList[[j]](thetas,coveffects,dfrow=dfCovs[i,],...)
         if (!is.null(dfRefRow)) { ## Add a new reference line based on some covariate values
-          valbase=functionList[[j]](basethetas=thetas,covthetas=coveffects_base,...)
+          valbase=functionList[[j]](basethetas=thetas,covthetas=coveffects_base,dfrow=dfCovs[i,],...)
         } else {
-          valbase=functionList[[j]](basethetas=thetas,covthetas=rep(0,length(parNames)),...)
+          valbase=functionList[[j]](basethetas=thetas,covthetas=rep(0,length(parNames)),dfrow=dfCovs[i,],...)
         }
         listcount<-length(val) 
         
@@ -173,6 +173,8 @@ getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(thet
     a<-a+groupdist
     }
   }
+  
+  stopImplicitCluster()
   return(dfret)
 }
 
