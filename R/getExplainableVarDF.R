@@ -3,7 +3,7 @@
 #' @description Get a data frame with explainable variability information based on a dataset of subjects with covariates
 #'
 #' 
-#' @param type Which type of explained var we should use, type=1 (default), i.e. based on data and calculated etas
+#' @param type Which type of explained var we should use, type=1 (default), i.e. based on data and calculated etas, type=2 is that the total variability is calculated using ETA samples instead of EBEs, hence etas argument is not needed but numETASamples is needed instead. 
 #' @param data the dataset to based the explained varaibility on, used with type=1
 #' @param dfCovs A data frame with covariates to based the variability plots on
 #' @param strID the subject identifier in the dfCovs dataset, default='ID'
@@ -15,19 +15,19 @@
 #' @param noBaseThetas Number of structural thetas in FREM model
 #' @param noCovThetas Number of covariate thetas in FREM model
 #' @param noSigmas Number of sigmas in FREM model
+#' @param noParCov Number of parameters for which covariate relations are sought (often the same as noBaseThetas).
+#' @param parNames Names of the parameters
+#' @param covNames Names of the covariates
+#' @param dfext a data frame with the final estimates in a ext-file format
+#' @param availCov Names of the covariates to use in the calculation of the FFEM model
 #' @param etas the etas used to calculate the explained varaibility, used with type==1 and should be the same size as number of individuals in data
 #' @param quiet If output should be allowed during the function call, default= FALSE,
 #' @param ncores the number of cores to use for the calculations, default = 1 which means no parallellization
 #' @param cstrPackages a character vector with the packages needed to run calculations in parallel, default = NULL
 #' @param cstrExports a character vector with variables needed to run the calculations in parallel, default = NULL 
+#' @param numETASamples (default = 100) the number of samples used ot integrate over individual parameters when calculating the total variance of the functionList, only used using type==2 
 #' @param ... additional variables to be forwarded to the the functionList functions
 
-
-#' @param noParCov 
-#' @param parNames 
-#' @param covNames 
-#' @param dfext 
-#' @param availCov 
 #'
 #' @return a data frame with summary statistics for each parameters and covariate combinations:
 #' 
@@ -39,24 +39,22 @@
 #' }
 getExplainableVarDF <- function(type=1,data,dfCovs,strID="ID",runno,modDevDir,cstrCovariates=NULL,functionList=list(function(basethetas,covthetas,dfrow,etas,...){return(basethetas[1]*exp(covthetas[1]+etas[1]))}),functionListName="PAR1",noBaseThetas, noCovThetas, noSigmas, noParCov = noBaseThetas,
                                 parNames = paste("Par", 1:noParCov, sep = ""), covNames = paste("Cov",1:noCovThetas, sep = ""),dfext=NULL,
-                                availCov = covNames, etas=NULL,quiet = FALSE,ncores=1,cstrPackages=NULL,cstrExports=NULL,...) {
+                                availCov = covNames, etas=NULL,quiet = FALSE,ncores=1,cstrPackages=NULL,cstrExports=NULL,numETASamples=100,...) {
   
   thetas=as.numeric(dfext[2:(noBaseThetas+1)])
   if (is.null(cstrCovariates)) {
     cstrCovariates<-paste0("COV",1:nrow(dfCovs))
   }
-  
-  
-  if (type==1 ) { #Assuming explained variability based on data + ETA values
+
+  if (type==1 || type==2) { #Assuming explained variability based on data + ETA values (or sampled ETA values)
     
-    
+    if (type==2) {#Get the ETA samples from N(0,1) and then rescale to correct variance
+      ETAsamples<-matrix(rnorm(noBaseThetas*numETASamples),nrow=noBaseThetas,ncol=numETASamples) 
+    }
     #Get the coefficients for each individual based on each individuals all available covariates
     # dfdata<-createVPCdata(runno = runno,noBaseThetas = noBaseThetas,noSigmas = noSigmas,modDevDir = modDevDir,quiet = quiet,
     #             dataFile = data,newDataFile = NULL,cores = ncores,availCov=availCov)
     # 
-    
-    
-    
     ## Add the FREM covariates to the data file
     # data <- addFremCovariates(dfFFEM = data,modFile)
     fremCovs <- getCovNames(paste0(modDevDir,"run",runno,".mod"))$polyCatCovs
@@ -87,8 +85,6 @@ getExplainableVarDF <- function(type=1,data,dfCovs,strID="ID",runno,modDevDir,cs
     
     dataI <- data.frame(rbindlist(dataI))
     
-    
-    
     #### Go through all dfCovs combinations to calculate the variability for each of them
     
     dfrest<-data.frame()
@@ -101,12 +97,10 @@ getExplainableVarDF <- function(type=1,data,dfCovs,strID="ID",runno,modDevDir,cs
       }
       
       strCovsRow<-names(dfCovs[i,])[as.numeric(dfCovs[i,])!=-99] #Get the covariate that we should condition on
-      
-      # browser()
-      
-      
-      
+
       dftmp1<-foreach (k = 1:nrow(dataI),.packages = cstrPackages,.export = cstrExports,.verbose = !quiet,.combine=bind_rows) %dopar% { #For all subjects in data
+    #  dftmp1<-foreach (k = 1:nrow(dataI),.packages = cstrPackages,.export = cstrExports,.verbose = !quiet,.combine=bind_rows) %do% { #For all subjects in data
+        
         dftmp<-data.frame()
         datatmp <- dataI[k,covNames] #Get only covnames
         avcov<-names(datatmp)[which(datatmp!=-99)] #Get the non-missing covariates only
@@ -126,6 +120,10 @@ getExplainableVarDF <- function(type=1,data,dfCovs,strID="ID",runno,modDevDir,cs
           ffemObjAll<-FREMfunctions::calcFFEM(noBaseThetas=noBaseThetas,noCovThetas = noCovThetas,noSigmas = noSigmas,dfext=dfext,covNames = covNames,
                                               availCov = avcov,quiet = quiet)
           coveffectsAll <- rep(0,length(parNames))
+          if (type==2) {
+            Chol = chol(ffemObjAll$Vars) #Get the covariance matrix and then Cholesky decompose
+            etasamples<-t(ETAsamples) %*% Chol #Transform the ETA samples to N(0,COV) matrix
+          }
           for(j in 1:length(parNames)) {
             ffem_expr_all<-stringr::str_replace_all(ffemObjAll$Expr[j],pattern = "data\\$",replacement = "data47_jxrtp$")
             if (length(avcov)!=0) {
@@ -135,7 +133,15 @@ getExplainableVarDF <- function(type=1,data,dfCovs,strID="ID",runno,modDevDir,cs
           ##Call each parameters in the functionList to calculate, this is for covariate +
           n=1
           for (j in 1:length(functionList)) {
-            val<-functionList[[j]](basethetas=thetas,covthetas=coveffectsAll,dfrow=dataI[k,],etas=as.numeric(etas[k,]),...)
+            if (type==2) {
+              val<-0
+              for (m in 1:numETASamples) { #For all ETA samples
+                val<-val+functionList[[j]](basethetas=thetas,covthetas=coveffectsAll,dfrow=dataI[k,],etas=etasamples[m,],...)
+              }
+              val<-val/numETASamples #Take expectation over all samples
+            } else {
+              val<-functionList[[j]](basethetas=thetas,covthetas=coveffectsAll,dfrow=dataI[k,],etas=as.numeric(etas[k,]),...)
+            }
             valeta0<-functionList[[j]](basethetas=thetas,covthetas=coveffectsAll,dfrow=dataI[k,],etas=rep(0,length(thetas)),...)
             listcount<-length(val) 
             
@@ -163,6 +169,8 @@ getExplainableVarDF <- function(type=1,data,dfCovs,strID="ID",runno,modDevDir,cs
       dfrest<-dplyr::bind_rows(dfrest,dftmp1)
     }
   } #Type==1
+  
+    
   
   dfres<-data.frame()
   for (j in 1:length(functionListName)) {
