@@ -38,6 +38,13 @@ plotForestDF <-function(df,plotRelative=TRUE,addTable=TRUE,strxlab="Covariate-Pa
       }
       return(x)
     })
+    if (plotRelative) {
+      df$Q1TEXT<-ifelse(df$q1/df$REFMEDIAN<df$q3/df$REFMEDIAN,df$q1/df$REFMEDIAN,df$q3/df$REFMEDIAN)
+      df$Q3TEXT<-ifelse(df$q3/df$REFMEDIAN>df$q1/df$REFMEDIAN,df$q3/df$REFMEDIAN,df$q1/df$REFMEDIAN)
+    } else {
+      df$Q1TEXT<-ifelse(df$q1<df$q3,df$q1,df$q3)
+      df$Q3TEXT<-ifelse(df$q3>df$q1,df$q3,df$q1)
+    }
   }
   
   p<-ggplot(df)
@@ -62,10 +69,10 @@ plotForestDF <-function(df,plotRelative=TRUE,addTable=TRUE,strxlab="Covariate-Pa
   if (addTable) { #Insert CI table
 
     if (plotRelative) {
-      p<-p+geom_text(aes(y=Y,x=XMAX+xtextoffset,label=paste0(formatC(q2/REFMEDIAN,format="f",decdig)," [",formatC(q1/REFMEDIAN,format="f",decdig)," - ",formatC(q3/REFMEDIAN,format="f",decdig),"]")),hjust = 0,size=textsize)
+      p<-p+geom_text(aes(y=Y,x=XMAX+xtextoffset,label=paste0(formatC(q2/REFMEDIAN,format="f",decdig)," [",formatC(Q1TEXT,format="f",decdig)," - ",formatC(Q3TEXT,format="f",decdig),"]")),hjust = 0,size=textsize)
       p<-p+geom_segment(aes(y=Y,x=q1/REFMEDIAN,yend=Y,xend=q3/REFMEDIAN*percentscalexmax),color="NA")
     } else {
-      p<-p+geom_text(aes(y=Y,x=XMAX*xtextoffsetpercent,label=paste0(formatC(q2,format="f",decdig)," [",formatC(q1,format="f",decdig)," - ",formatC(q3,format="f",decdig),"]")),hjust = 0,size=textsize)
+      p<-p+geom_text(aes(y=Y,x=XMAX*xtextoffsetpercent,label=paste0(formatC(q2,format="f",decdig)," [",formatC(Q1TEXT,format="f",decdig)," - ",formatC(Q3TEXT,format="f",decdig),"]")),hjust = 0,size=textsize)
       p<-p+geom_segment(aes(y=Y,x=q1,yend=Y,xend=q3*percentscalexmax),color="NA")
     }
   }

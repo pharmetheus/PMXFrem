@@ -46,9 +46,9 @@ getExplainableVarDF <- function(type=1,data,dfCovs,strID="ID",runno,modDevDir,cs
     cstrCovariates<-paste0("COV",1:nrow(dfCovs))
   }
 
-  if (type==1 || type==2) { #Assuming explained variability based on data + ETA values (or sampled ETA values)
+  if (type==1 || type==2 || type==3) { #Assuming explained variability based on data + ETA values (or sampled ETA values)
     
-    if (type==2) {#Get the ETA samples from N(0,1) and then rescale to correct variance
+    if (type==2 || type==3) {#Get the ETA samples from N(0,1) and then rescale to correct variance
       ETAsamples<-matrix(rnorm(noBaseThetas*numETASamples),nrow=noBaseThetas,ncol=numETASamples) 
     }
     #Get the coefficients for each individual based on each individuals all available covariates
@@ -98,8 +98,16 @@ getExplainableVarDF <- function(type=1,data,dfCovs,strID="ID",runno,modDevDir,cs
       
       strCovsRow<-names(dfCovs[i,])[as.numeric(dfCovs[i,])!=-99] #Get the covariate that we should condition on
 
-      dftmp1<-foreach (k = 1:nrow(dataI),.packages = cstrPackages,.export = cstrExports,.verbose = !quiet,.combine=bind_rows) %dopar% { #For all subjects in data
-    #  dftmp1<-foreach (k = 1:nrow(dataI),.packages = cstrPackages,.export = cstrExports,.verbose = !quiet,.combine=bind_rows) %do% { #For all subjects in data
+      if (type==3) { #Get the type of 
+        ffemObjAllNoCov<-FREMfunctions::calcFFEM(noBaseThetas=noBaseThetas,noCovThetas = noCovThetas,noSigmas = noSigmas,dfext=dfext,covNames = covNames,
+                                          availCov = NULL,quiet = quiet)
+        Chol = chol(ffemObjAllNoCov$Vars) #Get the covariance matrix and then Cholesky decompose
+        etasamples<-t(ETAsamples) %*% Chol #Transform the ETA samples to N(0,COV) matrix
+      }
+      
+      
+    #  dftmp1<-foreach (k = 1:nrow(dataI),.packages = cstrPackages,.export = cstrExports,.verbose = !quiet,.combine=bind_rows) %dopar% { #For all subjects in data
+      dftmp1<-foreach (k = 1:nrow(dataI),.packages = cstrPackages,.export = cstrExports,.verbose = !quiet,.combine=bind_rows) %do% { #For all subjects in data
         
         dftmp<-data.frame()
         datatmp <- dataI[k,covNames] #Get only covnames
@@ -136,17 +144,40 @@ getExplainableVarDF <- function(type=1,data,dfCovs,strID="ID",runno,modDevDir,cs
             if (type==2) {
               val<-0
               for (m in 1:numETASamples) { #For all ETA samples
-                val<-val+functionList[[j]](basethetas=thetas,covthetas=coveffectsAll,dfrow=dataI[k,],etas=etasamples[m,],...)
+                tmpval<-functionList[[j]](basethetas=thetas,covthetas=coveffectsAll,dfrow=dataI[k,],etas=etasamples[m,],...)
+                if (m==1) {
+                  val<-tmpval
+                } else {
+                  val<-val+tmpval
+                }
               }
               val<-val/numETASamples #Take expectation over all samples
-            } else {
+            }
+            browser()
+            if (type==1){
               val<-functionList[[j]](basethetas=thetas,covthetas=coveffectsAll,dfrow=dataI[k,],etas=as.numeric(etas[k,]),...)
+            }
+            if (type==3 && k==1) {#only for "one" individual
+              tmpval<-0
+              val<-0
+              for (m in 1:numETASamples) { #For all ETA samples
+                val<-functionList[[j]](basethetas=thetas,covthetas=coveffectsAll,dfrow=dataI,etas=etasamples[m,],m,...)
+                if (m==1) {
+                  tmpval<-matrix(0,ncol=numETASamples,nrow=length(val))
+                }
+                tmpval[,m]<-val
+              }
+              for (m in 1:nrow(tmpval)) {
+                val[m]<-var(tmpval[m,]) #Calculate var over all samples
+              }
             }
             valeta0<-functionList[[j]](basethetas=thetas,covthetas=coveffectsAll,dfrow=dataI[k,],etas=rep(0,length(thetas)),...)
             listcount<-length(val) 
             
             for (l in 1:listcount) {
-              dftmp<-dplyr::bind_rows(dftmp,data.frame(ITER=k,COVS=0,NAME=as.character(functionListName[n]),VALUE=val[[l]]))
+              if (type!=3 || type==3 && k==1) {
+                dftmp<-dplyr::bind_rows(dftmp,data.frame(ITER=k,COVS=0,NAME=as.character(functionListName[n]),VALUE=val[[l]]))
+              }
               dftmp<-dplyr::bind_rows(dftmp,data.frame(ITER=k,COVS=-1,NAME=as.character(functionListName[n]),VALUE=valeta0[[l]]))
               n<-n+1
             }
@@ -174,7 +205,11 @@ getExplainableVarDF <- function(type=1,data,dfCovs,strID="ID",runno,modDevDir,cs
   
   dfres<-data.frame()
   for (j in 1:length(functionListName)) {
-    TOTVAR<-var(subset(dfrest,NAME==as.character(functionListName[j]) & COVS==0)$VALUE) #Get total variability, i.e. ITER == 0
+    if (type==3) {
+      TOTVAR<-subset(dfrest,NAME==as.character(functionListName[j]) & COVS==0)$VALUE #Get total variability, i.e. ITER == 0
+    } else {
+      TOTVAR<-var(subset(dfrest,NAME==as.character(functionListName[j]) & COVS==0)$VALUE) #Get total variability, i.e. ITER == 0
+    }
     TOTCOVVAR<-var(subset(dfrest,NAME==as.character(functionListName[j]) & COVS==-1)$VALUE) #Get total covariate variability, i.e. ITER == -1
     for (i in 1:nrow(dfCovs)) {
       dfres<-rbind(dfres,
