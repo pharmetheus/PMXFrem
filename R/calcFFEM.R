@@ -5,7 +5,7 @@
 #' @param noCovThetas  Number of FREM covariates that are tested, i.e. number of thetas associated with covariate effects.
 #' @param noSigmas  Number of sigma (epsilon) parameters in the model.
 #' @param noParCov Number of parameters for which covariate relations are sought (often the same as noBaseThetas).
-#' @param noSkipOm Number of omegas that should not be part of the FREM calculations. Such omegas has to come before the large FREM omega block.
+#' @param noSkipOm Number of diag omegas (variances) that should not be part of the FREM calculations. Such omegas has to come before the large FREM omega block.
 #' @param dfExt A data frame of the ext file for the model. In case of mutiple $EST, the dfext should contain the estimates of the *one* relevant $EST.
 #' @param parNames Names of the parameters
 #' @param covNames Names of the covariates
@@ -42,20 +42,21 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noS
   ##    Coeffients: A noBaseThetas x availCov matrix with FFEM model coefficients
   ##    Vars:       A noBaseThetas x noBaseThetas matrix with the FFEM variances (OMEGA)
   ##    Expr:       A vector of FFEM expressions, one for each base model parameter.
+  ##    FullVars:   A full omega matrix including skipOM if available, otherwise same as Vars
+  ##    UpperVars:  A omega matrix corresponding to the upper block (only relevant when noSkipOm!=0), otherwise=NULL
+  
 
   iNumFREMOM<-(noCovThetas+noParCov)*(noCovThetas+noParCov+1)/2
   iNumSigma <- noSigmas*(noSigmas+1)/2
-
   if (nrow(dfext)>1) dfext  <- dfext[dfext$ITERATION==-1000000000,]
 
   df_th  <- as.numeric(dfext[,2:(noBaseThetas+1)])
   df_thm <- as.numeric(dfext[,(noBaseThetas+2):(noBaseThetas+1+noCovThetas)])
   #df_om  <- as.numeric(dfext[,(noBaseThetas+5+noCovThetas):(noBaseThetas+4+noCovThetas+iNumFREMOM)])
-  df_om  <- as.numeric(dfext[,(noBaseThetas+iNumSigma+2+noCovThetas+noSkipOm):(ncol(dfext)-1)])
+  df_om  <- as.numeric(dfext[,(noBaseThetas+iNumSigma+2+noCovThetas):(ncol(dfext)-1)])
 
-  num_om <- -1/2+sqrt(1/4+2*iNumFREMOM)
+  num_om <- -1/2+sqrt(1/4+2*iNumFREMOM)+noSkipOm #The col/row size of the full OM matrix (including all blocks)
 
- # transformed_params <- data.frame()
   om_matrix          <- as.numeric(df_om)
 
   #Get the om-matrix
@@ -63,6 +64,9 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noS
   OM[upper.tri(OM,diag = TRUE)]  <- om_matrix #Assign upper triangular + diag
   tOM                            <- t(OM) #Get a transposed matrix
   OM[lower.tri(OM,diag = FALSE)] <- tOM[lower.tri(tOM,diag = FALSE)] #Assign the lower triangular except diag
+  OMFULL<-OM
+  
+  if (noSkipOm!=0) OM<-OM[-(1:noSkipOm),-(1:noSkipOm)] #Remove upper block
 
   OM_PAR     <- OM[1:noParCov,1:noParCov] #The parameter covariance matrix
   OM_COV     <- OM[(noParCov+1):(noParCov+noCovThetas),(noParCov+1):(noParCov+noCovThetas)] #The covariates covariance matrix
@@ -95,7 +99,7 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noS
     COEFF_VAR <- OM_PAR
   }
 
-  ## Print the FFEM for inspeciton
+  ## Print the FFEM for inspection
   if(!quiet) {
     for(p in 1:nrow(COEFF)) {
       for(c in 1:ncol(COEFF)) {
@@ -137,11 +141,23 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noS
     }
   }
 
+  if (noSkipOm==0) { #If no upper block
+    FULLVARS<-COEFF_VAR
+    UPPERVARS<-numeric(0)
+  } else {
+    FULLVARS<-matrix(0,ncol=noSkipOm+ncol(COEFF_VAR),nrow=noSkipOm+ncol(COEFF_VAR))  
+    FULLVARS[(noSkipOm+1):ncol(FULLVARS),(noSkipOm+1):ncol(FULLVARS)]<-COEFF_VAR
+    FULLVARS[1:noSkipOm,1:noSkipOm]<-OMFULL[1:noSkipOm,1:noSkipOm]
+    UPPERVARS<-OMFULL[1:noSkipOm,1:noSkipOm]
+  }
+  
   return(
     invisible(
       list(Coefficients = COEFF,
            Vars         = COEFF_VAR,
-           Expr         = myExpr
+           Expr         = myExpr,
+           FullVars     = FULLVARS,
+           UpperVars    = UPPERVARS
       )
     )
   )

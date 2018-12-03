@@ -36,7 +36,7 @@ library(zoo)           #Zoo only needed for this example
 
 ```{r}
 
-strRunDir<-"./"        #The directory where the FERM model is located
+strRunDir<-"../inst/extdata/"        #The directory where the FREM model is located
 strRunno<-"run7"       #The FREM model used to produce the forest plot
 
 extFile<-paste0(strRunDir,strRunno,".ext") #The full path of the ext file

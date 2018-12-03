@@ -1,7 +1,7 @@
 #' calcHAZVector
 #'
 #' @description Calculates HAZ values based on the inverse Bateman function.
-#' @param age A vector of ages to compute the HAZ values for.
+#' @param age A vector of ages to compute the HAZ values for, default is age=0.
 #' @param basethetas A vector with base tehtas (fixed effects).
 #' @param covthetas A vector with the ffem, parameter specific covariate effetcs.
 #' @param etas A vecor of individual specific random effects

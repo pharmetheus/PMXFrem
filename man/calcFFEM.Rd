@@ -18,7 +18,7 @@ calcFFEM(noBaseThetas, noCovThetas, noSigmas, noParCov = noBaseThetas,
 
 \item{noParCov}{Number of parameters for which covariate relations are sought (often the same as noBaseThetas).}
 
-\item{noSkipOm}{Number of omegas that should not be part of the FREM calculations. Such omegas has to come before the large FREM omega block.}
+\item{noSkipOm}{Number of diag omegas (variances) that should not be part of the FREM calculations. Such omegas has to come before the large FREM omega block.}
 
 \item{parNames}{Names of the parameters}
 

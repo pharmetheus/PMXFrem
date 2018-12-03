@@ -4,11 +4,11 @@
 \alias{calcHAZVector}
 \title{calcHAZVector}
 \usage{
-calcHAZVector(age, basethetas = NULL, covthetas = rep(0,
+calcHAZVector(age = 0, basethetas = NULL, covthetas = rep(0,
   length(basethetas)), etas = rep(0, length(basethetas)))
 }
 \arguments{
-\item{age}{A vector of ages to compute the HAZ values for.}
+\item{age}{A vector of ages to compute the HAZ values for, default is age=0.}
 
 \item{basethetas}{A vector with base tehtas (fixed effects).}
 

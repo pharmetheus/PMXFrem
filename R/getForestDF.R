@@ -28,7 +28,7 @@
 #' \dontrun{
 #' dfForest <- getForestDF(dfCovs)
 #' }
-getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(basethetas,covthetas,dfrow,...){return(basethetas[1]*exp(covthetas[1]))}),functionListName="PAR1",noBaseThetas, noCovThetas, noSigmas, noParCov = noBaseThetas, dfParameters,
+getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(basethetas,covthetas,dfrow,...){return(basethetas[1]*exp(covthetas[1]))}),functionListName="PAR1",noBaseThetas, noCovThetas, noSigmas, noParCov = noBaseThetas,noSkipOm=0,dfParameters,
                         parNames = paste("Par", 1:noParCov, sep = ""), covNames = paste("Cov",1:noCovThetas, sep = ""),
                         availCov = covNames, quiet = FALSE,probs=c(0.025,0.5,0.975),dfRefRow=NULL,cGrouping=NULL,fixedSpacing=TRUE,groupdist=0.2,withingroupdist=0.1,ncores=1,cstrPackages=NULL,cstrExports=NULL,...) {
 
@@ -60,22 +60,23 @@ getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(base
   if(ncores>1) {registerDoParallel(cores=ncores)}
   
   dfres<-foreach (k=1:nrow(dfParameters),.packages = cstrPackages,.export = cstrExports,.verbose = !quiet,.combine=bind_rows) %dopar% {
-    dfext<-cbind(first = 0, dfParameters[k,]) #Dummy to get same format as ext file
+  #dfres<-foreach (k=1:nrow(dfParameters),.packages = cstrPackages,.export = cstrExports,.verbose = !quiet,.combine=bind_rows) %do% {
+      
+      dfext<-cbind(first = 0, dfParameters[k,]) #Dummy to get same format as ext file
     thetas=as.numeric(dfext[2:(noBaseThetas+1)])
     dfrest<-data.frame()
     for (i in 1:nrow(dfCovs)) {
       currentNames<-names(dfCovs[i,])[as.numeric(dfCovs[i,])!=-99]
       if (any(!currentNames %in% covNames$covNames)) {
-        print(paste0("Can't find some of the covariates: ",currentNames," in the model, quiting."))
-        return(NULL)
+        warning(paste0("Can't find some of the covariates: ",currentNames," in the FREM model, perhaps they are structural covariates!"))
       }
       if (!is.null(dfRefRow)) { #Get another ref value than typical value
         ffemObjRef<-calcFFEM(noBaseThetas=noBaseThetas,noCovThetas = noCovThetas,noSigmas = noSigmas,dfext=dfext,covNames = covNames$covNames,
-                             availCov = names(dfRefRow)[as.numeric(dfRefRow)!=-99],quiet = quiet)
+                             availCov = names(dfRefRow)[as.numeric(dfRefRow)!=-99],quiet = quiet,noSkipOm = noSkipOm,noParCov = noParCov)
       }
       
       ffemObj<-calcFFEM(noBaseThetas=noBaseThetas,noCovThetas = noCovThetas,noSigmas = noSigmas,dfext=dfext,covNames = covNames$covNames,
-                        availCov = names(dfCovs[i,])[as.numeric(dfCovs[i,])!=-99],quiet = quiet)
+                        availCov = names(dfCovs[i,])[as.numeric(dfCovs[i,])!=-99],quiet = quiet,noSkipOm = noSkipOm,noParCov = noParCov)
       coveffects <- rep(0,length(parNames))
       coveffects_base <- rep(0,length(parNames))
       data47_jxrtp <- dfCovs[i,]
