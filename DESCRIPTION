@@ -14,7 +14,7 @@ LazyData: true
 Author: Niclas Jonsson [aut, cre],
   Joakim Nyberg [aut]
 RoxygenNote: 6.0.1
-Depends: MASS, foreach, doParallel, tidyverse (>= 1.0.0), stringr, data.table, rlang, numDeriv
+Depends: MASS, foreach, doParallel,  stringr, data.table, rlang, numDeriv, tidyverse (>= 1.0.0)
 Suggests: knitr, rmarkdown
 VignetteBuilder: knitr
 NeedsCompilation: no

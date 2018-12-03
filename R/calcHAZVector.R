@@ -13,7 +13,7 @@
 #' #' \dontrun{
 #' calcHAZVector(c(1,2),basethetas = thetas[1:6],covthetas=thetas[7:12],etas=rep(0,6))
 #' }
-calcHAZVector <- calcHAZ <- function(age,basethetas=NULL,covthetas=rep(0,length(basethetas)),etas=rep(0,length(basethetas))) {
+calcHAZVector <- calcHAZ <- function(age=0,basethetas=NULL,covthetas=rep(0,length(basethetas)),etas=rep(0,length(basethetas))) {
 
   BASE    <- basethetas[1]          + covthetas[1] + etas[1]
   PLMAX   <- basethetas[2]          + covthetas[2] + etas[2]
