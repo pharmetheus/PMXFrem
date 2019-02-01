@@ -79,9 +79,13 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noS
 
     OM_COV <- OM_COV[-missCov,-missCov]
     inv    <- solve(OM_COV)
-
-    OM_PAR_COV <-as.matrix(OM_PAR_COV[,-missCov])
-
+    
+    if (ncol(as.matrix(OM_PAR_COV))==1) {
+      OM_PAR_COV <- t(as.matrix(OM_PAR_COV))[,-missCov]
+    } else {
+      OM_PAR_COV <-as.matrix(OM_PAR_COV[,-missCov])
+    }
+    
     ## Fix the covariate names and means
     covNames   <- covNames[-missCov]
     df_thm     <- df_thm[-missCov]
