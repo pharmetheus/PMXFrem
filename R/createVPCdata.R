@@ -147,7 +147,8 @@ createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("B
       myCov    <- covNames[as.logical(dataMap[dataMap$ID==ID,-1])]
       availCov <- myCov[myCov %in% availCov]
     }
-    
+
+   # if(ID==2145) browser()
     ffemObj   <- calcFFEM(noBaseThetas=noBaseThetas,noCovThetas=length(covNames),noSigmas,dfext=theExtFile,parNames=parNames,covNames=covNames,availCov=availCov,quiet=TRUE,...)
     
     retDf <- data.frame(ID=ID)
@@ -160,10 +161,10 @@ createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("B
   
   dataOne <- data %>% distinct(ID,.keep_all=TRUE)
   
-  covEff <- foreach(k = 1:nrow(dataOne)) %dopar% {
+  covEff <- foreach(k = 1:nrow(dataOne)) %do% {
     myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov)
   }
-  
+
   covEff <- data.frame(rbindlist(covEff))
   
   

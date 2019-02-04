@@ -72,7 +72,6 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noS
   OM_COV     <- OM[(noParCov+1):(noParCov+noCovThetas),(noParCov+1):(noParCov+noCovThetas)] #The covariates covariance matrix
   OM_PAR_COV <- OM[1:noParCov,(noParCov+1):(noParCov+noCovThetas)] #The covariance between covariates and parameters matrix
 
-
   if(length(availCov)!=0 & length(c(1:length(covNames))[!(covNames %in% availCov)])!=0) {
     missCov    <- c(1:length(covNames))[!(covNames %in% availCov)]
     #inv        <- inv[-missCov,-missCov]
@@ -82,6 +81,7 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noS
     
     if (ncol(as.matrix(OM_PAR_COV))==1) {
       OM_PAR_COV <- t(as.matrix(OM_PAR_COV))[,-missCov]
+      if(!is.matrix(OM_PAR_COV)) OM_PAR_COV <- t(as.matrix(OM_PAR_COV))
     } else {
       OM_PAR_COV <-as.matrix(OM_PAR_COV[,-missCov])
     }
@@ -94,11 +94,19 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noS
     COEFF_VAR <- OM_PAR-OM_PAR_COV%*%inv%*%t(OM_PAR_COV) #The parameter variances
 
   } else if(length(c(1:length(covNames))[!(covNames %in% availCov)])==0) {
+ 
+    if (ncol(as.matrix(OM_PAR_COV))==1) {
+      OM_PAR_COV <- t(as.matrix(OM_PAR_COV))
+    } else {
+      OM_PAR_COV <- as.matrix(OM_PAR_COV)
+    }
+    
     inv       <- solve(OM_COV)
     COEFF     <- OM_PAR_COV%*%inv #The parameter-covariate coefficients
     COEFF_VAR <- OM_PAR-OM_PAR_COV%*%inv%*%t(OM_PAR_COV) #The parameter variances
   } else {
-    COEFF     <- OM_PAR_COV
+    
+    COEFF     <- t(as.matrix(OM_PAR_COV))
     #COEFF_VAR <- OM_PAR-OM_PAR_COV # Check with Jocke if this is the way it should be
     COEFF_VAR <- OM_PAR
   }

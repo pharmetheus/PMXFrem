@@ -69,8 +69,10 @@ getExplainableVarDF <- function(type=1,data,dfCovs,strID="ID",runno,modDevDir,cs
       data[[cov]] <- ifelse(data[[myCov]]==myCovNum,1,0)
     }
     
-    dataI <- data %>% distinct(ID,.keep_all=TRUE) #Get one row per subject
-    dataI <- dataI[,c("ID",orgCovs,covNames)] #Only keep covariates and ID
+    dataI <- data[!duplicated(strID),c(strID,orgCovs,covNames)] #Get one row per subject and keep only covariates and ID
+
+    #dataI <- data %>% distinct(ID,.keep_all=TRUE) #Get one row per subject and keep only covariates and ID
+    #dataI <- dataI[,c("ID",orgCovs,covNames)] #Only keep covariates and ID
     ## Go through the individuals to make sure that missing values for polycats are coded properly
     registerDoParallel(cores=ncores)
     mapFun <- function(data,orgCovs)  {
@@ -91,7 +93,7 @@ getExplainableVarDF <- function(type=1,data,dfCovs,strID="ID",runno,modDevDir,cs
     #### Go through all dfCovs combinations to calculate the variability for each of them
     
     dfrest<-data.frame()
-    
+#   browser() 
     for (i in 1:nrow(dfCovs)) {
       currentNames<-names(dfCovs[i,])[as.numeric(dfCovs[i,])!=-99]
       if (any(!currentNames %in% covNames)) {
@@ -106,6 +108,7 @@ getExplainableVarDF <- function(type=1,data,dfCovs,strID="ID",runno,modDevDir,cs
         Chol = chol(ffemObjAllNoCov$FullVars) #Get the covariance matrix and then Cholesky decompose
         etasamples<-t(ETAsamples) %*% Chol #Transform the ETA samples to N(0,COV) matrix
       }
+ #     browser()
       dftmp1<-foreach (k = 1:nrow(dataI),.packages = cstrPackages,.export = cstrExports,.verbose = !quiet,.combine=bind_rows) %dopar% { #For all subjects in data
       #dftmp1<-foreach (k = 1:nrow(dataI),.packages = cstrPackages,.export = cstrExports,.verbose = !quiet,.combine=bind_rows) %do% { #For all subjects in data
       #for (k in 1:nrow(dataI))  {
@@ -114,6 +117,8 @@ getExplainableVarDF <- function(type=1,data,dfCovs,strID="ID",runno,modDevDir,cs
         avcov<-names(datatmp)[which(datatmp!=-99)] #Get the non-missing covariates only
         data47_jxrtp <- datatmp
         coveffects <- rep(0,length(parNames))
+        
+
         #Calculate the FFEM based on some know covariates based on the row in dfCovs which are non-missing
         ffemObj<-calcFFEM(noBaseThetas=noBaseThetas,noCovThetas = noCovThetas,noSigmas = noSigmas,dfext=dfext,covNames = covNames,
                                          availCov = avcov[avcov %in% strCovsRow],quiet = quiet, noParCov = noParCov, noSkipOm = noSkipOm)
@@ -123,6 +128,9 @@ getExplainableVarDF <- function(type=1,data,dfCovs,strID="ID",runno,modDevDir,cs
           if (length(names(dfCovs[i,])[as.numeric(dfCovs[i,])!=-99])!=0) coveffects[j] <- as.numeric(eval(parse(text=ffem_expr)))
           
         }
+        
+        
+        
         if (i==1) {#Calculate a FFEM for each individual to get the total variability as well
           
           ffemObjAll<-calcFFEM(noBaseThetas=noBaseThetas,noCovThetas = noCovThetas,noSigmas = noSigmas,dfext=dfext,covNames = covNames,
