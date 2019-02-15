@@ -34,11 +34,25 @@ mvrnorm_vector <- function(mu,sigma,fixed_mu=NULL,dSeed=NULL,iSampleIndex=1)
   ## modified 2018
   ####################################################################################
   require(MASS) #For mvrnorm
+  
   if (iSampleIndex==0) return (mu)
-  if (is.null(fixed_mu)) fixed_mu<-rep(0,length(mu))
-  tmp_mu<-mu[which(fixed_mu==0)] #Get the non-fixed mu
+  
+  if (is.null(fixed_mu)) fixed_mu <- rep(0,length(mu))
+  
+  tmp_mu <- mu[which(fixed_mu==0)] #Get the non-fixed mu
+  
   if (!is.null(dSeed)) set.seed(dSeed)
-  samples<-mvrnorm(n=iSampleIndex,tmp_mu,sigma[-which(fixed_mu==1),-which(fixed_mu==1)])
+  
+  ## Get the sigma
+  if(!any(fixed_mu!=0)) {
+    mySigma <- sigma
+  } else {
+    mySigma <- sigma[-which(fixed_mu==1),-which(fixed_mu==1)]
+  }
+  
+  samples <- mvrnorm(n=iSampleIndex,tmp_mu,Sigma = mySigma)
+  #samples <- mvrnorm(n=iSampleIndex,tmp_mu,sigma[-which(fixed_mu==1),-which(fixed_mu==1)])
+  
   if (!is.matrix(samples)) {
     mu[which(fixed_mu==0)]<-samples
   } else {

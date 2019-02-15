@@ -100,7 +100,7 @@ getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(base
         listcount<-length(val) 
         
         for (l in 1:listcount) {
-          dfrest<-bind_rows(dfrest,data.frame(ITER=k,COVS=i,NAME=functionListName[n],VALUE=val[[l]],VALUEBASE=valbase[[l]]))
+          dfrest<-bind_rows(dfrest,data.frame(ITER=k,COVS=i,NAME=functionListName[n],VALUE=val[[l]],VALUEBASE=valbase[[l]],stringsAsFactors =FALSE))
           n<-n+1
         }
       }
