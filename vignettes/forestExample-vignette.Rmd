@@ -28,19 +28,19 @@ library(FREMfunctions) # Read in the FREMfunctions package
 ```
 
 ```{r}
-strRunDir <- "../inst/extdata/"            # The directory where the FREM model is located
-strRunno  <- "run7"                        # The FREM model used to produce the forest plot
+runDir <- "../inst/extdata/"            # The directory where the FREM model is located
+runno  <- "run7"                        # The FREM model used to produce the forest plot
 
-extFile <- paste0(strRunDir,strRunno,".ext") # The full path to the ext file
-modFile <- paste0(strRunDir,strRunno,".mod") # The full path to the mod file
-covFile <- paste0(strRunDir,strRunno,".cov") # The full path to the cov file
+extFile <- paste0(runDir,runno,".ext") # The full path to the ext file
+modFile <- paste0(runDir,runno,".mod") # The full path to the mod file
+covFile <- paste0(runDir,runno,".cov") # The full path to the cov file
 ```
 
 ```{r, echo=FALSE} 
 #Internal code for Vingette paths
-extFile <- system.file("extdata", paste0(strRunno,".ext"), package = "FREMfunctions")
-modFile <- system.file("extdata", paste0(strRunno,".mod"), package = "FREMfunctions")
-covFile <- system.file("extdata", paste0(strRunno,".cov"), package = "FREMfunctions")
+extFile <- system.file("extdata", paste0(runno,".ext"), package = "FREMfunctions")
+modFile <- system.file("extdata", paste0(runno,".mod"), package = "FREMfunctions")
+covFile <- system.file("extdata", paste0(runno,".cov"), package = "FREMfunctions")
 ```
 
 Get the parameter estimates and the covaraite names from the FREM model.
@@ -100,13 +100,13 @@ The example below assumes lognormal parameters with normal FREM covariate relati
 
 ```{r}
 ## The parameter function list
-functionList=list(
+functionList <- list(
   function(basethetas,covthetas,...){ return(basethetas[1]*exp(covthetas[1]))}, 
   function(basethetas,covthetas,...){ return(basethetas[2]*exp(covthetas[2]))}
   )
 
 ## Define the names of the parameters that each of the functions in the list above returns
-functionListName=c("CL","V1")
+functionListName <- c("CL","V1")
 ```
 
 ## Get the forest plot data

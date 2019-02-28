@@ -134,7 +134,8 @@ getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(base
     group<-cGrouping[i]
     for (j in 1:length(functionListName)) {
       dft<-dfres[dfres$COVS==i & dfres$NAME==functionListName[j],] #Subset each covariate and parameter
-      quant<-quantile(dft$VALUE,probs = probs,names = FALSE)
+    
+      quant<-quantile(dft$VALUE,probs = probs,names = FALSE,na.rm=T)
       mean_base<-mean(dft$VALUEBASE)
       median_base<-median(dft$VALUEBASE)
       true_base<-dft$VALUEBASE[dft$ITER==1] #Assume first parameter vector in dfParameters are the base estimated parameter vector
