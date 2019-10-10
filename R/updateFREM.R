@@ -50,7 +50,7 @@ updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsTo
                        basenames=c("BASE","PLMAX","HLKON","HLKOFF","BASSL","BP","BASEWHZ","PLMAXWHZ","HLKONWHZ","HLKOFFWHZ","BASSLWHZ"),
                        cstrKeepCols=c("ID","SUBJID","SITEID","AGE","AGEYI","DV","FREMTYPE"),
                        bWriteData=TRUE,bWriteFIX=TRUE,cstrDV="DV",cstrRemoveCov=NULL,covEpsNum = 2,
-                       overrideExistingCheck=FALSE) {
+                       overrideExistingCheck=FALSE,sortAGE=TRUE) {
 
 
   iFremTypeIncrease<-100 #The FREMTYPE INCREASE TO USE
@@ -397,8 +397,12 @@ updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsTo
 
 
     #Writing the FREM dataset to disc!!
-    dfFREM <- dfFREM %>% arrange(ID,AGE,FREMTYPE) %>% select(one_of(cstrKeepCols))
-
+    if(sortAGE) {
+      dfFREM <- dfFREM %>% arrange(ID,AGE,FREMTYPE) %>% select(one_of(cstrKeepCols))
+    } else {
+      dfFREM <- dfFREM %>% arrange(ID,FREMTYPE) %>% select(one_of(cstrKeepCols))
+    }
+    
     if (bWriteData) {
       write.csv(dfFREM,file=strNewFREMData,row.names = FALSE,quote = FALSE)
     }
