@@ -16,106 +16,110 @@
 #' @param withingroupeddist A number defining the y distance within groups of covariates
 #' @param ncores the number of cores to use for the calculations, default = 1 which means no parallellization
 #' @param cstrpackages a character vector with package names needed to run the calculations in parallel, default = NULL
-#' @param cstrExports a character vector with variables needed to run the calculations in parallel, default = NULL 
+#' @param cstrExports a character vector with variables needed to run the calculations in parallel, default = NULL
 #' @param ... additional variables to be forwarded to the the functionList functions
-#' 
+#'
 #'
 #' @return a data frame with summary statistics for each parameters and covariate combinations:
-#' 
+#'
 #' @export
 #'
 #' @examples
 #' \dontrun{
 #' dfForest <- getForestDF(dfCovs)
 #' }
-getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(basethetas,covthetas,dfrow,...){return(basethetas[1]*exp(covthetas[1]))}),functionListName="PAR1",noBaseThetas, noCovThetas, noSigmas, noParCov = noBaseThetas,noSkipOm=0,dfParameters,
-                        parNames = paste("Par", 1:noParCov, sep = ""), covNames = paste("Cov",1:noCovThetas, sep = ""),
-                        availCov = covNames, quiet = FALSE,probs=c(0.025,0.5,0.975),dfRefRow=NULL,cGrouping=NULL,fixedSpacing=TRUE,groupdist=0.2,withingroupdist=0.1,ncores=1,cstrPackages=NULL,cstrExports=NULL,...) {
+getForestDF <- function(dfCovs, cdfCovsNames = NULL, functionList = list(function(basethetas, covthetas, dfrow, ...) {
+                          return(basethetas[1] * exp(covthetas[1]))
+                        }), functionListName = "PAR1", noBaseThetas, noCovThetas, noSigmas, noParCov = noBaseThetas, noSkipOm = 0, dfParameters,
+                        parNames = paste("Par", 1:noParCov, sep = ""), covNames = paste("Cov", 1:noCovThetas, sep = ""),
+                        availCov = covNames, quiet = FALSE, probs = c(0.025, 0.5, 0.975), dfRefRow = NULL, cGrouping = NULL, fixedSpacing = TRUE, groupdist = 0.2, withingroupdist = 0.1, ncores = 1, cstrPackages = NULL, cstrExports = NULL, ...) {
+  resList <- list()
+  if (!is.data.frame(dfCovs)) dfCovs <- dfCreateInputForestData(dfCovs)
+  dfCovs[is.na(dfCovs)] <- -99
 
-  
-  resList<-list()
-  if (!is.data.frame(dfCovs)) dfCovs<-dfCreateInputForestData(dfCovs)
-  dfCovs[is.na(dfCovs)]<--99
-  
-  getGroups<-function(df){
-    cGroups<-c()
-    cUnique<-c()
-    iGroup<-0
+  getGroups <- function(df) {
+    cGroups <- c()
+    cUnique <- c()
+    iGroup <- 0
     for (i in 1:nrow(df)) {
-      tmp<-paste0(names(dfCovs[i,])[as.numeric(dfCovs[i,])!=-99],collapse=",")
+      tmp <- paste0(names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != -99], collapse = ",")
       if (tmp %in% cUnique) {
-        tmpl <- which(tmp==cUnique)
-        cGroups<-c(cGroups,tmpl)
+        tmpl <- which(tmp == cUnique)
+        cGroups <- c(cGroups, tmpl)
       } else {
-        iGroup<-iGroup+1
-        cGroups<-c(cGroups,iGroup)
-        cUnique<-c(cUnique,tmp)
+        iGroup <- iGroup + 1
+        cGroups <- c(cGroups, iGroup)
+        cUnique <- c(cUnique, tmp)
       }
     }
     return(cGroups)
   }
-  if (is.null(cGrouping)) cGrouping<-getGroups(dfCovs)
-  
-  ## Start the parallell engine if ncores > 1
-  if(ncores>1) {registerDoParallel(cores=ncores)}
+  if (is.null(cGrouping)) cGrouping <- getGroups(dfCovs)
 
-  dfres<-foreach (k=1:nrow(dfParameters),.packages = cstrPackages,.export = cstrExports,.verbose = !quiet,.combine=bind_rows) %dopar% {
+  ## Start the parallell engine if ncores > 1
+  if (ncores > 1) {
+    registerDoParallel(cores = ncores)
+  }
+
+  dfres <- foreach(k = 1:nrow(dfParameters), .packages = cstrPackages, .export = cstrExports, .verbose = !quiet, .combine = bind_rows) %dopar% {
   #dfres<-foreach (k=1:nrow(dfParameters),.packages = cstrPackages,.export = cstrExports,.verbose = !quiet,.combine=bind_rows) %do% {
-    
-      dfext<-cbind(first = 0, dfParameters[k,],row.names = NULL) #Dummy to get same format as ext file
-    thetas <- as.numeric(dfext[2:(noBaseThetas+1)])
-    dfrest<-data.frame()
-    
+
+    dfext <- cbind(first = 0, dfParameters[k, ], row.names = NULL) # Dummy to get same format as ext file
+    thetas <- as.numeric(dfext[2:(noBaseThetas + 1)])
+    dfrest <- data.frame()
+
 
     for (i in 1:nrow(dfCovs)) {
-      currentNames<-names(dfCovs[i,])[as.numeric(dfCovs[i,])!=-99]
+
+      currentNames <- names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != -99]
 
       if (any(!currentNames %in% covNames$covNames)) {
-        warning(paste0("Can't find some of the covariates: ",currentNames," in the FREM model, perhaps they are structural covariates!"))
+        warning(paste0("Can't find some of the covariates: ", currentNames, " in the FREM model, perhaps they are structural covariates!"))
       }
-  
-      if (!is.null(dfRefRow)) { #Get another ref value than typical value
-        #ffemObjRef<-calcFFEM(noBaseThetas=noBaseThetas,noCovThetas = noCovThetas,noSigmas = noSigmas,dfext=dfext,covNames = covNames$covNames,
+
+      if (!is.null(dfRefRow)) { # Get another ref value than typical value
+        # ffemObjRef<-calcFFEM(noBaseThetas=noBaseThetas,noCovThetas = noCovThetas,noSigmas = noSigmas,dfext=dfext,covNames = covNames$covNames,
         #                     availCov = covNames$covNames[covNames$covNames %in% currentNames ],quiet = quiet,noSkipOm = noSkipOm,noParCov = noParCov)
-        
-        ffemObjRef<-calcFFEM(noBaseThetas=noBaseThetas,noCovThetas = noCovThetas,noSigmas = noSigmas,dfext=dfext,covNames = covNames$covNames,
-                             availCov = names(dfRefRow)[as.numeric(dfRefRow)!=-99],quiet = quiet,noSkipOm = noSkipOm,noParCov = noParCov)
+
+        ffemObjRef <- calcFFEM(
+          noBaseThetas = noBaseThetas, noCovThetas = noCovThetas, noSigmas = noSigmas, dfext = dfext, covNames = covNames$covNames,
+          availCov = names(dfRefRow)[as.numeric(dfRefRow) != -99], quiet = quiet, noSkipOm = noSkipOm, noParCov = noParCov
+        )
       }
-      
-      #ffemObj<-calcFFEM(noBaseThetas=noBaseThetas,noCovThetas = noCovThetas,noSigmas = noSigmas,dfext=dfext,covNames = covNames$covNames,
+
+      # ffemObj<-calcFFEM(noBaseThetas=noBaseThetas,noCovThetas = noCovThetas,noSigmas = noSigmas,dfext=dfext,covNames = covNames$covNames,
       #                  availCov = names(dfCovs[i,])[as.numeric(dfCovs[i,])!=-99],quiet = quiet,noSkipOm = noSkipOm,noParCov = noParCov)
- 
-      ffemObj<-calcFFEM(noBaseThetas=noBaseThetas,noCovThetas = noCovThetas,noSigmas = noSigmas,dfext=dfext,covNames = covNames$covNames,
-                        availCov = covNames$covNames[covNames$covNames %in% currentNames ],quiet = quiet,noSkipOm = noSkipOm,noParCov = noParCov)
-      
-      coveffects <- rep(0,length(parNames))
-      coveffects_base <- rep(0,length(parNames))
-      data47_jxrtp <- dfCovs[i,]
-      for(j in 1:length(parNames)) {
-        ffem_expr<-str_replace_all(ffemObj$Expr[j],pattern = "data\\$",replacement = "data47_jxrtp$")
-        if (length(covNames$covNames[covNames$covNames %in% currentNames ])!=0) coveffects[j] <- as.numeric(eval(parse(text=ffem_expr)))
+
+      ffemObj <- calcFFEM(
+        noBaseThetas = noBaseThetas, noCovThetas = noCovThetas, noSigmas = noSigmas, dfext = dfext, covNames = covNames$covNames,
+        availCov = covNames$covNames[covNames$covNames %in% currentNames ], quiet = quiet, noSkipOm = noSkipOm, noParCov = noParCov
+      )
+
+      coveffects <- rep(0, length(parNames))
+      coveffects_base <- rep(0, length(parNames))
+      data47_jxrtp <- dfCovs[i, ]
+      for (j in 1:length(parNames)) {
+        ffem_expr <- str_replace_all(ffemObj$Expr[j], pattern = "data\\$", replacement = "data47_jxrtp$")
+        if (length(covNames$covNames[covNames$covNames %in% currentNames ]) != 0) coveffects[j] <- as.numeric(eval(parse(text = ffem_expr)))
         if (!is.null(dfRefRow)) {
-          ffem_expr_base<-str_replace_all(ffemObjRef$Expr[j],pattern = "data\\$",replacement = "dfRefRow$")
-          coveffects_base[j]<-as.numeric(eval(parse(text=ffem_expr_base)))
+          ffem_expr_base <- str_replace_all(ffemObjRef$Expr[j], pattern = "data\\$", replacement = "dfRefRow$")
+          coveffects_base[j] <- as.numeric(eval(parse(text = ffem_expr_base)))
         }
       }
-      n=1
+      n <- 1
 
       for (j in 1:length(functionList)) {
-
-        val<-functionList[[j]](thetas,coveffects,dfrow=dfCovs[i,],...)
+        val <- functionList[[j]](thetas, coveffects, dfrow = dfCovs[i, ], ...)
         if (!is.null(dfRefRow)) { ## Add a new reference line based on some covariate values
-          valbase=functionList[[j]](basethetas=thetas,covthetas=coveffects_base,dfrow=dfCovs[i,],...)
+          valbase <- functionList[[j]](basethetas = thetas, covthetas = coveffects_base, dfrow = dfCovs[i, ], ...)
         } else {
-
-          valbase=functionList[[j]](basethetas=thetas,covthetas=rep(0,length(parNames)),dfrow=dfCovs[i,],...)
+          valbase <- functionList[[j]](basethetas = thetas, covthetas = rep(0, length(parNames)), dfrow = dfCovs[i, ], ...)
         }
-        listcount<-length(val) 
-    
-        for (l in 1:listcount) {
-          dfrest<-bind_rows(dfrest,data.frame(ITER=k,COVS=i,NAME=functionListName[n],VALUE=val[[l]],VALUEBASE=valbase[[l]],stringsAsFactors =FALSE))
-          n<-n+1
+        listcount <- length(val)
 
+        for (l in 1:listcount) {
+          dfrest <- bind_rows(dfrest, data.frame(ITER = k, COVS = i, NAME = functionListName[n], VALUE = val[[l]], VALUEBASE = valbase[[l]], stringsAsFactors = FALSE))
+          n <- n + 1
         }
       }
     }
@@ -123,75 +127,73 @@ getForestDF <- function(dfCovs,cdfCovsNames=NULL,functionList=list(function(base
   }
 
   getCovNameString <- function(dfrow) {
-    strName<-""
-    colnames<-names(dfrow)
+    strName <- ""
+    colnames <- names(dfrow)
     for (i in 1:ncol(dfrow)) {
-      if (dfrow[1,i]!=-99) {
-        if (strName=="") {
-          strName<-paste0(colnames[i],"=",dfrow[1,i])
+      if (dfrow[1, i] != -99) {
+        if (strName == "") {
+          strName <- paste0(colnames[i], "=", dfrow[1, i])
         } else {
-          strName<-paste0(strName,", ",colnames[i],"=",dfrow[1,i])
+          strName <- paste0(strName, ", ", colnames[i], "=", dfrow[1, i])
         }
       }
     }
-    if (strName=="") strName<-"Ref cov"
-    return (strName)
+    if (strName == "") strName <- "Ref cov"
+    return(strName)
   }
-  
-  dfret<-data.frame()
+
+  dfret <- data.frame()
   for (i in 1:nrow(dfCovs)) {
     if (is.null(cdfCovsNames)) {
-      covname<-getCovNameString(dfCovs[i,])
+      covname <- getCovNameString(dfCovs[i, ])
     } else {
-      covname<-cdfCovsNames[i]
+      covname <- cdfCovsNames[i]
     }
-    group<-cGrouping[i]
+    group <- cGrouping[i]
     for (j in 1:length(functionListName)) {
-      dft<-dfres[dfres$COVS==i & dfres$NAME==functionListName[j],] #Subset each covariate and parameter
-    
-      quant<-quantile(dft$VALUE,probs = probs,names = FALSE,na.rm=T)
-      mean_base<-mean(dft$VALUEBASE,na.rm=T)
-      median_base<-median(dft$VALUEBASE,na.rm=T)
-      true_base<-dft$VALUEBASE[dft$ITER==1] #Assume first parameter vector in dfParameters are the base estimated parameter vector
-      dfrow<-cbind(dfCovs[i,],data.frame(GROUP=group,COVNUM=i,COVNAME=covname,PARAMETER=functionListName[j],REFMEAN=mean_base,REFTRUE=true_base,REFMEDIAN=median_base),row.names = NULL)
+      dft <- dfres[dfres$COVS == i & dfres$NAME == functionListName[j], ] # Subset each covariate and parameter
+
+      quant <- quantile(dft$VALUE, probs = probs, names = FALSE, na.rm = T)
+      mean_base <- mean(dft$VALUEBASE, na.rm = T)
+      median_base <- median(dft$VALUEBASE, na.rm = T)
+      true_base <- dft$VALUEBASE[dft$ITER == 1] # Assume first parameter vector in dfParameters are the base estimated parameter vector
+      dfrow <- cbind(dfCovs[i, ], data.frame(GROUP = group, COVNUM = i, COVNAME = covname, PARAMETER = functionListName[j], REFMEAN = mean_base, REFTRUE = true_base, REFMEDIAN = median_base), row.names = NULL)
       for (k in 1:length(probs)) {
-        dfp<-data.frame("X1"=1)
-        dfp[[paste0("q",k)]]<-quant[k]
-        dfrow<-cbind(dfrow,dfp[,2],row.names = NULL)
-        names(dfrow)[ncol(dfrow)]<-paste0("q",k)
+        dfp <- data.frame("X1" = 1)
+        dfp[[paste0("q", k)]] <- quant[k]
+        dfrow <- cbind(dfrow, dfp[, 2], row.names = NULL)
+        names(dfrow)[ncol(dfrow)] <- paste0("q", k)
       }
-      dfret<-rbind(dfret,dfrow)
+      dfret <- rbind(dfret, dfrow)
     }
   }
-  
-  
+
+
   if (!fixedSpacing) {
-  #Relative sizes
-  dfret$Y<-NA
-  for (i in 1:length(sort(unique(dfret$GROUP)))) {
-    dft<-dfret[dfret$GROUP==sort(unique(dfret$GROUP))[i],]
-    num_in_group<-nrow(dft)/length(unique(dfret$PARAMETER))
-    for (n in 1:length(unique(dft$COVNUM))) {
-      dfret$Y[dfret$GROUP==sort(unique(dfret$GROUP))[i] & dfret$COVNUM==unique(dft$COVNUM)[n]]<-(i-1)+n/(num_in_group+1)
+    # Relative sizes
+    dfret$Y <- NA
+    for (i in 1:length(sort(unique(dfret$GROUP)))) {
+      dft <- dfret[dfret$GROUP == sort(unique(dfret$GROUP))[i], ]
+      num_in_group <- nrow(dft) / length(unique(dfret$PARAMETER))
+      for (n in 1:length(unique(dft$COVNUM))) {
+        dfret$Y[dfret$GROUP == sort(unique(dfret$GROUP))[i] & dfret$COVNUM == unique(dft$COVNUM)[n]] <- (i - 1) + n / (num_in_group + 1)
+      }
     }
-  }
   } else {
-  #Fixed sizes
-  dfret$Y<-NA
-  a<-0
-  for (i in 1:length(sort(unique(dfret$GROUP)))) {
-    dft<-dfret[dfret$GROUP==sort(unique(dfret$GROUP))[i],]
-    num_in_group<-nrow(dft)/length(unique(dfret$PARAMETER))
-    for (n in 1:length(unique(dft$COVNUM))) {
-      dfret$Y[dfret$GROUP==sort(unique(dfret$GROUP))[i] & dfret$COVNUM==unique(dft$COVNUM)[n]]<-a
-      a<-a+withingroupdist
-    }
-    a<-a+groupdist
+    # Fixed sizes
+    dfret$Y <- NA
+    a <- 0
+    for (i in 1:length(sort(unique(dfret$GROUP)))) {
+      dft <- dfret[dfret$GROUP == sort(unique(dfret$GROUP))[i], ]
+      num_in_group <- nrow(dft) / length(unique(dfret$PARAMETER))
+      for (n in 1:length(unique(dft$COVNUM))) {
+        dfret$Y[dfret$GROUP == sort(unique(dfret$GROUP))[i] & dfret$COVNUM == unique(dft$COVNUM)[n]] <- a
+        a <- a + withingroupdist
+      }
+      a <- a + groupdist
     }
   }
-  
+
   stopImplicitCluster()
   return(dfret)
 }
-
-
