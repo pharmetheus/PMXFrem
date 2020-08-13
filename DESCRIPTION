@@ -1,4 +1,4 @@
-Package: FREMfunctions
+Package: pmxutilities
 Type: Package
 Title: Support functions for FREM analyses in NONMEM
 Version: 0.3.0
