@@ -4,12 +4,13 @@
 \alias{getExplainableVarDF}
 \title{getExplainableVarDF()}
 \usage{
-getExplainableVarDF(type = 1, data, dfCovs, strID = "ID", runno, modDevDir,
-  cstrCovariates = NULL, functionList = list(function(basethetas, covthetas,
-  dfrow, etas, ...) {     return(basethetas[1] * exp(covthetas[1] + etas[1]))
-  }), functionListName = "PAR1", noBaseThetas, noCovThetas, noSigmas,
-  noParCov = noBaseThetas, parNames = paste("Par", 1:noParCov, sep = ""),
-  noSkipOm = 0, covNames = paste("Cov", 1:noCovThetas, sep = ""),
+getExplainableVarDF(type = 1, data, dfCovs, strID = "ID", runno,
+  modDevDir, cstrCovariates = NULL,
+  functionList = list(function(basethetas, covthetas, dfrow, etas, ...) {
+      return(basethetas[1] * exp(covthetas[1] + etas[1])) }),
+  functionListName = "PAR1", noBaseThetas, noCovThetas, noSigmas,
+  noParCov = noBaseThetas, parNames = paste("Par", 1:noParCov, sep =
+  ""), noSkipOm = 0, covNames = paste("Cov", 1:noCovThetas, sep = ""),
   dfext = NULL, availCov = covNames, etas = NULL, quiet = FALSE,
   ncores = 1, cstrPackages = NULL, cstrExports = NULL,
   numETASamples = 100, ...)
