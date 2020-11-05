@@ -8,11 +8,12 @@ updateFREM(strFREMModel, strFREMData = "", strFFEMData = "",
   cstrContCovsToAdd = NULL, cstrCatCovsToAdd = NULL,
   cstrCovsToAddOrder = NULL, strNewFREMData = NULL,
   strUpdateType = "OldInits", quiet = TRUE, strID = "ID",
-  basenames = c("BASE", "PLMAX", "HLKON", "HLKOFF", "BASSL", "BP", "BASEWHZ",
-  "PLMAXWHZ", "HLKONWHZ", "HLKOFFWHZ", "BASSLWHZ"), cstrKeepCols = c("ID",
-  "SUBJID", "SITEID", "AGE", "AGEYI", "DV", "FREMTYPE"), bWriteData = TRUE,
-  bWriteFIX = TRUE, cstrDV = "DV", cstrRemoveCov = NULL, covEpsNum = 2,
-  overrideExistingCheck = FALSE)
+  basenames = c("BASE", "PLMAX", "HLKON", "HLKOFF", "BASSL", "BP",
+  "BASEWHZ", "PLMAXWHZ", "HLKONWHZ", "HLKOFFWHZ", "BASSLWHZ"),
+  cstrKeepCols = c("ID", "SUBJID", "SITEID", "AGE", "AGEYI", "DV",
+  "FREMTYPE"), bWriteData = TRUE, bWriteFIX = TRUE, cstrDV = "DV",
+  cstrRemoveCov = NULL, covEpsNum = 2, overrideExistingCheck = FALSE,
+  sortAGE = TRUE)
 }
 \arguments{
 \item{strFREMModel}{File name of the FREM-model to append covariates to.}

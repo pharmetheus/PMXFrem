@@ -6,9 +6,9 @@
 \usage{
 createVPCdata(runno, modName = NULL, noBaseThetas, noSigmas,
   parNames = c("BASE", "PLMAX", "HLKON", "HLKOFF", "BASSL"), dataFile,
-  newDataFile = paste("vpcData", runno, ".csv", sep = ""), availCov = NULL,
-  idvar = "ID", modDevDir = NULL, quiet = FALSE, cores = 1,
-  dfext = NULL, ...)
+  newDataFile = paste("vpcData", runno, ".csv", sep = ""),
+  availCov = NULL, idvar = "ID", modDevDir = NULL, quiet = FALSE,
+  cores = 1, dfext = NULL, ...)
 }
 \arguments{
 \item{runno}{The run number to use to construct the file names (see Details).}
