@@ -1,22 +1,3 @@
-<<<<<<< HEAD
-Version: 1.0
-
-RestoreWorkspace: Default
-SaveWorkspace: Default
-AlwaysSaveHistory: Default
-
-EnableCodeIndexing: Yes
-UseSpacesForTab: Yes
-NumSpacesForTab: 2
-Encoding: UTF-8
-
-RnwWeave: knitr
-LaTeX: XeLaTeX
-
-BuildType: Package
-PackageUseDevtools: Yes
-PackageInstallArgs: --no-multiarch --with-keep.source
-=======
 Version: 1.0
 
 RestoreWorkspace: Default
@@ -35,4 +16,3 @@ BuildType: Package
 PackageUseDevtools: Yes
 PackageInstallArgs: --no-multiarch --with-keep.source
 PackageRoxygenize: rd,collate,namespace,vignette
->>>>>>> e873c8795916de8daff519f37ba3fc1956d86092
