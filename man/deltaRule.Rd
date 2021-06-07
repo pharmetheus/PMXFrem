@@ -24,7 +24,7 @@ A named vector with the tranformed parameter value (Value) and the transformed p
 Compute the uncertainty in a transformed variable using the delta rule and numerical derivatives.
 }
 \examples{
-#' \dontrun{
+\dontrun{
 deltaRule(ebes,varCov,computeNadir)
 }
 }

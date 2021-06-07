@@ -7,7 +7,8 @@
 calcFFEM(noBaseThetas, noCovThetas, noSigmas, noParCov = noBaseThetas,
   noSkipOm = 0, dfext, parNames = paste("Par", 1:noParCov, sep = ""),
   covNames = paste("Cov", 1:noCovThetas, sep = ""),
-  availCov = covNames, quiet = FALSE)
+  availCov = covNames, quiet = FALSE, fremETA = NULL, eqFile = "",
+  omFile = "")
 }
 \arguments{
 \item{noBaseThetas}{Number of thetas that are not FREM covariates. These need to come before the FREM covariate thetas.}
@@ -29,8 +30,14 @@ Such omegas has to come before the large FREM omega block.}
 
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK}
 
+\item{eqFile}{File name to save the FFEM equations in}
+
+\item{omFile}{File name to save the omega prim matrix in.}
+
 \item{dfExt}{A data frame of the ext file for the model. In case of multiple $EST, the dfext 
 should contain the estimates of the *one* relevant $EST.}
+
+\item{fremEta}{Computes individual eta_prims.}
 }
 \value{
 A list with components Coefficients, Vars and Expr:

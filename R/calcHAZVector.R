@@ -10,7 +10,7 @@
 #' @export
 #'
 #' @examples
-#' #' \dontrun{
+#'  \dontrun{
 #' calcHAZVector(c(1,2),basethetas = thetas[1:6],covthetas=thetas[7:12],etas=rep(0,6))
 #' }
 calcHAZVector <- calcHAZ <- function(age=0,basethetas=NULL,covthetas=rep(0,length(basethetas)),etas=rep(0,length(basethetas))) {

@@ -11,7 +11,7 @@
 #' @export
 #'
 #' @examples
-#' #' \dontrun{
+#' \dontrun{
 #' deltaRule(ebes,varCov,computeNadir)
 #' }
 deltaRule<- function(ebes,varCov,transform_fun,bIncludeCov=TRUE,...) {

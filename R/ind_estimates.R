@@ -14,7 +14,7 @@
 #' @export
 #'
 #' @examples
-#' #' \dontrun{
+#' \dontrun{
 #' modelfunc <- function(age,thetas,etas) {
 #'      pred <- calcHAZVector(age,basethetas = thetas[1:6],covthetas=thetas[7:12],etas=etas)
 #'      return(pred)

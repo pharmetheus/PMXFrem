@@ -23,7 +23,7 @@ A vector of HAZ values.
 Calculates HAZ values based on the inverse Bateman function.
 }
 \examples{
-#' \dontrun{
+ \dontrun{
 calcHAZVector(c(1,2),basethetas = thetas[1:6],covthetas=thetas[7:12],etas=rep(0,6))
 }
 }

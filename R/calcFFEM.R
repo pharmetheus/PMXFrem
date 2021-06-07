@@ -13,7 +13,10 @@
 #' @param covNames Names of the covariates
 #' @param availCov Names of the covariates to use in teh calculation of the FFEM model.
 #' @param quiet If FALSE, will print the FFEM model + associated $OMEGA BLOCK
-#'
+#' @param fremEta Computes individual eta_prims.
+#' @param eqFile File name to save the FFEM equations in
+#' @param omFile File name to save the omega prim matrix in.
+#' 
 #' @return A list with components Coefficients, Vars and Expr:
 #' 
 #' Coeffients: A noBaseThetas x availCov matrix with FFEM model coefficients
@@ -292,10 +295,10 @@
 
 calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noSkipOm=0,dfext,
                      parNames=paste("Par",1:noParCov,sep=""),covNames=paste("Cov",1:noCovThetas,sep=""),
-                     availCov=covNames,quiet=FALSE) {
-
+                     availCov=covNames,quiet=FALSE,fremETA=NULL,eqFile = "",omFile="") {
+  
   ## Computes the corresponding FFEM from a FREM model. Can handle missing covariates.
-
+  
   # noBaseThetas: Number of thetas that are not covariates
   # noCovThetas:  Number of FREM covariates that are tested, i.e. number of thetas associated with covariate effects
   # noParCov:     Number of parameters for which covariate relations are sought (often the same as noBaseTheta)
@@ -304,28 +307,28 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noS
   # covNames:     Names of the covariates
   # availCov:     Names of the non-missing covariates
   # quiet:        If FALSE, will print the FFEM model + associated $OMEGA BLOCK
-
+  # fremETA:      Vector with indivdual etas from FREM, used to calculate FFEM etas, if NULL no FFEM etas will be calculated
+  
   ## Return value: A list with components Coefficients, Vars and Expr
   ##    Coeffients: A noBaseThetas x availCov matrix with FFEM model coefficients
   ##    Vars:       A noBaseThetas x noBaseThetas matrix with the FFEM variances (OMEGA)
   ##    Expr:       A vector of FFEM expressions, one for each base model parameter.
   ##    FullVars:   A full omega matrix including skipOM if available, otherwise same as Vars
   ##    UpperVars:  A omega matrix corresponding to the upper block (only relevant when noSkipOm!=0), otherwise=NULL
-  
-
+  ##    Eta_prim:   A vector with individual FFEM etas back-calculated from FREM etas, conditioned on availCov, NULL if fremETA=NULL
   iNumFREMOM<-(noCovThetas+noParCov)*(noCovThetas+noParCov+1)/2
   iNumSigma <- noSigmas*(noSigmas+1)/2
   if (nrow(dfext)>1) dfext  <- dfext[dfext$ITERATION==-1000000000,]
-
+  
   df_th  <- as.numeric(dfext[,2:(noBaseThetas+1)])
   df_thm <- as.numeric(dfext[,(noBaseThetas+2):(noBaseThetas+1+noCovThetas)])
   #df_om  <- as.numeric(dfext[,(noBaseThetas+5+noCovThetas):(noBaseThetas+4+noCovThetas+iNumFREMOM)])
   df_om  <- as.numeric(dfext[,(noBaseThetas+iNumSigma+2+noCovThetas):(ncol(dfext)-1)])
-
+  
   num_om <- -1/2+sqrt(1/4+2*iNumFREMOM)+noSkipOm #The col/row size of the full OM matrix (including all blocks)
-
+  
   om_matrix          <- as.numeric(df_om)
-
+  
   #Get the om-matrix
   OM                             <- matrix(0, nrow=num_om, ncol=num_om) #Define an empty matrix
   OM[upper.tri(OM,diag = TRUE)]  <- om_matrix #Assign upper triangular + diag
@@ -334,15 +337,15 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noS
   OMFULL<-OM
   
   if (noSkipOm!=0) OM<-OM[-(1:noSkipOm),-(1:noSkipOm)] #Remove upper block
-
+  
   OM_PAR     <- OM[1:noParCov,1:noParCov] #The parameter covariance matrix
   OM_COV     <- OM[(noParCov+1):(noParCov+noCovThetas),(noParCov+1):(noParCov+noCovThetas)] #The covariates covariance matrix
   OM_PAR_COV <- OM[1:noParCov,(noParCov+1):(noParCov+noCovThetas)] #The covariance between covariates and parameters matrix
-
+  
   if(length(availCov)!=0 & length(c(1:length(covNames))[!(covNames %in% availCov)])!=0) {
     missCov    <- c(1:length(covNames))[!(covNames %in% availCov)]
     #inv        <- inv[-missCov,-missCov]
-
+    
     OM_COV <- OM_COV[-missCov,-missCov]
     inv    <- solve(OM_COV)
     
@@ -356,12 +359,12 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noS
     ## Fix the covariate names and means
     covNames   <- covNames[-missCov]
     df_thm     <- df_thm[-missCov]
-
+    
     COEFF     <- OM_PAR_COV%*%inv #The parameter-covariate coefficients
     COEFF_VAR <- OM_PAR-OM_PAR_COV%*%inv%*%t(OM_PAR_COV) #The parameter variances
-
+    
   } else if(length(c(1:length(covNames))[!(covNames %in% availCov)])==0) {
- 
+    
     if (ncol(as.matrix(OM_PAR_COV))==1) {
       OM_PAR_COV <- t(as.matrix(OM_PAR_COV))
     } else {
@@ -377,49 +380,53 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noS
     #COEFF_VAR <- OM_PAR-OM_PAR_COV # Check with Jocke if this is the way it should be
     COEFF_VAR <- OM_PAR
   }
-
+  
   ## Print the FFEM for inspection
   if(!quiet) {
     for(p in 1:nrow(COEFF)) {
       for(c in 1:ncol(COEFF)) {
-        if(c==1) cat(parNames[p],":",sep="")
+        # if(c==1 & p==1) cat(parNames[p],":",sep="",file=eqFile)
+        # if(c==1 & p!=1) cat(parNames[p],":",sep="",file=eqFile,append = TRUE)
+        if(c==1 & p==1) cat(parNames[p],"",sep="",file=eqFile)
+        if(c==1 & p!=1) cat(parNames[p],"",sep="",file=eqFile,append = TRUE)
         if(length(availCov)==0) {
-            cat(paste("0","*","(",covNames[c],"-",paste(round(df_thm[c],3),")",sep=""),sep=""))
+          cat(paste("0","*","(",covNames[c],"-",paste(round(df_thm[c],3),")",sep=""),sep=""),file=eqFile,append=TRUE)
         } else {
-          cat(paste(round(COEFF[p,c],3),"*","(",covNames[c],"-",paste(round(df_thm[c],3),")",sep=""),sep=""))
+          cat(paste(round(COEFF[p,c],3),"*","(",covNames[c],"-",paste(round(df_thm[c],3),")",sep=""),sep=""),file=eqFile,append=TRUE)
         }
-        if(c!=ncol(COEFF)) cat("+")
-        if(c==ncol(COEFF)) cat("\n")
+        if(c!=ncol(COEFF)) cat("+",file=eqFile,append=TRUE)
+        if(c==ncol(COEFF)) cat("\n",file=eqFile,append=TRUE)
       }
+      # cat("\n",file=eqFile,append=TRUE)
     }
   }
-
-
+  
+  
   ## Create evaluable expression
   myExpr <- c()
   for(p in 1:nrow(COEFF)) {
     myExpr[p] <- ""
     for(c in 1:ncol(COEFF)) {
       if(length(availCov)==0) {
-          myExpr[p] <- paste(myExpr[p],"0","*","(data$",covNames[c],"-",df_thm[c],")",sep="")
+        myExpr[p] <- paste(myExpr[p],"0","*","(data$",covNames[c],"-",df_thm[c],")",sep="")
       } else {
         myExpr[p] <- paste(myExpr[p],COEFF[p,c],"*","(data$",covNames[c],"-",df_thm[c],")",sep="")
       }
       if(c!=ncol(COEFF)) myExpr[p] <- paste(myExpr[p],"+")
     }
   }
-
+  
   if(!quiet) {
-    cat(paste("\n$OMEGA BLOCK(",nrow(COEFF_VAR),")",sep=""),"\n")
-
+    cat(paste("\n$OMEGA BLOCK(",nrow(COEFF_VAR),")",sep=""),"\n",file=omFile)
+    
     for(v in 1:nrow(COEFF_VAR)) {
       for(v2 in 1:v) {
-        cat(round(COEFF_VAR[v,v2],5),"")
-        if(v2==v) cat("\n")
+        cat(round(COEFF_VAR[v,v2],5),file=omFile,append=TRUE)
+        if(v2==v) cat("\n",append=TRUE,file=omFile)
       }
     }
   }
-
+  
   if (noSkipOm==0) { #If no upper block
     FULLVARS<-COEFF_VAR
     UPPERVARS<-numeric(0)
@@ -429,6 +436,24 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noS
     FULLVARS[1:noSkipOm,1:noSkipOm]<-OMFULL[1:noSkipOm,1:noSkipOm]
     UPPERVARS<-OMFULL[1:noSkipOm,1:noSkipOm]
   }
+  ## Calculate eta_prim
+  if (!is.null(fremETA)) {
+    if (noSkipOm == 0) {
+      if (!exists("missCov")) {
+        eta_prim <- fremETA[1:noParCov] - COEFF %*% fremETA[(noParCov + 1):(noParCov + noCovThetas)]
+      } else {
+        eta_prim <- fremETA[1:noParCov] - COEFF %*% fremETA[(noParCov + 1):(noParCov + noCovThetas)][-missCov]
+      }
+    } else {
+      if (!exists("missCov")) {
+        eta_prim <- c(fremETA[1:noSkipOm], fremETA[(noSkipOm + 1):(noParCov + noSkipOm)] - COEFF %*% fremETA[(noSkipOm + noParCov + 1):(noSkipOm + noParCov + noCovThetas)])
+      } else {
+        eta_prim <- c(fremETA[1:noSkipOm], fremETA[(noSkipOm + 1):(noParCov + noSkipOm)] - COEFF %*% fremETA[(noSkipOm + noParCov + 1):(noSkipOm + noParCov + noCovThetas)][-missCov])
+      }
+    }
+  } else {
+    eta_prim <- NULL
+  }
   
   return(
     invisible(
@@ -436,7 +461,8 @@ calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noS
            Vars         = COEFF_VAR,
            Expr         = myExpr,
            FullVars     = FULLVARS,
-           UpperVars    = UPPERVARS
+           UpperVars    = UPPERVARS,
+           Eta_prim     = eta_prim
       )
     )
   )

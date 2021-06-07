@@ -31,7 +31,7 @@ List of individual estimates (EBEs) and the variance-covariace matrix of the est
 Computes individual estimates of parameters using posterior Bayes estimation. Assumes no eta-eps interaction and a homoscedastic error.
 }
 \examples{
-#' \dontrun{
+\dontrun{
 modelfunc <- function(age,thetas,etas) {
      pred <- calcHAZVector(age,basethetas = thetas[1:6],covthetas=thetas[7:12],etas=etas)
      return(pred)
