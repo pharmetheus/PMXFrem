@@ -4,9 +4,21 @@
 \alias{calcParameters}
 \title{calcParameters}
 \usage{
-calcParameters(runno, modName = NULL, modDevDir, noBaseThetas,
-  noEtas = noBaseThetas, noSigmas = 2, noParCov = noEtas, dataFile,
-  parTab, parNames, availCov = NULL, cores = 4, ...)
+calcParameters(
+  runno,
+  modName = NULL,
+  modDevDir,
+  noBaseThetas,
+  noEtas = noBaseThetas,
+  noSigmas = 2,
+  noParCov = noEtas,
+  dataFile,
+  parTab,
+  parNames,
+  availCov = NULL,
+  cores = 4,
+  ...
+)
 }
 \arguments{
 \item{runno}{The run number to use to construct the file names (see Details).}

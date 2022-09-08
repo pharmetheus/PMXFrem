@@ -290,9 +290,16 @@
 #' CALPHA=0.001
 #' }
 
-calcFFEM <- function(noBaseThetas,noCovThetas,noSigmas,noParCov=noBaseThetas,noSkipOm=0,dfext,
-                     parNames=paste("Par",1:noParCov,sep=""),covNames=paste("Cov",1:noCovThetas,sep=""),
-                     availCov=covNames,quiet=FALSE) {
+calcFFEM <- function(noBaseThetas,
+                     noCovThetas,
+                     noSigmas,
+                     noParCov = noBaseThetas,
+                     noSkipOm = 0,
+                     dfext,
+                     parNames = paste("Par",1:noParCov,sep=""),
+                     covNames = paste("Cov",1:noCovThetas,sep=""),
+                     availCov = covNames,
+                     quiet=FALSE){
 
   ## Computes the corresponding FFEM from a FREM model. Can handle missing covariates.
 
