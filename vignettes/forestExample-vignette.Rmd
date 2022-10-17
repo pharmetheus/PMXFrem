@@ -146,7 +146,8 @@ The `plotForestDF` function takes the `getForestDFFREM()` output to produce the 
 
 ```{r, fig1,fig.height = 4, fig.width = 16, fig.align="center", out.width=700, out.height=175}
 theme_set(theme_bw(base_size=16)) #Change ggplot defaults to get nice plot
-PMXForest::plotForestDF(dfres,textsize=5)+xlim(c(0,2.5))
+# PMXForest::plotForestDF(dfres,textsize=5)+xlim(c(0,2.5))
+PMXForest::forestPlot(dfres)#+xlim(c(0,2.5))
 ```
 
 
