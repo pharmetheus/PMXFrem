@@ -4,11 +4,21 @@
 \alias{calcFFEM}
 \title{calcFFEM}
 \usage{
-calcFFEM(noBaseThetas, noCovThetas, noSigmas, noParCov = noBaseThetas,
-  noSkipOm = 0, dfext, parNames = paste("Par", 1:noParCov, sep = ""),
+calcFFEM(
+  noBaseThetas,
+  noCovThetas,
+  noSigmas,
+  noParCov = noBaseThetas,
+  noSkipOm = 0,
+  dfext,
+  parNames = paste("Par", 1:noParCov, sep = ""),
   covNames = paste("Cov", 1:noCovThetas, sep = ""),
-  availCov = covNames, quiet = FALSE, fremETA = NULL, eqFile = "",
-  omFile = "")
+  availCov = covNames,
+  quiet = FALSE,
+  fremETA = NULL,
+  eqFile = "",
+  omFile = ""
+)
 }
 \arguments{
 \item{noBaseThetas}{Number of thetas that are not FREM covariates. These need to come before the FREM covariate thetas.}

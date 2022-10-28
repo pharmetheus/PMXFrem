@@ -4,12 +4,24 @@
 \alias{getIndividualParameters}
 \title{getIndividualParameters}
 \usage{
-getIndividualParameters(runno, modName = NULL, noBaseThetas, noSigmas,
-  noSkipOm = 0, noParCov = noBaseThetas, parNames = c("BASE",
-  "PLMAX", "HLKON", "HLKOFF", "BASSL"), dataFile,
+getIndividualParameters(
+  runno,
+  modName = NULL,
+  noBaseThetas,
+  noSigmas,
+  noSkipOm = 0,
+  noParCov = noBaseThetas,
+  parNames = c("BASE", "PLMAX", "HLKON", "HLKOFF", "BASSL"),
+  dataFile,
   newDataFile = paste("vpcData", runno, ".csv", sep = ""),
-  availCov = NULL, idvar = "ID", modDevDir = NULL, quiet = TRUE,
-  cores = 1, dfext = NULL, thePhiFile = NULL)
+  availCov = NULL,
+  idvar = "ID",
+  modDevDir = NULL,
+  quiet = TRUE,
+  cores = 1,
+  dfext = NULL,
+  thePhiFile = NULL
+)
 }
 \arguments{
 \item{dfext}{A data frame with the information from the NONMEM .ext file.}

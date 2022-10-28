@@ -4,8 +4,16 @@
 \alias{ind_estimates}
 \title{ind_estimates}
 \usage{
-ind_estimates(cData, cTime, theta, om, sig, start_eta = rep(0, nrow(om)),
-  eta_fixed = rep(FALSE, length(start_eta)), modelfunction)
+ind_estimates(
+  cData,
+  cTime,
+  theta,
+  om,
+  sig,
+  start_eta = rep(0, nrow(om)),
+  eta_fixed = rep(FALSE, length(start_eta)),
+  modelfunction
+)
 }
 \arguments{
 \item{cData}{Vector of data points for this individual.}

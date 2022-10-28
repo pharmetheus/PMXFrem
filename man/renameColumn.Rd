@@ -2,7 +2,7 @@
 % Please edit documentation in R/renameColumn.R
 \name{renameColumn}
 \alias{renameColumn}
-\title{renameID}
+\title{renameColumn}
 \usage{
 renameColumn(data, oldvar = "ID", newvar = "ID")
 }

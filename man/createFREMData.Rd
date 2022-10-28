@@ -4,11 +4,20 @@
 \alias{createFREMData}
 \title{createFREMData}
 \usage{
-createFREMData(strFREMData = NULL, strFFEMData = "", quiet = TRUE,
-  strID = "ID", cstrKeepCols = c("ID", "ID2", "AGE", "DV", "BIRTHWT",
-  "BIRTHLEN", "SEXN", "FREMTYPE"), cstrDV = "DV", cstrContCovs = NULL,
-  cstrCatCovs = NULL, bRecodeDichotomous = TRUE, cSortCols = c("ID",
-  "AGE", "FREMTYPE"), cSortDirection = c(1, 1, -1), cFremtypes = NULL)
+createFREMData(
+  strFREMData = NULL,
+  strFFEMData = "",
+  quiet = TRUE,
+  strID = "ID",
+  cstrKeepCols = c("ID", "ID2", "AGE", "DV", "BIRTHWT", "BIRTHLEN", "SEXN", "FREMTYPE"),
+  cstrDV = "DV",
+  cstrContCovs = NULL,
+  cstrCatCovs = NULL,
+  bRecodeDichotomous = TRUE,
+  cSortCols = c("ID", "AGE", "FREMTYPE"),
+  cSortDirection = c(1, 1, -1),
+  cFremtypes = NULL
+)
 }
 \arguments{
 \item{strFREMData}{Name of FREM-dataset to create. Default=NULL => no dataset is written to disc}

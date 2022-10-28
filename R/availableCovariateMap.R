@@ -1,7 +1,7 @@
 #' availableCovariateMap
 #'
-#' @description Creates a data frame with individual information about missing covariates. Each row holds information about one individual and each (frem) covariate has one column. 
-#' The value for each ID and covariate combination is either TRUE or FALSE, indicating wether the covariate is missing or not (TRUE=not missing, FALSE=missing).
+#' @description Creates a data frame with individual information about missing covariates. Each row holds information about one individual and each (FREM) covariate has one column. 
+#' The value for each ID and covariate combination is either TRUE or FALSE, indicating whether the covariate is missing or not (TRUE=not missing, FALSE=missing).
 #' @param modFile The FREM model file name.
 #' @param analysisData A data frame with the FFEM data set.
 #' @param cores Number of cores to use in the foreach loop.

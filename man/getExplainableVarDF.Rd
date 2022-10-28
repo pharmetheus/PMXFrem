@@ -4,16 +4,36 @@
 \alias{getExplainableVarDF}
 \title{getExplainableVarDF()}
 \usage{
-getExplainableVarDF(type = 1, data, dfCovs, strID = "ID", runno,
-  modDevDir, cstrCovariates = NULL,
+getExplainableVarDF(
+  type = 1,
+  data,
+  dfCovs,
+  strID = "ID",
+  runno,
+  modDevDir,
+  cstrCovariates = NULL,
   functionList = list(function(basethetas, covthetas, dfrow, etas, ...) {
-      return(basethetas[1] * exp(covthetas[1] + etas[1])) }),
-  functionListName = "PAR1", noBaseThetas, noCovThetas, noSigmas,
-  noParCov = noBaseThetas, parNames = paste("Par", 1:noParCov, sep =
-  ""), noSkipOm = 0, covNames = paste("Cov", 1:noCovThetas, sep = ""),
-  dfext = NULL, availCov = covNames, etas = NULL, quiet = FALSE,
-  ncores = 1, cstrPackages = NULL, cstrExports = NULL,
-  numETASamples = 100, ...)
+    
+    return(basethetas[1] * exp(covthetas[1] + etas[1]))
+ }),
+  functionListName = "PAR1",
+  noBaseThetas,
+  noCovThetas,
+  noSigmas,
+  noParCov = noBaseThetas,
+  parNames = paste("Par", 1:noParCov, sep = ""),
+  noSkipOm = 0,
+  covNames = paste("Cov", 1:noCovThetas, sep = ""),
+  dfext = NULL,
+  availCov = covNames,
+  etas = NULL,
+  quiet = FALSE,
+  ncores = 1,
+  cstrPackages = NULL,
+  cstrExports = NULL,
+  numETASamples = 100,
+  ...
+)
 }
 \arguments{
 \item{type}{Which type of explained var we should use, type=1 (default), i.e. based on data and calculated etas, type=2 is that the total variability is calculated using ETA samples instead of EBEs, hence etas argument is not needed but numETASamples is needed instead.}

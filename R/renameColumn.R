@@ -1,4 +1,4 @@
-#' renameID
+#' renameColumn
 #'
 #' @description Change name of a column
 #' @param data Data frame

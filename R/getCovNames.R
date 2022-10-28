@@ -2,12 +2,15 @@
 #'
 #' @description Figure out the FREM covariate names from a FREM model file. It relies on the covariate names added by PsN in the FREM code.
 #' @param modFile The name of the model file
-#' @param keepComment If FALSE, remove the leading ; and white space in front of the covariate name in the model file.
+#' @param keepComment If FALSE (default), remove the leading ; and white space in front of the covariate name in the model file.
 #'
 #' @return A list with three components:
+#' 
 #' covNames = the names of the covariates as given in the model file. These corresponds to the covariate column names in the FREM data set created by PsN.
+#' 
 #' polyCatCovs = the name of the dichotomized covariates created by PsN.
-#'  orgCovNames = original covariate names (removing the frem specific ones)
+#' 
+#' orgCovNames = original covariate names (removing the frem specific ones)
 #' @export
 #'
 #' @examples
@@ -16,7 +19,7 @@
 #' }
 getCovNames <- function(modFile,keepComment=FALSE) {
 
-    mod       <- scan(modFile,what="character",sep="\n",quiet=TRUE)
+  mod       <- scan(modFile,what="character",sep="\n",quiet=TRUE)
   fremStart <- grep(";;;FREM CODE BEGIN COMPACT",mod)
   fremEnd   <- grep(";;;FREM CODE END COMPACT",mod)
 

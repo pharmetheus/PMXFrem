@@ -17,8 +17,8 @@ availableCovariateMap(modFile, analysisData, cores = 1)
 A data.frame with nrow=teh number of IDs in analysisData and ncol=1+teh number of covariates in modFile. The first column holds the ID numbers.
 }
 \description{
-Creates a data frame with individual information about missing covariates. Each row holds information about one individual and each (frem) covariate has one column. 
-The value for each ID and covariate combination is either TRUE or FALSE, indicating wether the covariate is missing or not (TRUE=not missing, FALSE=missing).
+Creates a data frame with individual information about missing covariates. Each row holds information about one individual and each (FREM) covariate has one column. 
+The value for each ID and covariate combination is either TRUE or FALSE, indicating whether the covariate is missing or not (TRUE=not missing, FALSE=missing).
 }
 \examples{
 \dontrun{
