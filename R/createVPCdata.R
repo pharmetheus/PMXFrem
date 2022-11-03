@@ -2,21 +2,19 @@
 #'
 #'
 #' @description Add combined FFEM coefficients to the data set for the specified covariates.
+#' @inheritParams calcFFEM
 #' @param runno The run number to use to construct the file names (see Details).
 #' @param modName The model name (see Details).
-#' @param noBaseThetas The number of thetas in the base model, i.e. the number of non-covariate thetas.
-#' @param noSigmas The number of sigma parameters in the model (including the sigma(s) associated with the covariates).
-#' @param parNames Vector of the names of the parameters names in the base model, i.e. the names of the non-covariate parameters.
 #' @param dataFile The name of the data file used in the base model, i.e. the original data file, or a data.frame with the same data.
 #' @param newDataFile The name of a new data file with the FFEM columns added. Default is vpcData{runno}.csv. If NULL, will return a data frame with the data instead of writing it to disk.
-#' @param availCov The names of the covariates to use when computing the FFEM coefficients (using the FREM names, which will be different for categorical covaroates). Will use all covariates if NULL.
 #' @param idvar The name of the ID column,
 #' @param modDevDir The path to the directory where the NONMEM runs are.
-#' @param quiet Whether the FFEM expression and re-computed OMEGA matrix should be output in the terminal.
 #' @param cores How many cores to use in the calculations of the FFEM expressions.
 #'
-#' @details This function will compute a combined term of all (FREM) covariate effects for each parameter in the FFEM model. The combined coefficients are added to the FFEM data set with names that
-#' appends COV to the parameter name, e.g. the column with the combined covariate efftecs for parameter PAR will be called PARCOV. All rows for an individual will have the same value for PARCOV.
+#' @details This function will compute a combined term of all (FREM) covariate effects for each parameter in the FFEM model and create a 
+#' new data file with these combined effects appended. The combined coefficients are added to the FFEM data set with names that
+#' appends COV to the parameter name, e.g. the column with the combined covariate efftecs for parameter PAR will be called PARCOV. 
+#' All rows for an individual will have the same value for PARCOV.
 #'
 #' To implement an FFEM model with the covariate effects from the FREM analysis, change the FFEM model from:
 #'
@@ -49,21 +47,40 @@
 #'
 #' @examples
 #' \dontrun{
-#' createVPCdata("11",noBaseThetas=11,noSigmas=3,dataFile="../../ProducedData/Dataset/smv1DatasetWHZ2.csv",fremDataFile="frem9.dir/frem_dataset.csv",
-#' parNames=c("BASE","PLMAX","HLKON","HLKOFF","BASSL","BP","BASEW","PLMAXW","HLKONW","HLKOFFW","BASSLW"),newDataFile="vpcData11.csv",
-#' availCov=c("BIRTHWT","BIRTHLEN"))
-#'
-#' createVPCdata("13",noBaseThetas=11,noSigmas=3,dataFile="../../ProducedData/Dataset/smv1DatasetWHZ3.csv",fremDataFile="frem12.dir/frem_dataset.csv",
-#'               parNames=c("BASE","PLMAX","HLKON","HLKOFF","BASSL","BP","BASEW","PLMAXW","HLKONW","HLKOFFW","BASSLW"),newDataFile="vpcData13.csv")
-#' }
-# createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("BASE","PLMAX","HLKON","HLKOFF","BASSL"),
-                          # dataFile,newDataFile=paste("vpcData",runno,".csv",sep=""),availCov=NULL,idvar="ID",
-                          # modDevDir=NULL,quiet=FALSE,cores=1,dfext=NULL,...) {
+#' 
+#' vpcData <- createVPCdata(modName          = "run9",
+#'                          modDevDir        = "inst/extdata/SimVal",
+#'                          numNonFREMThetas = 9,
+#'                          numSkipOm        = 2,
+#'                          dataFile         = data,
+#'                          newDataFile      = "vpcData.csv")
+#'                          
+#'}
+
+createVPCdata <- function(runno,
+                          numNonFREMThetas,
+                          modName       = NULL,
+                          numFREMThetas = length(grep("THETA",names(dfext)))-numNonFREMThetas,
+                          covNames      = paste("Cov",1:numFREMThetas,sep=""),
+                          parNames      = paste("Par",1:numParCov,sep=""),
+                          numParCov     = NULL,
+                          numSkipOm     = 0,
+                          dataFile,
+                          newDataFile   = paste("vpcData",runno,".csv",sep=""),
+                          availCov      = NULL,
+                          idvar         = "ID",
+                          modDevDir     = NULL,
+                          quiet         = FALSE,
+                          cores         = 1,
+                          dfext         = NULL,
+                          ...) {
   
-createVPCdata <- function(runno,parNames,modName=NULL,numNonFREMThetas,
-                          dataFile,newDataFile=paste("vpcData",runno,".csv",sep=""),availCov=NULL,idvar="ID",
-                          modDevDir=NULL,quiet=FALSE,cores=1,dfext=NULL,...) {
-  
+  if (is.null(numParCov)) {
+    numParCov <- calcNumParCov(dfExt,numNonFREMThetas, numSkipOm)
+    # iNumOmega<-length(grep("OMEGA",names(dfext)))
+    # numTotEta<--1/2+sqrt(1/4+2*iNumOmega)
+    # numParCov<-numTotEta-numSkipOm-numFREMThetas
+  }
   
   if(is.null(modDevDir)) {
     if(is.null(modName)) {
@@ -100,7 +117,7 @@ createVPCdata <- function(runno,parNames,modName=NULL,numNonFREMThetas,
   
   #tmp <- calcFFEM(noBaseThetas=noBaseThetas,noCovThetas=length(covNames),noSigmas,dfext=theExtFile,parNames=parNames,covNames=covNames,availCov=availCov,quiet=quiet,...)
 
-  tmp <- calcFFEM(dfext=theExtFile,numNonFREMThetas,covNames=covNames,parNames=parNames,availCov=availCov,quiet=quiet,...)
+  tmp <- calcFFEM(dfext=theExtFile,numNonFREMThetas,covNames=covNames,parNames=parNames,availCov=availCov,quiet=quiet,numSkipOm=numSkipOm,...)
   
   ## Create a data set with all the original covariates + the frem-specific ones
   # Read the FFEM data set and rename the id column to ID (to simplify the coding below. The id column will get its original name in the new data file.)
@@ -156,7 +173,7 @@ createVPCdata <- function(runno,parNames,modName=NULL,numNonFREMThetas,
 
    # if(ID==2145) browser()
    # ffemObj   <- calcFFEM(noBaseThetas=noBaseThetas,noCovThetas=length(covNames),noSigmas,dfext=theExtFile,parNames=parNames,covNames=covNames,availCov=availCov,quiet=TRUE,...)
-    ffemObj <- calcFFEM(dfext=theExtFile,numNonFREMThetas,covNames=covNames,availCov=availCov,quiet=TRUE,parNames=parNames,...)
+    ffemObj <- calcFFEM(dfext=theExtFile,numNonFREMThetas,covNames=covNames,availCov=availCov,quiet=TRUE,parNames=parNames,numSkipOm=numSkipOm,...)
     
     retDf <- data.frame(ID=ID)
     for(i in 1:length(parNames)) {
@@ -175,7 +192,7 @@ createVPCdata <- function(runno,parNames,modName=NULL,numNonFREMThetas,
   covEff <- data.frame(rbindlist(covEff))
   
   
-  data2 <- left_join(data,covEff)
+  data2 <- left_join(data,covEff,by="ID")
   
   # Remove the frem covariates
   data3 <- data2[,!(names(data2) %in% fremCovs)]

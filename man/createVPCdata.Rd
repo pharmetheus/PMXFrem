@@ -6,9 +6,13 @@
 \usage{
 createVPCdata(
   runno,
-  parNames,
-  modName = NULL,
   numNonFREMThetas,
+  modName = NULL,
+  numFREMThetas = length(grep("THETA", names(dfext))) - numNonFREMThetas,
+  covNames = paste("Cov", 1:numFREMThetas, sep = ""),
+  parNames = paste("Par", 1:numParCov, sep = ""),
+  numParCov = NULL,
+  numSkipOm = 0,
   dataFile,
   newDataFile = paste("vpcData", runno, ".csv", sep = ""),
   availCov = NULL,
@@ -23,27 +27,38 @@ createVPCdata(
 \arguments{
 \item{runno}{The run number to use to construct the file names (see Details).}
 
-\item{parNames}{Vector of the names of the parameters names in the base model, i.e. the names of the non-covariate parameters.}
+\item{numNonFREMThetas}{Number of thetas that are not FREM covariates. These need to come before the FREM covariate thetas.}
 
 \item{modName}{The model name (see Details).}
+
+\item{numFREMThetas}{The number thetas associated with FREM covariate effects.}
+
+\item{covNames}{Names of the covariates}
+
+\item{parNames}{Names of the parameters}
+
+\item{numParCov}{Number of parameters for which covariate relations are sought (often the same as numNonFREMThetas).
+default (NULL) indicates that this is guessed by the function by assuming that each covariate effect is modelled as one theta and one eta.}
+
+\item{numSkipOm}{Number of diag omegas (variances) that should not be part of the FREM calculations. 
+Such omegas has to come before the large FREM omega block.}
 
 \item{dataFile}{The name of the data file used in the base model, i.e. the original data file, or a data.frame with the same data.}
 
 \item{newDataFile}{The name of a new data file with the FFEM columns added. Default is vpcData{runno}.csv. If NULL, will return a data frame with the data instead of writing it to disk.}
 
-\item{availCov}{The names of the covariates to use when computing the FFEM coefficients (using the FREM names, which will be different for categorical covaroates). Will use all covariates if NULL.}
+\item{availCov}{Names of the covariates to use in the calculation of the FFEM model.}
 
 \item{idvar}{The name of the ID column,}
 
 \item{modDevDir}{The path to the directory where the NONMEM runs are.}
 
-\item{quiet}{Whether the FFEM expression and re-computed OMEGA matrix should be output in the terminal.}
+\item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK}
 
 \item{cores}{How many cores to use in the calculations of the FFEM expressions.}
 
-\item{noBaseThetas}{The number of thetas in the base model, i.e. the number of non-covariate thetas.}
-
-\item{noSigmas}{The number of sigma parameters in the model (including the sigma(s) associated with the covariates).}
+\item{dfext}{A data frame of the ext file for the model. In case of multiple $EST, the dfext 
+should contain the estimates of the *one* relevant $EST.}
 }
 \value{
 If newDataFile is NULL, a data frame. If quiet is FALSE, the FFEM expressions and new OMEGA matrix is printed in the console.
@@ -52,8 +67,10 @@ If newDataFile is NULL, a data frame. If quiet is FALSE, the FFEM expressions an
 Add combined FFEM coefficients to the data set for the specified covariates.
 }
 \details{
-This function will compute a combined term of all (FREM) covariate effects for each parameter in the FFEM model. The combined coefficients are added to the FFEM data set with names that
-appends COV to the parameter name, e.g. the column with the combined covariate efftecs for parameter PAR will be called PARCOV. All rows for an individual will have the same value for PARCOV.
+This function will compute a combined term of all (FREM) covariate effects for each parameter in the FFEM model and create a 
+new data file with these combined effects appended. The combined coefficients are added to the FFEM data set with names that
+appends COV to the parameter name, e.g. the column with the combined covariate efftecs for parameter PAR will be called PARCOV. 
+All rows for an individual will have the same value for PARCOV.
 
 To implement an FFEM model with the covariate effects from the FREM analysis, change the FFEM model from:
 
@@ -82,11 +99,13 @@ To run a VPC for a FREM model, follow the following steps
 }
 \examples{
 \dontrun{
-createVPCdata("11",noBaseThetas=11,noSigmas=3,dataFile="../../ProducedData/Dataset/smv1DatasetWHZ2.csv",fremDataFile="frem9.dir/frem_dataset.csv",
-parNames=c("BASE","PLMAX","HLKON","HLKOFF","BASSL","BP","BASEW","PLMAXW","HLKONW","HLKOFFW","BASSLW"),newDataFile="vpcData11.csv",
-availCov=c("BIRTHWT","BIRTHLEN"))
 
-createVPCdata("13",noBaseThetas=11,noSigmas=3,dataFile="../../ProducedData/Dataset/smv1DatasetWHZ3.csv",fremDataFile="frem12.dir/frem_dataset.csv",
-              parNames=c("BASE","PLMAX","HLKON","HLKOFF","BASSL","BP","BASEW","PLMAXW","HLKONW","HLKOFFW","BASSLW"),newDataFile="vpcData13.csv")
+vpcData <- createVPCdata(modName          = "run9",
+                         modDevDir        = "inst/extdata/SimVal",
+                         numNonFREMThetas = 9,
+                         numSkipOm        = 2,
+                         dataFile         = data,
+                         newDataFile      = "vpcData.csv")
+                         
 }
 }

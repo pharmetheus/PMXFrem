@@ -16,6 +16,7 @@ expect_snapshot_value(calcFFEMtestout$Vars,style = "deparse")
 expect_snapshot_value(calcFFEMtestout$UpperVars,style = "deparse")
 expect_snapshot_value(calcFFEMtestout$Eta_prim,style = "deparse")
 
+expect_snapshot_output(calcFFEM(dfExt,numNonFREMThetas = 9,numSkipOm = 2,quiet = F))
 # #Test coefficients
 # expect_equal(all(testout$Coefficients==calcffemtestdata$Coefficients),TRUE)
 # #Test variances

@@ -18,6 +18,7 @@
 #' @param eqFile File name to save the FFEM equations in
 #' @param omFile File name to save the omega prim matrix in.
 #' 
+#' 
 #' @return A list with components Coefficients, Vars and Expr:
 #' 
 #' Coeffients: The numNonFREMThetas x availCov matrix with FFEM model coefficients
@@ -38,10 +39,17 @@
 #' calcFFEM(dfExt,numNonFREMThetas = 9,numSkipOm = 2)
 #'}
 
-calcFFEM <- function(dfext,numNonFREMThetas,numSkipOm=0,numFREMThetas=length(grep("THETA",names(dfext)))-numNonFREMThetas,
-                     numSigmas=length(grep("SIGMA",names(dfext))),numParCov=NULL,
-                     parNames=paste("Par",1:numParCov,sep=""),covNames=paste("Cov",1:numFREMThetas,sep=""),
-                     availCov=covNames,quiet=FALSE,fremETA=NULL,eqFile = "",omFile="") {
+calcFFEM <- function(dfext,
+                     numNonFREMThetas,
+                     numSkipOm     = 0,
+                     numFREMThetas = length(grep("THETA",names(dfext)))-numNonFREMThetas,
+                     numSigmas     = length(grep("SIGMA",names(dfext))),numParCov=NULL,
+                     parNames      = paste("Par",1:numParCov,sep=""),covNames=paste("Cov",1:numFREMThetas,sep=""),
+                     availCov      = covNames,
+                     quiet         = FALSE,
+                     fremETA       = NULL,
+                     eqFile        = "",
+                     omFile        = "") {
   
   # Calculate the number of parameters to include covariates on
   
