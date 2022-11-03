@@ -43,29 +43,13 @@ calcFFEM <- function(dfext,numNonFREMThetas,numSkipOm=0,numFREMThetas=length(gre
                      parNames=paste("Par",1:numParCov,sep=""),covNames=paste("Cov",1:numFREMThetas,sep=""),
                      availCov=covNames,quiet=FALSE,fremETA=NULL,eqFile = "",omFile="") {
   
-  ## Computes the corresponding FFEM from a FREM model. Can handle missing covariates.
+  # Calculate the number of parameters to include covariates on
   
-  # numNonFREMThetas: Number of thetas that are not covariates
-  # numFREMThetas:  Number of FREM covariates that are tested, i.e. number of thetas associated with covariate effects
-  # numParCov:     Number of parameters for which covariate relations are sought (often the same as noBaseTheta)
-  # dfExt:        A data frame of the ext file for the model. In case of mutiple $EST, the dfext should contain the estimates of the *one* relevant $EST.
-  # parNames:     Names of the parameters
-  # covNames:     Names of the covariates
-  # availCov:     Names of the non-missing covariates
-  # quiet:        If FALSE, will print the FFEM model + associated $OMEGA BLOCK
-  # fremETA:      Vector with indivdual etas from FREM, used to calculate FFEM etas, if NULL no FFEM etas will be calculated
-  
-  ## Return value: A list with components Coefficients, Vars and Expr
-  ##    Coeffients: A numNonFREMThetas x availCov matrix with FFEM model coefficients
-  ##    Vars:       A numNonFREMThetas x numNonFREMThetas matrix with the FFEM variances (OMEGA)
-  ##    Expr:       A vector of FFEM expressions, one for each base model parameter.
-  ##    FullVars:   A full omega matrix including skipOM if available, otherwise same as Vars
-  ##    UpperVars:  A omega matrix corresponding to the upper block (only relevant when numSkipOm!=0), otherwise=NULL
-  ##    Eta_prim:   A vector with individual FFEM etas back-calculated from FREM etas, conditioned on availCov, NULL if fremETA=NULL
   if (is.null(numParCov)) {
-    iNumOmega<-length(grep("OMEGA",names(dfext)))
-    numTotEta<--1/2+sqrt(1/4+2*iNumOmega)
-    numParCov<-numTotEta-numSkipOm-numFREMThetas
+    numParCov <- calcNumParCov(dfExt,numNonFREMThetas, numSkipOm)
+    # iNumOmega<-length(grep("OMEGA",names(dfext)))
+    # numTotEta<--1/2+sqrt(1/4+2*iNumOmega)
+    # numParCov<-numTotEta-numSkipOm-numFREMThetas
   }
   
   iNumFREMOM<-(numFREMThetas+numParCov)*(numFREMThetas+numParCov+1)/2

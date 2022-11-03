@@ -6,10 +6,9 @@
 \usage{
 createVPCdata(
   runno,
+  parNames,
   modName = NULL,
-  noBaseThetas,
-  noSigmas,
-  parNames = c("BASE", "PLMAX", "HLKON", "HLKOFF", "BASSL"),
+  numNonFREMThetas,
   dataFile,
   newDataFile = paste("vpcData", runno, ".csv", sep = ""),
   availCov = NULL,
@@ -24,13 +23,9 @@ createVPCdata(
 \arguments{
 \item{runno}{The run number to use to construct the file names (see Details).}
 
-\item{modName}{The model name (see Details).}
-
-\item{noBaseThetas}{The number of thetas in the base model, i.e. the number of non-covariate thetas.}
-
-\item{noSigmas}{The number of sigma parameters in the model (including the sigma(s) associated with the covariates).}
-
 \item{parNames}{Vector of the names of the parameters names in the base model, i.e. the names of the non-covariate parameters.}
+
+\item{modName}{The model name (see Details).}
 
 \item{dataFile}{The name of the data file used in the base model, i.e. the original data file, or a data.frame with the same data.}
 
@@ -45,6 +40,10 @@ createVPCdata(
 \item{quiet}{Whether the FFEM expression and re-computed OMEGA matrix should be output in the terminal.}
 
 \item{cores}{How many cores to use in the calculations of the FFEM expressions.}
+
+\item{noBaseThetas}{The number of thetas in the base model, i.e. the number of non-covariate thetas.}
+
+\item{noSigmas}{The number of sigma parameters in the model (including the sigma(s) associated with the covariates).}
 }
 \value{
 If newDataFile is NULL, a data frame. If quiet is FALSE, the FFEM expressions and new OMEGA matrix is printed in the console.

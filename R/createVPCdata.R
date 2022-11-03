@@ -56,7 +56,11 @@
 #' createVPCdata("13",noBaseThetas=11,noSigmas=3,dataFile="../../ProducedData/Dataset/smv1DatasetWHZ3.csv",fremDataFile="frem12.dir/frem_dataset.csv",
 #'               parNames=c("BASE","PLMAX","HLKON","HLKOFF","BASSL","BP","BASEW","PLMAXW","HLKONW","HLKOFFW","BASSLW"),newDataFile="vpcData13.csv")
 #' }
-createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("BASE","PLMAX","HLKON","HLKOFF","BASSL"),
+# createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("BASE","PLMAX","HLKON","HLKOFF","BASSL"),
+                          # dataFile,newDataFile=paste("vpcData",runno,".csv",sep=""),availCov=NULL,idvar="ID",
+                          # modDevDir=NULL,quiet=FALSE,cores=1,dfext=NULL,...) {
+  
+createVPCdata <- function(runno,parNames,modName=NULL,numNonFREMThetas,
                           dataFile,newDataFile=paste("vpcData",runno,".csv",sep=""),availCov=NULL,idvar="ID",
                           modDevDir=NULL,quiet=FALSE,cores=1,dfext=NULL,...) {
   
@@ -94,8 +98,10 @@ createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("B
   ## Run this to get the omega matrix to use in the vpc
   if(is.null(availCov)) availCov    <- covNames
   
-  tmp <- calcFFEM(noBaseThetas=noBaseThetas,noCovThetas=length(covNames),noSigmas,dfext=theExtFile,parNames=parNames,covNames=covNames,availCov=availCov,quiet=quiet,...)
+  #tmp <- calcFFEM(noBaseThetas=noBaseThetas,noCovThetas=length(covNames),noSigmas,dfext=theExtFile,parNames=parNames,covNames=covNames,availCov=availCov,quiet=quiet,...)
 
+  tmp <- calcFFEM(dfext=theExtFile,numNonFREMThetas,covNames=covNames,parNames=parNames,availCov=availCov,quiet=quiet,...)
+  
   ## Create a data set with all the original covariates + the frem-specific ones
   # Read the FFEM data set and rename the id column to ID (to simplify the coding below. The id column will get its original name in the new data file.)
   if(!is.data.frame(dataFile)) {
@@ -149,7 +155,8 @@ createVPCdata <- function(runno,modName=NULL,noBaseThetas,noSigmas,parNames=c("B
     }
 
    # if(ID==2145) browser()
-    ffemObj   <- calcFFEM(noBaseThetas=noBaseThetas,noCovThetas=length(covNames),noSigmas,dfext=theExtFile,parNames=parNames,covNames=covNames,availCov=availCov,quiet=TRUE,...)
+   # ffemObj   <- calcFFEM(noBaseThetas=noBaseThetas,noCovThetas=length(covNames),noSigmas,dfext=theExtFile,parNames=parNames,covNames=covNames,availCov=availCov,quiet=TRUE,...)
+    ffemObj <- calcFFEM(dfext=theExtFile,numNonFREMThetas,covNames=covNames,availCov=availCov,quiet=TRUE,parNames=parNames,...)
     
     retDf <- data.frame(ID=ID)
     for(i in 1:length(parNames)) {
