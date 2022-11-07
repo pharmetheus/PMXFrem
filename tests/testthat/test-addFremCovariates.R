@@ -1,5 +1,5 @@
 test_that("the correct columns are added", {
-  data <- read_csv(system.file("extdata/SimVal/DAT-1-MI-PMX-2.csv",package="PMXFrem")) %>% 
+  data <- read_csv(system.file("extdata/SimVal/DAT-1-MI-PMX-2.csv",package="PMXFrem"),show_col_types = FALSE) %>% 
     filter(BLQ!=1) %>% 
     filter(TYPE!=1) %>% 
     filter(TSLD<100)

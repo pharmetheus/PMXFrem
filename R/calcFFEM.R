@@ -54,10 +54,7 @@ calcFFEM <- function(dfext,
   # Calculate the number of parameters to include covariates on
   
   if (is.null(numParCov)) {
-    numParCov <- calcNumParCov(dfExt,numNonFREMThetas, numSkipOm)
-    # iNumOmega<-length(grep("OMEGA",names(dfext)))
-    # numTotEta<--1/2+sqrt(1/4+2*iNumOmega)
-    # numParCov<-numTotEta-numSkipOm-numFREMThetas
+    numParCov <- calcNumParCov(dfext,numNonFREMThetas, numSkipOm)
   }
   
   iNumFREMOM<-(numFREMThetas+numParCov)*(numFREMThetas+numParCov+1)/2

@@ -75,13 +75,7 @@ createVPCdata <- function(runno,
                           dfext         = NULL,
                           ...) {
   
-  if (is.null(numParCov)) {
-    numParCov <- calcNumParCov(dfExt,numNonFREMThetas, numSkipOm)
-    # iNumOmega<-length(grep("OMEGA",names(dfext)))
-    # numTotEta<--1/2+sqrt(1/4+2*iNumOmega)
-    # numParCov<-numTotEta-numSkipOm-numFREMThetas
-  }
-  
+
   if(is.null(modDevDir)) {
     if(is.null(modName)) {
       modFile    <- paste0("run",runno,".mod")
@@ -107,26 +101,29 @@ createVPCdata <- function(runno,
   # It is much faster to send in extdf than to create it fo reach ID.
   # Only read it from file if it isn't passed via dfext
   if(is.null(dfext)) {
-    theExtFile <- getExt(extFile)
+    dfext <- getExt(extFile)
   } else {
-    theExtFile <- dfext
+    dfext <- dfext
   }
 
+  if (is.null(numParCov)) {
+    numParCov <- calcNumParCov(dfext,numNonFREMThetas, numSkipOm)
+  }
+  
+  
   ## Run this to get the omega matrix to use in the vpc
   if(is.null(availCov)) availCov    <- covNames
   
-  #tmp <- calcFFEM(noBaseThetas=noBaseThetas,noCovThetas=length(covNames),noSigmas,dfext=theExtFile,parNames=parNames,covNames=covNames,availCov=availCov,quiet=quiet,...)
-
-  tmp <- calcFFEM(dfext=theExtFile,numNonFREMThetas,covNames=covNames,parNames=parNames,availCov=availCov,quiet=quiet,numSkipOm=numSkipOm,...)
+  tmp <- calcFFEM(dfext=dfext,numNonFREMThetas,covNames=covNames,parNames=parNames,availCov=availCov,quiet=quiet,numSkipOm=numSkipOm,...)
   
   ## Create a data set with all the original covariates + the frem-specific ones
   # Read the FFEM data set and rename the id column to ID (to simplify the coding below. The id column will get its original name in the new data file.)
   if(!is.data.frame(dataFile)) {
     data <- fread(dataFile,h=T,data.table=FALSE,showProgress=FALSE) %>% 
-      renameColumn(oldvar=idvar,newvar="ID")
+      rename("ID" = idvar)
   } else { ## The dataFile was supplied as a data frame and not a name
     data <- dataFile %>% 
-      renameColumn(oldvar=idvar,newvar="ID")
+      rename("ID" = idvar)
   }
   ## Add the FREM covariates to the data file
   data <- addFremCovariates(dfFFEM = data,modFile)
@@ -151,8 +148,6 @@ createVPCdata <- function(runno,
   
   dataI <- data.frame(rbindlist(dataI))
   
-  
-  
   dataI <- dataI[,c("ID",covNames)]
   dataMap <- dataI[]
   dataMap[,covNames] <- TRUE
@@ -171,9 +166,7 @@ createVPCdata <- function(runno,
       availCov <- myCov[myCov %in% availCov]
     }
 
-   # if(ID==2145) browser()
-   # ffemObj   <- calcFFEM(noBaseThetas=noBaseThetas,noCovThetas=length(covNames),noSigmas,dfext=theExtFile,parNames=parNames,covNames=covNames,availCov=availCov,quiet=TRUE,...)
-    ffemObj <- calcFFEM(dfext=theExtFile,numNonFREMThetas,covNames=covNames,availCov=availCov,quiet=TRUE,parNames=parNames,numSkipOm=numSkipOm,...)
+    ffemObj <- calcFFEM(dfext=dfext,numNonFREMThetas,covNames=covNames,availCov=availCov,quiet=TRUE,parNames=parNames,numSkipOm=numSkipOm,...)
     
     retDf <- data.frame(ID=ID)
     for(i in 1:length(parNames)) {
@@ -198,7 +191,7 @@ createVPCdata <- function(runno,
   data3 <- data2[,!(names(data2) %in% fremCovs)]
   
   ## Give the ID column back its original name
-  data3 <- data3 %>% renameColumn(oldvar="ID",newvar=idvar)
+  data3 <- data3 %>% rename(!!idvar := "ID")
   
   # Write the data to file
   if(!is.null(newDataFile)) {
