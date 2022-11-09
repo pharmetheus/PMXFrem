@@ -27,6 +27,14 @@ dfExt<-getExt(extFile =  extFile)
 dfPhi<-getPhi(phiFile)
 dfPhi<-dfPhi[,3:8] #Include the structural model  etas
 
+modFile <- system.file("extdata/SimVal/run12.mod",package="PMXFrem")
+extFile <- system.file("extdata/SimVal/run12.ext",package="PMXFrem")
+phiFile <- system.file("extdata/SimVal/run12.phi",package="PMXFrem")
+dfExt<-getExt(extFile =  extFile)
+dfPhi<-getPhi(phiFile)
+dfPhi<-dfPhi[,3:8] #Include the structural model  etas
+
+
 
 covNames<-getCovNames(modFile = modFile)
 #dfCovs<-PMXForest::createInputForestData(list("AGE"=c(30,44.3028,95),SEX=c(1,2)))
