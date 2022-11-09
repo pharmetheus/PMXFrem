@@ -2,13 +2,11 @@
 #'
 #'
 #' @description Add combined FFEM coefficients to the data set for the specified covariates.
-#' @inheritParams calcFFEM
-#' @param runno The run number to use to construct the file names (see Details).
-#' @param modName The model name (see Details).
+#' @inheritParams calcFFEM 
+#' @inheritParams getFileNames
 #' @param dataFile The name of the data file used in the base model, i.e. the original data file, or a data.frame with the same data.
 #' @param newDataFile The name of a new data file with the FFEM columns added. Default is vpcData{runno}.csv. If NULL, will return a data frame with the data instead of writing it to disk.
 #' @param idvar The name of the ID column,
-#' @param modDevDir The path to the directory where the NONMEM runs are.
 #' @param cores How many cores to use in the calculations of the FFEM expressions.
 #'
 #' @details This function will compute a combined term of all (FREM) covariate effects for each parameter in the FFEM model and create a 
@@ -57,7 +55,7 @@
 #'                          
 #'}
 
-createVPCdata <- function(runno,
+createVPCdata <- function(runno=NULL,
                           numNonFREMThetas,
                           modName       = NULL,
                           numFREMThetas = length(grep("THETA",names(dfext)))-numNonFREMThetas,
@@ -76,23 +74,9 @@ createVPCdata <- function(runno,
                           ...) {
   
 
-  if(is.null(modDevDir)) {
-    if(is.null(modName)) {
-      modFile    <- paste0("run",runno,".mod")
-      extFile    <- paste0("run",runno,".ext")
-    } else {
-      modFile    <- paste0(modName,".mod")
-      extFile    <- paste0(modName,".ext")
-    }
-  } else {
-    if(is.null(modName)) {
-      modFile    <- paste0(modDevDir,"/run",runno,".mod")
-      extFile    <- paste0(modDevDir,"/run",runno,".ext")
-    } else {
-      modFile    <- paste0(modDevDir,"/",modName,".mod")
-      extFile    <- paste0(modDevDir,"/",modName,".ext")
-    }
-  }
+  fileNames <- getFileNames(runno=runno,modName=modName,modDevDir=modDevDir,...)
+  modFile   <- fileNames$mod
+  extFile   <- fileNames$ext
   
   covNames <- getCovNames(modFile)$covNames
   fremCovs <- getCovNames(modFile)$polyCatCovs

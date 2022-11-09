@@ -65,7 +65,7 @@ The etas in the data.frame etas are the ones estimated from the FREM model.
 
 The covs data.frame will have one column for each of the parameters in parNames. If noEtas < noBaseThetas, then the additional columns (noEtas - noBaseThetas) will be all zeros.
 
-If modName is NULL is specified, it will be assumed that the files associated with the model will be names run[runno].mod, run[runno].ext, etc (e.g. run1.mod, run1.ext). If modName is not
+If modName=NULL is specified, it will be assumed that the files associated with the model will be names run[runno].mod, run[runno].ext, etc (e.g. run1.mod, run1.ext). If modName is not
 NULL, the files will be assumed to have names like modName.mod, modName.ext, etc.
 }
 \examples{

@@ -5,7 +5,7 @@
 \title{createVPCdata}
 \usage{
 createVPCdata(
-  runno,
+  runno = NULL,
   numNonFREMThetas,
   modName = NULL,
   numFREMThetas = length(grep("THETA", names(dfext))) - numNonFREMThetas,
@@ -25,11 +25,11 @@ createVPCdata(
 )
 }
 \arguments{
-\item{runno}{The run number to use to construct the file names (see Details).}
+\item{runno}{The run number.}
 
 \item{numNonFREMThetas}{Number of thetas that are not FREM covariates. These need to come before the FREM covariate thetas.}
 
-\item{modName}{The model name (see Details).}
+\item{modName}{The model name. Default is the current directory, i.e. ".".}
 
 \item{numFREMThetas}{The number thetas associated with FREM covariate effects.}
 
@@ -51,7 +51,7 @@ Such omegas has to come before the large FREM omega block.}
 
 \item{idvar}{The name of the ID column,}
 
-\item{modDevDir}{The path to the directory where the NONMEM runs are.}
+\item{modDevDir}{The directory where the files reside.}
 
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK}
 
