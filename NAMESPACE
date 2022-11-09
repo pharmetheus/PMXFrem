@@ -2,10 +2,7 @@
 
 export(addFremCovariates)
 export(calcFFEM)
-<<<<<<< HEAD
-=======
 export(calcNumParCov)
->>>>>>> 646b61e0328a922640529a39916676c86fcce1a6
 export(calcParameters)
 export(createFREMData)
 export(createVPCdata)

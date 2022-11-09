@@ -29,28 +29,45 @@ dfPhi<-dfPhi[,3:8] #Include the structural model  etas
 
 
 covNames<-getCovNames(modFile = modFile)
-dfCovs<-PMXForest::createInputForestData(list("AGE"=c(30,44.3028,95),SEX=c(1,2)))
+#dfCovs<-PMXForest::createInputForestData(list("AGE"=c(30,44.3028,95),SEX=c(1,2)))
 # (modFile)
 
 dfCovs<-data.frame(AGE=c(30,-99,30),SEX=c(-99,2,2))
+dfCovs<-data.frame(AGE=c(30,-99,30),SEX=c(-99,2,2),CRCL=c(75,75,75),WT=c(1,1,1))
+cstrCovariates<-c("AGE CRCL WT","SEX CRCL WT","AGE, SEX CRCL WT")
+
 #dfData<-read.csv(system.file("extdata/SimVal/Frem8.dir/frem_dataset.dta",package="PMXFrem"))
 dfData<-read.csv(system.file("extdata/SimVal/DAT-1-MI-PMX-2.csv",package="PMXFrem"))
 dfData<-subset(dfData,TYPE==2 & BLQ==0 & TSLD<100)
 dfData<-subset(dfData,!duplicated(ID))
+#dfData$WT<--99
+dfCovs<-dfData[1,(names(dfData) %in% covNames$orgCovNames)]
+dfCovs$WT<-75
+dfCovs<-rbind(dfCovs,dfCovs,dfCovs,dfCovs,dfCovs)
+dfCovs[2,names(dfCovs)!="WT"]<--99
+dfCovs[3,names(dfCovs)!="BMI"]<--99
+dfCovs[4,names(dfCovs)!="CRCL"]<--99
+dfCovs[5,(names(dfCovs)!="CRCL" & names(dfCovs)!="BMI")]<--99
+dfCovs$WT<-75
 
+#Check covariates NCI, GENO, RACE not consistent with dataset
+
+cstrCovariates<-c("All covs","Only WT","Only BMI","Only CRCL","BMI & CRCL")
 paramFunc<-function(basethetas,covthetas,dfrow,etas,...){
   #CL
-
+  browser()
   CLWT=1
   if (any(names(dfrow)=="WT") && dfrow$WT!=-99) CLWT    = (dfrow$WT/75)^basethetas[1]
   CL<-basethetas[4] * CLWT
-  #if (etas[4]==0) return(exp(log(CL)+covthetas[2]))
   return(CL*exp(covthetas[2]+etas[4]))
 }
 
-getExplainableVarDF(type=3,data=dfData,dfCovs = dfCovs,dfext=dfExt,
+#Remove covNames
+#Only use orgCovs to specify dfCovs
+
+dfres<-getExplainableVarDF(type=1,data=dfData,dfCovs = dfCovs,dfext=dfExt,
                     numNonFREMThetas =9,numSkipOm=2,functionList=list(paramFunc),
-                    functionListName="CL",cstrCovariates=c("AGE","SEX","AGE and SEX"),
+                    functionListName="CL",cstrCovariates=cstrCovariates,
                     modDevDir = "C:/PMX/github/PMXFrem/inst/extdata/SimVal/",
                     runno = 9, covNames = covNames$covNames,
-                    ncores = 1,numETASamples = 100,etas=dfPhi)
+                    ncores = 1,numETASamples = 100,etas=dfPhi,quiet=TRUE)

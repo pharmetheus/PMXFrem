@@ -8,6 +8,7 @@ getExplainableVarDF(
   type = 1,
   data,
   dfCovs,
+  dfext = NULL,
   strID = "ID",
   runno,
   modDevDir,
@@ -17,14 +18,13 @@ getExplainableVarDF(
     return(basethetas[1] * exp(covthetas[1] + etas[1]))
  }),
   functionListName = "PAR1",
-  noBaseThetas,
-  noCovThetas,
-  noSigmas,
-  noParCov = noBaseThetas,
-  parNames = paste("Par", 1:noParCov, sep = ""),
-  noSkipOm = 0,
-  covNames = paste("Cov", 1:noCovThetas, sep = ""),
-  dfext = NULL,
+  numNonFREMThetas,
+  numFREMThetas = length(grep("THETA", names(dfext))) - numNonFREMThetas,
+  numSigmas = length(grep("SIGMA", names(dfext))),
+  numParCov = NULL,
+  parNames = NULL,
+  numSkipOm = 0,
+  covNames = paste("Cov", 1:numFREMThetas, sep = ""),
   availCov = covNames,
   etas = NULL,
   quiet = FALSE,
@@ -38,9 +38,11 @@ getExplainableVarDF(
 \arguments{
 \item{type}{Which type of explained var we should use, type=1 (default), i.e. based on data and calculated etas, type=2 is that the total variability is calculated using ETA samples instead of EBEs, hence etas argument is not needed but numETASamples is needed instead.}
 
-\item{data}{the dataset to based the explained varaibility on, used with type=1}
+\item{data}{the dataset to based the explained variability on, used with type=1}
 
 \item{dfCovs}{A data frame with covariates to based the variability plots on}
+
+\item{dfext}{a data frame with the final estimates in a ext-file format}
 
 \item{strID}{the subject identifier in the dfCovs dataset, default='ID'}
 
@@ -54,25 +56,23 @@ getExplainableVarDF(
 
 \item{functionListName}{A vector of strings (names) of the parameters for each function in the functionList}
 
-\item{noBaseThetas}{Number of structural thetas in FREM model}
+\item{numNonFREMThetas}{Number of structural thetas in FREM model}
 
-\item{noCovThetas}{Number of covariate thetas in FREM model}
+\item{numFREMThetas}{Number of covariate thetas in FREM model}
 
-\item{noSigmas}{Number of sigmas in FREM model}
+\item{numSigmas}{Number of sigmas in FREM model}
 
-\item{noParCov}{Number of parameters for which covariate relations are sought (often the same as noBaseThetas).}
+\item{numParCov}{Number of parameters for which covariate relations are sought (often the same as numNonFREMThetas).}
 
 \item{parNames}{Names of the parameters}
 
-\item{noSkipOm}{Number of Omegas that are not associated with FREM covariates, i.e. skip before calculating the FREM varianes, default= 0}
+\item{numSkipOm}{Number of Omegas that are not associated with FREM covariates, i.e. skip before calculating the FREM varianes, default= 0}
 
 \item{covNames}{Names of the covariates}
 
-\item{dfext}{a data frame with the final estimates in a ext-file format}
-
 \item{availCov}{Names of the covariates to use in the calculation of the FFEM model}
 
-\item{etas}{the etas used to calculate the explained varaibility, used with type==1 and should be the same size as number of individuals in data}
+\item{etas}{the etas used to calculate the explained variability, used with type==1 and should be the same size as number of individuals in data}
 
 \item{quiet}{If output should be allowed during the function call, default= FALSE,}
 
