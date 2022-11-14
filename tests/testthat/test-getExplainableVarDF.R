@@ -50,32 +50,66 @@ dfData<-subset(dfData,TYPE==2 & BLQ==0 & TSLD<100)
 dfData<-subset(dfData,!duplicated(ID))
 #dfData$WT<--99
 dfCovs<-dfData[1,(names(dfData) %in% covNames$orgCovNames)]
-dfCovs$WT<-75
-dfCovs<-rbind(dfCovs,dfCovs,dfCovs,dfCovs,dfCovs)
+#dfCovs$WT<-75
+dfCovs<-rbind(dfCovs,dfCovs,dfCovs,dfCovs,dfCovs,dfCovs)
 dfCovs[2,names(dfCovs)!="WT"]<--99
 dfCovs[3,names(dfCovs)!="BMI"]<--99
 dfCovs[4,names(dfCovs)!="CRCL"]<--99
 dfCovs[5,(names(dfCovs)!="CRCL" & names(dfCovs)!="BMI")]<--99
-dfCovs$WT<-75
+dfCovs[6,(names(dfCovs)!="CRCL" & names(dfCovs)!="WT")]<--99
+
+#dfCovs$WT<-75
 
 #Check covariates NCI, GENO, RACE not consistent with dataset
 
-cstrCovariates<-c("All covs","Only WT","Only BMI","Only CRCL","BMI & CRCL")
+cstrCovariates<-c("All covs","Only WT","Only BMI","Only CRCL","BMI & CRCL", "WT & CRCL")
 paramFunc<-function(basethetas,covthetas,dfrow,etas,...){
   #CL
-  browser()
+#  browser()
   CLWT=1
-  if (any(names(dfrow)=="WT") && dfrow$WT!=-99) CLWT    = (dfrow$WT/75)^basethetas[1]
-  CL<-basethetas[4] * CLWT
+  #if (any(names(dfrow)=="WT") && dfrow$WT!=-99) CLWT    = (dfrow$WT/75)^basethetas[1]
+  CL<-basethetas[2] * CLWT
+  V<-basethetas[3]
+#  return(list(CL*exp(covthetas[2]+etas[4]),V*exp(covthetas[3]+etas[5])))
   return(CL*exp(covthetas[2]+etas[4]))
 }
+
+
+parf<-function(x,basethetas,covthetas,dfrow,...) {
+  return(unlist(paramFunc(basethetas,covthetas,dfrow,x,...)))
+}
+
+# covm<-diag(nrow=4,ncol=4,c(1.13E-01,1.00E-04,2.82E-01,1.54E-01))
+# covm[3,4]<--2.96E-02
+# covm[4,3]<--2.96E-02
+# 
+# deltarule(params=c(0,0,0,0),covmatrix = covm,transform_fun = parf,basethetas=c(1.00E+00,7.60E+00,1.48E+02),covthetas=c(0,0,0))
+# 
+# covm<-diag(nrow=4,ncol=4,c(0.25122896,0.12293947,0.20058422,0.14643955))
+# 
+# deltarule(params=c(0,0,0,0),covmatrix = covm,transform_fun = parf,basethetas=c(1.00E+00,7.60E+00,1.48E+02),covthetas=c(0,0,0))
 
 #Remove covNames
 #Only use orgCovs to specify dfCovs
 
-dfres<-getExplainableVarDF(type=1,data=dfData,dfCovs = dfCovs,dfext=dfExt,
-                    numNonFREMThetas =9,numSkipOm=2,functionList=list(paramFunc),
-                    functionListName="CL",cstrCovariates=cstrCovariates,
+dfres1<-getExplainableVarDF(type=1,data=dfData,dfCovs = dfCovs,dfext=dfExt,
+                    numNonFREMThetas =7,numSkipOm=2,functionList=list(paramFunc),
+                    functionListName=c("CL","V"),cstrCovariates=cstrCovariates,
                     modDevDir = "C:/PMX/github/PMXFrem/inst/extdata/SimVal/",
-                    runno = 9, covNames = covNames$covNames,
-                    ncores = 1,numETASamples = 100,etas=dfPhi,quiet=TRUE)
+                    runno = 12, covNames = covNames$covNames,
+                    ncores = 1,numETASamples = 100,etas=dfPhi,quiet=TRUE,seed=123)
+
+dfres2<-getExplainableVarDF(type=2,data=dfData,dfCovs = dfCovs,dfext=dfExt,
+                           numNonFREMThetas =7,numSkipOm=2,functionList=list(paramFunc),
+                           functionListName=c("CL","V"),cstrCovariates=cstrCovariates,
+                           modDevDir = "C:/PMX/github/PMXFrem/inst/extdata/SimVal/",
+                           runno = 12, covNames = covNames$covNames,
+                           ncores = 1,numETASamples = 100,etas=dfPhi,quiet=TRUE,seed=123)
+
+
+dfres3<-getExplainableVarDF(type=3,data=dfData,dfCovs = dfCovs,dfext=dfExt,
+                           numNonFREMThetas =7,numSkipOm=2,functionList=list(paramFunc),
+                           functionListName=c("CL","V"),cstrCovariates=cstrCovariates,
+                           modDevDir = "C:/PMX/github/PMXFrem/inst/extdata/SimVal/",
+                           runno = 12, covNames = covNames$covNames,
+                           ncores = 1,numETASamples = 100,etas=dfPhi,quiet=TRUE,seed=123)
