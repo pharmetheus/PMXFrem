@@ -77,9 +77,9 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
     ## Add the FREM covariates to the data file
     # data <- addFremCovariates(dfFFEM = data,modFile)
     #browser()
-    
-    fremCovs <- getCovNames(paste0(modDevDir,"run",runno,".mod"))$polyCatCovs
-    orgCovs  <- getCovNames(paste0(modDevDir,"run",runno,".mod"))$orgCovNames
+
+    fremCovs <- getCovNames(file.path(modDevDir,paste0("run",runno,".mod")))$polyCatCovs
+    orgCovs  <- getCovNames(file.path(modDevDir,paste0("run",runno,".mod")))$orgCovNames
     for(cov in fremCovs) {
       myCov <- str_replace(cov,"_[0-9]*","")
       myCovNum <- str_replace(cov,paste0(myCov,"_"),"")
@@ -191,7 +191,7 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
         }
         
         if (i==1) {#If first row in dfCovs, Calculate a FFEM for each individual to get the total covariate variability as well
-          browser()
+          
           ffemObjAll<-calcFFEM(numNonFREMThetas=numNonFREMThetas,numFREMThetas = numFREMThetas,numSigmas = numSigmas,dfext=dfext,covNames = covNames,
                                availCov = avcov,quiet = quiet,numParCov = numParCov,numSkipOm = numSkipOm)
           coveffectsAll <- rep(0,length(parNames))

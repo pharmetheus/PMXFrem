@@ -20,19 +20,19 @@ test_that("R/getExplainableVarDF works", {
 #                                  0.0986099 ; TV_GENO_3
 #                                  0.817952 ; TV_GENO_2
 #                                  
-modFile <- system.file("extdata/SimVal/run9.mod",package="PMXFrem")
-extFile <- system.file("extdata/SimVal/run9.ext",package="PMXFrem")
-phiFile <- system.file("extdata/SimVal/run9.phi",package="PMXFrem")
-dfExt<-getExt(extFile =  extFile)
-dfPhi<-getPhi(phiFile)
-dfPhi<-dfPhi[,3:8] #Include the structural model  etas
+modFile <- system.file("extdata/SimVal/run9.mod", package = "PMXFrem")
+extFile <- system.file("extdata/SimVal/run9.ext", package = "PMXFrem")
+phiFile <- system.file("extdata/SimVal/run9.phi", package = "PMXFrem")
+dfExt   <- getExt(extFile = extFile)
+dfPhi   <- getPhi(phiFile)
+dfPhi   <- dfPhi[, 3:8] # Include the structural model  etas
 
-modFile <- system.file("extdata/SimVal/run12.mod",package="PMXFrem")
-extFile <- system.file("extdata/SimVal/run12.ext",package="PMXFrem")
-phiFile <- system.file("extdata/SimVal/run12.phi",package="PMXFrem")
-dfExt<-getExt(extFile =  extFile)
-dfPhi<-getPhi(phiFile)
-dfPhi<-dfPhi[,3:8] #Include the structural model  etas
+modFile <- system.file("extdata/SimVal/run12.mod", package = "PMXFrem")
+extFile <- system.file("extdata/SimVal/run12.ext", package = "PMXFrem")
+phiFile <- system.file("extdata/SimVal/run12.phi", package = "PMXFrem")
+dfExt   <- getExt(extFile = extFile)
+dfPhi   <- getPhi(phiFile)
+dfPhi   <- dfPhi[, 3:8] # Include the structural model  etas
 
 
 
@@ -40,38 +40,38 @@ covNames<-getCovNames(modFile = modFile)
 #dfCovs<-PMXForest::createInputForestData(list("AGE"=c(30,44.3028,95),SEX=c(1,2)))
 # (modFile)
 
-dfCovs<-data.frame(AGE=c(30,-99,30),SEX=c(-99,2,2))
-dfCovs<-data.frame(AGE=c(30,-99,30),SEX=c(-99,2,2),CRCL=c(75,75,75),WT=c(1,1,1))
+dfCovs        <-data.frame(AGE=c(30,-99,30),SEX=c(-99,2,2))
+dfCovs        <-data.frame(AGE=c(30,-99,30),SEX=c(-99,2,2),CRCL=c(75,75,75),WT=c(1,1,1))
 cstrCovariates<-c("AGE CRCL WT","SEX CRCL WT","AGE, SEX CRCL WT")
 
-#dfData<-read.csv(system.file("extdata/SimVal/Frem8.dir/frem_dataset.dta",package="PMXFrem"))
-dfData<-read.csv(system.file("extdata/SimVal/DAT-1-MI-PMX-2.csv",package="PMXFrem"))
-dfData<-subset(dfData,TYPE==2 & BLQ==0 & TSLD<100)
-dfData<-subset(dfData,!duplicated(ID))
-#dfData$WT<--99
-dfCovs<-dfData[1,(names(dfData) %in% covNames$orgCovNames)]
-#dfCovs$WT<-75
-dfCovs<-rbind(dfCovs,dfCovs,dfCovs,dfCovs,dfCovs,dfCovs)
-dfCovs[2,names(dfCovs)!="WT"]<--99
-dfCovs[3,names(dfCovs)!="BMI"]<--99
-dfCovs[4,names(dfCovs)!="CRCL"]<--99
-dfCovs[5,(names(dfCovs)!="CRCL" & names(dfCovs)!="BMI")]<--99
-dfCovs[6,(names(dfCovs)!="CRCL" & names(dfCovs)!="WT")]<--99
+# dfData<-read.csv(system.file("extdata/SimVal/Frem8.dir/frem_dataset.dta",package="PMXFrem"))
+dfData <- read.csv(system.file("extdata/SimVal/DAT-1-MI-PMX-2.csv", package = "PMXFrem"))
+dfData <- subset(dfData, TYPE == 2 & BLQ == 0 & TSLD < 100)
+dfData <- subset(dfData, !duplicated(ID))
+# dfData$WT<--99
+dfCovs <- dfData[1, (names(dfData) %in% covNames$orgCovNames)]
+# dfCovs$WT<-75
+dfCovs <- rbind(dfCovs, dfCovs, dfCovs, dfCovs, dfCovs, dfCovs)
+dfCovs[2, names(dfCovs) != "WT"] <- -99
+dfCovs[3, names(dfCovs) != "BMI"] <- -99
+dfCovs[4, names(dfCovs) != "CRCL"] <- -99
+dfCovs[5, (names(dfCovs) != "CRCL" & names(dfCovs) != "BMI")] <- -99
+dfCovs[6, (names(dfCovs) != "CRCL" & names(dfCovs) != "WT")] <- -99
 
 #dfCovs$WT<-75
 
 #Check covariates NCI, GENO, RACE not consistent with dataset
 
 cstrCovariates<-c("All covs","Only WT","Only BMI","Only CRCL","BMI & CRCL", "WT & CRCL")
-paramFunc<-function(basethetas,covthetas,dfrow,etas,...){
-  #CL
-#  browser()
-  CLWT=1
-  #if (any(names(dfrow)=="WT") && dfrow$WT!=-99) CLWT    = (dfrow$WT/75)^basethetas[1]
-  CL<-basethetas[2] * CLWT
-  V<-basethetas[3]
-#  return(list(CL*exp(covthetas[2]+etas[4]),V*exp(covthetas[3]+etas[5])))
-  return(CL*exp(covthetas[2]+etas[4]))
+paramFunc <- function(basethetas, covthetas, dfrow, etas, ...) {
+  # CL
+  #  browser()
+  CLWT <- 1
+  # if (any(names(dfrow)=="WT") && dfrow$WT!=-99) CLWT    = (dfrow$WT/75)^basethetas[1]
+  CL   <- basethetas[2] * CLWT
+  V    <- basethetas[3]
+  return(list(CL * exp(covthetas[2] + etas[4]), V * exp(covthetas[3] + etas[5])))
+  # return(CL*exp(covthetas[2]+etas[4]))
 }
 
 
@@ -95,14 +95,14 @@ parf<-function(x,basethetas,covthetas,dfrow,...) {
 dfres1<-getExplainableVarDF(type=1,data=dfData,dfCovs = dfCovs,dfext=dfExt,
                     numNonFREMThetas =7,numSkipOm=2,functionList=list(paramFunc),
                     functionListName=c("CL","V"),cstrCovariates=cstrCovariates,
-                    modDevDir = "C:/PMX/github/PMXFrem/inst/extdata/SimVal/",
+                    modDevDir = system.file("extdata/SimVal",package="PMXFrem"),
                     runno = 12, covNames = covNames$covNames,
                     ncores = 1,numETASamples = 100,etas=dfPhi,quiet=TRUE,seed=123)
 
 dfres2<-getExplainableVarDF(type=2,data=dfData,dfCovs = dfCovs,dfext=dfExt,
                            numNonFREMThetas =7,numSkipOm=2,functionList=list(paramFunc),
                            functionListName=c("CL","V"),cstrCovariates=cstrCovariates,
-                           modDevDir = "C:/PMX/github/PMXFrem/inst/extdata/SimVal/",
+                           modDevDir = system.file("extdata/SimVal",package="PMXFrem"),
                            runno = 12, covNames = covNames$covNames,
                            ncores = 1,numETASamples = 100,etas=dfPhi,quiet=TRUE,seed=123)
 
@@ -110,6 +110,6 @@ dfres2<-getExplainableVarDF(type=2,data=dfData,dfCovs = dfCovs,dfext=dfExt,
 dfres3<-getExplainableVarDF(type=3,data=dfData,dfCovs = dfCovs,dfext=dfExt,
                            numNonFREMThetas =7,numSkipOm=2,functionList=list(paramFunc),
                            functionListName=c("CL","V"),cstrCovariates=cstrCovariates,
-                           modDevDir = "C:/PMX/github/PMXFrem/inst/extdata/SimVal/",
+                           modDevDir = system.file("extdata/SimVal",package="PMXFrem"),
                            runno = 12, covNames = covNames$covNames,
                            ncores = 1,numETASamples = 100,etas=dfPhi,quiet=TRUE,seed=123)
