@@ -8,6 +8,7 @@
 #' @param newDataFile The name of a new data file with the FFEM columns added. Default is vpcData{runno}.csv. If NULL, will return a data frame with the data instead of writing it to disk.
 #' @param idvar The name of the ID column,
 #' @param cores How many cores to use in the calculations of the FFEM expressions.
+#' @param covSuffix Use to create the column name fo rthe covariate effects columns. The column names will be the parameter name followed by this string.
 #'
 #' @details This function will compute a combined term of all (FREM) covariate effects for each parameter in the FFEM model and create a 
 #' new data file with these combined effects appended. The combined coefficients are added to the FFEM data set with names that
