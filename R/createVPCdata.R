@@ -59,7 +59,7 @@ createVPCdata <- function(runno=NULL,
                           numNonFREMThetas,
                           modName       = NULL,
                           numFREMThetas = length(grep("THETA",names(dfext)))-numNonFREMThetas,
-                          covNames      = paste("Cov",1:numFREMThetas,sep=""),
+                          covSuffix     = "FREMCOV",
                           parNames      = paste("Par",1:numParCov,sep=""),
                           numParCov     = NULL,
                           numSkipOm     = 0,
@@ -141,7 +141,7 @@ createVPCdata <- function(runno=NULL,
   }
   
   ## Loop over each individual to compute their covariate contributions ##
-  myFun <- function(data,parNames,dataMap=dataMap,availCov=NULL) {
+  myFun <- function(data,parNames,dataMap=dataMap,availCov=NULL,covSuffix) {
     ID <- data$ID
     if(is.null(availCov)) {
       availCov  <- covNames[as.logical(dataMap[dataMap$ID==ID,-1])]
@@ -154,7 +154,9 @@ createVPCdata <- function(runno=NULL,
     
     retDf <- data.frame(ID=ID)
     for(i in 1:length(parNames)) {
-      retDf[[parNames[i]]] <- as.numeric(eval(parse(text=ffemObj$Expr[i])))
+      colName <- paste0(parNames[i],covSuffix)
+      retDf[[colName]] <- as.numeric(eval(parse(text=ffemObj$Expr[i])))
+      # retDf[[parNames[i]]] <- as.numeric(eval(parse(text=ffemObj$Expr[i])))
     }
     
     return(retDf)
@@ -163,7 +165,7 @@ createVPCdata <- function(runno=NULL,
   dataOne <- data %>% distinct(ID,.keep_all=TRUE)
   
   covEff <- foreach(k = 1:nrow(dataOne)) %do% {
-    myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov)
+    myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov,covSuffix)
   }
 
   covEff <- data.frame(rbindlist(covEff))
