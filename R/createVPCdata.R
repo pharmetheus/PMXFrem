@@ -2,14 +2,13 @@
 #'
 #'
 #' @description Add combined FFEM coefficients to the data set for the specified covariates.
-#' @inheritParams calcFFEM
-#' @param runno The run number to use to construct the file names (see Details).
-#' @param modName The model name (see Details).
+#' @inheritParams calcFFEM 
+#' @inheritParams getFileNames
 #' @param dataFile The name of the data file used in the base model, i.e. the original data file, or a data.frame with the same data.
 #' @param newDataFile The name of a new data file with the FFEM columns added. Default is vpcData{runno}.csv. If NULL, will return a data frame with the data instead of writing it to disk.
 #' @param idvar The name of the ID column,
-#' @param modDevDir The path to the directory where the NONMEM runs are.
 #' @param cores How many cores to use in the calculations of the FFEM expressions.
+#' @param covSuffix Use to create the column name fo rthe covariate effects columns. The column names will be the parameter name followed by this string.
 #'
 #' @details This function will compute a combined term of all (FREM) covariate effects for each parameter in the FFEM model and create a 
 #' new data file with these combined effects appended. The combined coefficients are added to the FFEM data set with names that
@@ -57,11 +56,11 @@
 #'                          
 #'}
 
-createVPCdata <- function(runno,
+createVPCdata <- function(runno=NULL,
                           numNonFREMThetas,
                           modName       = NULL,
                           numFREMThetas = length(grep("THETA",names(dfext)))-numNonFREMThetas,
-                          covNames      = paste("Cov",1:numFREMThetas,sep=""),
+                          covSuffix     = "FREMCOV",
                           parNames      = paste("Par",1:numParCov,sep=""),
                           numParCov     = NULL,
                           numSkipOm     = 0,
@@ -76,23 +75,9 @@ createVPCdata <- function(runno,
                           ...) {
   
 
-  if(is.null(modDevDir)) {
-    if(is.null(modName)) {
-      modFile    <- paste0("run",runno,".mod")
-      extFile    <- paste0("run",runno,".ext")
-    } else {
-      modFile    <- paste0(modName,".mod")
-      extFile    <- paste0(modName,".ext")
-    }
-  } else {
-    if(is.null(modName)) {
-      modFile    <- paste0(modDevDir,"/run",runno,".mod")
-      extFile    <- paste0(modDevDir,"/run",runno,".ext")
-    } else {
-      modFile    <- paste0(modDevDir,"/",modName,".mod")
-      extFile    <- paste0(modDevDir,"/",modName,".ext")
-    }
-  }
+  fileNames <- getFileNames(runno=runno,modName=modName,modDevDir=modDevDir,...)
+  modFile   <- fileNames$mod
+  extFile   <- fileNames$ext
   
   covNames <- getCovNames(modFile)$covNames
   fremCovs <- getCovNames(modFile)$polyCatCovs
@@ -157,7 +142,7 @@ createVPCdata <- function(runno,
   }
   
   ## Loop over each individual to compute their covariate contributions ##
-  myFun <- function(data,parNames,dataMap=dataMap,availCov=NULL) {
+  myFun <- function(data,parNames,dataMap=dataMap,availCov=NULL,covSuffix) {
     ID <- data$ID
     if(is.null(availCov)) {
       availCov  <- covNames[as.logical(dataMap[dataMap$ID==ID,-1])]
@@ -170,7 +155,9 @@ createVPCdata <- function(runno,
     
     retDf <- data.frame(ID=ID)
     for(i in 1:length(parNames)) {
-      retDf[[parNames[i]]] <- as.numeric(eval(parse(text=ffemObj$Expr[i])))
+      colName <- paste0(parNames[i],covSuffix)
+      retDf[[colName]] <- as.numeric(eval(parse(text=ffemObj$Expr[i])))
+      # retDf[[parNames[i]]] <- as.numeric(eval(parse(text=ffemObj$Expr[i])))
     }
     
     return(retDf)
@@ -179,7 +166,7 @@ createVPCdata <- function(runno,
   dataOne <- data %>% distinct(ID,.keep_all=TRUE)
   
   covEff <- foreach(k = 1:nrow(dataOne)) %do% {
-    myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov)
+    myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov,covSuffix)
   }
 
   covEff <- data.frame(rbindlist(covEff))
