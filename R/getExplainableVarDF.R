@@ -3,7 +3,7 @@
 #' @description Get a data frame with explainable variability information based on a dataset of subjects with covariates
 #'
 #' 
-#' @param type Which type of explained var we should use, type=1 (default), i.e. based on data and calculated etas (ebes), type=2 is that the total variability is calculated using ETA samples instead of EBEs and average , hence etas argument is not needed but numETASamples is needed instead. 
+#' @param type Which type of explained var we should use, type=0 (based on FO delta rule), type=1 (default), i.e. based on data and calculated etas (ebes), type=2 is that the total variability is calculated using ETA samples instead of EBEs and average , hence etas argument is not needed but numETASamples is needed instead. 
 #' @param data the dataset to based the explained variability on, used with type=1
 #' @param dfCovs A data frame with covariates to based the variability plots on
 #' @param dfext a data frame with the final estimates in a ext-file format
@@ -64,6 +64,90 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
   if (!is.null(seed)) 
     set.seed(seed)
   
+  
+  fremCovs <- getCovNames(file.path(modDevDir,paste0("run",runno,".mod")))$polyCatCovs
+  orgCovs  <- getCovNames(file.path(modDevDir,paste0("run",runno,".mod")))$orgCovNames
+  #Function to get FREM covariate names from FFEM covariates
+  getFREMCovNames <- function(currNames)  {
+    covrow<-NULL
+    ffemCovs <- str_replace(fremCovs,"_[0-9]*","")
+    
+    for (cov in c(currNames,fremCovs)) {
+      myCov <- str_replace(cov,"_[0-9]*","")
+      index<-which(cov==fremCovs)
+      #If a FREM binarized covariate
+      if (!is.null(index) & length(index)>0) {
+        covrow<-c(covrow,cov)
+      } else {
+        index<-which(myCov==ffemCovs)
+        #If not a FREM binarized covariate
+        if (is.null(index) | length(index)==0) {
+          covrow<-c(covrow,cov) 
+        }
+      }
+    }
+    return (covrow)
+  }
+  
+  
+  if (type==0) {
+    
+    #Define delta_rule function
+    deltarule<- function(params,covmatrix,transform_fun,...) {
+      param_new<-transform_fun(params,...) #Calculate the transformation
+      
+      #Calculate the derivatives by numeric differentiation with the numDeriv library
+      library(numDeriv)   
+      #Options to grad function, i.e. could be e.g. global settings 
+      if (!exists("ma")) ma<-list(eps=1e-4, d=0.0001, zero.tol=sqrt(.Machine$double.eps/7e-7), r=4, v=2, show.details=FALSE)
+      param_deriv<-grad(transform_fun,params, method="Richardson",method.args = ma,...) 
+      
+      new_var<-0 #Initialize the variance of the transformed function
+      for (i in 1:length(params))
+        for (j in 1:length(params)) {
+          new_var<-new_var+param_deriv[i]*param_deriv[j]*covmatrix[i,j]      
+        }
+      
+      return (c(param_new,new_var)) #Return a vector with the tranformed parameter value and the transformed parameter variance
+    }
+    
+    
+    
+    #Define internal wrapper function to be used with propagation of variabilities
+    parf<-function(x,basethetas,covthetas,dfrow,myfunc,...) {
+      return(unlist(myfunc(basethetas,covthetas,dfrow,x,...)))
+    }
+    ffemObjAllNoCov<-calcFFEM(numNonFREMThetas=numNonFREMThetas,numFREMThetas = numFREMThetas,numSigmas = numSigmas,dfext=dfext,covNames = covNames,
+                              availCov = NULL,quiet = quiet,numParCov = numParCov, numSkipOm = numSkipOm)
+    ffemObjAllCov<-calcFFEM(numNonFREMThetas=numNonFREMThetas,numFREMThetas = numFREMThetas,numSigmas = numSigmas,dfext=dfext,covNames = covNames,
+                              availCov = covNames,quiet = quiet,numParCov = numParCov, numSkipOm = numSkipOm)
+    dfres<-data.frame()
+    for (j in 1:length(functionListName)) {
+      TOTVAR<-deltarule(params=rep(0,length(diag(ffemObjAllNoCov$FullVars))),covmatrix = ffemObjAllNoCov$FullVars,transform_fun = parf,basethetas=thetas,
+                        covthetas=rep(0,length(parNames)),dfrow=dfCovs[1,],myfunc=functionList[[j]],...)[2]
+      TOTCOVVAR<-deltarule(params=rep(0,length(diag(ffemObjAllCov$FullVars))),covmatrix = ffemObjAllCov$FullVars,transform_fun = parf,basethetas=thetas,
+                           covthetas=rep(0,length(parNames)),dfrow=dfCovs[1,],myfunc=functionList[[j]],...)[2]
+      
+      
+      for (i in 1:nrow(dfCovs)) {
+        currentNames<-names(dfCovs[i,])[as.numeric(dfCovs[i,])!=-99]
+        tmpcovs<-getFREMCovNames(currentNames)
+        #Calculate the FFEM based on some know covariates based on the row in dfCovs which are non-missing
+        ffemObj<-calcFFEM(numNonFREMThetas=numNonFREMThetas,numFREMThetas = numFREMThetas,numSigmas = numSigmas,dfext=dfext,covNames = covNames,
+                          availCov = tmpcovs,quiet = quiet, numParCov = numParCov, numSkipOm = numSkipOm)
+        COVVAR<-deltarule(params=rep(0,length(diag(ffemObj$FullVars))),covmatrix = ffemObj$FullVars,transform_fun = parf,basethetas=thetas,
+                             covthetas=rep(0,length(parNames)),dfrow=dfCovs[1,],myfunc=functionList[[j]],...)[2]
+        dfres<-rbind(dfres,
+                     data.frame(COVNUM=i,COVNAME=cstrCovariates[i],PARAMETER=functionListName[j],
+                                TOTVAR=TOTVAR,
+                                TOTCOVVAR=TOTVAR-TOTCOVVAR,
+                                COVVAR=TOTVAR-COVVAR))
+      }
+    }
+    return(dfres)
+  }
+    
+
   if (type==1 || type==2 || type==3) { #Assuming explained variability based on data + ETA values (or sampled ETA values)
     
     if (type==2 || type==3) {#Get the ETA samples from N(0,1) and then rescale to correct variance
@@ -78,8 +162,7 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
     # data <- addFremCovariates(dfFFEM = data,modFile)
     #browser()
 
-    fremCovs <- getCovNames(file.path(modDevDir,paste0("run",runno,".mod")))$polyCatCovs
-    orgCovs  <- getCovNames(file.path(modDevDir,paste0("run",runno,".mod")))$orgCovNames
+
     for(cov in fremCovs) {
       myCov <- str_replace(cov,"_[0-9]*","")
       myCovNum <- str_replace(cov,paste0(myCov,"_"),"")
@@ -151,27 +234,7 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
       
       internalCalc<-function(k){ #The calculation function
         
-        #Function to get FREM covariate names from FFEM covariates
-        getFREMCovNames <- function(currNames)  {
-          covrow<-NULL
-          ffemCovs <- str_replace(fremCovs,"_[0-9]*","")
-          
-          for (cov in c(currNames,fremCovs)) {
-            myCov <- str_replace(cov,"_[0-9]*","")
-            index<-which(cov==fremCovs)
-            #If a FREM binarized covariate
-            if (!is.null(index) & length(index)>0) {
-              covrow<-c(covrow,cov)
-            } else {
-              index<-which(myCov==ffemCovs)
-              #If not a FREM binarized covariate
-              if (is.null(index) | length(index)==0) {
-                covrow<-c(covrow,cov) 
-              }
-            }
-          }
-          return (covrow)
-        }
+        
         #Get the FREM covariates that is used in each row of dfCovs
         tmpcovs<-getFREMCovNames(currentNames)
         dftmp<-data.frame()
