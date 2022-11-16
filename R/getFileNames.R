@@ -26,16 +26,18 @@ getFileNames <- function(runno=NULL,modName=NULL,modDevDir=".",modExt = ".mod",l
       modFile    <- file.path(modDevDir,paste0("run",runno,modExt))
       extFile    <- file.path(modDevDir,paste0("run",runno,".ext"))
       phiFile    <- file.path(modDevDir,paste0("run",runno,".phi"))
+      covFile    <- file.path(modDevDir,paste0("run",runno,".cov"))
       lstFile    <- file.path(modDevDir,paste0("run",runno,lstExt))
     } else {
       modFile    <- file.path(modDevDir,paste0(modName,modExt))
       extFile    <- file.path(modDevDir,paste0(modName,".ext"))
       phiFile    <- file.path(modDevDir,paste0(modName,".phi"))
+      covFile    <- file.path(modDevDir,paste0(modName,".cov"))
       lstFile    <- file.path(modDevDir,paste0(modName,lstExt))
     }
   
   
-  retList <- list(mod=modFile,ext=extFile,phi=phiFile,lst=lstFile)
+  retList <- list(mod=modFile,ext=extFile,phi=phiFile,lst=lstFile,cov=covFile)
   
   return(retList)
 }

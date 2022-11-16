@@ -75,6 +75,9 @@ createVPCdata <- function(runno=NULL,
                           ...) {
   
 
+  retList <- list()
+  retList$newDataFileName <- newDataFile
+  
   fileNames <- getFileNames(runno=runno,modName=modName,modDevDir=modDevDir,...)
   modFile   <- fileNames$mod
   extFile   <- fileNames$ext
@@ -98,9 +101,24 @@ createVPCdata <- function(runno=NULL,
   
   ## Run this to get the omega matrix to use in the vpc
   if(is.null(availCov)) availCov    <- covNames
-  
+
   tmp <- calcFFEM(dfext=dfext,numNonFREMThetas,covNames=covNames,parNames=parNames,availCov=availCov,quiet=quiet,numSkipOm=numSkipOm,...)
   
+  ## Create the omega matrix information to put in the return value
+  makeMat <- function(myMat,skip = numSkipOm) {
+
+    myMat[upper.tri(myMat)] <- NA
+    if(skip!=0) {
+      retVal <- myMat[-(1:skip),-(1:skip)]
+    } else {
+      retVal <- myMat
+    }
+    
+    return(retVal)
+  }
+
+  retList$Omega <- makeMat(tmp$FullVars)
+
   ## Create a data set with all the original covariates + the frem-specific ones
   # Read the FFEM data set and rename the id column to ID (to simplify the coding below. The id column will get its original name in the new data file.)
   if(!is.data.frame(dataFile)) {
@@ -169,9 +187,10 @@ createVPCdata <- function(runno=NULL,
     myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov,covSuffix)
   }
 
+
   covEff <- data.frame(rbindlist(covEff))
-  
-  
+  retList$indCovEff <- names(covEff)[-1]
+
   data2 <- left_join(data,covEff,by="ID")
   
   # Remove the frem covariates
@@ -180,10 +199,12 @@ createVPCdata <- function(runno=NULL,
   ## Give the ID column back its original name
   data3 <- data3 %>% rename(!!idvar := "ID")
   
+  retList$newData <- data3
+  
   # Write the data to file
   if(!is.null(newDataFile)) {
     write.csv(data3,file=newDataFile,quote = FALSE,row.names = FALSE)
-  } else {
-    data3
   }
+  
+  invisible(retList)
 }
