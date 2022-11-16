@@ -3,7 +3,10 @@
 #' @description Get a data frame with explainable variability information based on a dataset of subjects with covariates
 #'
 #' 
-#' @param type Which type of explained var we should use, type=0 (based on FO delta rule), type=1 (default), i.e. based on data and calculated etas (ebes), type=2 is that the total variability is calculated using ETA samples instead of EBEs and average , hence etas argument is not needed but numETASamples is needed instead. 
+#' @param type Which type of explained var we should use, type=0 (based on FO delta rule), 
+#'                                                        type=1 (default), i.e. based on data and calculated etas (ebes),
+#'                                                        type=2 is that the total variability is calculated using ETA samples instead of EBEs and average of individual data for fixed cov relationships, hence etas argument is not needed but numETASamples is needed instead. 
+#'                                                        type=3 is that the total variability is calculated using ETA samples instead of EBEs and using the first individual data for fixed cov relationships, hence etas argument is not needed but numETASamples is needed instead. If no fixed cov relationship are used, type=2 is exactly the same as type=3 but type=3 is faster. 
 #' @param data the dataset to based the explained variability on, used with type=1
 #' @param dfCovs A data frame with covariates to based the variability plots on
 #' @param dfext a data frame with the final estimates in a ext-file format
@@ -19,8 +22,7 @@
 #' @param numParCov Number of parameters for which covariate relations are sought (often the same as numNonFREMThetas).
 #' @param numSkipOm Number of Omegas that are not associated with FREM covariates, i.e. skip before calculating the FREM varianes, default= 0
 #' @param parNames Names of the parameters
-#' @param covNames Names of the covariates
-#' @param availCov Names of the covariates to use in the calculation of the FFEM model
+#' @param availCov Names of the covariates to use in the calculation of the FFEM model, default=NULL (use all covariates)
 #' @param etas the etas used to calculate the explained variability, used with type==1 and should be the same size as number of individuals in data
 #' @param quiet If output should be allowed during the function call, default= FALSE,
 #' @param ncores the number of cores to use for the calculations, default = 1 which means no parallellization
@@ -41,11 +43,9 @@
 #' }
 getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,modDevDir,cstrCovariates=NULL,
                                 functionList=list(function(basethetas,covthetas,dfrow,etas,...){return(basethetas[1]*exp(covthetas[1]+etas[1]))}),functionListName="PAR1",numNonFREMThetas, numFREMThetas=length(grep("THETA",names(dfext)))-numNonFREMThetas, numSigmas=length(grep("SIGMA",names(dfext))), numParCov = NULL,
-                                parNames = NULL, numSkipOm=0, covNames = paste("Cov",1:numFREMThetas, sep = ""),
-                                availCov = covNames, etas=NULL,quiet = FALSE,ncores=1,cstrPackages=NULL,cstrExports=NULL,numETASamples=100,
-                                seed=NULL,...) {
+                                parNames = NULL, numSkipOm=0, availCov = NULL, etas=NULL,quiet = FALSE,
+                                ncores=1,cstrPackages=NULL,cstrExports=NULL,numETASamples=100,seed=NULL,...) {
   
-  #browser()
   if (nrow(dfext)>1) dfext  <- dfext[dfext$ITERATION==-1000000000,]
   thetas=as.numeric(dfext[2:(numNonFREMThetas+1)])
   if (is.null(cstrCovariates)) {
@@ -64,9 +64,13 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
   if (!is.null(seed)) 
     set.seed(seed)
   
+  CN<-getCovNames(file.path(modDevDir,paste0("run",runno,".mod")))
+  fremCovs <- CN$polyCatCovs
+  orgCovs  <- CN$orgCovNames
+  covNames = CN$covNames
   
-  fremCovs <- getCovNames(file.path(modDevDir,paste0("run",runno,".mod")))$polyCatCovs
-  orgCovs  <- getCovNames(file.path(modDevDir,paste0("run",runno,".mod")))$orgCovNames
+  if (is.null(availCov)) availCov<-covNames
+  
   #Function to get FREM covariate names from FFEM covariates
   getFREMCovNames <- function(currNames)  {
     covrow<-NULL
@@ -89,7 +93,7 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
     return (covrow)
   }
   
-  
+  #Delta rule based derivation of explained variability
   if (type==0) {
     
     #Define delta_rule function
@@ -110,8 +114,6 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
       
       return (c(param_new,new_var)) #Return a vector with the tranformed parameter value and the transformed parameter variance
     }
-    
-    
     
     #Define internal wrapper function to be used with propagation of variabilities
     parf<-function(x,basethetas,covthetas,dfrow,myfunc,...) {
@@ -154,15 +156,6 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
       ETAsamples<-matrix(rnorm((numParCov+numSkipOm)*numETASamples),nrow=(numParCov+numSkipOm),ncol=numETASamples) 
     }
     
-    #Get the coefficients for each individual based on each individuals all available covariates
-    # dfdata<-createVPCdata(runno = runno,numNonFREMThetas = numNonFREMThetas,numSigmas = numSigmas,modDevDir = modDevDir,quiet = quiet,
-    #             dataFile = data,newDataFile = NULL,cores = ncores,availCov=availCov)
-    # 
-    ## Add the FREM covariates to the data file
-    # data <- addFremCovariates(dfFFEM = data,modFile)
-    #browser()
-
-
     for(cov in fremCovs) {
       myCov <- str_replace(cov,"_[0-9]*","")
       myCovNum <- str_replace(cov,paste0(myCov,"_"),"")
@@ -171,15 +164,9 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
       }
       data[[cov]] <- ifelse(data[[myCov]]==myCovNum,1,0)
     }
-    #dataI <- data[!duplicated(strID),unique(c(strID,orgCovs,covNames))] #Get one row per subject and keep only covariates and ID
     dataI <- data[!duplicated(strID),] #Get one row per subject and keep only covariates and ID
     
-    
-    #dataI <- data %>% distinct(ID,.keep_all=TRUE) #Get one row per subject and keep only covariates and ID
-    #dataI <- dataI[,c("ID",orgCovs,covNames)] #Only keep covariates and ID
-    ## Go through the individuals to make sure that missing values for polycats are coded properly
-    
-    ## Register to allow for parallell computing
+    ## Register to allow for parallel computing
     if (ncores>1) registerDoParallel(cores = ncores)
     
     mapFun <- function(data,orgCovs)  {
@@ -190,7 +177,6 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
       }
       return(data)
     }
-    #browser()
     
     if (ncores>1) {
       dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
@@ -204,36 +190,21 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
     }
     dataI$jxrtp47<- -99 #Just a dummy thing
     
-    #Check carefully
-    # dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
-    #   mapFun(data=dataI[k,],orgCovs=orgCovs)
-    # }
-    # 
-    #dataI <- data.frame(rbindlist(dataI))
-    #browser()
     #### Go through all dfCovs combinations to calculate the variability for each of them
     dfrest<-data.frame()
     for (i in 1:nrow(dfCovs)) {
       currentNames<-names(dfCovs[i,])[as.numeric(dfCovs[i,])!=-99]
-      #currentNames<-names(dfCovs)[as.numeric(dfCovs[i,])!=-99]
-      
-     # if (any(!currentNames %in% covNames)) {
-    #    warning(paste0("Can't find some of the covariates: ",currentNames," in the model, quiting."))
-      #}
       
       strCovsRow<-names(dfCovs[i,])[as.numeric(dfCovs[i,])!=-99] #Get the covariate that we should condition on
       
-      if (type==3) { #Get the type of 
+      if (type==3 || type==2) { #Get the type of 
         ffemObjAllNoCov<-calcFFEM(numNonFREMThetas=numNonFREMThetas,numFREMThetas = numFREMThetas,numSigmas = numSigmas,dfext=dfext,covNames = covNames,
                                           availCov = NULL,quiet = quiet,numParCov = numParCov, numSkipOm = numSkipOm)
         Chol = chol(ffemObjAllNoCov$FullVars) #Get the covariance matrix and then Cholesky decompose
         etasamples<-t(ETAsamples) %*% Chol #Transform the ETA samples to N(0,COV) matrix
       }
      
-       #dftmp1<-foreach (k = 1:nrow(dataI),.packages = cstrPackages,.export = cstrExports,.verbose = !quiet,.combine=bind_rows) %dopar% { #For all subjects in data
-      
       internalCalc<-function(k){ #The calculation function
-        
         
         #Get the FREM covariates that is used in each row of dfCovs
         tmpcovs<-getFREMCovNames(currentNames)
@@ -254,17 +225,10 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
         }
         
         if (i==1) {#If first row in dfCovs, Calculate a FFEM for each individual to get the total covariate variability as well
-          
           ffemObjAll<-calcFFEM(numNonFREMThetas=numNonFREMThetas,numFREMThetas = numFREMThetas,numSigmas = numSigmas,dfext=dfext,covNames = covNames,
                                availCov = avcov,quiet = quiet,numParCov = numParCov,numSkipOm = numSkipOm)
           coveffectsAll <- rep(0,length(parNames))
-          if (type==2) {
-            #browser()
-            ffemObjAllNoCov<-calcFFEM(numNonFREMThetas=numNonFREMThetas,numFREMThetas = numFREMThetas,numSigmas = numSigmas,dfext=dfext,covNames = covNames,
-                                      availCov = NULL,quiet = quiet,numParCov = numParCov, numSkipOm = numSkipOm)
-            Chol = chol(ffemObjAllNoCov$FullVars) #Get the covariance matrix and then Cholesky decompose
-            etasamples<-t(ETAsamples) %*% Chol #Transform the ETA samples to N(0,COV) matrix
-          }
+
           for(j in 1:length(parNames)) {
             ffem_expr_all<-stringr::str_replace_all(ffemObjAll$Expr[j],pattern = "data\\$",replacement = "data47_jxrtp$")
             if (length(avcov)!=0) {
@@ -278,15 +242,8 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
               val<-0
               tmpval<-0
               for (m in 1:numETASamples) { #For all ETA samples
-                #tmpval<-functionList[[j]](basethetas=thetas,covthetas=coveffectsAll,dfrow=dataI[k,],etas=etasamples[m,],...) ### CHECK THIS, coveffectsAll=0?
                 val<-functionList[[j]](basethetas=thetas,covthetas=rep(0,length(coveffectsAll)),dfrow=dataI[k,],etas=etasamples[m,],...) ### CHECK THIS, coveffectsAll=0?
-              #   
-              #   if (m==1) {
-              #     val<-tmpval
-              #   } else {
-              #     val<-val+tmpval
-              #   }
-              
+
               if (m==1) {
                 tmpval<-matrix(0,ncol=numETASamples,nrow=length(val))
               }
@@ -295,11 +252,8 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
               for (m in 1:nrow(tmpval)) {
                 val[m]<-var(tmpval[m,]) #Calculate var over all samples
               }
-              #val<-val/numETASamples #Take expectation over all samples
-              #browser()
             }
             if (type==1){
-              #val<-functionList[[j]](basethetas=thetas,covthetas=coveffectsAll,dfrow=dataI[k,],etas=as.numeric(etas[k,]),...)
               val<-functionList[[j]](basethetas=thetas,covthetas=rep(0,length(coveffectsAll)),dfrow=dataI[k,],etas=as.numeric(etas[k,]),...)
               
             }
@@ -307,7 +261,6 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
               tmpval<-0
               val<-0
               for (m in 1:numETASamples) { #For all ETA samples
-                #val<-functionList[[j]](basethetas=thetas,covthetas=coveffectsAll,dfrow=dataI,etas=etasamples[m,],m,...)
                 val<-functionList[[j]](basethetas=thetas,covthetas=rep(0,length(coveffectsAll)),dfrow=dataI[k,],etas=etasamples[m,],m,...)
                 if (m==1) {
                   tmpval<-matrix(0,ncol=numETASamples,nrow=length(val))
@@ -336,7 +289,6 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
         for (j in 1:length(functionList)) {
           datatmp<-dataI[k,c(tmpcovs,"jxrtp47")]
           val<-functionList[[j]](basethetas=thetas,covthetas=coveffects,dfrow=datatmp,etas=rep(0,length(thetas)),...)
-          #val<-functionList[[j]](basethetas=thetas,covthetas=coveffects,dfrow=dfCovs[i,],etas=rep(0,length(thetas)),...)
           listcount<-length(val) 
           
           for (l in 1:listcount) {
@@ -357,7 +309,6 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
           internalCalc(k)
         }
       } else {
-        #browser()
         dftmp1<-data.frame()
         for (k in 1:nrow(dataI)) dftmp1<-bind_rows(dftmp1,internalCalc(k))
       }
