@@ -120,13 +120,14 @@ functionListName <- c("CL","V1")
 
 The data for the forest plot can now be generated based on the pre-requisite information.
 ```{r, warning=FALSE}
-dfres <- PMXForest::getForestDFFREM(dfCovs = dfCovs,
-                     noBaseThetas = 6,
-                     noCovThetas = length(covNames$covNames),
-                     noSigmas = 2,
-                     dfParameters=dfParameters,covNames=covNames,
-                     functionList=functionList,functionListName=functionListName,
-                     quiet=TRUE)
+dfres <- PMXForest::getForestDFFREM(dfCovs           = dfCovs,
+                                    numNonFREMThetas = 6,
+                                    numSkipOm        = 0,
+                                    dfParameters     = dfParameters,
+                                    covNames         = covNames,
+                                    functionList     = functionList,
+                                    functionListName = functionListName,
+                                    quiet            = TRUE)
 
 print(dfres)
 ```
