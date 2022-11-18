@@ -6,13 +6,6 @@ test_that("R/getExplainableVarDF works", {
 library(forcats)
 
 modFile <- system.file("extdata/SimVal/run12.mod", package = "PMXFrem")
-extFile <- system.file("extdata/SimVal/run12.ext", package = "PMXFrem")
-phiFile <- system.file("extdata/SimVal/run12.phi", package = "PMXFrem")
-dfExt   <- getExt(extFile = extFile)
-dfPhi   <- getPhi(phiFile)
-dfPhi   <- dfPhi[, 3:8] # Include the structural model  etas
-
-
 covNames<-getCovNames(modFile = modFile)
 
 dfData <- read.csv(system.file("extdata/SimVal/DAT-1-MI-PMX-2.csv", package = "PMXFrem"))
@@ -43,25 +36,25 @@ paramFunc2 <- function(basethetas, covthetas, dfrow, etas, ...) {
 }
 
 
-dfres0<-getExplainableVarDF(type=0,data=NULL,dfCovs = dfCovs,dfext=dfExt,
+dfres0<-getExplainableVarDF(type=0,data=NULL,dfCovs = dfCovs,
                             numNonFREMThetas =7,numSkipOm=2,functionList=list(paramFunc,paramFunc2),
                             functionListName=c("CL","V"),cstrCovariates=cstrCovariates,
                             modDevDir = system.file("extdata/SimVal",package="PMXFrem"),
                             runno = 12, ncores = 1,quiet=TRUE,seed=123)
 
-dfres1<-getExplainableVarDF(type=1,data=dfData,dfCovs = dfCovs,dfext=dfExt,
+dfres1<-getExplainableVarDF(type=1,data=dfData,dfCovs = dfCovs,
                             numNonFREMThetas =7,numSkipOm=2,functionList=list(paramFunc,paramFunc2),
                             functionListName=c("CL","V"),cstrCovariates=cstrCovariates,
                             modDevDir = system.file("extdata/SimVal",package="PMXFrem"),
-                            runno = 12, ncores = 10,etas=as.matrix(dfPhi),quiet=TRUE,seed=123)
+                            runno = 12, ncores = 10,quiet=TRUE,seed=123)
 
-dfres2<-getExplainableVarDF(type=2,data=dfData,dfCovs = dfCovs,dfext=dfExt,
+dfres2<-getExplainableVarDF(type=2,data=dfData,dfCovs = dfCovs,
                            numNonFREMThetas =7,numSkipOm=2,functionList=list(paramFunc,paramFunc2),
                            functionListName=c("CL","V"),cstrCovariates=cstrCovariates,
                            modDevDir = system.file("extdata/SimVal",package="PMXFrem"),
                            runno = 12,ncores = 10,numETASamples = 100,quiet=TRUE,seed=123)
 
-dfres3<-getExplainableVarDF(type=3,data=dfData,dfCovs = dfCovs,dfext=dfExt,
+dfres3<-getExplainableVarDF(type=3,data=dfData,dfCovs = dfCovs,
                            numNonFREMThetas =7,numSkipOm=2,functionList=list(paramFunc,paramFunc2),
                            functionListName=c("CL","V"),cstrCovariates=cstrCovariates,
                            modDevDir = system.file("extdata/SimVal",package="PMXFrem"),
