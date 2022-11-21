@@ -2,7 +2,7 @@
 #'
 #'
 #' @description Add combined FFEM coefficients to the data set for the specified covariates.
-#' @inheritParams calcFFEM 
+#' @inheritParams calcFFEM
 #' @inheritParams getFileNames
 #' @param dataFile The name of the data file used in the base model, i.e. the original data file, or a data.frame with the same data.
 #' @param newDataFile The name of a new data file with the FFEM columns added. Default is vpcData{runno}.csv. If NULL, will return a data frame with the data instead of writing it to disk.
@@ -10,9 +10,9 @@
 #' @param cores How many cores to use in the calculations of the FFEM expressions.
 #' @param covSuffix Use to create the column name fo rthe covariate effects columns. The column names will be the parameter name followed by this string.
 #'
-#' @details This function will compute a combined term of all (FREM) covariate effects for each parameter in the FFEM model and create a 
+#' @details This function will compute a combined term of all (FREM) covariate effects for each parameter in the FFEM model and create a
 #' new data file with these combined effects appended. The combined coefficients are added to the FFEM data set with names that
-#' appends COV to the parameter name, e.g. the column with the combined covariate efftecs for parameter PAR will be called PARCOV. 
+#' appends COV to the parameter name, e.g. the column with the combined covariate efftecs for parameter PAR will be called PARCOV.
 #' All rows for an individual will have the same value for PARCOV.
 #'
 #' To implement an FFEM model with the covariate effects from the FREM analysis, change the FFEM model from:
@@ -46,14 +46,14 @@
 #'
 #' @examples
 #' \dontrun{
-#' 
+#'
 #' vpcData <- createVPCdata(modName          = "run9",
 #'                          modDevDir        = "inst/extdata/SimVal",
 #'                          numNonFREMThetas = 9,
 #'                          numSkipOm        = 2,
 #'                          dataFile         = data,
 #'                          newDataFile      = "vpcData.csv")
-#'                          
+#'
 #'}
 
 createVPCdata <- function(runno=NULL,
@@ -73,19 +73,19 @@ createVPCdata <- function(runno=NULL,
                           cores         = 1,
                           dfext         = NULL,
                           ...) {
-  
+
 
   retList <- list()
   retList$newDataFileName <- newDataFile
-  
+
   fileNames <- getFileNames(runno=runno,modName=modName,modDevDir=modDevDir,...)
   modFile   <- fileNames$mod
   extFile   <- fileNames$ext
-  
+
   covNames <- getCovNames(modFile)$covNames
   fremCovs <- getCovNames(modFile)$polyCatCovs
   orgCovs  <- getCovNames(modFile)$orgCovNames
-  
+
   # It is much faster to send in extdf than to create it fo reach ID.
   # Only read it from file if it isn't passed via dfext
   if(is.null(dfext)) {
@@ -97,14 +97,15 @@ createVPCdata <- function(runno=NULL,
   if (is.null(numParCov)) {
     numParCov <- calcNumParCov(dfext,numNonFREMThetas, numSkipOm)
   }
-  
-  
+
+
   ## Run this to get the omega matrix to use in the vpc
   if(is.null(availCov)) availCov    <- covNames
 
   tmp <- calcFFEM(dfext=dfext,numNonFREMThetas,covNames=covNames,parNames=parNames,availCov=availCov,quiet=quiet,numSkipOm=numSkipOm,...)
-  
-  ## Create the omega matrix information to put in the return value
+
+  ## Create the omega matrix information to put in the return value. This function
+  ## takes the full omega, removes any skipped omega and sets the upper triangle to NA.
   makeMat <- function(myMat,skip = numSkipOm) {
 
     myMat[upper.tri(myMat)] <- NA
@@ -113,27 +114,29 @@ createVPCdata <- function(runno=NULL,
     } else {
       retVal <- myMat
     }
-    
+
     return(retVal)
   }
 
+  ## Collect Coefficients and omegaprim to return object
   retList$Omega <- makeMat(tmp$FullVars)
+  retList$Coefficients <- makeMat(tmp$Coefficients)
 
   ## Create a data set with all the original covariates + the frem-specific ones
   # Read the FFEM data set and rename the id column to ID (to simplify the coding below. The id column will get its original name in the new data file.)
   if(!is.data.frame(dataFile)) {
-    data <- fread(dataFile,h=T,data.table=FALSE,showProgress=FALSE) %>% 
+    data <- fread(dataFile,h=T,data.table=FALSE,showProgress=FALSE) %>%
       rename("ID" = idvar)
   } else { ## The dataFile was supplied as a data frame and not a name
-    data <- dataFile %>% 
+    data <- dataFile %>%
       rename("ID" = idvar)
   }
   ## Add the FREM covariates to the data file
   data <- addFremCovariates(dfFFEM = data,modFile)
-  
+
   dataI <- data %>% distinct(ID,.keep_all=TRUE)
   dataI <- dataI[,c("ID",orgCovs,covNames)]
-  
+
   ## Go through the individuals to make sure that missing values for polycats are coded properly
   registerDoParallel(cores=cores)
   mapFun <- function(data,cov,orgCovs)  {
@@ -144,21 +147,21 @@ createVPCdata <- function(runno=NULL,
     }
     return(data)
   }
-  
+
   dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
     mapFun(data=dataI[k,],cov=cov,orgCovs=orgCovs)
   }
-  
+
   dataI <- data.frame(rbindlist(dataI))
-  
+
   dataI <- dataI[,c("ID",covNames)]
   dataMap <- dataI[]
   dataMap[,covNames] <- TRUE
-  
+
   for(c in covNames) {
     dataMap[,c] <- ifelse(dataI[,c]==-99,FALSE,TRUE)
   }
-  
+
   ## Loop over each individual to compute their covariate contributions ##
   myFun <- function(data,parNames,dataMap=dataMap,availCov=NULL,covSuffix) {
     ID <- data$ID
@@ -170,41 +173,42 @@ createVPCdata <- function(runno=NULL,
     }
 
     ffemObj <- calcFFEM(dfext=dfext,numNonFREMThetas,covNames=covNames,availCov=availCov,quiet=TRUE,parNames=parNames,numSkipOm=numSkipOm,...)
-    
+
     retDf <- data.frame(ID=ID)
     for(i in 1:length(parNames)) {
       colName <- paste0(parNames[i],covSuffix)
       retDf[[colName]] <- as.numeric(eval(parse(text=ffemObj$Expr[i])))
       # retDf[[parNames[i]]] <- as.numeric(eval(parse(text=ffemObj$Expr[i])))
     }
-    
+
     return(retDf)
   }
-  
+
   dataOne <- data %>% distinct(ID,.keep_all=TRUE)
-  
+
   covEff <- foreach(k = 1:nrow(dataOne)) %do% {
     myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov,covSuffix)
   }
 
-
   covEff <- data.frame(rbindlist(covEff))
+  ## Add the individual covariateCoefficients to the return object
   retList$indCovEff <- names(covEff)[-1]
 
   data2 <- left_join(data,covEff,by="ID")
-  
+
   # Remove the frem covariates
   data3 <- data2[,!(names(data2) %in% fremCovs)]
-  
+
   ## Give the ID column back its original name
   data3 <- data3 %>% rename(!!idvar := "ID")
-  
+
+  ## Add the modified data set to the return object
   retList$newData <- data3
-  
+
   # Write the data to file
   if(!is.null(newDataFile)) {
     write.csv(data3,file=newDataFile,quote = FALSE,row.names = FALSE)
   }
-  
+
   invisible(retList)
 }
