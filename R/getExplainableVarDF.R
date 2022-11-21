@@ -132,8 +132,10 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno=N
     parf<-function(x,basethetas,covthetas,dfrow,myfunc,...) {
       return(unlist(myfunc(basethetas,covthetas,dfrow,x,...)))
     }
+    browser()
     ffemObjAllNoCov<-calcFFEM(numNonFREMThetas=numNonFREMThetas,numFREMThetas = numFREMThetas,numSigmas = numSigmas,dfext=dfext,covNames = covNames,
                               availCov = NULL,quiet = quiet,numParCov = numParCov, numSkipOm = numSkipOm)
+    
     ffemObjAllCov<-calcFFEM(numNonFREMThetas=numNonFREMThetas,numFREMThetas = numFREMThetas,numSigmas = numSigmas,dfext=dfext,covNames = covNames,
                               availCov = covNames,quiet = quiet,numParCov = numParCov, numSkipOm = numSkipOm)
     dfres<-data.frame()
