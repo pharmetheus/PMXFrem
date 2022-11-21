@@ -1,0 +1,84 @@
+---
+title: "Generate standard diagnostics for a FREM model"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Generate standard diagnostics for a FREM model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+suppressPackageStartupMessages(library(PMXFrem))
+```
+
+## Introduction
+
+Just like with any other model it is important to check that FREM models satisfy basic diagnostic tests, for example goodness-of-fit (GOF) plots of DV versus PRED and CWRES versus TIME. Unlike standard models, some of variables of interest are not directly available from the FREM model itself but will have to be derived based on an FFEM version of the model. 
+
+## Create the FFEM model
+
+Create the FFEM model for the set of covariates to include in the model to be evaluated.Consult the [companion vignette](create_FFEM_model.html) on how to set up the FFEM model and generate the necessary output.
+
+## Input
+
+Standard diagnostics
+
+```{r}
+
+library(GGally)
+xptabBase <- fread(system.file("extdata/SimNeb/xptab3",package="PMXFrem"),data.table=FALSE,check.names = T) %>% 
+  filter(BLQ==0,EVID==0) %>% 
+    arrange(ID,TAD)
+
+xptabFFEM <- fread(system.file("extdata/SimNeb/xptabmax04",package="PMXFrem"),data.table=FALSE,check.names = T) %>% 
+  filter(BLQ==0,EVID==0) %>% 
+  arrange(ID,TAD)
+
+xptabFREM <- fread(system.file("extdata/SimNeb/xptab4",package="PMXFrem"),data.table=FALSE,check.names = T) %>% 
+  filter(BLQ==0,EVID==0,FREMTYPE==0) %>% 
+    arrange(ID,TAD)
+
+
+myPhiBase <- getPhi(system.file("extdata/SimNeb/run3.phi",package="PMXFrem")) %>% 
+  select(1:8) %>% 
+  arrange(ID)
+
+myPhiFFEM <- getPhi(system.file("extdata/SimNeb/run4max0.phi",package="PMXFrem")) %>% 
+  select(1:8) %>% 
+  arrange(ID)
+
+myPhiFREM <- getPhi(system.file("extdata/SimNeb/run4.phi",package="PMXFrem")) %>% 
+  select(1:8) %>% 
+  arrange(ID)
+
+eta4FREM <- xptabFREM %>% select(ID,ETA4:ETA6) %>% distinct(ID,.keep_all = T)
+cwresData <- bind_cols(Base=xptabBase$CWRES, FREM=xptabFREM$CWRES, FFEM=xptabFFEM$CWRES) 
+iwresData <- bind_cols(Base=xptabBase$CIWRES,FREM=xptabFREM$CIWRES,FFEM=xptabFFEM$CIWRES)
+predData  <- bind_cols(Base=xptabBase$CPRED,FREM=xptabFREM$CPRED,FFEM=xptabFFEM$CPRED)
+ipredData <- bind_cols(Base=xptabBase$CIPRED,FREM=xptabFREM$CIPRED,FFEM=xptabFFEM$CIPRED)
+
+eta4Data  <- bind_cols(Base=myPhiBase$`ETA.4`,FREM=myPhiFREM$`ETA.4`,FFEM=myPhiFFEM$`ETA.4`)
+
+GGally::ggpairs(cwresData)  + ggtitle("CWRES")
+GGally::ggpairs(iwresData)  + ggtitle("IWRES")
+GGally::ggpairs(predData)   + ggtitle("PRED")
+GGally::ggpairs(ipredData)  + ggtitle("IPRED")
+GGally::ggpairs(eta4Data)   + ggtitle("ETA4")
+
+
+#ggplot(aes(BaseCWRES,FFEMCWRES)) +
+  GGally::ggpairs()
+
+bind_cols(BaseIWRES=xptabBase$CIWRES,FREMIWRES=xptabFREM$CIWRES,FFEMIWRES=xptabFFEM$CIWRES) %>% 
+  ggplot(aes(BaseIWRES,FREMIWRES)) +
+  geom_point()
+
+```
+
