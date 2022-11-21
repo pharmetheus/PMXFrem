@@ -11,8 +11,7 @@
 #' @param dfCovs A data frame with covariates to based the variability plots on
 #' @param dfext a data frame with the final estimates in a ext-file format
 #' @param strID the subject identifier in the dfCovs dataset, default='ID'
-#' @param runno the FREM run number to based the plot on
-#' @param modDevDir the FREM run model directory
+#' @inheritParams getFileNames
 #' @param cstrCovariates A string vector with names of the covariate that should be investigated, if NULL COV1, COV2 etc. will be assigned
 #' @param functionList A list of functions with input (basethetas, covthetas,dfrow and ...) for in which the explained variability will be calculated. If the function returns a vector of values, each value will be used but functionListName must contain the names with a length of all return for all functions in the functionList
 #' @param functionListName A vector of strings (names) of the parameters for each function in the functionList
@@ -41,11 +40,20 @@
 #' \dontrun{
 #' dfForest <- getExplainableDF(dfCovs)
 #' }
-getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,modDevDir,cstrCovariates=NULL,
+getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno=NULL,modName=NULL,modDevDir=".",cstrCovariates=NULL,
                                 functionList=list(function(basethetas,covthetas,dfrow,etas,...){return(basethetas[1]*exp(covthetas[1]+etas[1]))}),functionListName="PAR1",numNonFREMThetas, numFREMThetas=length(grep("THETA",names(dfext)))-numNonFREMThetas, numSigmas=length(grep("SIGMA",names(dfext))), numParCov = NULL,
                                 parNames = NULL, numSkipOm=0, availCov = NULL, etas=NULL,quiet = FALSE,
                                 ncores=1,cstrPackages=NULL,cstrExports=NULL,numETASamples=100,seed=NULL,...) {
   
+  fileNames <- getFileNames(runno=runno,modName=modName,modDevDir=modDevDir,...)
+  modFile   <- fileNames$mod
+  extFile   <- fileNames$ext
+  phiFile   <- fileNames$phi
+    
+  if (is.null(dfext)) {
+    dfext   <- getExt(extFile = extFile)
+  }
+
   if (nrow(dfext)>1) dfext  <- dfext[dfext$ITERATION==-1000000000,]
   thetas=as.numeric(dfext[2:(numNonFREMThetas+1)])
   if (is.null(cstrCovariates)) {
@@ -61,10 +69,15 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
     parNames<-paste("Par",1:numParCov, sep = "")
   }
   
+  if (type==1 && is.null(etas)) {
+    dfPhi   <- getPhi(phiFile)
+    etas   <- dfPhi[, 3:(2+numParCov+numSkipOm)] # Include the structural model etas only
+  }
+  
   if (!is.null(seed)) 
     set.seed(seed)
   
-  CN<-getCovNames(file.path(modDevDir,paste0("run",runno,".mod")))
+  CN<-getCovNames(modFile)
   fremCovs <- CN$polyCatCovs
   orgCovs  <- CN$orgCovNames
   covNames = CN$covNames
@@ -119,8 +132,10 @@ getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno,m
     parf<-function(x,basethetas,covthetas,dfrow,myfunc,...) {
       return(unlist(myfunc(basethetas,covthetas,dfrow,x,...)))
     }
+    browser()
     ffemObjAllNoCov<-calcFFEM(numNonFREMThetas=numNonFREMThetas,numFREMThetas = numFREMThetas,numSigmas = numSigmas,dfext=dfext,covNames = covNames,
                               availCov = NULL,quiet = quiet,numParCov = numParCov, numSkipOm = numSkipOm)
+    
     ffemObjAllCov<-calcFFEM(numNonFREMThetas=numNonFREMThetas,numFREMThetas = numFREMThetas,numSigmas = numSigmas,dfext=dfext,covNames = covNames,
                               availCov = covNames,quiet = quiet,numParCov = numParCov, numSkipOm = numSkipOm)
     dfres<-data.frame()
