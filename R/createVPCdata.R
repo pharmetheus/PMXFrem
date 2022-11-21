@@ -40,7 +40,14 @@
 #' \item Run the modified model :)
 #' }
 
-#' @return If newDataFile is NULL, a data frame. If quiet is FALSE, the FFEM expressions and new OMEGA matrix is printed in the console.
+#' @return A list with objects:
+#'\itemize{
+#' \item Omega: The omega prim matrix to be used in tm model file. The upper triangle is set to NAs.
+#' \item Coefficients: An nPar x nCov matrix with covariate coefficients used to compute the individual covariate effects.
+#' \item indCovEff: A character vector with the labels for the individual covariate effects. Used for the new columns in the new data set.
+#' \item newData: A data.frame with the new data set, i.e. the same as dataFile with individual covariate effects appended.
+#'}
+#' If newDataFile is not NULL, newData will be printed as a csv to disk with the name newData. If quiet is FALSE, the FFEM expressions and new OMEGA matrix is printed in the console.
 #'
 #' @export
 #'
@@ -48,11 +55,11 @@
 #' \dontrun{
 #'
 #' vpcData <- createVPCdata(modName          = "run9",
-#'                          modDevDir        = "inst/extdata/SimVal",
+#'                          modDevDir        = system.file("inst/extdata/SimVal",package="PMXFrem")
 #'                          numNonFREMThetas = 9,
 #'                          numSkipOm        = 2,
 #'                          dataFile         = data,
-#'                          newDataFile      = "vpcData.csv")
+#'                          newDataFile      = NULL)
 #'
 #'}
 

@@ -61,15 +61,22 @@ Such omegas has to come before the large FREM omega block.}
 should contain the estimates of the *one* relevant $EST.}
 }
 \value{
-If newDataFile is NULL, a data frame. If quiet is FALSE, the FFEM expressions and new OMEGA matrix is printed in the console.
+A list with objects:
+\itemize{
+\item Omega: The omega prim matrix to be used in tm model file. The upper triangle is set to NAs.
+\item Coefficients: An nPar x nCov matrix with covariate coefficients used to compute the individual covariate effects.
+\item indCovEff: A character vector with the labels for the individual covariate effects. Used for the new columns in the new data set.
+\item newData: A data.frame with the new data set, i.e. the same as dataFile with individual covariate effects appended.
+}
+If newDataFile is not NULL, newData will be printed as a csv to disk with the name newData. If quiet is FALSE, the FFEM expressions and new OMEGA matrix is printed in the console.
 }
 \description{
 Add combined FFEM coefficients to the data set for the specified covariates.
 }
 \details{
-This function will compute a combined term of all (FREM) covariate effects for each parameter in the FFEM model and create a 
+This function will compute a combined term of all (FREM) covariate effects for each parameter in the FFEM model and create a
 new data file with these combined effects appended. The combined coefficients are added to the FFEM data set with names that
-appends COV to the parameter name, e.g. the column with the combined covariate efftecs for parameter PAR will be called PARCOV. 
+appends COV to the parameter name, e.g. the column with the combined covariate efftecs for parameter PAR will be called PARCOV.
 All rows for an individual will have the same value for PARCOV.
 
 To implement an FFEM model with the covariate effects from the FREM analysis, change the FFEM model from:
@@ -101,11 +108,11 @@ To run a VPC for a FREM model, follow the following steps
 \dontrun{
 
 vpcData <- createVPCdata(modName          = "run9",
-                         modDevDir        = "inst/extdata/SimVal",
+                         modDevDir        = system.file("inst/extdata/SimVal",package="PMXFrem")
                          numNonFREMThetas = 9,
                          numSkipOm        = 2,
                          dataFile         = data,
-                         newDataFile      = "vpcData.csv")
-                         
+                         newDataFile      = NULL)
+
 }
 }
