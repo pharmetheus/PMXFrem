@@ -24,19 +24,22 @@ getExplainableVarDF(
   numParCov = NULL,
   parNames = NULL,
   numSkipOm = 0,
-  covNames = paste("Cov", 1:numFREMThetas, sep = ""),
-  availCov = covNames,
+  availCov = NULL,
   etas = NULL,
   quiet = FALSE,
   ncores = 1,
   cstrPackages = NULL,
   cstrExports = NULL,
   numETASamples = 100,
+  seed = NULL,
   ...
 )
 }
 \arguments{
-\item{type}{Which type of explained var we should use, type=1 (default), i.e. based on data and calculated etas, type=2 is that the total variability is calculated using ETA samples instead of EBEs, hence etas argument is not needed but numETASamples is needed instead.}
+\item{type}{Which type of explained var we should use, type=0 (based on FO delta rule), 
+type=1 (default), i.e. based on data and calculated etas (ebes),
+type=2 is that the total variability is calculated using ETA samples instead of EBEs and average of individual data for fixed cov relationships, hence etas argument is not needed but numETASamples is needed instead. 
+type=3 is that the total variability is calculated using ETA samples instead of EBEs and using the first individual data for fixed cov relationships, hence etas argument is not needed but numETASamples is needed instead. If no fixed cov relationship are used, type=2 is exactly the same as type=3 but type=3 is faster.}
 
 \item{data}{the dataset to based the explained variability on, used with type=1}
 
@@ -68,9 +71,7 @@ getExplainableVarDF(
 
 \item{numSkipOm}{Number of Omegas that are not associated with FREM covariates, i.e. skip before calculating the FREM varianes, default= 0}
 
-\item{covNames}{Names of the covariates}
-
-\item{availCov}{Names of the covariates to use in the calculation of the FFEM model}
+\item{availCov}{Names of the covariates to use in the calculation of the FFEM model, default=NULL (use all covariates)}
 
 \item{etas}{the etas used to calculate the explained variability, used with type==1 and should be the same size as number of individuals in data}
 
@@ -82,7 +83,9 @@ getExplainableVarDF(
 
 \item{cstrExports}{a character vector with variables needed to run the calculations in parallel, default = NULL}
 
-\item{numETASamples}{(default = 100) the number of samples used ot integrate over individual parameters when calculating the total variance of the functionList, only used using type==2}
+\item{numETASamples}{(default = 100) the number of samples used ot integrate over individual parameters when calculating the total variance of the functionList, only used using type==2 & type==3}
+
+\item{seed}{(default = -1 = random, used when sampling ETAs in type==2 and type==3)}
 
 \item{...}{additional variables to be forwarded to the the functionList functions}
 }

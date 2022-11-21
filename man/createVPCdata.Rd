@@ -9,7 +9,7 @@ createVPCdata(
   numNonFREMThetas,
   modName = NULL,
   numFREMThetas = length(grep("THETA", names(dfext))) - numNonFREMThetas,
-  covNames = paste("Cov", 1:numFREMThetas, sep = ""),
+  covSuffix = "FREMCOV",
   parNames = paste("Par", 1:numParCov, sep = ""),
   numParCov = NULL,
   numSkipOm = 0,
@@ -33,7 +33,7 @@ createVPCdata(
 
 \item{numFREMThetas}{The number thetas associated with FREM covariate effects.}
 
-\item{covNames}{Names of the covariates}
+\item{covSuffix}{Use to create the column name fo rthe covariate effects columns. The column names will be the parameter name followed by this string.}
 
 \item{parNames}{Names of the parameters}
 
