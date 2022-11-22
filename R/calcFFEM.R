@@ -121,6 +121,8 @@ calcFFEM <- function(dfext,
     COEFF_VAR <- OM_PAR
   }
   
+  if (length(availCov)==0) COEFF<-t(COEFF)
+  
   ## Print the FFEM for inspection
   if(!quiet) {
     for(p in 1:nrow(COEFF)) {
@@ -140,7 +142,6 @@ calcFFEM <- function(dfext,
       # cat("\n",file=eqFile,append=TRUE)
     }
   }
-  
   
   ## Create evaluable expression
   myExpr <- c()

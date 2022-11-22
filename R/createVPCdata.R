@@ -73,7 +73,7 @@ createVPCdata <- function(runno=NULL,
                           numSkipOm     = 0,
                           dataFile,
                           newDataFile   = paste("vpcData",runno,".csv",sep=""),
-                          availCov      = NULL,
+                          availCov      = covNames,
                           idvar         = "ID",
                           modDevDir     = NULL,
                           quiet         = FALSE,
@@ -107,7 +107,7 @@ createVPCdata <- function(runno=NULL,
 
 
   ## Run this to get the omega matrix to use in the vpc
-  if(is.null(availCov)) availCov    <- covNames
+  #if(is.null(availCov)) availCov    <- covNames
 
   tmp <- calcFFEM(dfext=dfext,numNonFREMThetas,covNames=covNames,parNames=parNames,availCov=availCov,quiet=quiet,numSkipOm=numSkipOm,...)
 
