@@ -42,4 +42,16 @@ test_that("createVPC works", {
   expect_equal(class(vpcData2$indCovEff),"character")
   expect_equal(length(vpcData2$indCovEff),4)
   expect_snapshot_value(vpcData2,style = "deparse")
+
+  ## Check when availCov = NULL
+  vpcData3 <- createVPCdata(modName          = "run9",
+                            modDevDir        = system.file("extdata/SimVal/", package = "PMXFrem"),
+                            numNonFREMThetas = 9,
+                            numSkipOm        = 2,
+                            dataFile         = data,
+                            availCov         = NULL,
+                            newDataFile      = NULL,
+                            quiet            = TRUE)
+
+  expect_snapshot_value(vpcData3,style = "deparse")
 })
