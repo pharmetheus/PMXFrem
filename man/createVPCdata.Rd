@@ -15,7 +15,7 @@ createVPCdata(
   numSkipOm = 0,
   dataFile,
   newDataFile = paste("vpcData", runno, ".csv", sep = ""),
-  availCov = NULL,
+  availCov = covNames,
   idvar = "ID",
   modDevDir = NULL,
   quiet = FALSE,

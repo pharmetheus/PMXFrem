@@ -10,8 +10,9 @@ getExplainableVarDF(
   dfCovs,
   dfext = NULL,
   strID = "ID",
-  runno,
-  modDevDir,
+  runno = NULL,
+  modName = NULL,
+  modDevDir = ".",
   cstrCovariates = NULL,
   functionList = list(function(basethetas, covthetas, dfrow, etas, ...) {
     
@@ -36,9 +37,9 @@ getExplainableVarDF(
 )
 }
 \arguments{
-\item{type}{Which type of explained var we should use, type=0 (based on FO delta rule), 
+\item{type}{Which type of explained var we should use, type=0 (based on FO delta rule),
 type=1 (default), i.e. based on data and calculated etas (ebes),
-type=2 is that the total variability is calculated using ETA samples instead of EBEs and average of individual data for fixed cov relationships, hence etas argument is not needed but numETASamples is needed instead. 
+type=2 is that the total variability is calculated using ETA samples instead of EBEs and average of individual data for fixed cov relationships, hence etas argument is not needed but numETASamples is needed instead.
 type=3 is that the total variability is calculated using ETA samples instead of EBEs and using the first individual data for fixed cov relationships, hence etas argument is not needed but numETASamples is needed instead. If no fixed cov relationship are used, type=2 is exactly the same as type=3 but type=3 is faster.}
 
 \item{data}{the dataset to based the explained variability on, used with type=1}
@@ -49,9 +50,11 @@ type=3 is that the total variability is calculated using ETA samples instead of 
 
 \item{strID}{the subject identifier in the dfCovs dataset, default='ID'}
 
-\item{runno}{the FREM run number to based the plot on}
+\item{runno}{The run number.}
 
-\item{modDevDir}{the FREM run model directory}
+\item{modName}{The model name. Default is the current directory, i.e. ".".}
+
+\item{modDevDir}{The directory where the files reside.}
 
 \item{cstrCovariates}{A string vector with names of the covariate that should be investigated, if NULL COV1, COV2 etc. will be assigned}
 
