@@ -127,7 +127,7 @@ createVPCdata <- function(runno=NULL,
 
   ## Collect Coefficients and omegaprim to return object
   retList$Omega <- makeMat(tmp$FullVars)
-  retList$Coefficients <- makeMat(tmp$Coefficients)
+  retList$Coefficients <- tmp$Coefficients
 
   ## Create a data set with all the original covariates + the frem-specific ones
   # Read the FFEM data set and rename the id column to ID (to simplify the coding below. The id column will get its original name in the new data file.)

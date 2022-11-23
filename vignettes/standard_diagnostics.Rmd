@@ -33,38 +33,45 @@ Standard diagnostics
 ```{r}
 
 library(GGally)
-xptabBase <- fread(system.file("extdata/SimNeb/xptab3",package="PMXFrem"),data.table=FALSE,check.names = T) %>% 
+# xptabBase <- fread(system.file("extdata/SimNeb/xptab25",package="PMXFrem"),data.table=FALSE,check.names = T) %>% 
+xptabBase <- fread("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/xptab25",data.table=FALSE,check.names = T) %>% 
   filter(BLQ==0,EVID==0) %>% 
     arrange(ID,TAD)
 
-xptabFFEM <- fread(system.file("extdata/SimNeb/xptabmax04",package="PMXFrem"),data.table=FALSE,check.names = T) %>% 
+# xptabFFEM <- fread(system.file("extdata/SimNeb/xptabmax026",package="PMXFrem"),data.table=FALSE,check.names = T) %>% 
+  xptabFFEM <- fread("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/xptabmax026",data.table=FALSE,check.names = T) %>% 
   filter(BLQ==0,EVID==0) %>% 
   arrange(ID,TAD)
 
-xptabFREM <- fread(system.file("extdata/SimNeb/xptab4",package="PMXFrem"),data.table=FALSE,check.names = T) %>% 
+# xptabFREM <- fread(system.file("extdata/SimNeb/xptab26",package="PMXFrem"),data.table=FALSE,check.names = T) %>% 
+  xptabFREM <- fread("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/xptab26",data.table=FALSE,check.names = T) %>% 
   filter(BLQ==0,EVID==0,FREMTYPE==0) %>% 
     arrange(ID,TAD)
 
 
-myPhiBase <- getPhi(system.file("extdata/SimNeb/run3.phi",package="PMXFrem")) %>% 
-  select(1:8) %>% 
+# myPhiBase <- getPhi(system.file("extdata/SimNeb/run25.phi",package="PMXFrem")) %>% 
+  myPhiBase <- getPhi("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/run25.phi")[,1:7] %>% 
+  # select(1:7) %>% 
   arrange(ID)
 
-myPhiFFEM <- getPhi(system.file("extdata/SimNeb/run4max0.phi",package="PMXFrem")) %>% 
-  select(1:8) %>% 
+# myPhiFFEM <- getPhi(system.file("extdata/SimNeb/run4max0.phi",package="PMXFrem")) %>% 
+  myPhiFFEM <- getPhi("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/run26max0.phi")[,1:7] %>%
+  # select(1:7) %>% 
   arrange(ID)
 
-myPhiFREM <- getPhi(system.file("extdata/SimNeb/run4.phi",package="PMXFrem")) %>% 
-  select(1:8) %>% 
+# myPhiFREM <- getPhi(system.file("extdata/SimNeb/run4.phi",package="PMXFrem")) %>% 
+  myPhiFREM <- getPhi("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/run26.phi")[,1:7] %>%
+  # select(1:7) %>% 
   arrange(ID)
 
-eta4FREM <- xptabFREM %>% select(ID,ETA4:ETA6) %>% distinct(ID,.keep_all = T)
+#eta4FREM <- xptabFREM %>% select(ID,ETA3:ETA5) %>% distinct(ID,.keep_all = T)
 cwresData <- bind_cols(Base=xptabBase$CWRES, FREM=xptabFREM$CWRES, FFEM=xptabFFEM$CWRES) 
 iwresData <- bind_cols(Base=xptabBase$CIWRES,FREM=xptabFREM$CIWRES,FFEM=xptabFFEM$CIWRES)
 predData  <- bind_cols(Base=xptabBase$CPRED,FREM=xptabFREM$CPRED,FFEM=xptabFFEM$CPRED)
 ipredData <- bind_cols(Base=xptabBase$CIPRED,FREM=xptabFREM$CIPRED,FFEM=xptabFFEM$CIPRED)
 
 eta4Data  <- bind_cols(Base=myPhiBase$`ETA.4`,FREM=myPhiFREM$`ETA.4`,FFEM=myPhiFFEM$`ETA.4`)
+
 
 GGally::ggpairs(cwresData)  + ggtitle("CWRES")
 GGally::ggpairs(iwresData)  + ggtitle("IWRES")
@@ -73,6 +80,22 @@ GGally::ggpairs(ipredData)  + ggtitle("IPRED")
 GGally::ggpairs(eta4Data)   + ggtitle("ETA4")
 
 
+diffData <- left_join(
+  bind_cols(ID=myPhiBase$ID,Base=myPhiBase$`ETA.4`,FREM=myPhiFREM$`ETA.4`,FFEM=myPhiFFEM$`ETA.4`) %>% 
+    mutate(Diff=FREM-FFEM),
+  xptabBase %>% distinct(ID,.keep_all = T) %>% select(ID,SEX,RACEL,NCI,ETHNIC,RACE,NCIL) 
+)
+
+
+diffData %>% 
+  group_by(NCI) %>% 
+  summarise(n(),min(abs(Diff)),median(abs(Diff)),max(abs(Diff)))
+
+diffData %>% 
+  ggplot(aes(FREM,FFEM,color=as.factor(RACEL))) +
+  geom_point()
+
+xptabBase %>% filter(ID==320)
 #ggplot(aes(BaseCWRES,FFEMCWRES)) +
   GGally::ggpairs()
 
