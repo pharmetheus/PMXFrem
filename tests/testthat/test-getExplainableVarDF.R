@@ -1,6 +1,5 @@
 test_that("getExplainableVarDF works", {
 
-
 modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
 fremRunno <- 31
 modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))
