@@ -14,22 +14,22 @@
 #' @param availCov NULL, "none" or a vector of strings specifying the covariates to compute the covariate effects for.
 #' @param cores The number of cores to use for the calculation of the covariate effects.
 #'
-#' @details The function will generate three data.frames (returned as a list) with the typical individual parameters, etas and covariate effects for the specified 
-#' covariates (availCov). 
-#' 
+#' @details The function will generate three data.frames (returned as a list) with the typical individual parameters, etas and covariate effects for the specified
+#' covariates (availCov).
+#'
 #' If parTab is NULL, the tvpar and etas components of the returned list will be NULL.
-#' 
-#' The typical parameters have to be named "TV" followed by the names in parNames. E.g. if one element in parNames is CL, then the 
+#'
+#' The typical parameters have to be named "TV" followed by the names in parNames. E.g. if one element in parNames is CL, then the
 #' corresponding typical individual parameter name should be TVCL. Unless the model includes structural covariates (covairiates that are included in the model "outside" the
 #' the FREM part), all rows in tvpar will be identical.
-#' 
+#'
 #' The etas in the data.frame etas are the ones estimated from the FREM model.
-#' 
+#'
 #' The covs data.frame will have one column for each of the parameters in parNames. If noEtas < noBaseThetas, then the additional columns (noEtas - noBaseThetas) will be all zeros.
-#' 
+#'
 #' If modName is NULL is specified, it will be assumed that the files associated with the model will be names run[runno].mod, run[runno].ext, etc (e.g. run1.mod, run1.ext). If modName is not
 #' NULL, the files will be assumed to have names like modName.mod, modName.ext, etc.
-#' 
+#'
 #' @return A three element list: tvpar, etas and covs. Each of the elements is a data.frame with the same number of rows as parTab.
 #' @export
 #'
@@ -43,44 +43,44 @@
 #' }
 calcParameters <- function(runno,modName=NULL,modDevDir,noBaseThetas,noEtas=noBaseThetas,noSigmas=2,noParCov=noEtas,dataFile,parTab,
                            parNames,availCov=NULL,cores=4,...) {
- 
-  ## Will return a list with three data.frames: TVPAR, etas and covs 
+
+  ## Will return a list with three data.frames: TVPAR, etas and covs
   ## parTab is a NONMEM table file from the frem run with the TV parameters  (theta + potential ) and the etas.
- 
+
   # availCov = "none": don't add any covariate effects
   # availCov = NULL: add all covariate effects
-  # availCov = covnameVector: add the covariate effects from the covariates in covnameVector 
-  
+  # availCov = covnameVector: add the covariate effects from the covariates in covnameVector
+
   # addEtas = FALSE: Don't add etas to the individual parameters
   # addEtas = TRUE: Add etas to the individual parameters
-  
+
   ## Read the dataFIle unless it is a data.frame
   if(!is.data.frame(dataFile)) {
-    dataFile <- fread(dataFile,data.table=FALSE) 
+    dataFile <- fread(dataFile,data.table=FALSE)
   }
   idsInDataFile <- dataFile %>% distinct(ID)
-  
+
   ## Read the parTab if not NULL
   if(!is.null(parTab)) {
-    parTab <- fread(parTab,skip=1,h=T,data.table=FALSE,check.names = TRUE,verbose=FALSE,showProgress=FALSE) %>% 
-      select(one_of(c("ID",paste0("TV",parNames),paste0("ETA",1:noEtas)))) %>% distinct(ID,.keep_all=TRUE) %>% 
+    parTab <- fread(parTab,skip=1,h=T,data.table=FALSE,check.names = TRUE,verbose=FALSE,showProgress=FALSE) %>%
+      select(one_of(c("ID",paste0("TV",parNames),paste0("ETA",1:noEtas)))) %>% distinct(ID,.keep_all=TRUE) %>%
       filter(ID %in% idsInDataFile$ID)
   }
-  
+
   ## If we are not interested in any covariates
   if(is.null(availCov) || availCov!="none") {
-    
-    fullFREMdata <- createVPCdata(runno,modName=modName,modDevDir = modDevDir,noBaseThetas=noBaseThetas,noSigmas=noSigmas,noParCov=noParCov,dataFile=dataFile,
+
+    fullFREMdata <- createFFEMdata(runno,modName=modName,modDevDir = modDevDir,noBaseThetas=noBaseThetas,noSigmas=noSigmas,noParCov=noParCov,dataFile=dataFile,
                                   parNames=parNames,newDataFile=NULL,quiet=TRUE,availCov=availCov,cores=cores,...)
-    
+
     covs <- fullFREMdata %>% distinct(ID,.keep_all=TRUE) %>% select(one_of("ID",parNames))
-    
+
   } else {
-    
+
     covs        <- data.frame(matrix(0,ncol=noBaseThetas,nrow=nrow(parTab)))
     names(covs) <- parNames
   }
-  
+
   if(!is.null(parTab)) {
     ret.list <- list(
       tvpar = parTab %>% select(one_of(c("ID",paste0("TV",parNames)))),
@@ -94,7 +94,7 @@ calcParameters <- function(runno,modName=NULL,modDevDir,noBaseThetas,noEtas=noBa
       covs  = covs
     )
   }
-  
+
   return(ret.list)
 }
 

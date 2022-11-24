@@ -52,12 +52,12 @@ A three element list: tvpar, etas and covs. Each of the elements is a data.frame
 Collects the typical individual parameters, etas and covariate effects from a FREM run.
 }
 \details{
-The function will generate three data.frames (returned as a list) with the typical individual parameters, etas and covariate effects for the specified 
-covariates (availCov). 
+The function will generate three data.frames (returned as a list) with the typical individual parameters, etas and covariate effects for the specified
+covariates (availCov).
 
 If parTab is NULL, the tvpar and etas components of the returned list will be NULL.
 
-The typical parameters have to be named "TV" followed by the names in parNames. E.g. if one element in parNames is CL, then the 
+The typical parameters have to be named "TV" followed by the names in parNames. E.g. if one element in parNames is CL, then the
 corresponding typical individual parameter name should be TVCL. Unless the model includes structural covariates (covairiates that are included in the model "outside" the
 the FREM part), all rows in tvpar will be identical.
 
