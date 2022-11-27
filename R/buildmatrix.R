@@ -8,7 +8,7 @@
 #' @export
 #'
 #' @examples
-buildmatrix<-function(matrix,strName="OMEGA",assumesame=TRUE){
+buildmatrix<-function(matrix,strName="$OMEGA",assumesame=TRUE){
   strres<-c()
   getnumstr<-function(blocksize,submat) {
     strvec=rep("",blocksize)
