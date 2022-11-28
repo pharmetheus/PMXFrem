@@ -1,21 +1,21 @@
 ## Test replace model file
-numbasethetas=7
-numskipom=2
-strCOEFF="COEFF"
-strNewFilename<-"mynewdata.csv"
-basemodel<-system.file("extdata/SimNeb/run30.mod", package = "PMXFrem")
+numbasethetas  <- 7
+numskipom      <- 2
+strCOEFF       <- "COEFF"
+strNewFilename <- "mynewdata.csv"
+basemodel      <- system.file("extdata/SimNeb/run30.mod", package = "PMXFrem")
 
-fremmodelext<-system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
-dfExt   <- getExt(extFile = fremmodelext)
-calcFFEMtestout <-calcFFEM(dfExt,numNonFREMThetas = numbasethetas,numSkipOm = numskipom,quiet = T)
+fremmodelext    <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+dfExt           <- getExt(extFile = fremmodelext)
+calcFFEMtestout <- calcFFEM(dfExt,numNonFREMThetas = numbasethetas,numSkipOm = numskipom,quiet = T)
 
 #Replace $PROBLEM
-tmp<-findrecord(basemodel,record="\\$PROBLEM",replace="$PROBLEM FFEM model",quite=T)
+tmp <- findrecord(basemodel,record="\\$PROBLEM",replace="$PROBLEM FFEM model",quite=T)
 
 #Replace $INPUT
-strInput<-findrecord(basemodel,record="\\$INPUT",quite=T)
-strInput<-c(strInput,paste0("         ",paste0(" ",strCOEFF,1:nrow(calcFFEMtestout$Coefficients),collapse = "")))
-tmp<-findrecord(tmp,record="\\$INPUT",replace=strInput,quite=T)
+strInput <- findrecord(basemodel,record="\\$INPUT",quite=T)
+strInput <- c(strInput,paste0("         ",paste0(" ",strCOEFF,1:nrow(calcFFEMtestout$Coefficients),collapse = "")))
+tmp      <- findrecord(tmp,record="\\$INPUT",replace=strInput,quite=T)
 
 #Replace $DATA #### TODO
 strData<-findrecord(basemodel,record="\\$DATA",quite=T)

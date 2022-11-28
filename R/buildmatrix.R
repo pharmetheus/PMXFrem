@@ -1,4 +1,4 @@
-#' Title
+#' buildmatrix
 #'
 #' @param matrix the matrix to be converted
 #' @param strName name of the matrix, normally OMEGA (default) or SIGMA
@@ -6,8 +6,11 @@
 #'
 #' @return string vector of a NONMEM representation of the matrix
 #' @export
-#'
 #' @examples
+#' \dontrun{
+#' buildmatrix(FFEMdata$FullVars)
+#' }
+#'
 buildmatrix<-function(matrix,strName="$OMEGA",assumesame=TRUE){
   strres<-c()
   getnumstr<-function(blocksize,submat) {
@@ -27,12 +30,12 @@ buildmatrix<-function(matrix,strName="$OMEGA",assumesame=TRUE){
     if (o==0) return("")
     tmpmat<-as.matrix(mat[(o+1):i,(o+1):i])[1:nb,1:nb]
     anmat<-mat[(po+1):o,(po+1):o]
-    if (((!is.matrix(tmpmat) && !is.matrix(anmat)) || 
-         (nrow(tmpmat)==nrow(anmat) && ncol(tmpmat)==ncol(anmat))) 
+    if (((!is.matrix(tmpmat) && !is.matrix(anmat)) ||
+         (nrow(tmpmat)==nrow(anmat) && ncol(tmpmat)==ncol(anmat)))
         && all(tmpmat==anmat) && as==T) return("SAME")
     return("")
   }
-  
+
   offset<-0
   prevoffset<-0
   numinblock<-1
@@ -52,8 +55,3 @@ buildmatrix<-function(matrix,strName="$OMEGA",assumesame=TRUE){
   if (strSAME=="") strres<-c(strres,getnumstr(numinblock,matrix[(offset+1):i,(offset+1):i]))
   return(strres)
 }
-
-#library(magic)
-#M1<-matrix(c(1,.5,.5,2),ncol=2)
-#M2<-matrix(c(3,.5,.6,1,.5,4,1,4,5),ncol=3)
-#cat(paste0(buildmatrix(adiag(matrix(3),matrix(3),M2,M1,M1,M2,M2,M1,M1,M2,M1)),"\n"))

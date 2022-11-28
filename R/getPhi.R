@@ -4,19 +4,18 @@
 #' @param phiFile The name of the .phi file.
 #' @inheritParams getExt
 #'
-#' @return
-#' @export
+#' @return A data.frame with the data from the specified TABLE (or the last if not specified).
 #'
 #' @examples
 #' \dontrun{
 #' dfPhi    <- getPhi(phiFile = "run10.phi")
 #' }
 getPhi <- function(phiFile,set=NULL) {
-  
+
   tmp   <- scan(phiFile,what="character",sep="\n",quiet=TRUE)
   tabs  <- grep("TABLE",tmp)
   if(is.null(set)) set <- length(tabs)
-  
+
   if(set==1 & length(tabs)==1) { # Only one set of results
     myphi <- read.table(phiFile,skip=1,h=T)
   } else if(set== 1 & length(tabs)>1) {
@@ -30,6 +29,6 @@ getPhi <- function(phiFile,set=NULL) {
   } else if(set==4 & length(tabs)==4) {
     myphi <- read.table(phiFile,skip=tabs[4],h=T)
   }
-  
+
   return(myphi)
 }

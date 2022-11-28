@@ -9,7 +9,10 @@ getPhi(phiFile, set = NULL)
 \arguments{
 \item{phiFile}{The name of the .phi file.}
 
-\item{set}{The $ESTIMATION the iteration information should be extracted from. Will use the last $ESTIMATION if set to \code{NULL}.}
+\item{set}{The TABLE in the file the iteration information should be extracted from. Will use the last TABLE if set to \code{NULL}.}
+}
+\value{
+A data.frame with the data from the specified TABLE (or the last if not specified).
 }
 \description{
 Extracts the  information from a NONMEM .ext file.

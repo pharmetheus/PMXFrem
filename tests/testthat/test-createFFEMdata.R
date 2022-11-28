@@ -14,7 +14,7 @@ test_that("createFFEM works", {
                            quiet            = TRUE)
 
   expect_equal(class(vpcData),"list")
-  expect_equal(length(vpcData),4)
+  expect_equal(length(vpcData),5)
   expect_equal(class(vpcData$Omega)[1],"matrix")
   expect_equal(class(vpcData$Coefficients)[1],"matrix")
   expect_equal(class(vpcData$indCovEff),"character")
@@ -33,20 +33,20 @@ test_that("createFFEM works", {
                             quiet            = TRUE)
 
   expect_equal(class(vpcData2),"list")
-  expect_equal(length(vpcData2),4)
+  expect_equal(length(vpcData2),5)
   expect_equal(class(vpcData2$Omega)[1],"matrix")
   expect_equal(class(vpcData2$Coefficients)[1],"matrix")
   expect_equal(class(vpcData2$indCovEff),"character")
   expect_equal(length(vpcData2$indCovEff),3)
    expect_snapshot_value(vpcData2,style = "deparse")
 
-  ## Check when availCov = NULL
+  ## Check when availCov = "all'
   vpcData3 <- createFFEMdata(modName          = "run31",
                             modDevDir        = system.file("extdata/SimNeb/", package = "PMXFrem"),
                             numNonFREMThetas = 7,
                             numSkipOm        = 2,
                             dataFile         = data,
-                            availCov         = NULL,
+                            availCov         = 'all',
                             newDataFile      = NULL,
                             quiet            = TRUE)
 

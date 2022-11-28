@@ -80,7 +80,7 @@ createFFEMdata <- function(runno=NULL,
                           numSkipOm     = 0,
                           dataFile,
                           newDataFile   = paste("vpcData",runno,".csv",sep=""),
-                          availCov      = covNames,
+                          availCov      = "all",
                           idvar         = "ID",
                           modDevDir     = NULL,
                           quiet         = FALSE,
@@ -114,7 +114,7 @@ createFFEMdata <- function(runno=NULL,
 
 
   ## Run this to get the omega matrix to use in the vpc
-  #if(is.null(availCov)) availCov    <- covNames
+  if(availCov == "all") availCov    <- covNames
 
   tmp <- calcFFEM(dfext=dfext,numNonFREMThetas,covNames=covNames,parNames=parNames,availCov=availCov,quiet=quiet,numSkipOm=numSkipOm,...)
 
@@ -133,8 +133,9 @@ createFFEMdata <- function(runno=NULL,
   }
 
   ## Collect Coefficients and omegaprim to return object
-  retList$Omega <- makeMat(tmp$FullVars)
+  retList$Omega        <- makeMat(tmp$FullVars)
   retList$Coefficients <- tmp$Coefficients
+  retList$FullVars     <- tmp$FullVars
 
   ## Create a data set with all the original covariates + the frem-specific ones
   # Read the FFEM data set and rename the id column to ID (to simplify the coding below. The id column will get its original name in the new data file.)

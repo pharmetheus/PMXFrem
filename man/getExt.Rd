@@ -9,10 +9,10 @@ getExt(extFile, set = NULL)
 \arguments{
 \item{extFile}{The name of the .ext file.}
 
-\item{set}{The $ESTIMATION the iteration information should be extracted from. Will use the last $ESTIMATION if set to \code{NULL}.}
+\item{set}{The TABLE in the file the iteration information should be extracted from. Will use the last TABLE if set to \code{NULL}.}
 }
 \value{
-A data.frame.
+A data.frame with the data from the specified TABLE (or the last if not specified).
 }
 \description{
 Extracts the NONMEM iteration information from a NONMEM .ext file.

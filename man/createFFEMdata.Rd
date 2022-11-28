@@ -15,7 +15,7 @@ createFFEMdata(
   numSkipOm = 0,
   dataFile,
   newDataFile = paste("vpcData", runno, ".csv", sep = ""),
-  availCov = covNames,
+  availCov = "all",
   idvar = "ID",
   modDevDir = NULL,
   quiet = FALSE,
