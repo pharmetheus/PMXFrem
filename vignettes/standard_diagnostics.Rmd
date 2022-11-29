@@ -15,7 +15,10 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-suppressPackageStartupMessages(library(PMXFrem))
+suppressPackageStartupMessages(library(GGally))
+suppressPackageStartupMessages(library(ggpubr))
+
+theme_set(ggplot2::theme_bw(base_size=20))
 ```
 
 ## Introduction
@@ -26,82 +29,99 @@ Just like with any other model it is important to check that FREM models satisfy
 
 Create the FFEM model for the set of covariates to include in the model to be evaluated.Consult the [companion vignette](create_FFEM_model.html) on how to set up the FFEM model and generate the necessary output.
 
-## Input
-
-Standard diagnostics
 
 ```{r}
+modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
+dataFile  <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",package="PMXFrem")
+fremRun   <- 31
+baseRun   <- 30
+```
 
-library(GGally)
-# xptabBase <- fread(system.file("extdata/SimNeb/xptab25",package="PMXFrem"),data.table=FALSE,check.names = T) %>% 
-xptabBase <- fread("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/xptab25",data.table=FALSE,check.names = T) %>% 
+## Comparison of standard diagnostiocs input from Base, FREM and FFEM model
+
+```{r}
+xptabBase <- fread(paste0(modDevDir,"/xptab",baseRun),data.table=FALSE,check.names = T) %>%
   filter(BLQ==0,EVID==0) %>% 
     arrange(ID,TAD)
 
-# xptabFFEM <- fread(system.file("extdata/SimNeb/xptabmax026",package="PMXFrem"),data.table=FALSE,check.names = T) %>% 
-  xptabFFEM <- fread("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/xptabmax026",data.table=FALSE,check.names = T) %>% 
+xptabFFEM <- fread(paste0(modDevDir,"/xptabmax0",baseRun),data.table=FALSE,check.names = T) %>%
   filter(BLQ==0,EVID==0) %>% 
   arrange(ID,TAD)
 
-# xptabFREM <- fread(system.file("extdata/SimNeb/xptab26",package="PMXFrem"),data.table=FALSE,check.names = T) %>% 
-  xptabFREM <- fread("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/xptab26",data.table=FALSE,check.names = T) %>% 
+xptabFREM <- fread(paste0(modDevDir,"/xptab",fremRun),data.table=FALSE,check.names = T) %>%
   filter(BLQ==0,EVID==0,FREMTYPE==0) %>% 
     arrange(ID,TAD)
 
-
-# myPhiBase <- getPhi(system.file("extdata/SimNeb/run25.phi",package="PMXFrem")) %>% 
-  myPhiBase <- getPhi("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/run25.phi")[,1:7] %>% 
-  # select(1:7) %>% 
-  arrange(ID)
-
-# myPhiFFEM <- getPhi(system.file("extdata/SimNeb/run4max0.phi",package="PMXFrem")) %>% 
-  myPhiFFEM <- getPhi("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/run26max0.phi")[,1:7] %>%
-  # select(1:7) %>% 
-  arrange(ID)
-
-# myPhiFREM <- getPhi(system.file("extdata/SimNeb/run4.phi",package="PMXFrem")) %>% 
-  myPhiFREM <- getPhi("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/run26.phi")[,1:7] %>%
-  # select(1:7) %>% 
-  arrange(ID)
-
-#eta4FREM <- xptabFREM %>% select(ID,ETA3:ETA5) %>% distinct(ID,.keep_all = T)
 cwresData <- bind_cols(Base=xptabBase$CWRES, FREM=xptabFREM$CWRES, FFEM=xptabFFEM$CWRES) 
 iwresData <- bind_cols(Base=xptabBase$CIWRES,FREM=xptabFREM$CIWRES,FFEM=xptabFFEM$CIWRES)
-predData  <- bind_cols(Base=xptabBase$CPRED,FREM=xptabFREM$CPRED,FFEM=xptabFFEM$CPRED)
-ipredData <- bind_cols(Base=xptabBase$CIPRED,FREM=xptabFREM$CIPRED,FFEM=xptabFFEM$CIPRED)
+predData  <- bind_cols(Base=xptabBase$CPRED, FREM=xptabFREM$CPRED, FFEM=xptabFFEM$CPRED)
+ipredData <- bind_cols(Base=xptabBase$CIPREDI,FREM=xptabFREM$CIPREDI,FFEM=xptabFFEM$CIPREDI)
+```
 
-eta4Data  <- bind_cols(Base=myPhiBase$`ETA.4`,FREM=myPhiFREM$`ETA.4`,FFEM=myPhiFFEM$`ETA.4`)
+It is only the population predictions that are the same between the three models. IPRED, CWRES, and IWRES are different
+```{r,fig.width=10,fig.height=6}
+ggpairs(predData)   + ggtitle("PRED")
+```
+
+The individual predictions are not the same.
+```{r,fig.width=10,fig.height=6}
+ggpairs(ipredData)  + ggtitle("IPRED")
+```
+
+The CWRES are not identical
+```{r,fig.width=10,fig.height=6}
+ggpairs(cwresData)  + ggtitle("CWRES")
+```
+
+The IWRES are not identical
+```{r,fig.width=10,fig.height=6}
+
+ggpairs(iwresData)  + ggtitle("IWRES")
+```
+
+## Creating basic GOF plots
+
+```{r,fig.width=10,fig.height=10}
+
+## DV vs PRED
+p1 <- xptabFFEM %>% 
+  ggplot(aes(exp(CPRED),exp(DV))) +
+  geom_point(color="#508791") +
+  geom_abline(slope = 1,intercept = 0,size=2) +
+  geom_smooth(se = FALSE,color="red") +
+  xlab("Populaiton predicitions") +
+  ylab("Observations")
 
 
-GGally::ggpairs(cwresData)  + ggtitle("CWRES")
-GGally::ggpairs(iwresData)  + ggtitle("IWRES")
-GGally::ggpairs(predData)   + ggtitle("PRED")
-GGally::ggpairs(ipredData)  + ggtitle("IPRED")
-GGally::ggpairs(eta4Data)   + ggtitle("ETA4")
+## DV vs IPRED
+p2 <-xptabFFEM %>% 
+  ggplot(aes(exp(CIPREDI),exp(DV))) +
+  geom_point(color="#508791") +
+  geom_abline(slope = 1,intercept = 0,size=2) +
+  geom_smooth(se = FALSE,color="red") +
+  xlab("Individual predicitions") +
+  ylab("Observations")
 
+## abs(IWRES) vs IPRED
+p3 <- xptabFFEM %>% 
+  ggplot(aes(abs(CIWRES),exp(CIPREDI))) +
+  geom_point(color="#508791") +
+  geom_smooth(se = FALSE,color="red") +
+  xlab("Individual predicitions") +
+  ylab("Absolute IWRES")
 
-diffData <- left_join(
-  bind_cols(ID=myPhiBase$ID,Base=myPhiBase$`ETA.4`,FREM=myPhiFREM$`ETA.4`,FFEM=myPhiFFEM$`ETA.4`) %>% 
-    mutate(Diff=FREM-FFEM),
-  xptabBase %>% distinct(ID,.keep_all = T) %>% select(ID,SEX,RACEL,NCI,ETHNIC,RACE,NCIL) 
-)
+## CWRES vs IPRED
+p4 <- xptabFFEM %>% 
+  ggplot(aes(exp(CPRED),CWRES)) +
+  geom_point(color="#508791") +
+  geom_abline(slope = 0,intercept = 0,size=2) +
+  geom_smooth(se = FALSE,color="red") +
+  xlab("Population predicitions") +
+  ylab("Conditional weighted residuals")
 
-
-diffData %>% 
-  group_by(NCI) %>% 
-  summarise(n(),min(abs(Diff)),median(abs(Diff)),max(abs(Diff)))
-
-diffData %>% 
-  ggplot(aes(FREM,FFEM,color=as.factor(RACEL))) +
-  geom_point()
-
-xptabBase %>% filter(ID==320)
-#ggplot(aes(BaseCWRES,FFEMCWRES)) +
-  GGally::ggpairs()
-
-bind_cols(BaseIWRES=xptabBase$CIWRES,FREMIWRES=xptabFREM$CIWRES,FFEMIWRES=xptabFFEM$CIWRES) %>% 
-  ggplot(aes(BaseIWRES,FREMIWRES)) +
-  geom_point()
+ggarrange(p1,p2,p3,p4,ncol=2,nrow=2)
 
 ```
+
+
 

@@ -48,10 +48,10 @@ set.seed(865765) #Set seed for reproducability
 
 ```{r} 
 #Get the Vingette paths to ext, cov and mod file
-runno<-"run7"
-extFile <- system.file("extdata", paste0(runno,".ext"), package = "PMXFrem")
-modFile <- system.file("extdata", paste0(runno,".mod"), package = "PMXFrem")
-covFile <- system.file("extdata", paste0(runno,".cov"), package = "PMXFrem")
+runno <-"run31"
+extFile <- system.file("extdata/SimNeb", paste0(runno,".ext"), package = "PMXFrem")
+modFile <- system.file("extdata/SimNeb", paste0(runno,".mod"), package = "PMXFrem")
+covFile <- system.file("extdata/SimNeb", paste0(runno,".cov"), package = "PMXFrem")
 ```
 
 Get the parameter estimates and the covariate names from the FREM model.
@@ -121,8 +121,8 @@ functionListName <- c("CL","V1")
 The data for the forest plot can now be generated based on the pre-requisite information.
 ```{r, warning=FALSE}
 dfres <- PMXForest::getForestDFFREM(dfCovs           = dfCovs,
-                                    numNonFREMThetas = 6,
-                                    numSkipOm        = 0,
+                                    numNonFREMThetas = 7,
+                                    numSkipOm        = 2,
                                     dfParameters     = dfParameters,
                                     covNames         = covNames,
                                     functionList     = functionList,

@@ -67,7 +67,7 @@ should contain the estimates of the *one* relevant $EST.}
 
 \item{baserunno}{The run number of the base model.}
 
-\item{baseModName}{The name of the base model}
+\item{baseModName}{The name of the base model. If NULL (default) no model file will be printed to file.}
 
 \item{baseModDevDir}{The directory name in which the base model files can be found. Default the same as modDevDir.}
 
