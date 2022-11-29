@@ -2,7 +2,7 @@
 #'
 #' @inheritParams createFFEMdata
 #' @param baserunno The run number of the base model.
-#' @param baseModName The name of the base model
+#' @param baseModName The name of the base model. If NULL (default) no model file will be printed to file.
 #' @param baseModDevDir The directory name in which the base model files can be found. Default the same as modDevDir.
 #' @param ffemTabName The table file name to insert into the FFEM model. Default is 'ffemtab'.
 #' @param ffemModName The name of the file to write the ffem model to, or NULL. NULL is the default

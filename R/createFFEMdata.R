@@ -132,10 +132,12 @@ createFFEMdata <- function(runno=NULL,
     return(retVal)
   }
 
+
   ## Collect Coefficients and omegaprim to return object
   retList$Omega        <- makeMat(tmp$FullVars)
   retList$Coefficients <- tmp$Coefficients
   retList$FullVars     <- tmp$FullVars
+  retList$Expr         <- tmp$Expr
 
   ## Create a data set with all the original covariates + the frem-specific ones
   # Read the FFEM data set and rename the id column to ID (to simplify the coding below. The id column will get its original name in the new data file.)

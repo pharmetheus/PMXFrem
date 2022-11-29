@@ -15,5 +15,50 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-library(PMXFrem)
+suppressPackageStartupMessages(library(PMXFrem))
 ```
+
+## Introduction
+
+FREM models are not suitable for generating GOF diagnostics or performing VPC simulations. The solution is to create the FFEM version of the FREM model. This can be done with the `PMXFrem` function `createFFEMmodel`. The output is a NONMEM model file together with the corresponding data set.
+
+## Prerequisites
+
+There must be a FREM model file available together with the accompanying NONMEM output files.
+
+## Creating the FFEM model file and data set
+
+The FFEM model file is a modified version if the base model (i.e. the pre-FREM model) with an updated data file. The updated data file has one or more columns appended containing the _individual covariate coefficients_. Individual covariate coefficients are parameter specific summations of the subject specific covariate effects. In other words, instead of including long expressions of coefficients and covariates to the NONMEM model file, these are summed up into one value pers parameter and subject and included in the updated data file.
+
+To create the FFEM model file from the base model file, the following steps are needed:
+
+* Change the data file name to the name of the file with the individual covariate coefficients.
+* Update $INPUT to reflect the additional columns. 
+* Set the initial estimates for \$THETA, \$SIGMA and \$OMEGA that are not part of the FREM model specification to the corresponding final estimates from the FREM model.
+* Compute the value of the OMEGA matrix (OMEGA prim) that are appropriate given the covariates that are included in the FFEM model.
+* Replace the \$OMEGA that are part of the FREM specification with the OMEGA prim.
+
+The following code will create the data set testDataFiel.csv and pront it to disk. By default the FFEM model is not printed to disk. However, if the parameter `ffemModName` is not NULL, its value will be taken as a file name for the FFEM model.
+```{r}
+modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
+dataFile  <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",package="PMXFrem")
+fremRun   <- 31
+baseRun   <- 30
+
+ffemMod <- createFFEMmodel(runno            = fremRun,
+                           modDevDir        = modDevDir,
+                           numNonFREMThetas = 7,
+                           numSkipOm        = 2,
+                           parNames         = c("CL","V","MAT"),
+                           dataFile         = dataFile,
+                           newDataFile      = "testDataFile.csv",
+                           quiet            = TRUE,
+                           baserunno        = baseRun)
+
+```
+
+```{r}
+cat(ffemMod,sep="\n")
+```
+
+
