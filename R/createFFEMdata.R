@@ -155,7 +155,10 @@ createFFEMdata <- function(runno=NULL,
   dataI <- dataI[,c("ID",orgCovs,covNames)]
 
   ## Go through the individuals to make sure that missing values for polycats are coded properly
-  registerDoParallel(cores=cores)
+
+  ## Register to allow for parallel computing
+  if (ncores>1) registerDoParallel(cores = ncores)
+  
   mapFun <- function(data,cov,orgCovs)  {
     for(cov in orgCovs) {
       if(data[1,cov]==-99 & length(grepl(cov,names(data))) > 1) {
@@ -164,13 +167,24 @@ createFFEMdata <- function(runno=NULL,
     }
     return(data)
   }
-
-  dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
-    mapFun(data=dataI[k,],cov=cov,orgCovs=orgCovs)
+# 
+#   dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
+#     mapFun(data=dataI[k,],cov=cov,orgCovs=orgCovs)
+#   }
+# 
+#   
+  if (ncores>1) {
+    dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
+      mapFun(data=dataI[k,],cov=cov,orgCovs=orgCovs)
+    }
+    dataI <- data.frame(rbindlist(dataI))
+  } else {
+    dataI2<-data.frame()
+    for (k in 1:nrow(dataI)) dataI2<-bind_rows(dataI2,mapFun(data=dataI[k,],cov=cov,orgCovs=orgCovs))
+    dataI<-dataI2
   }
-
-  dataI <- data.frame(rbindlist(dataI))
-
+  
+  
   dataI <- dataI[,c("ID",covNames)]
   dataMap <- dataI[]
   dataMap[,covNames] <- TRUE
@@ -203,11 +217,24 @@ createFFEMdata <- function(runno=NULL,
 
   dataOne <- data %>% distinct(ID,.keep_all=TRUE)
 
-  covEff <- foreach(k = 1:nrow(dataOne)) %do% {
-    myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov,covSuffix)
+  if (ncores>1) {
+    covEff <- foreach(k = 1:nrow(dataOne)) %dopar% {
+      myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov,covSuffix)
+    }
+    covEff <- data.frame(rbindlist(covEff))
+  } else {
+    covEff2<-data.frame()
+    for (k in 1:nrow(dataOne)) covEff2<-bind_rows(covEff2,myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov,covSuffix))
+    covEff<-covEff2
   }
-
-  covEff <- data.frame(rbindlist(covEff))
+  
+  # covEff <- foreach(k = 1:nrow(dataOne)) %do% {
+  #   myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov,covSuffix)
+  # }
+  # covEff <- data.frame(rbindlist(covEff))
+  # 
+  
+  
   ## Add the individual covariateCoefficients to the return object
   retList$indCovEff <- names(covEff)[-1]
 
@@ -227,5 +254,6 @@ createFFEMdata <- function(runno=NULL,
     write.csv(data3,file=newDataFile,quote = FALSE,row.names = FALSE)
   }
 
+  if (ncores>1) stopImplicitCluster()
   invisible(retList)
 }
