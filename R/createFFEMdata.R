@@ -157,7 +157,7 @@ createFFEMdata <- function(runno=NULL,
   ## Go through the individuals to make sure that missing values for polycats are coded properly
 
   ## Register to allow for parallel computing
-  if (ncores>1) registerDoParallel(cores = ncores)
+  if (cores>1) registerDoParallel(cores = cores)
   
   mapFun <- function(data,cov,orgCovs)  {
     for(cov in orgCovs) {
@@ -173,7 +173,7 @@ createFFEMdata <- function(runno=NULL,
 #   }
 # 
 #   
-  if (ncores>1) {
+  if (cores>1) {
     dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
       mapFun(data=dataI[k,],cov=cov,orgCovs=orgCovs)
     }
@@ -217,7 +217,7 @@ createFFEMdata <- function(runno=NULL,
 
   dataOne <- data %>% distinct(ID,.keep_all=TRUE)
 
-  if (ncores>1) {
+  if (cores>1) {
     covEff <- foreach(k = 1:nrow(dataOne)) %dopar% {
       myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov,covSuffix)
     }
@@ -254,6 +254,6 @@ createFFEMdata <- function(runno=NULL,
     write.csv(data3,file=newDataFile,quote = FALSE,row.names = FALSE)
   }
 
-  if (ncores>1) stopImplicitCluster()
+  if (cores>1) stopImplicitCluster()
   invisible(retList)
 }
