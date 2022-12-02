@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 ```
 
 ## Introduction
-This Vignette explains how to use the FREM package to create a Forest plot based on a FREM run with associated uncertainty. 
+This vignette explains how to use the FREM package to create a Forest plot based on a FREM run with associated uncertainty. 
 The uncertainty may be a covariance step from NONMEM (a `.cov` file), a sir/bootstrap run from PsN (`raw_results` file) or just a data frame of parameter vectors 
 based on some other method of deriving uncertainty. 
 
@@ -43,7 +43,7 @@ theme_set(theme_bw(base_size=20)) #Change ggplot defaults to get nice plot
 
 ```
 
-Collect the file names related to the FREM run we are visualizing the results from. The utility function `getFileNames` returns a lis of file paths for the `.mod`, `.ext`, `.lst`, `.phi` and `.cov` files.
+Collect the file names related to the FREM run we are visualizing the results from. The utility function `getFileNames` returns a list of file paths for the `.mod`, `.ext`, `.lst`, `.phi` and `.cov` files.
 ```{r} 
 ## Specify the name of the FREM run
 runname <- "run31"
