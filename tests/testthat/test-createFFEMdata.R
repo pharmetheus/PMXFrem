@@ -14,7 +14,7 @@ test_that("createFFEM works", {
                            quiet            = TRUE)
 
   expect_equal(class(vpcData),"list")
-  expect_equal(length(vpcData),5)
+  expect_equal(length(vpcData),6)
   expect_equal(class(vpcData$Omega)[1],"matrix")
   expect_equal(class(vpcData$Coefficients)[1],"matrix")
   expect_equal(class(vpcData$indCovEff),"character")
@@ -33,7 +33,7 @@ test_that("createFFEM works", {
                             quiet            = TRUE)
 
   expect_equal(class(vpcData2),"list")
-  expect_equal(length(vpcData2),5)
+  expect_equal(length(vpcData2),6)
   expect_equal(class(vpcData2$Omega)[1],"matrix")
   expect_equal(class(vpcData2$Coefficients)[1],"matrix")
   expect_equal(class(vpcData2$indCovEff),"character")
