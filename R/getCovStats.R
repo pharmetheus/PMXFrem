@@ -24,7 +24,7 @@
 #'   getCovStats(data,covNames$orgCovNames,missVal=-99),
 #'   iMiss    =-99
 #' )}
-getCovStats <- function(data,covariates,minLevels = 10,probs=c(0.05,0.95),idVar = "ID",missVal=-99) {
+getCovStats <- function(data,covariates,minLevels = 10,probs=c(0.05,0.95),idVar = "ID",missVal=-99,nsig=3) {
 
   data <- data %>% distinct(!!ensym(idVar),.keep_all = TRUE)
 
@@ -58,7 +58,7 @@ getCovStats <- function(data,covariates,minLevels = 10,probs=c(0.05,0.95),idVar 
       }
 
     } else {
-      retList[[myCov]] <- quantile(data[[myCov]],p=probs)
+      retList[[myCov]] <- round(quantile(data[[myCov]],p=probs),digits = nsig)
     }
   }
   return(retList)
