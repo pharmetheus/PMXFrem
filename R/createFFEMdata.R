@@ -12,7 +12,7 @@
 #'
 #' @details This function will compute a combined term of all (FREM) covariate effects for each parameter in the FFEM model and create a
 #' new data file with these combined effects appended. The combined coefficients are added to the FFEM data set with names that
-#' appends COV to the parameter name, e.g. the column with the combined covariate efftecs for parameter PAR will be called PARCOV.
+#' appends COV to the parameter name, e.g. the column with the combined covariate effects for parameter PAR will be called PARCOV.
 #' All rows for an individual will have the same value for PARCOV.
 #'
 #' To implement an FFEM model with the covariate effects from the FREM analysis, change the FFEM model from:
@@ -95,6 +95,7 @@ createFFEMdata <- function(runno=NULL,
   fileNames <- getFileNames(runno=runno,modName=modName,modDevDir=modDevDir,...)
   modFile   <- fileNames$mod
   extFile   <- fileNames$ext
+  phiFile   <- fileNames$phi
 
   covNames <- getCovNames(modFile)$covNames
   fremCovs <- getCovNames(modFile)$polyCatCovs
@@ -107,12 +108,14 @@ createFFEMdata <- function(runno=NULL,
   } else {
     dfext <- dfext
   }
+  
+  #dfPhi   <- getPhi(phiFile)
 
   if (is.null(numParCov)) {
     numParCov <- calcNumParCov(dfext,numNonFREMThetas, numSkipOm)
   }
 
-
+  
   ## Run this to get the omega matrix to use in the vpc
   if(availCov == "all") availCov    <- covNames
 
@@ -180,7 +183,7 @@ createFFEMdata <- function(runno=NULL,
     dataI <- data.frame(rbindlist(dataI))
   } else {
     dataI2<-data.frame()
-    for (k in 1:nrow(dataI)) dataI2<-bind_rows(dataI2,mapFun(data=dataI[k,],cov=cov,orgCovs=orgCovs))
+    for (k in 1:nrow(dataI)) dataI2<-rbind(dataI2,mapFun(data=dataI[k,],cov=cov,orgCovs=orgCovs))
     dataI<-dataI2
   }
   
@@ -202,7 +205,6 @@ createFFEMdata <- function(runno=NULL,
       myCov    <- covNames[as.logical(dataMap[dataMap$ID==ID,-1])]
       availCov <- myCov[myCov %in% availCov]
     }
-
     ffemObj <- calcFFEM(dfext=dfext,numNonFREMThetas,covNames=covNames,availCov=availCov,quiet=TRUE,parNames=parNames,numSkipOm=numSkipOm,...)
 
     retDf <- data.frame(ID=ID)
@@ -216,6 +218,8 @@ createFFEMdata <- function(runno=NULL,
   }
 
   dataOne <- data %>% distinct(ID,.keep_all=TRUE)
+  
+  
 
   if (cores>1) {
     covEff <- foreach(k = 1:nrow(dataOne)) %dopar% {
@@ -233,7 +237,6 @@ createFFEMdata <- function(runno=NULL,
   # }
   # covEff <- data.frame(rbindlist(covEff))
   # 
-  
   
   ## Add the individual covariateCoefficients to the return object
   retList$indCovEff <- names(covEff)[-1]

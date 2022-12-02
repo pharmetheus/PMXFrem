@@ -181,15 +181,15 @@ calcFFEM <- function(dfext,
   if (!is.null(fremETA)) {
     if (numSkipOm == 0) {
       if (!exists("missCov")) {
-        eta_prim <- fremETA[1:numParCov] - COEFF %*% fremETA[(numParCov + 1):(numParCov + numFREMThetas)]
+        eta_prim <- fremETA[1:numParCov] - COEFF %*% as.numeric(fremETA[(numParCov + 1):(numParCov + numFREMThetas)])
       } else {
-        eta_prim <- fremETA[1:numParCov] - COEFF %*% fremETA[(numParCov + 1):(numParCov + numFREMThetas)][-missCov]
+        eta_prim <- fremETA[1:numParCov] - COEFF %*% as.numeric(fremETA[(numParCov + 1):(numParCov + numFREMThetas)][-missCov])
       }
     } else {
       if (!exists("missCov")) {
-        eta_prim <- c(fremETA[1:numSkipOm], fremETA[(numSkipOm + 1):(numParCov + numSkipOm)] - COEFF %*% fremETA[(numSkipOm + numParCov + 1):(numSkipOm + numParCov + numFREMThetas)])
+        eta_prim <- c(fremETA[1:numSkipOm], fremETA[(numSkipOm + 1):(numParCov + numSkipOm)] - COEFF %*% as.numeric(fremETA[(numSkipOm + numParCov + 1):(numSkipOm + numParCov + numFREMThetas)]))
       } else {
-        eta_prim <- c(fremETA[1:numSkipOm], fremETA[(numSkipOm + 1):(numParCov + numSkipOm)] - COEFF %*% fremETA[(numSkipOm + numParCov + 1):(numSkipOm + numParCov + numFREMThetas)][-missCov])
+        eta_prim <- c(fremETA[1:numSkipOm], fremETA[(numSkipOm + 1):(numParCov + numSkipOm)] - COEFF %*% as.numeric(fremETA[(numSkipOm + numParCov + 1):(numSkipOm + numParCov + numFREMThetas)][-missCov]))
       }
     }
   } else {

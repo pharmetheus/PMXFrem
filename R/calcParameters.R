@@ -41,62 +41,65 @@
 #' dataFile="/PMX/Projects/Pharmetheus/PMX-FREMPRES-PMX-1/Analysis/ProducedData/Dataset/tanezumabFREMPresData3.csv",
 #' availCov="LBBSA",cores=4)
 #' }
-calcParameters <- function(runno,modName=NULL,modDevDir,noBaseThetas,noEtas=noBaseThetas,noSigmas=2,noParCov=noEtas,dataFile,parTab,
-                           parNames,availCov=NULL,cores=4,...) {
+calcParmeters <- function(runno=NULL,
+                           numNonFREMThetas,
+                           modName       = NULL,
+                           covSuffix     = "FREMCOV",
+                           parNames      = paste("Par",1:numParCov,sep=""),
+                           numParCov     = NULL,
+                           numSkipOm     = 0,
+                           dataFile,
+                           newDataFile   = paste("vpcData",runno,".csv",sep=""),
+                           availCov      = "all",
+                           idvar         = "ID",
+                           modDevDir     = NULL,
+                           quiet         = FALSE,
+                           cores         = 1,
+                           dfext         = NULL,
+                           FFEMData      = NULL,
+                           covmodel      = "linear",
+                           ...) {
+  
+  
 
-  ## Will return a list with three data.frames: TVPAR, etas and covs
-  ## parTab is a NONMEM table file from the frem run with the TV parameters  (theta + potential ) and the etas.
+  fileNames <- getFileNames(runno=runno,modName=modName,modDevDir=modDevDir,...)
+  modFile   <- fileNames$mod
+  extFile   <- fileNames$ext
+  phiFile   <- fileNames$phi
+  
+  dfphi<-getPhi(phiFile)
+  
+  dfExt<-getExt(extFile)
 
-  # availCov = "none": don't add any covariate effects
-  # availCov = NULL: add all covariate effects
-  # availCov = covnameVector: add the covariate effects from the covariates in covnameVector
+  dfone<-FFEMData$newData[!duplicated(FFEMData$newData[[idvar]]),c(idvar,vpcData$indCovEf)]
+  
+  if (nrow(dfphi)!=nrow(dfone)) error("Number of unique individuals in the dataset and phi file needs to be the same")
 
-  # addEtas = FALSE: Don't add etas to the individual parameters
-  # addEtas = TRUE: Add etas to the individual parameters
-
-  ## Read the dataFIle unless it is a data.frame
-  if(!is.data.frame(dataFile)) {
-    dataFile <- fread(dataFile,data.table=FALSE)
+  etafrem<-dfphi[,3:(2+numSkipOm+nrow(vpcData$Omega))]
+  etaprim<-etafrem
+  for (i in 1:length(vpcData$indCovEff)) {
+    etaprim[,(i+numSkipOm)]<-etafrem[,(i+numSkipOm)]-dfone[,i+1]
   }
-  idsInDataFile <- dataFile %>% distinct(ID)
+  
+  names(etaprim)<-paste0(names(etaprim),"_PRIM")
 
-  ## Read the parTab if not NULL
-  if(!is.null(parTab)) {
-    parTab <- fread(parTab,skip=1,h=T,data.table=FALSE,check.names = TRUE,verbose=FALSE,showProgress=FALSE) %>%
-      select(one_of(c("ID",paste0("TV",parNames),paste0("ETA",1:noEtas)))) %>% distinct(ID,.keep_all=TRUE) %>%
-      filter(ID %in% idsInDataFile$ID)
+  if (nrow(dfExt)>1) dfExt  <- dfExt[dfExt$ITERATION==-1000000000,]
+  
+  numFREMThetas<-length(grep("THETA",names(dfExt)))-numNonFREMThetas
+  df_th  <- as.numeric(dfExt[,2:(numNonFREMThetas+1)])
+  df_thm <- as.numeric(dfExt[,(numNonFREMThetas+2):(numNonFREMThetas+1+numFREMThetas)])
+  
+  
+  covariates<-dfphi[,(3+numSkipOm+nrow(vpcData$Omega)):((2+numSkipOm+nrow(vpcData$Omega))+numFREMThetas)]
+  names(covariates)<-getCovNames(modFile = modFile)$covNames
+  if (covmodel=="linear") {
+    for (i in 1:length(df_thm)) {
+      covariates[,i]<-covariates[,i]+df_thm[i]
+    }
   }
 
-  ## If we are not interested in any covariates
-  if(is.null(availCov) || availCov!="none") {
+  return(cbind(dfphi[,2],etaprim,etafrem,covariates))
 
-    fullFREMdata <- createFFEMdata(runno,modName=modName,modDevDir = modDevDir,noBaseThetas=noBaseThetas,noSigmas=noSigmas,noParCov=noParCov,dataFile=dataFile,
-                                  parNames=parNames,newDataFile=NULL,quiet=TRUE,availCov=availCov,cores=cores,...)
-
-    covs <- fullFREMdata %>% distinct(ID,.keep_all=TRUE) %>% select(one_of("ID",parNames))
-
-  } else {
-
-    covs        <- data.frame(matrix(0,ncol=noBaseThetas,nrow=nrow(parTab)))
-    names(covs) <- parNames
-  }
-
-  if(!is.null(parTab)) {
-    ret.list <- list(
-      tvpar = parTab %>% select(one_of(c("ID",paste0("TV",parNames)))),
-      etas  = parTab %>% select(one_of(c("ID",paste0("ETA",1:noEtas)))),
-      covs  = covs
-    )
-  } else {
-    ret.list <- list(
-      tvpar = NULL,
-      etas  = NULL,
-      covs  = covs
-    )
-  }
-
-  return(ret.list)
 }
-
-
+  
 
