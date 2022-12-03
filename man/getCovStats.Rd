@@ -10,7 +10,8 @@ getCovStats(
   minLevels = 10,
   probs = c(0.05, 0.95),
   idVar = "ID",
-  missVal = -99
+  missVal = -99,
+  nsig = 3
 )
 }
 \arguments{
