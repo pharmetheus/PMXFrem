@@ -5,75 +5,59 @@
 \title{calcParameters}
 \usage{
 calcParameters(
-  runno,
+  runno = NULL,
+  numNonFREMThetas,
   modName = NULL,
-  modDevDir,
-  noBaseThetas,
-  noEtas = noBaseThetas,
-  noSigmas = 2,
-  noParCov = noEtas,
-  dataFile,
-  parTab,
-  parNames,
-  availCov = NULL,
-  cores = 4,
+  numSkipOm = 0,
+  idvar = "ID",
+  modDevDir = NULL,
+  FFEMData = NULL,
+  covmodel = "linear",
   ...
 )
 }
 \arguments{
-\item{runno}{The run number to use to construct the file names (see Details).}
+\item{runno}{The run number.}
 
-\item{modName}{The model name (see Details).}
+\item{numNonFREMThetas}{Number of thetas that are not FREM covariates. These need to come before the FREM covariate thetas.}
 
-\item{modDevDir}{The path to the directory where the NONMEM runs are.}
+\item{modName}{The model name. Default is the current directory, i.e. ".".}
 
-\item{noBaseThetas}{The number of thetas in the base model, i.e. the number of non-covariate thetas.}
+\item{numSkipOm}{Number of diag omegas (variances) that should not be part of the FREM calculations. 
+Such omegas has to come before the large FREM omega block.}
 
-\item{noEtas}{The number of etas in the model.}
+\item{idvar}{The name of the ID column,}
 
-\item{noSigmas}{The number of sigma parameters in the model (including the sigma(s) associated with the covariates).}
+\item{modDevDir}{The directory where the files reside.}
 
-\item{noParCov}{Number of parameters for which covariate relations are sought (often the same as noBaseThetas).}
+\item{FFEMData}{An FFEMData object as obtained with the function `createFFEMData`.}
 
-\item{dataFile}{The name of the data file used in the base model, i.e. the original data file, or a data,frame with the same data.}
-
-\item{parTab}{NULL or the path to a NONMEM table file that should contain at least the columns ID, TVPAR names and etas (see Details).}
-
-\item{parNames}{Vector of the names of the parameters names in the base model, i.e. the names of the non-covariate parameters.}
-
-\item{availCov}{NULL, "none" or a vector of strings specifying the covariates to compute the covariate effects for.}
-
-\item{cores}{The number of cores to use for the calculation of the covariate effects.}
+\item{covmodel}{A character string indicating if the covaite models were implemented linearly (additatively) in eth frem model or not. Default is "linear"}
 }
 \value{
-A three element list: tvpar, etas and covs. Each of the elements is a data.frame with the same number of rows as parTab.
+A data frame with the same number of rows as subjects in the data file used in the base model, with columns ID, ETA1-(number of etas in the base model),
+ETAETA1-(number of etas in the base model)_PRIM and columns for the covariate etas (see above)
 }
 \description{
-Collects the typical individual parameters, etas and covariate effects from a FREM run.
+Collects the ETAs (parameter and covariate) from a FREM model and computes the ETA_prims.
 }
 \details{
-The function will generate three data.frames (returned as a list) with the typical individual parameters, etas and covariate effects for the specified
-covariates (availCov).
+The function collects the ETAs from the output of a FREM model, both for the parameters as well as the covariates. The corresponding ETA_prims for the parameter ETAs are computed
+by extracting the corresponding individual covariate coefficient provided in the createFFEMdata object, which is a mandatory argument.
 
-If parTab is NULL, the tvpar and etas components of the returned list will be NULL.
-
-The typical parameters have to be named "TV" followed by the names in parNames. E.g. if one element in parNames is CL, then the
-corresponding typical individual parameter name should be TVCL. Unless the model includes structural covariates (covairiates that are included in the model "outside" the
-the FREM part), all rows in tvpar will be identical.
-
-The etas in the data.frame etas are the ones estimated from the FREM model.
-
-The covs data.frame will have one column for each of the parameters in parNames. If noEtas < noBaseThetas, then the additional columns (noEtas - noBaseThetas) will be all zeros.
-
-If modName is NULL is specified, it will be assumed that the files associated with the model will be names run[runno].mod, run[runno].ext, etc (e.g. run1.mod, run1.ext). If modName is not
-NULL, the files will be assumed to have names like modName.mod, modName.ext, etc.
+If argument `covmodel` is `linear` the covariate ETAs will be added to the estimates of the mean covariate effects from the FREM model to generate individual covariate
+values on the original covariate scale. If argument `covmodel` is not `linear` the covariate ETAs will be reported on the ETA scale. The names of the covariate ETAs will be set to
+`getCovNames(modFile = modFile)$covNames` regardless of the value of `covmodel`.
 }
 \examples{
 \dontrun{
-tmp <- calcParameters(45,modDevDir="/PMX/Projects/Pharmetheus/PMX-FREMPRES-PMX-1/Analysis/Model/Tanezumab",noBaseThetas=7,noEtas=6,noSigmas=3,
-parNames = c("CL","V1","Q","V2","VM","KM","MIX"),
-parTab = "/PMX/Projects/Pharmetheus/PMX-FREMPRES-PMX-1/Analysis/Model/Tanezumab/xptab45",
-dataFile="/PMX/Projects/Pharmetheus/PMX-FREMPRES-PMX-1/Analysis/ProducedData/Dataset/tanezumabFREMPresData3.csv",
-availCov="LBBSA",cores=4)
+ind_params <- calcParmeters(modName          = "run31",
+                            modDevDir        = ".",
+                            numSkipOm        = 2,
+                            numNonFREMThetas = 7,
+                            FFEMData         = FFEMDataObject)
 }
+}
+\seealso{
+[createFFEMData()] for information about creating the FFEMData object
 }

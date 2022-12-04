@@ -76,7 +76,7 @@ Add combined FFEM coefficients to the data set for the specified covariates.
 \details{
 This function will compute a combined term of all (FREM) covariate effects for each parameter in the FFEM model and create a
 new data file with these combined effects appended. The combined coefficients are added to the FFEM data set with names that
-appends COV to the parameter name, e.g. the column with the combined covariate efftecs for parameter PAR will be called PARCOV.
+appends COV to the parameter name, e.g. the column with the combined covariate effects for parameter PAR will be called PARCOV.
 All rows for an individual will have the same value for PARCOV.
 
 To implement an FFEM model with the covariate effects from the FREM analysis, change the FFEM model from:

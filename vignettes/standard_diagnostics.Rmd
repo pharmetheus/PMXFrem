@@ -17,6 +17,7 @@ knitr::opts_chunk$set(
 ```{r setup}
 suppressPackageStartupMessages(library(GGally))
 suppressPackageStartupMessages(library(ggpubr))
+suppressPackageStartupMessages(library(PMXFrem))
 
 theme_set(ggplot2::theme_bw(base_size=20))
 ```
@@ -35,9 +36,10 @@ modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
 dataFile  <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",package="PMXFrem")
 fremRun   <- 31
 baseRun   <- 30
+fremFiles <- getFileNames(fremRun,modDevDir=modDevDir)
 ```
 
-## Comparison of standard diagnostiocs input from Base, FREM and FFEM model
+### Comparison of standard diagnostiocs input from Base, FREM and FFEM model
 
 ```{r}
 xptabBase <- fread(paste0(modDevDir,"/xptab",baseRun),data.table=FALSE,check.names = T) %>%
@@ -123,5 +125,95 @@ ggarrange(p1,p2,p3,p4,ncol=2,nrow=2)
 
 ```
 
+## Creating ETA plots
 
+Similarly to the standar diagnostics variables (e.g. CWRES) ETAs will also have to be adjusted to reflect the impact of covariates, i.e. the "ETA prims" needs to be computed. This is done by the `calcParameters` function. This function requires an "FFEM data object" from the `createFFEMmodel` function as input.
+
+```{r}
+
+data <- read_csv(dataFile,show_col_types = FALSE) %>%
+    filter(BLQ!=1)
+
+  ## Check with specified parameter names
+FFEMdata <- createFFEMdata(runno            = fremRun,
+                           modDevDir        = modDevDir,
+                           parNames         = c("CL","V","MAT"),
+                           numNonFREMThetas = 7,
+                           numSkipOm        = 2,
+                           dataFile         = data,
+                           newDataFile      = NULL,
+                           quiet            = TRUE)
+```
+
+Collect the ETAs and compute the ETA_proms
+```{r}
+ind_params <- calcParameters(runno            = fremRun,
+                             modDevDir        = modDevDir,
+                             numSkipOm        = 2,
+                             numNonFREMThetas = 7,
+                             FFEMData         = FFEMdata) %>% 
+  arrange(ID)
+
+print(head(ind_params))
+```
+
+Compare the ETAs and the ETA_prims
+```{r,fig.width=10,fig.height=6}
+ind_params %>% select(ETA3,ETA3_PRIM) %>% ggpairs()   + ggtitle("ETA CL")
+```
+
+```{r,fig.width=10,fig.height=6}
+ind_params %>% select(ETA4,ETA4_PRIM) %>% ggpairs()   + ggtitle("ETA V")
+```
+
+```{r,fig.width=10,fig.height=6}
+ind_params %>% select(ETA4,ETA5_PRIM) %>% ggpairs()   + ggtitle("ETA MAT")
+```
+
+All predicted covariate values will be the same as the observed values, provided there are informative observations for the subject in question (i.e. not only dosing records in PK). 
+```{r fig.width=10,fig.height=6}
+
+covariates <- data %>% 
+  group_by(ID) %>% 
+  mutate(haveObs = ifelse(any(DV>0),1,0)) %>% 
+  ungroup %>% 
+  distinct(ID,.keep_all = T) %>% 
+  select(ID,getCovNames(fremFiles$mod)$orgCovNames,haveObs) %>% 
+  arrange(ID)
+
+tmp <- bind_cols(ind_params %>% select(ID,ETA3,ETA3_PRIM,WT),obsWT=covariates$WT,haveObs=covariates$haveObs) %>% 
+  mutate(obsWT = ifelse(obsWT==-99,NA,obsWT)) %>% 
+  mutate(missWT = ifelse(is.na(obsWT),"Missing WT","Not missing WT")) %>% 
+  filter(haveObs==1) # Remove subects with inly dosing records
+
+tmp %>% ggplot(aes(WT,obsWT,color=missWT)) +
+  geom_point(show.legend = FALSE) +
+  xlab("Predicted WT") +
+  ylab("Observed WT")
+```
+
+
+
+Plotting the regular ETA from the FREM model versus WT gives a very different picture compared to plotting ETA prim.
+
+```{r,fig.width=10,fig.height=6}
+
+p1 <- tmp %>% 
+  ggplot(aes(WT,ETA3)) +
+  geom_point(aes(color=missWT)) +
+  geom_smooth(se = FALSE,color="red") +
+  ylab("ETA3 (CL)") +
+  labs(color=NULL,linetype=NULL) + theme(legend.position="top") +
+  scale_colour_manual(values = c("Missing WT"="orange","Not missing WT"="#508791")) 
+
+p2 <- tmp %>% 
+  ggplot(aes(WT,ETA3_PRIM)) +
+  geom_point(aes(color=missWT)) +
+  geom_smooth(se = FALSE,color="red") +
+  ylab("ETA3 prim (CL)") +
+  labs(color=NULL,linetype=NULL) + theme(legend.position="top") +
+  scale_colour_manual(values = c("Missing WT"="orange","Not missing WT"="#508791")) 
+
+ggarrange(p1,p2,ncol=2,nrow=1,common.legend = T)
+```
 
