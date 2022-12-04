@@ -158,13 +158,13 @@ The `dfres` data frame contains three columns with variability. The `TOTVAR` col
 
 ## Create the plot
 
-The `plotExplainedVar` function can be used to visualize the degree of explained variability. The plot can visualise the explained variability relative the `TOTVAR`column (`type=1`), how much of the overall variability can be explained, or relative to `TOTCOVVAR` (`type=2`), i.e. how much of the explainable variability that can be explaines.
+The `plotExplainedVar` function can be used to visualize the degree of explained variability. The plot can visualize the explained variability relative the `TOTVAR`column (`maxVar=1`), how much of the overall variability can be explained, or relative to `TOTCOVVAR` (`maxVar=2`), i.e. how much of the explainable variability that can be explaines.
 ```{r fig.width=10,fig.height=10}
 covariateNames <- c("ALL","Age","ALT","AST","Bilirubin","BMI","BSA","CRCL","Ethnicity","Genotype","Height","LBWT","NCI","Race","Sex","Smoking","WT","Food status")
-plotExplainedVar(dfres,parameters = "AUC",type = 1,covariateLabels = covariateNames)
+plotExplainedVar(dfres,parameters = "AUC",maxVar = 1,covariateLabels = covariateNames)
 ```
 
 ```{r fig.width=10,fig.height=10}
 covariateNames <- c("ALL","Age","ALT","AST","Bilirubin","BMI","BSA","CRCL","Ethnicity","Genotype","Height","LBWT","NCI","Race","Sex","Smoking","WT","Food status")
-plotExplainedVar(dfres,parameters = "AUC",type = 2,covariateLabels = covariateNames)
+plotExplainedVar(dfres,parameters = "AUC",maxVar = 2,covariateLabels = covariateNames)
 ```
