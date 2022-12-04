@@ -47,7 +47,7 @@
 updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsToAdd=NULL,
                        cstrCatCovsToAdd=NULL,cstrCovsToAddOrder=NULL,strNewFREMData=NULL,
                        strUpdateType="OldInits",quiet=TRUE,strID="ID",
-                       basenames=c("BASE","PLMAX","HLKON","HLKOFF","BASSL","BP","BASEWHZ","PLMAXWHZ","HLKONWHZ","HLKOFFWHZ","BASSLWHZ"),
+                       basenames=NULL,
                        cstrKeepCols=c("ID","SUBJID","SITEID","AGE","AGEYI","DV","FREMTYPE"),
                        bWriteData=TRUE,bWriteFIX=TRUE,cstrDV="DV",cstrRemoveCov=NULL,covEpsNum = 2,
                        overrideExistingCheck=FALSE,sortAGE=TRUE) {
@@ -103,6 +103,7 @@ updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsTo
         if (as.numeric(tmp)>iNumTHETA) iNumTHETA<-as.numeric(tmp)
       }
 
+      #Note only accepts ETA with space before
       os <- mod[grep('[ ]ETA\\([0-9]+\\)',mod)] # Returns positions of every ETA(NUMBER)
 
       for (str in os) { ###Get the maximum OMEGA number, i.e. number of ETAs in model
@@ -490,4 +491,5 @@ updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsTo
   ## Write a new $DATA
 
   cat(file=strNewModelFileName,paste("$DATA ", strNewFREMData,"IGNORE=@\n"),append=TRUE)
+  
 }
