@@ -8,14 +8,16 @@ modDevDir <- "/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/"
 fremRun <- 31
 
 updateFREM(
-  strFREMModel      = file.path(modDevDir,"run31.mod"),
-  strFREMData       = file.path(modDevDir,"frem30.dir/frem_dataset.dta"),
-  strFFEMData       = file.path(modDevDir,"../ProducedData/Dataset/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+  strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+  strFREMData       = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
+  strFFEMData       = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
   cstrRemoveCov     = c("SEX"),
   cstrCatCovsToAdd  = NULL,
   cstrContCovsToAdd = NULL,
   strID             = "ID",
   strNewFREMData    = "frem_dataset_noSEX.csv",
+  numNonFREMThetas  = 7,
+  numSkipOm         = 2,
   bWriteData        = FALSE,
   quiet             = F,
   bWriteFIX         = TRUE,
