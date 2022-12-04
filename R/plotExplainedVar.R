@@ -7,12 +7,12 @@
 #' @param covariateLabels A character vector of alternative covariate labels. Should have the same length as the number of rows in \code{dfres}.
 #' @param labelfun A label function compatible with \code{labeller}. Used to format \code{parameterLabels} used as row facet labels in the plot.
 #' @param fill_col The fill color of the bars.
-#' @param type type=1 (default): Visualize the explained part of the total variability. type=2: Visualize the explained part of the explainable variability.
+#' @param maxVar maxVar=1 (default): Visualize the explained part of the total variability. maxVar=2: Visualize the explained part of the explainable variability.
 #' @param xlb X-axis title.
 #'
 #' @details
-#' With type=1 the explained variability of the covariate (combination) in each row of dfres (COVVAR) is divided by the value in TOTVAR and multiplied by 100.
-#' With type=2 the explained variability of the covariate (combination) in each row of dfres (COVVAR) is divided by the value in TOTCOVVAR and multiplied by 100.
+#' With maxVar=1 the explained variability of the covariate (combination) in each row of dfres (COVVAR) is divided by the value in TOTVAR and multiplied by 100.
+#' With maxVar=2 the explained variability of the covariate (combination) in each row of dfres (COVVAR) is divided by the value in TOTCOVVAR and multiplied by 100.
 #' @return A plot that illustrates the explained variability
 #' @export
 #'
@@ -26,14 +26,14 @@ plotExplainedVar <- function(dfres,
                              covariateLabels=NULL,
                              labelfun=label_value,
                              fill_col="#508791",
-                             type = 1,
-                             xlb = ifelse(type == 1,
+                             maxVar = 1,
+                             xlb = ifelse(maxVar == 1,
                                           "Explained part of total variability (%)",
                                           "Explained part of explainable variability (%)")) {
 
   ## Input checks
-  if(!(type == 1 | type ==2)) {
-    stop("type needs to be 1 or 2")
+  if(!(maxVar == 1 | maxVar ==2)) {
+    stop("maxVar needs to be 1 or 2")
   }
 
   if(!is.null(parameterLabels)) {
@@ -93,7 +93,7 @@ plotExplainedVar <- function(dfres,
   ## Compute the fraction to plot
   dfres <- dfres %>%
     rowwise() %>%
-    mutate(Frac = ifelse(type == 1,100*COVVAR/TOTVAR,100*COVVAR/TOTCOVVAR))
+    mutate(Frac = ifelse(maxVar == 1,100*COVVAR/TOTVAR,100*COVVAR/TOTCOVVAR))
 
   p1 <- ggplot(data=dfres,aes(x=Frac,y=COVNAMELABEL)) +
     geom_bar(position="dodge", stat="identity",fill=fill_col) +
