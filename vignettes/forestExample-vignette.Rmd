@@ -190,7 +190,7 @@ dfres3 <- PMXForest::getForestDFFREM(dfCovs           = dfCovs3,
 print(dfres3)
 ```
 
-```{r, fig1,fig.height = 10, fig.width = 14, fig.align="center"}
+```{r, fig2,fig.height = 10, fig.width = 14, fig.align="center"}
 PMXForest::forestPlot(dfres3)
 ```
 
