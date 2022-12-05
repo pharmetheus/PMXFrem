@@ -217,3 +217,12 @@ p2 <- tmp %>%
 ggarrange(p1,p2,ncol=2,nrow=1,common.legend = T)
 ```
 
+```{r fig.width=10,fig.height=6}
+
+tmp %>% mutate(missWT = factor(missWT,levels=c("Not missing WT","Missing WT"))) %>% 
+  ggplot(aes(WT,fill=missWT)) +
+  geom_histogram(position ="identity") +
+  labs(fill=NULL,linetype=NULL) + theme(legend.position="top") +
+  scale_fill_manual(values = c("Missing WT"="orange","Not missing WT"="#508791")) 
+```
+

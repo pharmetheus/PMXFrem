@@ -144,14 +144,15 @@ functionListName <- c("CL","V1")
 
 The data for the forest plot can now be generated based on the pre-requisite information.
 ```{r, warning=FALSE}
-dfres <- PMXForest::getForestDFFREM(dfCovs           = dfCovs,
-                                    numNonFREMThetas = 7,
-                                    numSkipOm        = 2,
-                                    dfParameters     = dfParameters,
-                                    covNames         = covNames,
-                                    functionList     = functionList,
-                                    functionListName = functionListName,
-                                    quiet            = TRUE)
+dfres <- PMXForest::getForestDFFREM(
+  dfCovs           = dfCovs,
+  numNonFREMThetas = 7,
+  numSkipOm        = 2,
+  dfParameters     = dfParameters,
+  covNames         = covNames,
+  functionList     = functionList,
+  functionListName = functionListName,
+  quiet            = TRUE)
 
 print(dfres)
 ```
@@ -171,8 +172,12 @@ print(dfres)
 The `plotForestDF` function takes the `getForestDFFREM()` output to produce the Forest plot.
 
 
-```{r, fig1,fig.height = 10, fig.width = 14, fig.align="center"}
-PMXForest::forestPlot(dfres,groupNameLabels = c("WT & LBWT","WT","BSA","LBWT","Reference"))
+```{r, fig1,fig.height = 12, fig.width = 14, fig.align="center"}
+PMXForest::forestPlot(
+  dfres,
+  groupNameLabels = c("WT& BWT","WT","BSA","LBWT","Reference"),
+  tabTextSize = 14,
+  strip_right_size=12)
 ```
 
 
@@ -196,7 +201,7 @@ PMXForest::forestPlot(dfres3)
 
 `getCovStats` is meant as a quick and easy way to get a Forest plot made. It is possible to tidy up the `dfres` to get a more respectable looking Forest plot.
 
-```{r}
+```{r fig.height = 14, fig.width = 16, fig.align="center"}
 covnames  <- c("20 y","60 y",
                "12 IU","49 IU",
                "14 IU", "38 IU",
@@ -219,7 +224,11 @@ dfres4 <- dfres3 %>% mutate(COVNAME = factor(rep(covnames,each=length(unique(PAR
 
 covariates <- c("Age","ALT","AST","Total\nbilirubin","Body mas\nindex","Body surface\narea","Createnine\nclearance","Ethnicity","Genotype","Height","Lean body weight", "NCI","Race","Sex","Smoking\nstatus","Weight")
 
-PMXForest::forestPlot(dfres4,groupNameLabels = covariates)
+PMXForest::forestPlot(
+  dfres4,
+  groupNameLabels = covariates,
+  tabTextSize = 14,
+  strip_right_size=11)
 
 ```
 
