@@ -40,22 +40,34 @@
 #' updateFREM(strFREMModel="run48.mod",
 #'            strFREMData="frem_dataset_run47small.csv",strFFEMData="../../ProducedData/Dataset/smv1Dataset16small.csv",cstrRemoveCov=c("MMARITN"),cstrCatCovsToAdd=NULL,cstrContCovsToAdd=NULL,strID="ID",
 #'            strNewFREMData="frem_dataset_run48small.csv",bWriteData = TRUE,quiet=F,bWriteFIX = TRUE)
-#'            
+#'
 #' ## Only updating the initial estimates
 #' updateFREM(strFREMModel="run23.mod",cstrRemoveCov=NULL,strID="ID",bWriteData = FALSE,quiet=F,covEpsNum=3,strUpdateType="NoData")
-#'            
+#'
 #' }
-updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsToAdd=NULL,
-                       cstrCatCovsToAdd=NULL,cstrCovsToAddOrder=NULL,strNewFREMData=NULL,
-                       strUpdateType="OldInits",quiet=TRUE,strID="ID",
-                       basenames_th=NULL,
-                       basenames_om=NULL,
+updateFREM <- function(strFREMModel,
+                       strFREMData           = "",
+                       strFFEMData           = "",
+                       cstrContCovsToAdd     = NULL,
+                       cstrCatCovsToAdd      = NULL,
+                       cstrCovsToAddOrder    = NULL,
+                       strNewFREMData        = NULL,
+                       strUpdateType         = "OldInits",
+                       quiet                 = TRUE,
+                       strID                 = "ID",
+                       basenames_th          = NULL,
+                       basenames_om          = NULL,
                        numNonFREMThetas,
-                       numSkipOm=0,
-                       numParCov=NULL,
-                       cstrKeepCols=c("ID","DV","FREMTYPE"),
-                       bWriteData=TRUE,bWriteFIX=TRUE,cstrDV="DV",cstrRemoveCov=NULL,covEpsNum = 2,
-                       overrideExistingCheck=FALSE,sortAGE=TRUE) {
+                       numSkipOm             = 0,
+                       numParCov             = NULL,
+                       cstrKeepCols          = c("ID","DV","FREMTYPE"),
+                       bWriteData            = TRUE,
+                       bWriteFIX             = TRUE,
+                       cstrDV                = "DV",
+                       cstrRemoveCov         = NULL,
+                       covEpsNum             = 2,
+                       overrideExistingCheck = FALSE,
+                       sortAGE               = TRUE) {
 
   library(tools)
   iFremTypeIncrease<-100 #The FREMTYPE INCREASE TO USE
@@ -92,12 +104,12 @@ updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsTo
     OM[upper.tri(OM,diag = TRUE)]  <- OMEGA #Assign upper triangular + diag
     tOM                            <- t(OM) #Get a transposed matrix
     OM[lower.tri(OM,diag = FALSE)] <- tOM[lower.tri(tOM,diag = FALSE)] #Assign the lower triangular except diag
-    
+
     if (is.null(numParCov)) {
       numParCov <- calcNumParCov(dfext,numNonFREMThetas, numSkipOm)
     }
-    
-    
+
+
   } else {
     #Parsing of the FREM model
     if (file.exists(strFREMModel)) {
@@ -408,7 +420,7 @@ updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsTo
     } else {
       dfFREM <- dfFREM %>% arrange(ID,FREMTYPE) %>% select(one_of(cstrKeepCols))
     }
-    
+
     if (bWriteData) {
       write.csv(dfFREM,file=strNewFREMData,row.names = FALSE,quote = FALSE)
     }
@@ -419,12 +431,12 @@ updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsTo
   ### Print Model code
 
   strNewCovNames<-c(covnames$covNames,addedList)
-  
+
   #Make a copy of the FREM model
   con=file(strFREMModel,open="r")
   line=readLines(con)
   close(con)
-  
+
   strinput=""
 
   ## Print the MU-code and the COV-code
@@ -433,7 +445,7 @@ updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsTo
     strinput<-c(strinput,paste0("      MU_",mu_count," = ","THETA(",i,")"))
     strinput<-c(strinput,paste0("      COV",mu_count," = MU_",mu_count," + ETA(",mu_count,")"))
   }
-  
+
   # Replace MU code and the COV-code
   tmpl<-grep(pattern = "COV\\d+ = MU\\_\\d+",x=line)
   if (is.null(tmpl))  warning("can't replace MU and COV lines")
@@ -446,7 +458,7 @@ updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsTo
   ## Print the ;;;FREM CODE BEGIN COMPACT
   strinput=""
   strinput<-c(strinput,paste0(";;;FREM CODE BEGIN COMPACT"))
-  
+
   # Print the FREMTYPE code
   for (i in 1:length(strNewCovNames)) {
     strinput<-c(strinput,paste0("      IF(FREMTYPE.EQ.",fremTypes[i],") THEN"))
@@ -459,12 +471,12 @@ updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsTo
   strinput<-c(strinput,paste0(";;;FREM CODE END COMPACT"))
   #Replace FREM code
   line<-findrecord(line,record = ";;;FREM CODE BEGIN COMPACT",replace = strinput,quite = T)
-  
+
   #### Print parameters values, $THETA, $OMEGA
 
   if (is.null(basenames_th)) basenames_th<-paste0("BASE",1:numNonFREMThetas)
   if (is.null(basenames_om)) basenames_om<-paste0("BASE",1:(numSkipOm+numParCov))
-  
+
 
   if (!is.null(addedList) & length(addedList)>0) { #Expand OM matrix
     OMNEW<-matrix(dDefaultCovValue,ncol(OM)+length(addedList),nrow(OM)+length(addedList))
@@ -496,15 +508,15 @@ updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsTo
     if (THETAFIX[i]==1 && bWriteFIX) strFIX=" FIX"
     strinput<-c(strinput,paste0("$THETA ",THETA[i],strFIX," ",theta_comment[i]))
   }
-  
+
   #Add new $THETA
   line<-findrecord(line,record = "\\$THETA",replace = strinput,quite = T)
-  
+
   #line <- findrecord(line,record="\\$OMEGA",replace=buildmatrix(as.matrix(OM),strName = "$OMEGA"),quite=T)
-  
+
   #Add with OM_block functionality
   #cat(file=strNewModelFileName,paste0("$OMEGA BLOCK(",ncol(OM),")\n"),append=TRUE)
-  
+
   #Build OM Matrix
   newommatrix<-buildmatrix(as.matrix(OM))
   #Add OM comments
@@ -515,10 +527,10 @@ updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsTo
   }
   #Replace $OMEGA
   line <- findrecord(line,record="\\$OMEGA",replace=newommatrix,quite=T)
-#   
+#
 # #  up <- upper.tri(OM)
-# #  
-# 
+# #
+#
 #   up <- upper.tri(OM)
 #   for(i in 1:ncol(OM)) {
 #     cat(file=strNewModelFileName,c(OM[i,!up[i,]]," ",om_comment[i]),append=TRUE,fill=140)
@@ -526,7 +538,7 @@ updateFREM <- function(strFREMModel,strFREMData="",strFFEMData="",cstrContCovsTo
 
   ## Replace $DATA
   line <- findrecord(line,record="\\$DATA",replace=paste0("$DATA ", strNewFREMData," IGNORE=@"),quite=T)
-  
+
   ## Write new model file
   strNewModelFileName<-paste0(file_path_sans_ext(strFREMModel),"_new.mod")
   con=file(strNewModelFileName,open="w")
