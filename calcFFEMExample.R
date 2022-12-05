@@ -2,8 +2,8 @@ library(data.table)
 library(tidyverse)
 
 
-modDevDir <- system.file("inst/extdata/SimVal/",package = "PMXFrem")
-fremRun <- 12
+modDevDir <- system.file("inst/extdata/SimNeb/",package = "PMXFrem")
+fremRun <- 31
 numNonFREMThetas <- 7
 numSkipOm <- 2
 

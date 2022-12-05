@@ -130,7 +130,7 @@ updateFREM <- function(strFREMModel,
       }
       
       if (is.null(numParCov)) {
-        error("If no *.ext file exist, the number of parameters  (numParCov) needs to be specified!")
+        stop("If no *.ext file exist, the number of parameters  (numParCov) needs to be specified!")
       }
       
       
@@ -492,8 +492,8 @@ updateFREM <- function(strFREMModel,
   if (is.null(basenames_th)) basenames_th<-paste0("BASE",1:numNonFREMThetas)
   if (is.null(basenames_om)) basenames_om<-paste0("BASE",1:(numSkipOm+numParCov))
 
-
   if (!is.null(addedList) & length(addedList)>0) { #Expand OM matrix
+    if (exists("OM")==FALSE || is.null(OM)) stop("OM missing, make sure ext file is provided when adding covariates")
     OMNEW<-matrix(dDefaultCovValue,ncol(OM)+length(addedList),nrow(OM)+length(addedList))
     OMNEW[1:ncol(OM),1:nrow(OM)]<-OM
     OM<-OMNEW
