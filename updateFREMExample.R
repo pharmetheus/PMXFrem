@@ -1,10 +1,11 @@
 library(data.table)
-library(tidyverse)
+# library(tidyverse)
 library(pmxvpc)
 library(tools)
 
 modDevDir <- "/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/"
 
+data <- fread("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/frem30.dir/frem_dataset.dta",data.table=FALSE)
 fremRun <- 31
 
 updateFREM(
@@ -21,9 +22,8 @@ updateFREM(
   bWriteData        = TRUE,
   quiet             = F,
   bWriteFIX         = TRUE,
-  sortFREMDataset  = c("ID","TAD","FREMTYPE"),
-  #sortAGE           = FALSE,
-  cstrKeepCols = c("ID","TAD","AMT","EVID","RATE","DV","FREMTYPE"))
+  sortFREMDataset  = c("ID","TIME","FREMTYPE"),
+  cstrKeepCols = c("ID","TIME","AMT","EVID","RATE","DV","FOOD","FREMTYPE"))
 
 
 updateFREM(
@@ -43,6 +43,13 @@ updateFREM(
   bWriteFIX         = TRUE,
   sortFREMDataset  = c("ID","TAD","FREMTYPE"),
   cstrKeepCols = c("ID","TAD","AMT","EVID","RATE","DV","FREMTYPE"))
+
+updateFREM(strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+           numNonFREMThetas  = 7,
+           numSkipOm         = 2,
+           bWriteData        = FALSE,
+           quiet             = F,
+           strUpdateType     = "NoData")
 
 # ## The object tmp is a list and contains the Omega', names of the new columns for $INP and the name of the new data file.
 # tmp <- createFFEMdata(runno            = fremRun,

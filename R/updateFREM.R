@@ -1,16 +1,16 @@
 #' updateFREM
 #'
 #' @description Appends or removes covariates in a FREM data set and FREM model.
-#' @param strFREMModel File name of the FREM-model to append covariates to.
-#' @param strFREMData Name of FREM-dataset to append covariates to (not used with strUpdateType "NoData").
+#' @param strFREMModel File name of the FREM-model to add/remove covariates to/from.
+#' @param strFREMData Name of FREM-dataset to add/remove covariates to/from (not used with strUpdateType "NoData").
 #' @param strFFEMData Name of FFEM-dataset (normal dataset) that will be used to append the FREM-dataset, (not used with strUpdateType "NoData").
 #' @param cstrContCovsToAdd A vector of continuous covariate names to add, default = NULL, (not used with strUpdateType "NoData").
 #' @param cstrCatCovsToAdd A vector of categorical covariate names to add, default = NULL, (not used with strUpdateType "NoData").
 #' @param cstrCovsToAddOrder A vector of the order of the covariate names to add, default = NULL (i.e. alphabetic order will be used), (not used with strUpdateType "NoData").
 #' Note: if used, this should contain all covariates in cstrCatCovsToAdd as well as cstrContCovsToAdd.
 #' @param strNewFREMData Name of the new dataset, default=paste0(strFREMData_without_extension,"new",".",extension), (not used with strUpdateType "NoData").
-#' @param strUpdateType Update function to run: "OldInits" - Use the old values in the frem model (default), "NewInits" - Use new values from a ext file,
-#' "NoData" - Do not create data or add variables to model, only a updated frem model in terms of new inits
+#' @param strUpdateType Update function to run: "DataAndModel" - Create new data and add/remove variables from the model (with updated inits).
+#' "NoData" - Do not create data or add variables to model, only update the frem model in terms of new inits
 #' @param quiet If set to FALSE, the function outputs verbose information on what it is doing.
 #' @param strID A string with the ID identifier column in the FFEM dataset.
 #' @param basenames_th A vector of strings with the names of the base variables (used for commenting thetas), should be the same length as number of nonFREMThetas in the model, if NULL, BASE1,BASE2,etc are used as names.
@@ -23,26 +23,38 @@
 #' Note that if this functionality is used to remove the last existing category of a categorical covariate, this should be done by removing the orginal name of the covariate and not the specific categorical covariate, i.e. "SITEID" instead of "SITEID_1" to ensure consistent renumbering of FREMTYPEs
 #' @param covEpsNum The number of the epsilons parameter to be used for the covariates.
 #' @param overrideExistingCheck If TRUE, the existing check will be overriden and covariates will be added even though they are present in $DATA of the modefile
+#' @param sortFREMDataset The columns to sort the new data set on.
 #'
 #' @return Will write a new fremdata set to disc. WIll also write a stub model file with the new covariates and initial estimates (the name will be runX_new.txt).
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' ## Adding CHLDADLT, FAGE, FHTCM, INCTOT, NROOMS, SMOKED
-#' updateFREM(strFREMModel="run21.mod",
-#'            strFREMData="fremData20.csv",strFFEMData="../../ProducedData/Dataset/smv1DatasetWHZ3.csv",cstrRemoveCov=NULL,cstrCatCovsToAdd=c("INCTOT", "SMOKED"),
-#'            cstrContCovsToAdd=c("CHLDADLT", "FAGE", "FHTCM","NROOMS"),strID="ID",
-#'            strNewFREMData="fremData21.csv",bWriteData = TRUE,quiet=F,bWriteFIX = TRUE,cstrKeepCols=c("ID","SUBJID","SITEID","AGE","AGEYI","DV","FREMTYPE","HO","TYPE"),
-#'            covEpsNum=3)
+#' ## Remove SEX from the model and data set
+#' updateFREM(
+#'      strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+#'      strFREMData       = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
+#'      strFFEMData       = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
+#'      cstrRemoveCov     = c("SEX"),
+#'      cstrCatCovsToAdd  = NULL,
+#'      cstrContCovsToAdd = NULL,
+#'      strID             = "ID",
+#'      strNewFREMData    = "frem_dataset_noSEX.csv",
+#'      numNonFREMThetas  = 7,
+#'      numSkipOm         = 2,
+#'      bWriteData        = TRUE,
+#'      quiet             = F,
+#'      bWriteFIX         = TRUE,
+#'      sortFREMDataset  = c("ID","TIME","FREMTYPE"),
+#'      cstrKeepCols = c("ID","TIME","AMT","EVID","RATE","DV","FOOD","FREMTYPE"))
 #'
-#' # Removing MMARITN
-#' updateFREM(strFREMModel="run48.mod",
-#'            strFREMData="frem_dataset_run47small.csv",strFFEMData="../../ProducedData/Dataset/smv1Dataset16small.csv",cstrRemoveCov=c("MMARITN"),cstrCatCovsToAdd=NULL,cstrContCovsToAdd=NULL,strID="ID",
-#'            strNewFREMData="frem_dataset_run48small.csv",bWriteData = TRUE,quiet=F,bWriteFIX = TRUE)
-#'
-#' ## Only updating the initial estimates
-#' updateFREM(strFREMModel="run23.mod",cstrRemoveCov=NULL,strID="ID",bWriteData = FALSE,quiet=F,covEpsNum=3,strUpdateType="NoData")
+#' ## Only update inits
+#' updateFREM(strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+#'      numNonFREMThetas  = 7,
+#'      numSkipOm         = 2,
+#'      bWriteData        = FALSE,
+#'      quiet             = F,
+#'      strUpdateType     = "NoData")
 #'
 #' }
 updateFREM <- function(strFREMModel,
@@ -52,7 +64,7 @@ updateFREM <- function(strFREMModel,
                        cstrCatCovsToAdd      = NULL,
                        cstrCovsToAddOrder    = NULL,
                        strNewFREMData        = NULL,
-                       strUpdateType         = "OldInits",
+                       strUpdateType         = "DataAndModel",
                        quiet                 = TRUE,
                        strID                 = "ID",
                        basenames_th          = NULL,
@@ -128,12 +140,12 @@ updateFREM <- function(strFREMModel,
         tmp<-gsub(".*[ ]ETA\\(([0-9]+)\\).*", "\\1", str)
         if (as.numeric(tmp)>iNumOM) iNumOM<-as.numeric(tmp)
       }
-      
+
       if (is.null(numParCov)) {
         stop("If no *.ext file exist, the number of parameters  (numParCov) needs to be specified!")
       }
-      
-      
+
+
     } else {
       stop(paste0("Cannot find the FREM model: ",strFREMModel))
     }
@@ -235,14 +247,14 @@ updateFREM <- function(strFREMModel,
     ### Make all new variables (covariates) and store them in a list
     covList<-list()
     for (strCov in cstrCovsToAddOrder) { #Generate values, mean/variance for each covariate
-      
+
       #Move categorical covariates with only 2 levels to cont covariates instead
       if (strCov %in% cstrCatCovsToAdd && length(unique(dfFFEM[dfFFEM[[strCov]]!=-99,strCov]))==2) {
         cstrContCovsToAdd<-c(strCov,cstrContCovsToAdd)
         cstrCatCovsToAdd<-cstrCatCovsToAdd[-which(cstrCatCovsToAdd==strCov)]
         printq(paste0("Switching: ",strCov,", from categorical to continuous since only 2 levels"),quiet=quiet)
       }
-      
+
       if (strCov %in% cstrContCovsToAdd) {#Add a continuous covariate to the fremdataset
         if (!strCov %in% covnames$covNames || overrideExistingCheck==TRUE) {
           tmp<-dfFFEM[dfFFEM[[strCov]]!=-99,]

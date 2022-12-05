@@ -15,5 +15,48 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-library(PMXFrem)
+suppressPackageStartupMessages(library(PMXFrem))
 ```
+
+## Introduction
+
+The PsN frem command generates a NONMEM model file includes the FREM implementation with all covariates. A straight forward way to remove or add covariates to an existing FREM model is to re-run the PsN frem command with the new set of covariate. However, the frem command can sometime take a long time, or the frem command may have been run with a subset of covariates, or it is realized that one covariates should be removed from the frem model (for whatever reason). 
+
+Another model development challenge may be to update the initial estimates in the FREM model. The PsN command `update_inits` can usually be used for this but sometimes, with many covariates,  the updated inits may not provide a valid OMEGA matrix.
+
+The `PMXFrem` function `updateFREM` is designed to be able to add or remove covariates from an existing FREM model and/or to update the initial estimates of the parameters.
+
+
+## Removing a covariate from a FREM model
+
+```{r}
+updateFREM(
+  strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+  strFREMData       = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
+  strFFEMData       = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
+  cstrRemoveCov     = c("SEX"),
+  cstrCatCovsToAdd  = NULL,
+  cstrContCovsToAdd = NULL,
+  strID             = "ID",
+  strNewFREMData    = "frem_dataset_noSEX.csv",
+  numNonFREMThetas  = 7,
+  numSkipOm         = 2,
+  bWriteData        = TRUE,
+  quiet             = F,
+  bWriteFIX         = TRUE,
+  sortFREMDataset  = c("ID","TIME","FREMTYPE"),
+  cstrKeepCols = c("ID","TIME","AMT","EVID","RATE","DV","FOOD","FREMTYPE"))
+
+```
+
+## Update initial estimates
+
+```{r}
+updateFREM(strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+           numNonFREMThetas  = 7,
+           numSkipOm         = 2,
+           bWriteData        = FALSE,
+           quiet             = F,
+           strUpdateType     = "NoData")
+```
+
