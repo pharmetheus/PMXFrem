@@ -67,7 +67,7 @@ updateFREM <- function(strFREMModel,
                        cstrRemoveCov         = NULL,
                        covEpsNum             = 2,
                        overrideExistingCheck = FALSE,
-                       sortAGE               = TRUE) {
+                       sortFREMDataset       = c(strID,"TIME","FREMTYPE")) {
 
   library(tools)
   iFremTypeIncrease<-100 #The FREMTYPE INCREASE TO USE
@@ -128,6 +128,12 @@ updateFREM <- function(strFREMModel,
         tmp<-gsub(".*[ ]ETA\\(([0-9]+)\\).*", "\\1", str)
         if (as.numeric(tmp)>iNumOM) iNumOM<-as.numeric(tmp)
       }
+      
+      if (is.null(numParCov)) {
+        error("If no *.ext file exist, the number of parameters  (numParCov) needs to be specified!")
+      }
+      
+      
     } else {
       stop(paste0("Cannot find the FREM model: ",strFREMModel))
     }
@@ -229,6 +235,14 @@ updateFREM <- function(strFREMModel,
     ### Make all new variables (covariates) and store them in a list
     covList<-list()
     for (strCov in cstrCovsToAddOrder) { #Generate values, mean/variance for each covariate
+      
+      #Move categorical covariates with only 2 levels to cont covariates instead
+      if (strCov %in% cstrCatCovsToAdd && length(unique(dfFFEM[dfFFEM[[strCov]]!=-99,strCov]))==2) {
+        cstrContCovsToAdd<-c(strCov,cstrContCovsToAdd)
+        cstrCatCovsToAdd<-cstrCatCovsToAdd[-which(cstrCatCovsToAdd==strCov)]
+        printq(paste0("Switching: ",strCov,", from categorical to continuous since only 2 levels"),quiet=quiet)
+      }
+      
       if (strCov %in% cstrContCovsToAdd) {#Add a continuous covariate to the fremdataset
         if (!strCov %in% covnames$covNames || overrideExistingCheck==TRUE) {
           tmp<-dfFFEM[dfFFEM[[strCov]]!=-99,]
@@ -415,8 +429,10 @@ updateFREM <- function(strFREMModel,
 
 
     #Writing the FREM dataset to disc!!
-    if(sortAGE) {
-      dfFREM <- dfFREM %>% arrange(ID,AGE,FREMTYPE) %>% select(one_of(cstrKeepCols))
+    if(!is.null(sortFREMDataset)) {
+    #  dfFREM <- dfFREM[] %>% arrange(ID,AGE,FREMTYPE) %>% select(one_of(cstrKeepCols))
+      dfFREM <- dfFREM %>% arrange(!!!syms(sortFREMDataset)) %>% select(one_of(cstrKeepCols))
+      #dfFREM <- dfFREM[order(dfFREM[[]]),cstrKeepCols]
     } else {
       dfFREM <- dfFREM %>% arrange(ID,FREMTYPE) %>% select(one_of(cstrKeepCols))
     }
@@ -473,7 +489,6 @@ updateFREM <- function(strFREMModel,
   line<-findrecord(line,record = ";;;FREM CODE BEGIN COMPACT",replace = strinput,quite = T)
 
   #### Print parameters values, $THETA, $OMEGA
-
   if (is.null(basenames_th)) basenames_th<-paste0("BASE",1:numNonFREMThetas)
   if (is.null(basenames_om)) basenames_om<-paste0("BASE",1:(numSkipOm+numParCov))
 
