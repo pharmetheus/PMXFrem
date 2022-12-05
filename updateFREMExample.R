@@ -21,7 +21,8 @@ updateFREM(
   bWriteData        = TRUE,
   quiet             = F,
   bWriteFIX         = TRUE,
-  sortAGE           = FALSE,
+  sortFREMDataset  = c("ID","TAD","FREMTYPE"),
+  #sortAGE           = FALSE,
   cstrKeepCols = c("ID","TAD","AMT","EVID","RATE","DV","FREMTYPE"))
 
 
@@ -36,10 +37,11 @@ updateFREM(
   strNewFREMData    = "frem_dataset_withSEX.csv",
   numNonFREMThetas  = 7,
   numSkipOm         = 2,
+  numParCov         = 3,
   bWriteData        = FALSE,
   quiet             = F,
   bWriteFIX         = TRUE,
-  sortAGE           = FALSE,
+  sortFREMDataset  = c("ID","TAD","FREMTYPE"),
   cstrKeepCols = c("ID","TAD","AMT","EVID","RATE","DV","FREMTYPE"))
 
 # ## The object tmp is a list and contains the Omega', names of the new columns for $INP and the name of the new data file.
