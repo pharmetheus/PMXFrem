@@ -15,11 +15,11 @@ test_that("calParameters works", {
 
 
 
-  ind_params <- calcParameters(modName          = "run31",
-                               modDevDir        = system.file("extdata/SimNeb/", package = "PMXFrem"),
-                               numSkipOm        = 2,
-                               numNonFREMThetas = 7,
-                               FFEMData         = vpcData)
+  ind_params <- calcEtas(modName          = "run31",
+                         modDevDir        = system.file("extdata/SimNeb/", package = "PMXFrem"),
+                         numSkipOm        = 2,
+                         numNonFREMThetas = 7,
+                         FFEMData         = vpcData)
 
 
   expect_equal(class(ind_params),"data.frame")

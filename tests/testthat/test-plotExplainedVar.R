@@ -30,27 +30,27 @@ test_that("plotExplained variability works", {
   )
   functionListName2 <- c("CL","V")
 
-  dfres0 <- getExplainableVarDF(type             = 0,
-                                data             = NULL,
-                                dfCovs           = dfCovs,
-                                numNonFREMThetas = 7,
-                                numSkipOm        = 2,
-                                functionList     = functionList2,
-                                functionListName = functionListName2,
-                                cstrCovariates   = cstrCovariates,
-                                modDevDir        = modDevDir,
-                                runno            = fremRunno,
-                                ncores           = 1,
-                                quiet            = TRUE,
-                                seed             = 123
+  dfres0 <- getExplainedVar(type             = 0,
+                            data             = NULL,
+                            dfCovs           = dfCovs,
+                            numNonFREMThetas = 7,
+                            numSkipOm        = 2,
+                            functionList     = functionList2,
+                            functionListName = functionListName2,
+                            cstrCovariates   = cstrCovariates,
+                            modDevDir        = modDevDir,
+                            runno            = fremRunno,
+                            ncores           = 1,
+                            quiet            = TRUE,
+                            seed             = 123
   )
 
   expect_snapshot_value(dfres0,style = "deparse")
 
   svg() # Start a device to make plots cosistent between different ways of running the tests
   p1 <- plotExplainedVar(dfres0)
-  p2 <- plotExplainedVar(dfres0,type=2)
-  p3 <- plotExplainedVar(dfres0,type=2,parameters = "CL")
+  p2 <- plotExplainedVar(dfres0,maxVar=2)
+  p3 <- plotExplainedVar(dfres0,maxVar=2,parameters = "CL")
 
   covLabels <- c("All covariates","Age","ALT","AST","Bilirubin","BMI","BSA","Createnine clearance","Ethnicity","Genotype","Height","Lean body weight","NCI","Race","Sex","Smoking","Bodyweight")
   p4 <- plotExplainedVar(dfres0,covariateLabels = covLabels)
@@ -65,7 +65,7 @@ test_that("plotExplained variability works", {
   vdiffr::expect_doppelganger("Explained variability plot with labeller", p5)
 
   ## Test some error conditions
-  expect_snapshot(plotExplainedVar(dfres0,type=3),error=T)
+  expect_snapshot(plotExplainedVar(dfres0,maxVar=3),error=T)
   expect_snapshot(plotExplainedVar(dfres0,parameterLabels = c("CL","V","MAT")),error=T)
   expect_snapshot(plotExplainedVar(dfres0,covariateLabels = "WT"),error=T)
   expect_snapshot(plotExplainedVar(dfres0,parameters = c("CL","V","MAT")),error=T)

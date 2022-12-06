@@ -70,9 +70,9 @@
 ---
 
     Code
-      plotExplainedVar(dfres0, type = 3)
+      plotExplainedVar(dfres0, maxVar = 3)
     Error <simpleError>
-      type needs to be 1 or 2
+      maxVar needs to be 1 or 2
 
 ---
 

@@ -1,4 +1,4 @@
-# getExplainableVarDF works
+# getExplainedVar works
 
     structure(list(AGE = c(1, 1, -99, -99, -99, -99, -99, -99, -99, 
     -99, -99, -99, -99, -99, -99, -99, -99), ALT = c(1, -99, 1, -99, 

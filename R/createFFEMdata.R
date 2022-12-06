@@ -108,14 +108,14 @@ createFFEMdata <- function(runno=NULL,
   } else {
     dfext <- dfext
   }
-  
+
   #dfPhi   <- getPhi(phiFile)
 
   if (is.null(numParCov)) {
     numParCov <- calcNumParCov(dfext,numNonFREMThetas, numSkipOm)
   }
 
-  
+
   ## Run this to get the omega matrix to use in the vpc
   if(availCov == "all") availCov    <- covNames
 
@@ -152,7 +152,7 @@ createFFEMdata <- function(runno=NULL,
       rename("ID" = idvar)
   }
   ## Add the FREM covariates to the data file
-  data <- addFremCovariates(dfFFEM = data,modFile)
+  data <- addFREMcovariates(dfFFEM = data,modFile)
 
   dataI <- data %>% distinct(ID,.keep_all=TRUE)
   dataI <- dataI[,c("ID",orgCovs,covNames)]
@@ -161,7 +161,7 @@ createFFEMdata <- function(runno=NULL,
 
   ## Register to allow for parallel computing
   if (cores>1) registerDoParallel(cores = cores)
-  
+
   mapFun <- function(data,cov,orgCovs)  {
     for(cov in orgCovs) {
       if(data[1,cov]==-99 & length(grepl(cov,names(data))) > 1) {
@@ -170,12 +170,12 @@ createFFEMdata <- function(runno=NULL,
     }
     return(data)
   }
-# 
+#
 #   dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
 #     mapFun(data=dataI[k,],cov=cov,orgCovs=orgCovs)
 #   }
-# 
-#   
+#
+#
   if (cores>1) {
     dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
       mapFun(data=dataI[k,],cov=cov,orgCovs=orgCovs)
@@ -186,8 +186,8 @@ createFFEMdata <- function(runno=NULL,
     for (k in 1:nrow(dataI)) dataI2<-rbind(dataI2,mapFun(data=dataI[k,],cov=cov,orgCovs=orgCovs))
     dataI<-dataI2
   }
-  
-  
+
+
   dataI <- dataI[,c("ID",covNames)]
   dataMap <- dataI[]
   dataMap[,covNames] <- TRUE
@@ -218,8 +218,8 @@ createFFEMdata <- function(runno=NULL,
   }
 
   dataOne <- data %>% distinct(ID,.keep_all=TRUE)
-  
-  
+
+
 
   if (cores>1) {
     covEff <- foreach(k = 1:nrow(dataOne)) %dopar% {
@@ -231,13 +231,13 @@ createFFEMdata <- function(runno=NULL,
     for (k in 1:nrow(dataOne)) covEff2<-bind_rows(covEff2,myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov,covSuffix))
     covEff<-covEff2
   }
-  
+
   # covEff <- foreach(k = 1:nrow(dataOne)) %do% {
   #   myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov,covSuffix)
   # }
   # covEff <- data.frame(rbindlist(covEff))
-  # 
-  
+  #
+
   ## Add the individual covariateCoefficients to the return object
   retList$indCovEff <- names(covEff)[-1]
 

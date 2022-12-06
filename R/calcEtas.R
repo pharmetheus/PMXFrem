@@ -1,4 +1,4 @@
-#' calcParameters
+#' calcEtas
 #'
 #' @description Collects the ETAs (parameter and covariate) from a FREM model and computes the ETA_prims.
 #'
@@ -26,7 +26,7 @@
 #'                             numNonFREMThetas = 7,
 #'                             FFEMData         = FFEMDataObject)
 #' }
-calcParameters <- function(
+calcEtas <- function(
     runno          = NULL,
     numNonFREMThetas,
     modName       = NULL,

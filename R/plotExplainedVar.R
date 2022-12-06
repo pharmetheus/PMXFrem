@@ -1,6 +1,6 @@
 #' plotExplainedVar
 #'
-#' @param dfres A data.frame with data to plot. Typically obtained by \code{getExplainableVarDF}.
+#' @param dfres A data.frame with data to plot. Typically obtained by \code{getExplainedVar}.
 #' @param parameters A vector with the names of the parameters to include in the plot. The parameter names must be present in the \code{dfres$PARAMETER}.
 #' @param parameterLabels A character vector of alternative parameter labels.
 #' Should either have the same length as \code{parameters} or the same length as the number of rows in \code{dfres}.

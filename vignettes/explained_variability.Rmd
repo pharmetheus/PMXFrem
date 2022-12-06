@@ -127,7 +127,7 @@ functionListName <- c("CL","Frel","AUC","V","MAT")
 
 ## Compute the explained variability
 
-The function `getExplainableVarDF`computes the total and explained variability. This can be done in 4 different ways, specified with the `type`argument.
+The function `getExplainainedVar`computes the total and explained variability. This can be done in 4 different ways, specified with the `type`argument.
 
 0. based on FO delta rule
 1. based on data and calculated etas (ebes) - default
@@ -137,20 +137,20 @@ The function `getExplainableVarDF`computes the total and explained variability. 
 If no fixed cov relationship are used, `type=2` is exactly the same as `type=3` but `type=3` is faster.
 
 ```{r}
-dfres  <- getExplainableVarDF(type             = 2,
-                              data             = dfData,
-                              dfCovs           = dfCovs,
-                              numNonFREMThetas = numNonFREMThetas,
-                              numSkipOm        = numSkipOm,
-                              functionList     = list(paramFunctionExpVar),
-                              functionListName = functionListName,
-                              cstrCovariates   = cstrCovariates,
-                              modDevDir        = modDevDir,
-                              modName          = runname,
-                              ncores           = 10,
-                              numETASamples    = 100,
-                              quiet            = TRUE,
-                              seed             = 123
+dfres  <- getExplainedVar(type             = 2,
+                          data             = dfData,
+                          dfCovs           = dfCovs,
+                          numNonFREMThetas = numNonFREMThetas,
+                          numSkipOm        = numSkipOm,
+                          functionList     = list(paramFunctionExpVar),
+                          functionListName = functionListName,
+                          cstrCovariates   = cstrCovariates,
+                          modDevDir        = modDevDir,
+                          modName          = runname,
+                          ncores           = 10,
+                          numETASamples    = 100,
+                          quiet            = TRUE,
+                          seed             = 123
 )
 ```
 

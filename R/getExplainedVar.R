@@ -1,4 +1,4 @@
-#' getExplainableVarDF()
+#' getExplainedVar
 #'
 #' @description Get a data frame with explainable variability information based on a dataset of subjects with covariates
 #'
@@ -40,7 +40,7 @@
 #' \dontrun{
 #' dfForest <- getExplainableDF(dfCovs)
 #' }
-getExplainableVarDF <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno=NULL,modName=NULL,modDevDir=".",cstrCovariates=NULL,
+getExplainedVar <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno=NULL,modName=NULL,modDevDir=".",cstrCovariates=NULL,
                                 functionList=list(function(basethetas,covthetas,dfrow,etas,...){return(basethetas[1]*exp(covthetas[1]+etas[1]))}),functionListName="PAR1",numNonFREMThetas, numFREMThetas=length(grep("THETA",names(dfext)))-numNonFREMThetas, numSigmas=length(grep("SIGMA",names(dfext))), numParCov = NULL,
                                 parNames = NULL, numSkipOm=0, availCov = NULL, etas=NULL,quiet = FALSE,
                                 ncores=1,cstrPackages=NULL,cstrExports=NULL,numETASamples=100,seed=NULL,...) {

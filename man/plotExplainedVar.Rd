@@ -11,13 +11,13 @@ plotExplainedVar(
   covariateLabels = NULL,
   labelfun = label_value,
   fill_col = "#508791",
-  type = 1,
-  xlb = ifelse(type == 1, "Explained part of total variability (\%)",
+  maxVar = 1,
+  xlb = ifelse(maxVar == 1, "Explained part of total variability (\%)",
     "Explained part of explainable variability (\%)")
 )
 }
 \arguments{
-\item{dfres}{A data.frame with data to plot. Typically obtained by \code{getExplainableVarDF}.}
+\item{dfres}{A data.frame with data to plot. Typically obtained by \code{getExplainedVar}.}
 
 \item{parameters}{A vector with the names of the parameters to include in the plot. The parameter names must be present in the \code{dfres$PARAMETER}.}
 
@@ -30,7 +30,7 @@ Should either have the same length as \code{parameters} or the same length as th
 
 \item{fill_col}{The fill color of the bars.}
 
-\item{type}{type=1 (default): Visualize the explained part of the total variability. type=2: Visualize the explained part of the explainable variability.}
+\item{maxVar}{maxVar=1 (default): Visualize the explained part of the total variability. maxVar=2: Visualize the explained part of the explainable variability.}
 
 \item{xlb}{X-axis title.}
 }
@@ -41,8 +41,8 @@ A plot that illustrates the explained variability
 plotExplainedVar
 }
 \details{
-With type=1 the explained variability of the covariate (combination) in each row of dfres (COVVAR) is divided by the value in TOTVAR and multiplied by 100.
-With type=2 the explained variability of the covariate (combination) in each row of dfres (COVVAR) is divided by the value in TOTCOVVAR and multiplied by 100.
+With maxVar=1 the explained variability of the covariate (combination) in each row of dfres (COVVAR) is divided by the value in TOTVAR and multiplied by 100.
+With maxVar=2 the explained variability of the covariate (combination) in each row of dfres (COVVAR) is divided by the value in TOTCOVVAR and multiplied by 100.
 }
 \examples{
 \dontrun{

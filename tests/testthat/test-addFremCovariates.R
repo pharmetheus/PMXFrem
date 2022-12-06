@@ -2,7 +2,7 @@ test_that("the correct columns are added", {
   data <- read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",package="PMXFrem"),show_col_types = FALSE) %>%
     filter(BLQ!=1)
 
-  newData <-addFremCovariates(data,modFile = system.file("extdata/SimNeb/run31.mod",package="PMXFrem"))
+  newData <-addFREMcovariates(data,modFile = system.file("extdata/SimNeb/run31.mod",package="PMXFrem"))
 
   ## Check object type
   expect_equal("data.frame" %in% class(newData),TRUE)

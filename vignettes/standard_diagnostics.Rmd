@@ -127,7 +127,7 @@ ggarrange(p1,p2,p3,p4,ncol=2,nrow=2)
 
 ## Creating ETA plots
 
-Similarly to the standar diagnostics variables (e.g. CWRES) ETAs will also have to be adjusted to reflect the impact of covariates, i.e. the "ETA prims" needs to be computed. This is done by the `calcParameters` function. This function requires an "FFEM data object" from the `createFFEMmodel` function as input.
+Similarly to the standar diagnostics variables (e.g. CWRES) ETAs will also have to be adjusted to reflect the impact of covariates, i.e. the "ETA prims" needs to be computed. This is done by the `calcEtas` function. This function requires an "FFEM data object" from the `createFFEMmodel` function as input.
 
 ```{r}
 
@@ -147,11 +147,11 @@ FFEMdata <- createFFEMdata(runno            = fremRun,
 
 Collect the ETAs and compute the ETA_proms
 ```{r}
-ind_params <- calcParameters(runno            = fremRun,
-                             modDevDir        = modDevDir,
-                             numSkipOm        = 2,
-                             numNonFREMThetas = 7,
-                             FFEMData         = FFEMdata) %>% 
+ind_params <- calcEtas(runno            = fremRun,
+                       modDevDir        = modDevDir,
+                       numSkipOm        = 2,
+                       numNonFREMThetas = 7,
+                       FFEMData         = FFEMdata) %>% 
   arrange(ID)
 
 print(head(ind_params))
