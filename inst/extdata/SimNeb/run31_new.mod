@@ -5,9 +5,7 @@
 ;;    SimVal base model
 ;------------------------------------------------------------------------------
 $PROBLEM    run 1
-$INPUT      NO ID STUDYID TAD TIME DAY AMT RATE ODV DV EVID BLQ DOSE
-            FOOD FORM TYPE WT HT LBWT BSA SEX RACE AGE AST ALT BILI
-            CRCL BMI NCI GENO2 ETHNIC SMOK RACEL NCIL FREMTYPE
+$INPUT ID TAD
 $DATA frem_dataset_noSEX.csv IGNORE=@
 $SUBROUTINE ADVAN2 TRANS2
 $PK

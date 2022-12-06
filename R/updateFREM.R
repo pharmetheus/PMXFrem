@@ -431,14 +431,22 @@ updateFREM <- function(strFREMModel,
     #Writing the FREM dataset to disc!!
     if(!is.null(sortFREMDataset)) {
     #  dfFREM <- dfFREM[] %>% arrange(ID,AGE,FREMTYPE) %>% select(one_of(cstrKeepCols))
-      dfFREM <- dfFREM %>% arrange(!!!syms(sortFREMDataset)) %>% select(one_of(cstrKeepCols))
-      #dfFREM <- dfFREM[order(dfFREM[[]]),cstrKeepCols]
+      if (is.null(cstrKeepCols)) { #Keep all columns
+        dfFREM %>% arrange(!!!syms(sortFREMDataset))
+      } else{
+        dfFREM <- dfFREM %>% arrange(!!!syms(sortFREMDataset)) %>% select(one_of(cstrKeepCols))
+      }
     } else {
-      dfFREM <- dfFREM %>% arrange(ID,FREMTYPE) %>% select(one_of(cstrKeepCols))
+      if (is.null(cstrKeepCols)) {
+        dfFREM <- dfFREM %>% arrange(ID,FREMTYPE)
+      } else {
+        dfFREM <- dfFREM %>% arrange(ID,FREMTYPE) %>% select(one_of(cstrKeepCols))
+      }
     }
 
     if (bWriteData) {
       write.csv(dfFREM,file=strNewFREMData,row.names = FALSE,quote = FALSE)
+      if (!("FREMTYPE" %in% names(dfFREM))) warning("No FREMTYPE available in dataset, add in cstrKeepCols and rerun updateFREM")
     }
 
   }
@@ -527,11 +535,6 @@ updateFREM <- function(strFREMModel,
   #Add new $THETA
   line<-findrecord(line,record = "\\$THETA",replace = strinput,quite = T)
 
-  #line <- findrecord(line,record="\\$OMEGA",replace=buildmatrix(as.matrix(OM),strName = "$OMEGA"),quite=T)
-
-  #Add with OM_block functionality
-  #cat(file=strNewModelFileName,paste0("$OMEGA BLOCK(",ncol(OM),")\n"),append=TRUE)
-
   #Build OM Matrix
   newommatrix<-buildmatrix(as.matrix(OM))
   #Add OM comments
@@ -542,18 +545,13 @@ updateFREM <- function(strFREMModel,
   }
   #Replace $OMEGA
   line <- findrecord(line,record="\\$OMEGA",replace=newommatrix,quite=T)
-#
-# #  up <- upper.tri(OM)
-# #
-#
-#   up <- upper.tri(OM)
-#   for(i in 1:ncol(OM)) {
-#     cat(file=strNewModelFileName,c(OM[i,!up[i,]]," ",om_comment[i]),append=TRUE,fill=140)
-#   }
 
   ## Replace $DATA
   line <- findrecord(line,record="\\$DATA",replace=paste0("$DATA ", strNewFREMData," IGNORE=@"),quite=T)
 
+  ## Replace $INPUT
+  line <- findrecord(line,record="\\$INPUT",replace=paste0("$INPUT ", paste0(names(dfFREM),collapse = " ")),quite=T)
+  
   ## Write new model file
   strNewModelFileName<-paste0(file_path_sans_ext(strFREMModel),"_new.mod")
   con=file(strNewModelFileName,open="w")

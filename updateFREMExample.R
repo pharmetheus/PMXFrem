@@ -23,7 +23,9 @@ updateFREM(
   bWriteFIX         = TRUE,
   sortFREMDataset  = c("ID","TAD","FREMTYPE"),
   #sortAGE           = FALSE,
-  cstrKeepCols = c("ID","TAD","AMT","EVID","RATE","DV","FREMTYPE"))
+  #cstrKeepCols = c("ID","TAD","AMT","EVID","RATE","DV","FREMTYPE"))
+  cstrKeepCols = c("ID","TAD"))
+  #cstrKeepCols = NULL)
 
 
 updateFREM(
