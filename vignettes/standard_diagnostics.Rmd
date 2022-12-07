@@ -46,7 +46,7 @@ xptabBase <- fread(paste0(modDevDir,"/xptab",baseRun),data.table=FALSE,check.nam
   filter(BLQ==0,EVID==0) %>% 
     arrange(ID,TAD)
 
-xptabFFEM <- fread(paste0(modDevDir,"/xptabmax0",baseRun),data.table=FALSE,check.names = T) %>%
+xptabFFEM <- fread(paste0(modDevDir,"/xptabmax0",fremRun),data.table=FALSE,check.names = T) %>%
   filter(BLQ==0,EVID==0) %>% 
   arrange(ID,TAD)
 
