@@ -98,12 +98,12 @@ dfCovs2 <- PMXForest::createInputForestData(
 print(dfCovs2)
 ```
 
-There is also a function called `getCovStats` that takes the data set and a list of covariates and computes input that is suitable for `createInputForestData` assuming only univariable combinations. This is most useful during exploratory stages. Use one of the above methods for more fine-grained control.
+There is also a function called `getCovStats` in `PMXFrem` that takes the data set and a list of covariates and computes input that is suitable for `createInputForestData` assuming only univariable combinations. This is most useful during exploratory stages. Use one of the above methods for more fine-grained control.
 
 ```{r}
 data <- fread(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",package="PMXFrem"))
 dfCovs3 <- PMXForest::createInputForestData(
-    getCovStats(data,covNames$orgCovNames,probs=c(0.05,0.9),missVal=-99),
+    PMXForest::getCovStats(data,covNames$orgCovNames,probs=c(0.05,0.9),missVal=-99),
     iMiss    =-99
   )
 
