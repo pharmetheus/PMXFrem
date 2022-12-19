@@ -1,5 +1,6 @@
 ---
 title: "Generate standard diagnostics for a FREM model"
+author: "Joakim Nyberg and Niclas Jonsson"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Generate standard diagnostics for a FREM model}
@@ -46,17 +47,10 @@ xptabBase <- fread(paste0(modDevDir,"/xptabmax0",baseRun),data.table=FALSE,check
   filter(BLQ==0,EVID==0) %>% 
     arrange(ID,TAD)
 
-# xptabBase <- fread(paste0(modDevDir,"/xptab",baseRun),data.table=FALSE,check.names = T) %>%
-#   filter(BLQ==0,EVID==0) %>% 
-#     arrange(ID,TAD)
-
 xptabFFEM <- fread(paste0(modDevDir,"/xptabmax0",fremRun),data.table=FALSE,check.names = T) %>%
   filter(BLQ==0,EVID==0) %>% 
   arrange(ID,TAD)
 
-# xptabFREM <- fread(paste0(modDevDir,"/xptab",fremRun),data.table=FALSE,check.names = T) %>%
-#   filter(BLQ==0,EVID==0,FREMTYPE==0) %>% 
-#     arrange(ID,TAD)
 
 xptabFREM <- fread(paste0("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model","/xptabFREMmax0",fremRun),data.table=FALSE,check.names = T) %>%
   filter(BLQ==0,EVID==0,FREMTYPE==0) %>% 
@@ -69,30 +63,79 @@ predData  <- bind_cols(Base=xptabBase$CPRED, FREM=xptabFREM$CPRED, FFEM=xptabFFE
 ipredData <- bind_cols(Base=xptabBase$CIPREDI,FREM=xptabFREM$CIPREDI,FFEM=xptabFFEM$CIPREDI)
 ```
 
-It is only the population predictions that are the same between the three models. IPRED, CWRES, and IWRES are different
-```{r,fig.width=10,fig.height=6}
+
+#### PRED
+```{r,fig.width=10,fig.height=6,out.width="100%"}
 ggpairs(predData)   + ggtitle("PRED")
 ```
 
-The individual predictions are not the same.
-```{r,fig.width=10,fig.height=6}
+The PREDs are the same between Base and FREM since the THETAs are the same and no covariates affect the typical individual parameters. FFEM is different from the others due to the covariates.
+
+\begin{align*} 
+\mathrm{PRED}_{Base} &= f(\theta_{base},\eta_i=0) \\
+\mathrm{PRED}_{FREM} &= f(\theta_{base},\eta_i=0)\\
+\mathrm{PRED}_{FFEM} &= f(\theta_{base},\color{red}{\theta_{cov}},\color{red}{X_{cov}},\eta_i=0)
+\end{align*}
+
+(Differences between the models are marked with $\color{red}{red}$.)
+
+#### IPRED
+```{r,fig.width=10,fig.height=6,out.width="100%"}
 ggpairs(ipredData)  + ggtitle("IPRED")
 ```
 
-The CWRES are not identical
-```{r,fig.width=10,fig.height=6}
+The IPREDs are different between Base and FREM due to eta estimated with different Omegas and is different for the FFEM model due to the covariates and OMEGA prim.
+
+\begin{align*} 
+\mathrm{IPRED}_{Base} &= f(\theta_{base},\eta_i=\color{red}{\eta_{base}}) \\
+\mathrm{IPRED}_{FREM} &= f(\theta_{base},\eta_i=\color{red}{\eta_{FREM}})\\
+\mathrm{IPRED}_{FFEM} &= f(\theta_{base},\color{red}{\theta_{cov}},\color{red}{X_{cov}},\color{red}{\eta_i=\eta_{prim}})
+\end{align*}
+
+where $\eta$ is estmated by:
+$$
+\color{red}{\eta_i} = \operatorname*{arg\,max}_\eta l_i + \log({pdf(\color{red}{\eta_i};\color{red}{\Omega)}})
+$$
+
+where $l_i$ is the individual likelihood and $pdf$ is the probability density function of a normal distribution with variance $\color{red}{\Omega}$.
+
+
+(Differences between the models are marked with $\color{red}{red}$.)
+
+
+#### CWRES
+```{r,fig.width=10,fig.height=6,out.width="100%"}
 ggpairs(cwresData)  + ggtitle("CWRES")
 ```
+The CWRES are not the same. This is due to differences in population variance as well as IPRED, eta and omega
 
-The IWRES are not identical
-```{r,fig.width=10,fig.height=6}
+\begin{align*}
+\mathrm{CWRES}_i &= \frac{y_i - \color{red}{E[u_i]}}{\color{red}{Var[y_i]^2}}\\
+\color{red}{E[y_i]} &= \color{red}{IPRED_i} - \color{red}{\eta_i\frac{ \delta IPRED_i^T}{\delta\eta_i}}\\
+\color{red}{Var[y_i]} &= \color{red}{\frac{\delta IPRED_i}{\delta \eta_i}\Omega\frac{\delta IPRED_i^T}{\delta \eta_i}} + \Sigma^*
+\end{align*}
+
+$^*$ The residual error model can also differ. See below.
+
+(Differences between the models are marked with $\color{red}{red}$.)
+
+#### IWRES
+```{r,fig.width=10,fig.height=6,out.width="100%"}
 
 ggpairs(iwresData)  + ggtitle("IWRES")
 ```
+The IWRES are not the same. Mainly due to difference is IPRED but also residual error model if it depends on IPRED .
+
+\begin{align*}
+\mathrm{IWRES}_i = \frac{y_i - \color{red}{\color{red}{\mathrm{IPRED}_i}}}{\color{red}{R_i^2}}\\
+\color{red}{R_i} = diag \left( \color{red}{\frac{\delta res}{\delta \varepsilon_i}}  \Sigma \color{red}{\frac{\delta res^T}{\delta \varepsilon_i}} \right)
+\end{align*}
+
+(Differences between the models are marked with $\color{red}{red}$.)
 
 ## Creating basic GOF plots
 
-```{r,fig.width=10,fig.height=10}
+```{r,fig.width=10,fig.height=10,out.width="100%"}
 
 ## DV vs PRED
 p1 <- xptabFFEM %>% 
@@ -167,20 +210,20 @@ print(head(ind_params))
 ```
 
 Compare the ETAs and the ETA_prims
-```{r,fig.width=10,fig.height=6}
+```{r,fig.width=10,fig.height=6,out.width="100%"}
 ind_params %>% select(ETA3,ETA3_PRIM) %>% ggpairs()   + ggtitle("ETA CL")
 ```
 
-```{r,fig.width=10,fig.height=6}
+```{r,fig.width=10,fig.height=6,out.width="100%"}
 ind_params %>% select(ETA4,ETA4_PRIM) %>% ggpairs()   + ggtitle("ETA V")
 ```
 
-```{r,fig.width=10,fig.height=6}
+```{r,fig.width=10,fig.height=6,out.width="100%"}
 ind_params %>% select(ETA4,ETA5_PRIM) %>% ggpairs()   + ggtitle("ETA MAT")
 ```
 
 All predicted covariate values will be the same as the observed values, provided there are informative observations for the subject in question (i.e. not only dosing records in PK). 
-```{r fig.width=10,fig.height=6}
+```{r fig.width=10,fig.height=6,out.width="100%"}
 
 covariates <- data %>% 
   group_by(ID) %>% 
@@ -205,7 +248,7 @@ tmp %>% ggplot(aes(WT,obsWT,color=missWT)) +
 
 Plotting the regular ETA from the FREM model versus WT gives a very different picture compared to plotting ETA prim.
 
-```{r,fig.width=10,fig.height=6}
+```{r,fig.width=10,fig.height=6,out.width="100%"}
 
 p1 <- tmp %>% 
   ggplot(aes(WT,ETA3)) +
@@ -226,7 +269,7 @@ p2 <- tmp %>%
 ggarrange(p1,p2,ncol=2,nrow=1,common.legend = T)
 ```
 
-```{r fig.width=10,fig.height=6}
+```{r fig.width=10,fig.height=6,out.width="100%"}
 
 tmp %>% mutate(missWT = factor(missWT,levels=c("Not missing WT","Missing WT"))) %>% 
   ggplot(aes(WT,fill=missWT)) +

@@ -1,7 +1,6 @@
 ---
 title: "Create a Forest plot for a FREM model"
-author: "Joakim Nyberg"
-date: "`r Sys.Date()`"
+author: "Joakim Nyberg and Niclas Jonsson"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Create a Forest plot for a FREM model}
@@ -172,7 +171,7 @@ print(dfres)
 The `plotForestDF` function takes the `getForestDFFREM()` output to produce the Forest plot.
 
 
-```{r, fig1,fig.height = 12, fig.width = 14, fig.align="center"}
+```{r, fig1,fig.height = 12, fig.width = 14, fig.align="center",out.width="100%"}
 PMXForest::forestPlot(
   dfres,
   groupNameLabels = c("WT& BWT","WT","BSA","LBWT","Reference"),
@@ -195,13 +194,13 @@ dfres3 <- PMXForest::getForestDFFREM(dfCovs           = dfCovs3,
 print(dfres3)
 ```
 
-```{r, fig2,fig.height = 10, fig.width = 14, fig.align="center"}
+```{r, fig2,fig.height = 10, fig.width = 14, fig.align="center",out.width="100%"}
 PMXForest::forestPlot(dfres3)
 ```
 
 `getCovStats` is meant as a quick and easy way to get a Forest plot made. It is possible to tidy up the `dfres` to get a more respectable looking Forest plot.
 
-```{r fig.height = 14, fig.width = 16, fig.align="center"}
+```{r fig.height = 14, fig.width = 16, fig.align="center",out.width="100%"}
 covnames  <- c("20 y","60 y",
                "12 IU","49 IU",
                "14 IU", "38 IU",

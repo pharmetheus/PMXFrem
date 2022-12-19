@@ -1,5 +1,6 @@
 ---
 title: "Create VPCs for a FREM model"
+author: "Joakim Nyberg and Niclas Jonsson"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Create VPCs for a FREM model}
@@ -54,7 +55,7 @@ sdata       <- sdata %>% filter(EVID!=1)
 
 Use ´pmxvpc` to generate the VPCs.
 
-```{r,fig.width=10,fig.height=6}
+```{r,fig.width=10,fig.height=6,out.width="100%"}
 vpc1 <- observed(odata, x = TAD, yobs = LNDV, logDV = TRUE) %>%
   simulated(sdata, ysim = DV) %>%
   censoring(blq = ifelse(BLQ==1,T,F),lloq= -2.3) %>%
@@ -74,7 +75,7 @@ vpcplot(vpc1,
 
 And with stratification.
 
-```{r,fig.width=10,fig.height=6}
+```{r,fig.width=10,fig.height=6,out.width="100%"}
 vpc2 <- observed(odata, x = TAD, yobs = LNDV, logDV = TRUE) %>%
   simulated(sdata, ysim = DV) %>%
   censoring(blq = ifelse(BLQ==1,T,F),lloq= -2.3) %>%
