@@ -30,7 +30,7 @@ theme_set(theme_bw(base_size=20)) #Change ggplot defaults to get nice plot
 ```
 
 ### Collect run information
-Collect the file names related to the FREM run we are visualizing the results from. The utility function `getFileNames` returns a liss of file paths for the `.mod`, `.ext`, `.lst`, `.phi` and `.cov` files.
+Collect the file names related to the FREM run we are visualizing the results from. The utility function `getFileNames` returns a list of file paths for the `.mod`, `.ext`, `.lst`, `.phi` and `.cov` files.
 ```{r} 
 ## Specify the name of the FREM run
 runname <- "run31"

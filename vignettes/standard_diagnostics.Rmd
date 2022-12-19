@@ -42,17 +42,26 @@ fremFiles <- getFileNames(fremRun,modDevDir=modDevDir)
 ### Comparison of standard diagnostiocs input from Base, FREM and FFEM model
 
 ```{r}
-xptabBase <- fread(paste0(modDevDir,"/xptab",baseRun),data.table=FALSE,check.names = T) %>%
+xptabBase <- fread(paste0(modDevDir,"/xptabmax0",baseRun),data.table=FALSE,check.names = T) %>%
   filter(BLQ==0,EVID==0) %>% 
     arrange(ID,TAD)
+
+# xptabBase <- fread(paste0(modDevDir,"/xptab",baseRun),data.table=FALSE,check.names = T) %>%
+#   filter(BLQ==0,EVID==0) %>% 
+#     arrange(ID,TAD)
 
 xptabFFEM <- fread(paste0(modDevDir,"/xptabmax0",fremRun),data.table=FALSE,check.names = T) %>%
   filter(BLQ==0,EVID==0) %>% 
   arrange(ID,TAD)
 
-xptabFREM <- fread(paste0(modDevDir,"/xptab",fremRun),data.table=FALSE,check.names = T) %>%
+# xptabFREM <- fread(paste0(modDevDir,"/xptab",fremRun),data.table=FALSE,check.names = T) %>%
+#   filter(BLQ==0,EVID==0,FREMTYPE==0) %>% 
+#     arrange(ID,TAD)
+
+xptabFREM <- fread(paste0("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model","/xptabFREMmax0",fremRun),data.table=FALSE,check.names = T) %>%
   filter(BLQ==0,EVID==0,FREMTYPE==0) %>% 
     arrange(ID,TAD)
+
 
 cwresData <- bind_cols(Base=xptabBase$CWRES, FREM=xptabFREM$CWRES, FFEM=xptabFFEM$CWRES) 
 iwresData <- bind_cols(Base=xptabBase$CIWRES,FREM=xptabFREM$CIWRES,FFEM=xptabFFEM$CIWRES)
