@@ -94,25 +94,25 @@ createFFEMmodel <- function(runno=NULL,
   ## Start processing the model
 
   ## Replace $PROBLEM
-  tmp <- findrecord(basemodel,record="\\$PROBLEM",replace="$PROBLEM FFEM model",quite=T)
+  tmp <- findrecord(basemodel,record="\\$PROBLEM",replace="$PROBLEM FFEM model",quiet=T)
 
   ## Replace $INPUT
-  strInput <- findrecord(basemodel,record="\\$INPUT",quite=T)
+  strInput <- findrecord(basemodel,record="\\$INPUT",quiet=T)
   strInput <- c(strInput,paste0("         ",paste(FFEMdata$indCovEff,collapse=" ")))
-  tmp      <- findrecord(tmp,record="\\$INPUT",replace=strInput,quite=T)
+  tmp      <- findrecord(tmp,record="\\$INPUT",replace=strInput,quiet=T)
 
   ## Replace $DATA
-  strData <- findrecord(basemodel, record = "\\$DATA", quite = T)
+  strData <- findrecord(basemodel, record = "\\$DATA", quiet = T)
 
   if (grepl("^(\\$DATA )(.*)(\\s+.+)$", strData[1]) == FALSE) { # Only filename
     strData[1] <- gsub("^(\\$DATA )(.*)$", paste0("\\1", newDataFile, "\\3"), strData[1])
   } else {
     strData[1] <- gsub("^(\\$DATA )(.*)(\\s+.+)$", paste0("\\1", newDataFile, "\\3"), strData[1])
   }
-  tmp <- findrecord(tmp, record = "\\$DATA", replace = strData, quite = T)
+  tmp <- findrecord(tmp, record = "\\$DATA", replace = strData, quiet = T)
 
   ## Replace $OMEGA
-  tmp <- findrecord(tmp,record="\\$OMEGA",replace=buildmatrix(FFEMdata$FullVars),quite=T)
+  tmp <- findrecord(tmp,record="\\$OMEGA",replace=buildmatrix(FFEMdata$FullVars),quiet=T)
 
   ## Replace $THETA
   thvalues <- dfExt[dfExt$ITERATION==-1000000000,names(dfExt)[grepl("THETA.*",names(dfExt))]][1:numNonFREMThetas]
@@ -135,7 +135,7 @@ createFFEMmodel <- function(runno=NULL,
   SIGFULL <- SIGFULL[-nrow(SIGFULL),-ncol(SIGFULL)]
 
   # Replace $SIGMA
-  tmp <- findrecord(tmp,record="\\$SIGMA",replace=buildmatrix(as.matrix(SIGFULL),strName = "$SIGMA"),quite=T)
+  tmp <- findrecord(tmp,record="\\$SIGMA",replace=buildmatrix(as.matrix(SIGFULL),strName = "$SIGMA"),quiet=T)
 
   ## Replace FREM eta with ETA+Coefficients
   for (i in 1:nrow(FFEMdata$Coefficients)) {

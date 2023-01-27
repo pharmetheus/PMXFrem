@@ -506,7 +506,7 @@ updateFREM <- function(strFREMModel,
   ## Print the ;;;FREM CODE END COMPACT
   strinput<-c(strinput,paste0(";;;FREM CODE END COMPACT"))
   #Replace FREM code
-  line<-findrecord(line,record = ";;;FREM CODE BEGIN COMPACT",replace = strinput,quite = T)
+  line<-findrecord(line,record = ";;;FREM CODE BEGIN COMPACT",replace = strinput,quiet = T)
 
   #### Print parameters values, $THETA, $OMEGA
   if (is.null(basenames_th)) basenames_th<-paste0("BASE",1:numNonFREMThetas)
@@ -545,7 +545,7 @@ updateFREM <- function(strFREMModel,
   }
 
   #Add new $THETA
-  line<-findrecord(line,record = "\\$THETA",replace = strinput,quite = T)
+  line<-findrecord(line,record = "\\$THETA",replace = strinput,quiet = T)
 
   #Build OM Matrix
   newommatrix<-buildmatrix(as.matrix(OM))
@@ -556,14 +556,14 @@ updateFREM <- function(strFREMModel,
     j<-j-1
   }
   #Replace $OMEGA
-  line <- findrecord(line,record="\\$OMEGA",replace=newommatrix,quite=T)
+  line <- findrecord(line,record="\\$OMEGA",replace=newommatrix,quiet=T)
 
   ## Replace $DATA
-  line <- findrecord(line,record="\\$DATA",replace=paste0("$DATA ", strNewFREMData," IGNORE=@"),quite=T)
+  line <- findrecord(line,record="\\$DATA",replace=paste0("$DATA ", strNewFREMData," IGNORE=@"),quiet=T)
 
   ## Replace $INPUT
-  line <- findrecord(line,record="\\$INPUT",replace=paste0("$INPUT ", paste0(names(dfFREM),collapse = " ")),quite=T)
-  
+  line <- findrecord(line,record="\\$INPUT",replace=paste0("$INPUT ", paste0(names(dfFREM),collapse = " ")),quiet=T)
+
   ## Write new model file
   strNewModelFileName<-paste0(file_path_sans_ext(strFREMModel),"_new.mod")
   con=file(strNewModelFileName,open="w")
