@@ -18,6 +18,7 @@
 #' @param cstrKeepCols A vector of columns to keep in the dataset (for the updated (small) dataset).
 #' @param bWriteData If FALSE; add new variables to the model file but do not write new datasets, has no effect when "NoData" is used.
 #' @param bWriteFIX If TRUE; FIX is written to the theta parameter estimates code for the covariates that were fixed in the model file, if FALSE; all theta parameters are assumed to be estimated.
+#' @param bWriteMod If TRUE; write the new model file to disk with _mod appended to the file name (before the suffix).
 #' @param cstrDV A vector of strings which are DV variables, important if new DVs (or new individuals) should be added, default="HAZ" (i.e. HAZ assumed fremtype=0), new DVs are added with fremtype 1,2,3...etc.
 #' @param cstrRemoveCov A vector of strings for covariates that should be remove, note that FREMTYPEs for remaining covariates might/will change. The removal of covariates are done before any adding of data and/or new covariates.
 #' Note that if this functionality is used to remove the last existing category of a categorical covariate, this should be done by removing the orginal name of the covariate and not the specific categorical covariate, i.e. "SITEID" instead of "SITEID_1" to ensure consistent renumbering of FREMTYPEs
@@ -25,7 +26,8 @@
 #' @param overrideExistingCheck If TRUE, the existing check will be overriden and covariates will be added even though they are present in $DATA of the modefile
 #' @param sortFREMDataset The columns to sort the new data set on.
 #'
-#' @return Will write a new fremdata set to disc. WIll also write a stub model file with the new covariates and initial estimates (the name will be runX_new.txt).
+#' @return An invisible list with components data and model, containing the new data set (if any, else NULL) and updated model.
+#' Will write the new fremdata set (if bWriteData is TRUE and strUpdateType is not 'NoData') and updated model file (if bwriteMod is TRUE) to disc. The model file name will be 'stem'_new.mod).
 #' @export
 #'
 #' @examples
@@ -75,6 +77,7 @@ updateFREM <- function(strFREMModel,
                        cstrKeepCols          = c("ID","DV","FREMTYPE"),
                        bWriteData            = TRUE,
                        bWriteFIX             = TRUE,
+                       bWriteMod             = TRUE,
                        cstrDV                = "DV",
                        cstrRemoveCov         = NULL,
                        covEpsNum             = 2,
@@ -82,43 +85,43 @@ updateFREM <- function(strFREMModel,
                        sortFREMDataset       = c(strID,"TIME","FREMTYPE")) {
 
   library(tools)
-  iFremTypeIncrease<-100 #The FREMTYPE INCREASE TO USE
-  dDefaultCovValue<-1E-05 #The covariance value to use as initial estimate for new covariates
+  iFremTypeIncrease <- 100 # The FREMTYPE INCREASE TO USE
+  dDefaultCovValue <- 1E-05 # The covariance value to use as initial estimate for new covariates
 
-  printq<-function(str,quiet) {
+  printq <- function(str, quiet) {
     if (!quiet) print(str)
   }
 
-  if (strUpdateType!="NoData") {
-    if (is.null(strNewFREMData))  strNewFREMData<-paste0(file_path_sans_ext(strFREMData),"_new.",file_ext(strFREMData))
-    if ((is.null(strFREMData) || strFREMData=="") || (is.null(strFFEMData) || strFFEMData==""))  stop("strFREMData and strFFEMData must be set to dataset")
+  if (strUpdateType != "NoData") {
+    if (is.null(strNewFREMData)) strNewFREMData <- paste0(file_path_sans_ext(strFREMData), "_new.", file_ext(strFREMData))
+    if ((is.null(strFREMData) || strFREMData == "") || (is.null(strFFEMData) || strFFEMData == "")) stop("strFREMData and strFFEMData must be set to dataset")
   }
 
-  if (strUpdateType=="NoData" || strUpdateType=="NewInits") {
-    if (!file.exists(paste0(file_path_sans_ext(strFREMModel),".ext"))) stop(paste0("NoData and NewInits demands that ",paste0(file_path_sans_ext(strFREMModel),".ext")," exists"))
+  if (strUpdateType == "NoData" || strUpdateType == "NewInits") {
+    if (!file.exists(paste0(file_path_sans_ext(strFREMModel), ".ext"))) stop(paste0("NoData and NewInits demands that ", paste0(file_path_sans_ext(strFREMModel), ".ext"), " exists"))
   }
 
 
-  iNumTHETA=-1
-  iNumOM=-1
+  iNumTHETA <- -1
+  iNumOM    <- -1
 
   if (file.exists(paste0(file_path_sans_ext(strFREMModel),".ext"))) { #Use the ext file to figure out number of THETAS, OMEGAS and SIGMAS
-    dfext<-subset(getExt(extFile = paste0(file_path_sans_ext(strFREMModel),".ext")),ITERATION=="-1000000000") #Read in parameter values
-    dfextfix<-subset(getExt(extFile = paste0(file_path_sans_ext(strFREMModel),".ext")),ITERATION=="-1000000006") #Read in which parameteras that are fixed
-    iNumTHETA<-length(names(dfext)[regexpr('THETA.*',names(dfext))==1])
-    iNumOM<-length(names(dfext)[regexpr('OMEGA.*',names(dfext))==1])
-    iNumOM<--1/2+sqrt(1/4+2*iNumOM) #Get the number of diagonals from the number of OM elements
-    THETA<-as.numeric(dfext[,names(dfext)[regexpr('THETA.*',names(dfext))==1]])
-    THETAFIX<-as.numeric(dfextfix[,names(dfextfix)[regexpr('THETA.*',names(dfextfix))==1]])
-    OMEGA  <- as.numeric(dfext[,names(dfext)[regexpr('OMEGA.*',names(dfext))==1]])
+    dfext <- subset(getExt(extFile = paste0(file_path_sans_ext(strFREMModel), ".ext")), ITERATION == "-1000000000") # Read in parameter values
+    dfextfix <- subset(getExt(extFile = paste0(file_path_sans_ext(strFREMModel), ".ext")), ITERATION == "-1000000006") # Read in which parameteras that are fixed
+    iNumTHETA <- length(names(dfext)[regexpr("THETA.*", names(dfext)) == 1])
+    iNumOM <- length(names(dfext)[regexpr("OMEGA.*", names(dfext)) == 1])
+    iNumOM <- -1 / 2 + sqrt(1 / 4 + 2 * iNumOM) # Get the number of diagonals from the number of OM elements
+    THETA <- as.numeric(dfext[, names(dfext)[regexpr("THETA.*", names(dfext)) == 1]])
+    THETAFIX <- as.numeric(dfextfix[, names(dfextfix)[regexpr("THETA.*", names(dfextfix)) == 1]])
+    OMEGA <- as.numeric(dfext[, names(dfext)[regexpr("OMEGA.*", names(dfext)) == 1]])
 
-    OM                             <- matrix(0, nrow=iNumOM, ncol=iNumOM) #Define an empty matrix
-    OM[upper.tri(OM,diag = TRUE)]  <- OMEGA #Assign upper triangular + diag
-    tOM                            <- t(OM) #Get a transposed matrix
-    OM[lower.tri(OM,diag = FALSE)] <- tOM[lower.tri(tOM,diag = FALSE)] #Assign the lower triangular except diag
+    OM <- matrix(0, nrow = iNumOM, ncol = iNumOM) # Define an empty matrix
+    OM[upper.tri(OM, diag = TRUE)] <- OMEGA # Assign upper triangular + diag
+    tOM <- t(OM) # Get a transposed matrix
+    OM[lower.tri(OM, diag = FALSE)] <- tOM[lower.tri(tOM, diag = FALSE)] # Assign the lower triangular except diag
 
     if (is.null(numParCov)) {
-      numParCov <- calcNumParCov(dfext,numNonFREMThetas, numSkipOm)
+      numParCov <- calcNumParCov(dfext, numNonFREMThetas, numSkipOm)
     }
 
 
@@ -456,11 +459,11 @@ updateFREM <- function(strFREMModel,
       }
     }
 
+
     if (bWriteData) {
       write.csv(dfFREM,file=strNewFREMData,row.names = FALSE,quote = FALSE)
       if (!("FREMTYPE" %in% names(dfFREM))) warning("No FREMTYPE available in dataset, add in cstrKeepCols and rerun updateFREM")
     }
-
   }
 
 
@@ -564,9 +567,16 @@ updateFREM <- function(strFREMModel,
   ## Replace $INPUT
   line <- findrecord(line,record="\\$INPUT",replace=paste0("$INPUT ", paste0(names(dfFREM),collapse = " ")),quiet=T)
 
+
   ## Write new model file
-  strNewModelFileName<-paste0(file_path_sans_ext(strFREMModel),"_new.mod")
-  con=file(strNewModelFileName,open="w")
-  writeLines(line,con)
-  close(con)
+  if(bWriteMod) {
+    strNewModelFileName<-paste0(file_path_sans_ext(strFREMModel),"_new.mod")
+    con=file(strNewModelFileName,open="w")
+    writeLines(line,con)
+    close(con)
+  }
+
+  ## Create return list
+  retList <- list(data=dfFREM,model=line)
+  return(invisible(retList))
 }

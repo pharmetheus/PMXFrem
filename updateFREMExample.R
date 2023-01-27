@@ -1,7 +1,7 @@
-library(data.table)
+#library(data.table)
 # library(tidyverse)
-library(pmxvpc)
-library(tools)
+#library(pmxvpc)
+#library(tools)
 
 modDevDir <- "/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model/"
 
@@ -26,7 +26,7 @@ updateFREM(
   cstrKeepCols = c("ID","TIME","AMT","EVID","RATE","DV","FOOD","FREMTYPE"))
 
 
-updateFREM(
+tmp <- updateFREM(
   strFREMModel      = system.file("extdata/SimNeb/run31_new.mod", package = "PMXFrem"),
   strFREMData       = system.file("extdata/SimNeb/frem_dataset_noSEX.csv", package = "PMXFrem"),
   strFFEMData       = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
@@ -44,12 +44,13 @@ updateFREM(
   sortFREMDataset  = c("ID","TAD","FREMTYPE"),
   cstrKeepCols = c("ID","TAD","AMT","EVID","RATE","DV","FREMTYPE"))
 
-updateFREM(strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
-           numNonFREMThetas  = 7,
-           numSkipOm         = 2,
-           bWriteData        = FALSE,
-           quiet             = F,
-           strUpdateType     = "NoData")
+tmp <- updateFREM(strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+                  numNonFREMThetas  = 7,
+                  numSkipOm         = 2,
+                  bWriteData        = FALSE,
+                  bWriteMod         = FALSE,
+                  quiet             = F,
+                  strUpdateType     = "NoData")
 
 # ## The object tmp is a list and contains the Omega', names of the new columns for $INP and the name of the new data file.
 # tmp <- createFFEMdata(runno            = fremRun,
