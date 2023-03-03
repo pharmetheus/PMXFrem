@@ -86,25 +86,27 @@ getExplainedVar <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno=NULL,
 
   #Function to get FREM covariate names from FFEM covariates
   getFREMCovNames <- function(currNames) {
-  covrow <- NULL
-  ffemCovs <- str_replace(fremCovs, "_[0-9]*", "")
+    covrow <- NULL
+    ffemCovs <- str_replace(fremCovs, "_[0-9]*", "")
 
-  for (cov in c(currNames, fremCovs)) {
-    myCov <- str_replace(cov, "_[0-9]*", "")
-    index <- which(cov == fremCovs)
-    # If a FREM binarized covariate
-    if (!is.null(index) & length(index) > 0) {
-      covrow <- c(covrow, cov)
-    } else {
-      index <- which(myCov == ffemCovs)
-      # If not a FREM binarized covariate
-      if (is.null(index) | length(index) == 0) {
-        covrow <- c(covrow, cov)
+    for (cov in c(currNames, fremCovs)) {
+      myCov <- str_replace(cov, "_[0-9]*", "")
+      index <- which(cov == fremCovs)
+      # If a FREM binarized covariate
+      if (!is.null(index) && length(index) > 0) {
+        if (cov %in% currNames) covrow <- c(covrow, cov)
+      } else {
+        index <- which(myCov == ffemCovs)
+        # If not a FREM binarized covariate
+        if (is.null(index) || length(index) == 0) {
+          covrow <- c(covrow, cov)
+        } else {
+          covrow <- c(covrow,fremCovs[index])
+        }
       }
     }
+    return(unique(covrow))
   }
-  return(covrow)
-}
 
   #Delta rule based derivation of explained variability
   if (type==0) {

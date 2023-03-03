@@ -1,5 +1,6 @@
 test_that("plotExplained variability works", {
 
+  PMXRenv::library.unqualified("vdiffr")
   modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
   fremRunno <- 31
   modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))

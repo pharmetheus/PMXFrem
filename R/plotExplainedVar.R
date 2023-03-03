@@ -87,23 +87,31 @@ plotExplainedVar <- function(dfres,
     dfres$COVNAMELABEL <- dfres$COVNAME
   }
 
-  ## Reorder the covariates accordong to COVVAR
-  dfres$COVNAMELABEL <- reorder(dfres$COVNAMELABEL,dfres$COVVAR,FUN=median)
-
   ## Compute the fraction to plot
   dfres <- dfres %>%
     rowwise() %>%
     mutate(Frac = ifelse(maxVar == 1,100*COVVAR/TOTVAR,100*COVVAR/TOTCOVVAR))
 
-  p1 <- ggplot(data=dfres,aes(x=Frac,y=COVNAMELABEL)) +
-    geom_bar(position="dodge", stat="identity",fill=fill_col) +
-    facet_wrap(~PARAMETERLABEL,scales = "free_x",labeller = labeller(PARAMETERLABEL= labelfun)) +
-    xlab(xlb) +
-    ylab("")
+  ## Reorder the covariates according to FRAC
+  dfres$COVNAMELABEL <- reorder(dfres$COVNAMELABEL,dfres$Frac,FUN=mean)
+
+
+  ##
+  if(compareVersion(as.character(packageVersion("ggplot2")),"3.3-0") <0) { # If ggplot version < 3.3.0
+    p1 <- ggplot(dfres, aes(x=COVNAMELABEL, y=Frac)) +
+      geom_bar(position="dodge", stat="identity",fill=fill_col) +
+      coord_flip() +
+      facet_wrap(~PARAMETERLABEL,scales = "free_x",labeller = labeller(PARAMETERLABEL= labelfun)) +
+      ylab(xlb) +
+      xlab("")
+  } else {
+    p1 <- ggplot(data=dfres,aes(x=Frac,y=COVNAMELABEL)) +
+      geom_bar(position="dodge", stat="identity",fill=fill_col) +
+      facet_wrap(~PARAMETERLABEL,scales = "free_x",labeller = labeller(PARAMETERLABEL= labelfun)) +
+      xlab(xlb) +
+      ylab("")
+  }
 
   return(p1)
 }
 
-
-# covLabels <- c("All covariates","Age","ALT","AST","Bilirubin","BMI","BSA","Createnine clearance","Ethnicity","Genotype","Height","Lean body weight","NCI","Race","Sex","Smoking","Bodyweight")
-# plotExplainedVar(dfres3,parameters="CL",parameterLabels = "Cleareance[2]",covariateLabels = covLabels,labelfun = label_parsed)
