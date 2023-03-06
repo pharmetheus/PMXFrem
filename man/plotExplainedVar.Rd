@@ -14,7 +14,7 @@ plotExplainedVar(
   maxVar = 1,
   xlb = ifelse(maxVar == 1, "Explained part of total variability (\%)",
     "Explained part of explainable variability (\%)"),
-  add.stamp,
+  add.stamp = FALSE,
   ...
 )
 }
