@@ -1,7 +1,7 @@
 Package: PMXFrem
 Type: Package
 Title: Support functions for FREM analyses in NONMEM
-Version: 1.0.2
+Version: 1.0.3
 Authors@R: c(
     person("Niclas", "Jonsson", email = "niclas.jonsson@pharmetheus.com", role = c("aut", "cre")),
     person("Joakim", "Nyberg", email = "joakim.nyberg@pharmetheus.com", role = c("aut"))
@@ -13,8 +13,10 @@ Encoding: UTF-8
 LazyData: true
 Author: Niclas Jonsson [aut, cre],
   Joakim Nyberg [aut]
-RoxygenNote: 7.2.0
+RoxygenNote: 7.2.1
 Depends: MASS, foreach, doParallel, tidyverse (>= 1.0.0), stringr, data.table, rlang, numDeriv
+Imports:
+	PhRame
 Suggests: 
     knitr,
     rmarkdown,
