@@ -26,6 +26,7 @@ plotExplainedVar <- function(dfres,
                              covariateLabels=NULL,
                              labelfun=label_value,
                              fill_col="#508791",
+                             x_scale ="free_x",
                              maxVar = 1,
                              xlb = ifelse(maxVar == 1,
                                           "Explained part of total variability (%)",
@@ -93,7 +94,7 @@ plotExplainedVar <- function(dfres,
     mutate(Frac = ifelse(maxVar == 1,100*COVVAR/TOTVAR,100*COVVAR/TOTCOVVAR))
 
   ## Reorder the covariates according to FRAC
-  dfres$COVNAMELABEL <- reorder(dfres$COVNAMELABEL,dfres$Frac,FUN=mean)
+  dfres$COVNAMELABEL <- reorder(dfres$COVNAMELABEL,dfres$Frac,FUN=median)
 
 
   ##
@@ -101,13 +102,13 @@ plotExplainedVar <- function(dfres,
     p1 <- ggplot(dfres, aes(x=COVNAMELABEL, y=Frac)) +
       geom_bar(position="dodge", stat="identity",fill=fill_col) +
       coord_flip() +
-      facet_wrap(~PARAMETERLABEL,scales = "free_x",labeller = labeller(PARAMETERLABEL= labelfun)) +
+      facet_wrap(~PARAMETERLABEL,scales = x_scale,labeller = labeller(PARAMETERLABEL= labelfun)) +
       ylab(xlb) +
       xlab("")
   } else {
     p1 <- ggplot(data=dfres,aes(x=Frac,y=COVNAMELABEL)) +
       geom_bar(position="dodge", stat="identity",fill=fill_col) +
-      facet_wrap(~PARAMETERLABEL,scales = "free_x",labeller = labeller(PARAMETERLABEL= labelfun)) +
+      facet_wrap(~PARAMETERLABEL,scales = x_scale ,labeller = labeller(PARAMETERLABEL= labelfun)) +
       xlab(xlb) +
       ylab("")
   }
