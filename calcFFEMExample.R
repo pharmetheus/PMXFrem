@@ -2,7 +2,7 @@ library(data.table)
 library(tidyverse)
 
 
-modDevDir <- system.file("inst/extdata/SimNeb/",package = "PMXFrem")
+modDevDir <- system.file("extdata/SimNeb/",package = "PMXFrem")
 fremRun <- 31
 numNonFREMThetas <- 7
 numSkipOm <- 2
@@ -15,6 +15,7 @@ phis  <- getPhi(fileNames$phi) %>%
 dfext <- getExt(fileNames$ext)
 
 tmp <- calcFFEM(dfext=dfext,numNonFREMThetas,numSkipOm=numSkipOm,fremETA=as.numeric(phis[1,]))
+
 
 names(tmp)
 tmp$Eta_prim
