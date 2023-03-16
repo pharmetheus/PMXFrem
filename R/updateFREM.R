@@ -2,8 +2,8 @@
 #'
 #' @description Appends or removes covariates in a FREM data set and FREM model.
 #' @param strFREMModel File name of the FREM-model to add/remove covariates to/from.
-#' @param strFREMData Name of FREM-dataset to add/remove covariates to/from (not used with strUpdateType "NoData").
-#' @param strFFEMData Name of FFEM-dataset (normal dataset) that will be used to append the FREM-dataset, (not used with strUpdateType "NoData").
+#' @param strFREMData Name of FREM-dataset (file or data.frame) to add/remove covariates to/from (not used with strUpdateType "NoData").
+#' @param strFFEMData Name of FFEM-dataset (normal dataset, (file or data.frame)) that will be used to append the FREM-dataset, (not used with strUpdateType "NoData").
 #' @param cstrContCovsToAdd A vector of continuous covariate names to add, default = NULL, (not used with strUpdateType "NoData").
 #' @param cstrCatCovsToAdd A vector of categorical covariate names to add, default = NULL, (not used with strUpdateType "NoData").
 #' @param cstrCovsToAddOrder A vector of the order of the covariate names to add, default = NULL (i.e. alphabetic order will be used), (not used with strUpdateType "NoData").
@@ -93,8 +93,11 @@ updateFREM <- function(strFREMModel,
   }
 
   if (strUpdateType != "NoData") {
-    if (is.null(strNewFREMData)) strNewFREMData <- paste0(file_path_sans_ext(strFREMData), "_new.", file_ext(strFREMData))
-    if ((is.null(strFREMData) || strFREMData == "") || (is.null(strFFEMData) || strFFEMData == "")) stop("strFREMData and strFFEMData must be set to dataset")
+    if(is.null(strNewFREMData)) strNewFREMData <- paste0(file_path_sans_ext(strFREMData), "_new.", file_ext(strFREMData))
+    if(!is.data.frame(strFREMData) && (is.null(strFREMData) || strFREMData == "")) stop("strFREMData must be set to dataset or data.frame")
+    if(!is.data.frame(strFFEMData) && (is.null(strFFEMData) || strFFEMData == "")) stop("strFFEMData must be set to dataset or data.frame")
+
+    # if ((is.null(strFREMData) || strFREMData == "") || (is.null(strFFEMData) || strFFEMData == "")) stop("strFREMData and strFFEMData must be set to dataset")
   }
 
   if (strUpdateType == "NoData" || strUpdateType == "NewInits") {
@@ -168,12 +171,16 @@ updateFREM <- function(strFREMModel,
   addedList<-c()
   noBaseThetas<-numNonFREMThetas
   if (strUpdateType!="NoData") {
-    if (file.exists(strFFEMData)) {
+    if(is.data.frame(strFFEMData)) {
+      dfFFEM <- strFFEMData
+    } else if(file.exists(strFFEMData)) {
       dfFFEM <- fread(strFFEMData,h=T,data.table=FALSE,check.names=TRUE,showProgress=!quiet)
     } else {
       stop("Cannot find FFEM dataset: ",strFFEMData)
     }
-    if (file.exists(strFREMData)) {
+    if(is.data.frame(strFREMData)) {
+      dfFREM <- strFREMData
+    } else if (file.exists(strFREMData)) {
       dfFREM <- fread(strFREMData,h=T,data.table=FALSE,check.names=TRUE,showProgress=!quiet)
     } else {
       stop("Cannot find FREM dataset: ",strFREMData)
