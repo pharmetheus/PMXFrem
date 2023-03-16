@@ -2,13 +2,13 @@
 #'
 #' @description Creates a FREM dataset from a standard NONMEM dataset. Only the basic DV are added (FREMTYPE=0)
 #' @param strFREMData Name of FREM-dataset to create. Default=NULL => no dataset is written to disc
-#' @param strFMEMData Name of FFEM-dataset (normal dataset) that will be used to create the FREM-dataset.
+#' @param strFFEMData Name of FFEM-dataset (normal dataset) that will be used to create the FREM-dataset.
 #' @param quiet If set to FALSE, the function outputs verbose information on what it is doing.
 #' @param strID A string with the ID identifier column in the FMEM dataset.
 #' @param cstrKeepCols A vector of columns to keep in the dataset (for the updated new dataset).
 #' @param cstrDV A vector of strings with DV variables that should be added, default="HAZ" (i.e. HAZ assumed fremtype=0), additional DVs are added with fremtype 1,2,3...etc.
-#' @param cstrContCovs A vector of strings with continuous covariates to create. Default=NULL, i.e. no continous covariates will be added 
-#' @param cstrCatCovs  A vector of strings with categorical covariates to create. Default=NULL, i.e. no categorical covariates will be added 
+#' @param cstrContCovs A vector of strings with continuous covariates to create. Default=NULL, i.e. no continous covariates will be added
+#' @param cstrCatCovs  A vector of strings with categorical covariates to create. Default=NULL, i.e. no categorical covariates will be added
 #' @param bRecodeDichotomous Set to true if dichotomous covariates should be re-scaled to 1,0. E.g. if set to TRUE and SEX is coded as 1 or 2, a new variable SEXN_2 will be created with the values of 0 or 1. Only applicable if cstrCatCov is not zero and at least one of the cat covariates is dichotomous
 #' @param cSortCols The column names to sort by (must  be present in cstrKeepCols)
 #' @param cSortDirection The sort column order, ascending = 1, descending = -1, must be the same length as cSortCols
@@ -29,17 +29,17 @@ createFREMData <- function(strFREMData=NULL,strFFEMData="",quiet=TRUE,strID="ID"
   CovFremType<-100 #The Fremtype value for the next covariate
   FremtypeIncrement<-100 #The FREMTYP incrementer for covariates
   iNewFremtypeDV<-0 #The start FREMTYPE for new DV
-  
+
   if (is.null(cFremtypes)) { #If we should create fremtypes, otherwise the fremtype are given
     cFremtypes<-c(iNewFremtypeDV:(length(cstrDV)-1)) #Add DV fremtypes
     if (!is.null(cstrContCovs)) cFremtypes<-c(cFremtypes,seq(CovFremType,CovFremType+FremtypeIncrement*(length(cstrContCovs)-1),by=FremtypeIncrement)) #Add continuous cov FREMTYPES
     maxval<-max(cFremtypes[cFremtypes>=CovFremType]+FremtypeIncrement,CovFremType)
     if (!is.null(cstrCatCovs)) cFremtypes<-c(cFremtypes,seq(maxval,maxval+(length(cstrCatCovs)-1)*FremtypeIncrement,by=FremtypeIncrement)) #Add continuous cov FREMTYPES
-  }  
-  
+  }
+
   cFremtypes<-unique(cFremtypes)
-    
-  
+
+
   printq<-function(str,quiet) {
    if (!quiet) print(str)
   }
@@ -47,8 +47,8 @@ createFREMData <- function(strFREMData=NULL,strFFEMData="",quiet=TRUE,strID="ID"
   if (length(cFremtypes)!=length(cstrDV)+length(cstrContCovs)+length(cstrCatCovs)) {
     stop("The number of fremtypes are not the same as the number of frem variables, i.e. ",length(cFremtypes)," != ",length(cstrDV)+length(cstrContCovs)+length(cstrCatCovs))
   }
-  
-  
+
+
   dfFFEM<-NULL
   dfFREM<-NULL
 
@@ -57,9 +57,9 @@ createFREMData <- function(strFREMData=NULL,strFFEMData="",quiet=TRUE,strID="ID"
   } else {
     stop("Cannot find FFEM dataset: ",strFFEMData)
   }
-  
+
   printq(paste0("Read the FFEM dataset, consisting of ",ncol(dfFFEM)," columns and ",nrow(dfFFEM)," rows"),quiet = quiet)
-  
+
 
   dfAddList<-list()
       ### Add new DVs for all individuals
@@ -78,12 +78,12 @@ createFREMData <- function(strFREMData=NULL,strFFEMData="",quiet=TRUE,strID="ID"
           printq(paste0("Adding ",nrow(dfDVData)," observations (",strDV,") from ",nrow(dfDVData[!duplicated(dfDVData[[strID]]),]), " individuals as fremtype ",cFremtypes[i]),quiet = quiet)
           }
         }
-      
-  
-    #Add continuous covariates  
+
+
+    #Add continuous covariates
     if (!is.null(cstrContCovs)) {
       for (i in 1:length(cstrContCovs)) {
-        if (!cstrContCovs[i] %in% names(dfFFEM)) { 
+        if (!cstrContCovs[i] %in% names(dfFFEM)) {
         printq(paste0("Can't add covariate ",cstrContCovs[i],", not found in FFEM dataset. Skipping this covariate."),quiet = quiet)
         } else {
         dfDVData<-dfFFEM[dfFFEM[[cstrContCovs[i]]]!=-99,] #Get the dataset with non-missing covariate values
@@ -100,14 +100,14 @@ createFREMData <- function(strFREMData=NULL,strFFEMData="",quiet=TRUE,strID="ID"
       }
      }
     }
-  
-  #Add categorical covariates  
+
+  #Add categorical covariates
   if (!is.null(cstrCatCovs)) {
     k<-1 #Counter for FREMTYPES
     for (i in 1:length(cstrCatCovs)) {
-    
+
       strCov<-cstrCatCovs[i]
-      if (!strCov %in% names(dfFFEM)) { 
+      if (!strCov %in% names(dfFFEM)) {
         printq(paste0("Can't add covariate ",strCov,", not found in FFEM dataset. Skipping this covariate."),quiet = quiet)
       } else {
         dfDVData<-dfFFEM[dfFFEM[[strCov]]!=-99,] #Get the dataset with non-missing covariate values
@@ -142,11 +142,11 @@ createFREMData <- function(strFREMData=NULL,strFFEMData="",quiet=TRUE,strID="ID"
        }
     }
   }
-  
-  
+
+
   #Add new DVs and covariates to FREM dataset
   dfFREM<-rbind(dfFREM,as.data.frame(data.table::rbindlist(dfAddList)))
-  
+
   if (!is.null(cSortCols)) { #Sort everything according to cSortCols
     cstrSortTxt<-NULL
     for (i in 1:length(cSortCols)) {
@@ -156,11 +156,11 @@ createFREMData <- function(strFREMData=NULL,strFFEMData="",quiet=TRUE,strID="ID"
     }
     dfFREM<-eval(parse(text=paste0("dfFREM[order(",paste0(cstrSortTxt,collapse = ","),"),]")))
   }
-  
+
   dfFREM<-dfFREM[,cstrKeepCols] #Only keep the specified columns
   if (!is.null(strFREMData)) {
     write.csv(dfFREM,file=strFREMData,row.names = FALSE,quote = FALSE)
   }
-  
+
   return(dfFREM)
 }
