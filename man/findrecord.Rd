@@ -4,7 +4,7 @@
 \alias{findrecord}
 \title{findrecord}
 \usage{
-findrecord(input, record = "\\\\$OMEGA", replace = NULL, quite = TRUE)
+findrecord(input, record = "\\\\$OMEGA", replace = NULL, quiet = TRUE)
 }
 \arguments{
 \item{input}{the filename of the NONMEM model file or a list of all lines of the model}
@@ -13,7 +13,7 @@ findrecord(input, record = "\\\\$OMEGA", replace = NULL, quite = TRUE)
 
 \item{replace}{string vector to replace with (default=NULL, no replacement)}
 
-\item{quite}{verbose (quite=F) or not (quite=T, default)}
+\item{quiet}{verbose (quiet=F) or not (quiet=T, default)}
 }
 \value{
 the new model file include the replacement (if replace!=NULL), otherwise the found record(s)
@@ -23,6 +23,6 @@ findrecord
 }
 \examples{
 \dontrun{
-tmp <- findrecord(basemodel,record="\\\\$PROBLEM",replace="$PROBLEM FFEM model",quite=T)
+tmp <- findrecord(basemodel,record="\\\\$PROBLEM",replace="$PROBLEM FFEM model",quiet=T)
 }
 }

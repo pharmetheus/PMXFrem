@@ -23,6 +23,7 @@ updateFREM(
   cstrKeepCols = c("ID", "DV", "FREMTYPE"),
   bWriteData = TRUE,
   bWriteFIX = TRUE,
+  bWriteMod = TRUE,
   cstrDV = "DV",
   cstrRemoveCov = NULL,
   covEpsNum = 2,
@@ -33,9 +34,9 @@ updateFREM(
 \arguments{
 \item{strFREMModel}{File name of the FREM-model to add/remove covariates to/from.}
 
-\item{strFREMData}{Name of FREM-dataset to add/remove covariates to/from (not used with strUpdateType "NoData").}
+\item{strFREMData}{Name of FREM-dataset (file or data.frame) to add/remove covariates to/from (not used with strUpdateType "NoData").}
 
-\item{strFFEMData}{Name of FFEM-dataset (normal dataset) that will be used to append the FREM-dataset, (not used with strUpdateType "NoData").}
+\item{strFFEMData}{Name of FFEM-dataset (normal dataset, (file or data.frame)) that will be used to append the FREM-dataset, (not used with strUpdateType "NoData").}
 
 \item{cstrContCovsToAdd}{A vector of continuous covariate names to add, default = NULL, (not used with strUpdateType "NoData").}
 
@@ -63,6 +64,8 @@ Note: if used, this should contain all covariates in cstrCatCovsToAdd as well as
 
 \item{bWriteFIX}{If TRUE; FIX is written to the theta parameter estimates code for the covariates that were fixed in the model file, if FALSE; all theta parameters are assumed to be estimated.}
 
+\item{bWriteMod}{If TRUE; write the new model file to disk with _mod appended to the file name (before the suffix).}
+
 \item{cstrDV}{A vector of strings which are DV variables, important if new DVs (or new individuals) should be added, default="HAZ" (i.e. HAZ assumed fremtype=0), new DVs are added with fremtype 1,2,3...etc.}
 
 \item{cstrRemoveCov}{A vector of strings for covariates that should be remove, note that FREMTYPEs for remaining covariates might/will change. The removal of covariates are done before any adding of data and/or new covariates.
@@ -75,7 +78,8 @@ Note that if this functionality is used to remove the last existing category of 
 \item{sortFREMDataset}{The columns to sort the new data set on.}
 }
 \value{
-Will write a new fremdata set to disc. WIll also write a stub model file with the new covariates and initial estimates (the name will be runX_new.txt).
+An invisible list with components data and model, containing the new data set (if any, else NULL) and updated model.
+Will write the new fremdata set (if bWriteData is TRUE and strUpdateType is not 'NoData') and updated model file (if bwriteMod is TRUE) to disc. The model file name will be 'stem'_new.mod).
 }
 \description{
 Appends or removes covariates in a FREM data set and FREM model.

@@ -11,6 +11,7 @@ plotExplainedVar(
   covariateLabels = NULL,
   labelfun = label_value,
   fill_col = "#508791",
+  x_scale = "free_x",
   maxVar = 1,
   xlb = ifelse(maxVar == 1, "Explained part of total variability (\%)",
     "Explained part of explainable variability (\%)")

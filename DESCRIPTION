@@ -13,8 +13,8 @@ Encoding: UTF-8
 LazyData: true
 Author: Niclas Jonsson [aut, cre],
   Joakim Nyberg [aut]
-RoxygenNote: 7.2.0
-Depends: MASS, foreach, doParallel, tidyverse (>= 1.0.0), stringr, data.table, rlang, numDeriv
+RoxygenNote: 7.2.1
+Depends: MASS, foreach, doParallel, tidyverse (>= 1.0.0), stringr, data.table, rlang, numDeriv,Hmisc,xpose4
 Suggests: 
     knitr,
     rmarkdown,

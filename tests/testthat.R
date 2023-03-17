@@ -6,7 +6,9 @@
 # * https://r-pkgs.org/tests.html
 # * https://testthat.r-lib.org/reference/test_package.html#special-files
 
+PMXRenv::activate.unqualified.packages()
 library(testthat)
 library(PMXFrem)
+library(PhRame)
 
 test_check("PMXFrem")

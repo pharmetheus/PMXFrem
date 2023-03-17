@@ -22,6 +22,8 @@ createFREMData(
 \arguments{
 \item{strFREMData}{Name of FREM-dataset to create. Default=NULL => no dataset is written to disc}
 
+\item{strFFEMData}{Name of FFEM-dataset (normal dataset) that will be used to create the FREM-dataset.}
+
 \item{quiet}{If set to FALSE, the function outputs verbose information on what it is doing.}
 
 \item{strID}{A string with the ID identifier column in the FMEM dataset.}
@@ -41,8 +43,6 @@ createFREMData(
 \item{cSortDirection}{The sort column order, ascending = 1, descending = -1, must be the same length as cSortCols}
 
 \item{cFremtypes}{A vector of FREMTYPE values that each DV and covariate should use. The order should be: DV variables, continuous covariates, categorical covariates. Default=NULL, i.e.FREMTYPE of DV1=0, DV2=1,..,CONT1=100, ..CONTN=N*100, CAT1=(N+1+NumLevels1)*100, CATM=(N+M*NumLevelsM)*100}
-
-\item{strFMEMData}{Name of FFEM-dataset (normal dataset) that will be used to create the FREM-dataset.}
 }
 \value{
 Will write a new fremdata set to disc if strFREMData is not NULL and return the FREM dataframe

@@ -1,0 +1,1 @@
+/opt/noarch/psn/psn-5.3.0/bin/bootstrap -dir=bs31.dir run31.mod -samples=25 -nm_version=75_mpi -nodes=8
