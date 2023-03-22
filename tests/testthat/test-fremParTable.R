@@ -2,7 +2,7 @@ test_that("fremParTest works", {
 
   # devtools::load_all("../../PhRame/PhRame/")
   # devtools::load_all("../../PMXForest/PMXForest/")
-  library(PhRame)
+  # library(PhRame)
 
   finalRun   <- 31
   modDevDir  <- system.file("extdata/SimNeb/",package = "PMXFrem")
