@@ -9,6 +9,6 @@
 PMXRenv::activate.unqualified.packages()
 library(testthat)
 library(PMXFrem)
-library(PhRame)
+#library(PhRame)
 
 test_check("PMXFrem")
