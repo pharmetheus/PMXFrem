@@ -1,3 +1,4 @@
+PMXRenv::activate.unqualified.packages()
 test_that("getCovNames works", {
 
   modFile <- system.file("extdata/SimNeb/run31.mod",package="PMXFrem")

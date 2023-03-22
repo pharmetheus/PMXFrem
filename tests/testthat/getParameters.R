@@ -1,3 +1,4 @@
+PMXRenv::activate.unqualified.packages()
 test_that("getParameters work", {
 
   expect_error(getParameters())

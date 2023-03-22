@@ -1,3 +1,4 @@
+PMXRenv::activate.unqualified.packages()
 test_that("plotExplained variability works", {
 
   PMXRenv::library.unqualified("vdiffr")

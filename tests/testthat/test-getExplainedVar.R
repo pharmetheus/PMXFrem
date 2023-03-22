@@ -1,3 +1,4 @@
+PMXRenv::activate.unqualified.packages()
 test_that("getExplainedVar works", {
 
 modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")

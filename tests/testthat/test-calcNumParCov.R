@@ -1,3 +1,4 @@
+PMXRenv::activate.unqualified.packages()
 test_that("calcNumParCov works", {
 
   extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")

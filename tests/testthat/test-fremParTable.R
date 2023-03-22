@@ -1,8 +1,9 @@
+PMXRenv::activate.unqualified.packages()
 test_that("fremParTest works", {
+  library(PhRame)
+  library(PMXForest)
 
-  # devtools::load_all("../../PhRame/PhRame/")
-  # devtools::load_all("../../PMXForest/PMXForest/")
-  # library(PhRame)
+  set.seed(12312)
 
   finalRun   <- 31
   modDevDir  <- system.file("extdata/SimNeb/",package = "PMXFrem")

@@ -1,3 +1,4 @@
+PMXRenv::activate.unqualified.packages()
 test_that("findrecord works", {
 
   basemodel      <- system.file("extdata/SimNeb/run30.mod", package = "PMXFrem")

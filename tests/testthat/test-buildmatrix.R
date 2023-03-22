@@ -1,3 +1,4 @@
+PMXRenv::activate.unqualified.packages()
 test_that("buildmatrix works", {
 
   numbasethetas   <- 7
