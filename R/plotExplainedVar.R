@@ -148,7 +148,7 @@ plotExplainedVar <- function(dfres,
   }
 
   if(add.stamp){
-    p1 <- PhRame::add_stamp(p1a, print = FALSE, ...)
+    p1 <- PhRame::add_stamp(p1, print = FALSE, ...)
   }
 
   return(p1)
