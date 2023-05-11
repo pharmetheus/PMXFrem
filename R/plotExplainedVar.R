@@ -25,6 +25,8 @@
 #' @export
 #'
 #' @importFrom PhRame add_stamp save_script
+#' @importFrom rlang peek_option
+#' @importFrom withr local_options
 #'
 #' @examples
 #' \dontrun{
