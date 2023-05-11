@@ -52,6 +52,8 @@ plotExplainedVar <- function(dfres,
   }else{
     add.stamp
   }
+
+  #### REMOVE FROM PUBLIC RELEASE ####
   # save.script functionality
   if((!is.null(peek_option("save.script")) &&
       peek_option("save.script") == TRUE) &&
@@ -60,11 +62,14 @@ plotExplainedVar <- function(dfres,
     argsList <- c(list(funcName = match.call()[1] %>%
                          as.character() %>%
                          str_remove(".+:+") %>%
-                         str_c("PhRame:::", .) %>%
+                         str_c("PMXFrem:::", .) %>%
                          str_remove("\\(\\)")),
                   as.list(environment()), list(...))
     return(do.call("save_script", argsList))
   }
+  #### REMOVE FROM PUBLIC RELEASE end
+
+
 
   ## Input checks
   if(!(maxVar == 1 | maxVar ==2)) {
