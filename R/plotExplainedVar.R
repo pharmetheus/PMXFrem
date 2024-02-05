@@ -65,7 +65,7 @@ plotExplainedVar <- function(dfres,
                          as.character() %>%
                          str_remove(".+:+") %>%
                          str_c("PMXFrem:::", .) %>%
-                         str_remove("\\(\\)")),
+                         str_remove("\\(\\)")),scriptDir=get("scriptDir",envir = .GlobalEnv),
                   as.list(environment()), list(...))
     return(do.call("save_script", argsList))
   }
