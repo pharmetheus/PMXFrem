@@ -202,6 +202,10 @@ getExplainedVar <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno=NULL,
     }
     dataI <- data[!duplicated(strID),] #Get one row per subject and keep only covariates and ID
 
+    ## Check that the number of etas is the same as the number of subjects in the data set
+    if(type==1 && (nrow(etas) != nrow(dataI))) stop("The number of etas should be the same as the number of sibjects in the data set.")
+
+
     ## Register to allow for parallel computing
     if (ncores>1) registerDoParallel(cores = ncores)
 
@@ -355,6 +359,7 @@ getExplainedVar <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno=NULL,
       dfrest<-dplyr::bind_rows(dfrest,dftmp1)
     }
   } #Type==1
+
 
   dfres<-data.frame()
   for (j in 1:length(functionListName)) {
