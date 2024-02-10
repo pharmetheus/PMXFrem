@@ -34,12 +34,12 @@
 #'                            quiet            = FALSE,
 #'                            baserunno        = 30)
 #' }
-createFFEMmodel <- function(runno=NULL,
+createFFEMmodel <- function(runno         =NULL,
                             numNonFREMThetas,
                             modName       = NULL,
                             numFREMThetas = length(grep("THETA",names(dfext)))-numNonFREMThetas,
                             covSuffix     = "FREMCOV",
-                            parNames      = paste("Par",1:numParCov,sep=""),
+                            parNames      = NULL,
                             numParCov     = NULL,
                             numSkipOm     = 0,
                             dataFile,
@@ -57,7 +57,31 @@ createFFEMmodel <- function(runno=NULL,
                             ffemModName   = NULL,
                             ...) {
 
+  ## Check input
   if(is.null(newDataFile)) stop("newDataFile must be a character string.")
+  if(is.null(runno) & is.null(modName)) stop("Either runno or modName has to be specified")
+  if(is.null(baserunno) & is.null(baseModName)) stop("Either baserunno or baseModName has to be specified")
+
+  baseModNames <- getFileNames(runno=baserunno,modName=baseModName,modDevDir=baseModDevDir,...)
+  basemodel    <- baseModNames$mod
+
+  fremModNames <- getFileNames(runno=runno,modName=modName,modDevDir=modDevDir,...)
+  extFile      <- fremModNames$ext
+
+  # Only read it from file if it isn't passed via dfext
+  if(is.null(dfext)) {
+    dfExt <- getExt(extFile)
+  } else {
+    dfExt <- dfext
+  }
+
+  ## Check the parNames argument
+  if(is.null(parNames)) stop("parNames should specify a vector of names for the parameters related to frem covariates.")
+  if (is.null(numParCov)) {
+    numParCov <- calcNumParCov(dfExt,numNonFREMThetas, numSkipOm)
+  }
+
+  if(numParCov != length(parNames)) stop("parNames should have the same length as numParCov")
 
   FFEMdata <- createFFEMdata(runno         = runno,
                              numNonFREMThetas,
@@ -77,19 +101,12 @@ createFFEMmodel <- function(runno=NULL,
                              dfext         = dfext,
                              ...)
 
-  baseModNames <- getFileNames(runno=baserunno,modName=baseModName,modDevDir=baseModDevDir,...)
-  basemodel    <- baseModNames$mod
-
-  fremModNames <- getFileNames(runno=runno,modName=modName,modDevDir=modDevDir,...)
-  extFile      <- fremModNames$ext
 
 
-  # Only read it from file if it isn't passed via dfext
-  if(is.null(dfext)) {
-    dfExt <- getExt(extFile)
-  } else {
-    dfExt <- dfext
-  }
+
+
+
+
 
   ## Start processing the model
 

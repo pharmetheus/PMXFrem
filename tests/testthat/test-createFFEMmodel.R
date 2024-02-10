@@ -1,10 +1,18 @@
-PMXRenv::activate.unqualified.packages()
+# PMXRenv::activate.unqualified.packages()
 test_that("createFFEMmodel works", {
 
   modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
   dataFile  <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",package="PMXFrem")
   fremRun   <- 31
   baseRun   <- 30
+
+
+  expect_error(createFFEMmodel())
+  expect_error(createFFEMmodel(runno=6))
+  expect_error(createFFEMmodel(modName="run6"))
+  expect_error(createFFEMmodel(baserunno=6))
+  expect_error(createFFEMmodel(baseModdName="run6"))
+
 
   ffemMod <- createFFEMmodel(runno            = fremRun,
                              modDevDir        = modDevDir,
