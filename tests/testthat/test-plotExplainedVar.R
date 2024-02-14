@@ -21,16 +21,17 @@ test_that("plotExplained variability works", {
     dfCovs[i, names(dfCovs) != names(dfCovs)[i-1]] <- -99
   }
 
-  expect_snapshot_value(dfCovs,style = "deparse")
+  expect_snapshot(dfCovs)
 
   cstrCovariates <- c("All",names(dfCovs))
 
   ## The parameter function list
   functionList2 <- list(
     function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[2]*exp(covthetas[1] + etas[3]))},
-    function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[3]*exp(covthetas[2] + etas[4]))}
+    function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[3]*exp(covthetas[2] + etas[4]))},
+    function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[4]*exp(covthetas[3] + etas[5]))}
   )
-  functionListName2 <- c("CL","V")
+  functionListName2 <- c("CL","V","MAT")
 
   dfres0 <- getExplainedVar(type             = 0,
                             data             = NULL,
@@ -47,7 +48,7 @@ test_that("plotExplained variability works", {
                             seed             = 123
   )
 
-  expect_snapshot_value(dfres0,style = "deparse")
+  expect_snapshot(dfres0)
 
   svg() # Start a device to make plots cosistent between different ways of running the tests
   p1 <- plotExplainedVar(dfres0)
@@ -67,8 +68,24 @@ test_that("plotExplained variability works", {
   vdiffr::expect_doppelganger("Explained variability plot with labeller", p5)
 
   ## Test some error conditions
-  expect_snapshot(plotExplainedVar(dfres0,maxVar=3),error=T)
-  expect_snapshot(plotExplainedVar(dfres0,parameterLabels = c("CL","V","MAT")),error=T)
-  expect_snapshot(plotExplainedVar(dfres0,covariateLabels = "WT"),error=T)
-  expect_snapshot(plotExplainedVar(dfres0,parameters = c("CL","V","MAT")),error=T)
+  expect_error(plotExplainedVar(dfres0,maxVar=3))
+  expect_error(plotExplainedVar(dfres0,maxVar=3))
+  expect_error(plotExplainedVar(dfres0,parameterLabels = c("CL","V","FREL","KA")))
+  expect_error(plotExplainedVar(dfres0,covariateLabels = "WT"))
+  expect_error(plotExplainedVar(dfres0,parameters = c("CL","V","FREL")))
+
+  ## Test the selection of parameters and order
+  p6 <- plotExplainedVar(dfres0,parameters = c("CL","V"))
+  p7 <- plotExplainedVar(dfres0,parameters = c("V","CL"))
+  p8 <- plotExplainedVar(dfres0,parameters = c("MAT"))
+  p9 <- plotExplainedVar(dfres0,parameters = c("CL","V"),parameterLabels = c("Clearance","Volume"))
+  p10 <- plotExplainedVar(dfres0,parameters = c("V","CL"),parameterLabels = c("Volume","Clearance"))
+  p11 <- plotExplainedVar(dfres0,parameters = c("MAT"),parameterLabels="Mean absorption time")
+
+  vdiffr::expect_doppelganger("Explained variability plot with CL and V", p6)
+  vdiffr::expect_doppelganger("Explained variability plot with V and C", p7)
+  vdiffr::expect_doppelganger("Explained variability plot with MAT", p8)
+  vdiffr::expect_doppelganger("Explained variability plot with CL and V+parameter labels", p9)
+  vdiffr::expect_doppelganger("Explained variability plot with V and C+parameter labels", p10)
+  vdiffr::expect_doppelganger("Explained variability plot with MAT+parameter labels", p11)
 })

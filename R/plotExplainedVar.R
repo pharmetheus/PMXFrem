@@ -78,6 +78,7 @@ plotExplainedVar <- function(dfres,
     stop("maxVar needs to be 1 or 2")
   }
 
+  ## Check the parameter labels
   if(!is.null(parameterLabels)) {
     if(!((length(parameterLabels) == length(parameters)) |
          (length(parameterLabels) ==nrow(dfres)))) {
@@ -85,6 +86,7 @@ plotExplainedVar <- function(dfres,
     }
   }
 
+  ## Check the covariate labels
   if(!is.null(covariateLabels)) {
     if(!((length(covariateLabels) == length(unique(dfres$COVNAME))) |
          (length(covariateLabels)  == nrow(dfres)))) {
@@ -92,22 +94,25 @@ plotExplainedVar <- function(dfres,
     }
   }
 
+  ## Check that all specified parameters are present in dfers
   if(!all(parameters %in% dfres$PARAMETER)) {
     stop("All parameters must be present in dfres$PARAMETER")
   }
 
-  ## Filter the parameters to use
-  dfres <- dfres %>% filter(PARAMETER %in% parameters)
 
-  ## Name the PARAMETER column
+  ## Filter the parameters to use and redefine the levels definition (in case it is different from default)
+  dfres <- dfres %>%
+    filter(PARAMETER %in% parameters) %>%
+    mutate(PARAMETER=factor(PARAMETER,levels=parameters)) %>%
+    arrange(COVNUM,PARAMETER)
+
+  ## Defeine the PARAMETERLABEL column
   if(!is.null(parameterLabels)) {
     dfres$PARAMETERLABEL <- parameterLabels
+    dfres$PARAMETERLABEL <- factor(dfres$PARAMETERLABEL,levels=unique(dfres$PARAMETERLABEL))
   } else {
     dfres$PARAMETERLABEL <- dfres$PARAMETER
   }
-
-  # Retain order
-  dfres$PARAMETERLABEL <- factor(dfres$PARAMETERLABEL,levels=unique(dfres$PARAMETERLABEL[order(dfres$PARAMETER)]))
 
   ## Name the COVNAME column
   if(!is.null(covariateLabels)) {
@@ -136,7 +141,6 @@ plotExplainedVar <- function(dfres,
 
   ## Reorder the covariates according to FRAC
   dfres$COVNAMELABEL <- reorder(dfres$COVNAMELABEL,dfres$Frac,FUN=median)
-
 
   ##
   if(compareVersion(as.character(packageVersion("ggplot2")),"3.3-0") <0) { # If ggplot version < 3.3.0
