@@ -12,7 +12,8 @@
 #' @param dfext a data frame with the final estimates in a ext-file format
 #' @param strID the subject identifier in the dfCovs dataset, default='ID'
 #' @inheritParams getFileNames
-#' @param cstrCovariates A string vector with names of the covariate that should be investigated, if NULL COV1, COV2 etc. will be assigned
+#' @param cstrCovariates A string vector with names of the covariates that should be investigated, i.e. must have the same length as the number of rows in dfCovs.
+#'         If NULL then COV1, COV2 etc. will be used.
 #' @param functionList A list of functions with input (basethetas, covthetas,dfrow and ...) for in which the explained variability will be calculated. If the function returns a vector of values, each value will be used but functionListName must contain the names with a length of all return for all functions in the functionList
 #' @param functionListName A vector of strings (names) of the parameters for each function in the functionList
 #' @param numNonFREMThetas Number of structural thetas in FREM model
@@ -56,8 +57,14 @@ getExplainedVar <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno=NULL,
 
   if (nrow(dfext) > 1) dfext <- dfext[dfext$ITERATION == -1000000000, ]
   thetas <- as.numeric(dfext[2:(numNonFREMThetas + 1)])
+
+  ## Check that cstrCovariates has the same length as the number of rows in dfCovs
   if (is.null(cstrCovariates)) {
     cstrCovariates <- paste0("COV", 1:nrow(dfCovs))
+  } else {
+    if(length(cstrCovariates) != nrow(dfCovs)) {
+      stop("cstrCovariates must have the same length as the number of rows in dfCovs")
+    }
   }
 
   if (is.null(parNames)) {

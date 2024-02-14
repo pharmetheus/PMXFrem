@@ -56,7 +56,8 @@ type=3 is that the total variability is calculated using ETA samples instead of 
 
 \item{modDevDir}{The directory where the files reside.}
 
-\item{cstrCovariates}{A string vector with names of the covariate that should be investigated, if NULL COV1, COV2 etc. will be assigned}
+\item{cstrCovariates}{A string vector with names of the covariates that should be investigated, i.e. must have the same length as the number of rows in dfCovs.
+If NULL then COV1, COV2 etc. will be used.}
 
 \item{functionList}{A list of functions with input (basethetas, covthetas,dfrow and ...) for in which the explained variability will be calculated. If the function returns a vector of values, each value will be used but functionListName must contain the names with a length of all return for all functions in the functionList}
 
