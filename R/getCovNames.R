@@ -5,11 +5,11 @@
 #' @param keepComment If FALSE (default), remove the leading ; and white space in front of the covariate name in the model file.
 #'
 #' @return A list with three components:
-#' 
+#'
 #' covNames = the names of the covariates as given in the model file. These corresponds to the covariate column names in the FREM data set created by PsN.
-#' 
+#'
 #' polyCatCovs = the name of the dichotomized covariates created by PsN.
-#' 
+#'
 #' orgCovNames = original covariate names (removing the frem specific ones)
 #' @export
 #'
@@ -22,6 +22,10 @@ getCovNames <- function(modFile,keepComment=FALSE) {
   mod       <- scan(modFile,what="character",sep="\n",quiet=TRUE)
   fremStart <- grep(";;;FREM CODE BEGIN COMPACT",mod)
   fremEnd   <- grep(";;;FREM CODE END COMPACT",mod)
+
+  if(length(fremStart)==0) {
+    stop(paste("Could not find", ";;;FREM CODE BEGIN COMPACT", "in the model file. Is this a FREM model?"))
+  }
 
   mod1      <- mod[(fremStart+2):(fremEnd-1)]
   covNames  <- mod1[grep(";",mod1)]

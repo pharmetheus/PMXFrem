@@ -1,6 +1,11 @@
 PMXRenv::activate.unqualified.packages()
 test_that("getCovNames works", {
 
+  ## Non-FREM model
+  modFileNF <- system.file("extdata/SimNeb/run30.mod",package="PMXFrem")
+
+  expect_error(getCovNames(modFileNF))
+
   modFile <- system.file("extdata/SimNeb/run31.mod",package="PMXFrem")
   covs <- getCovNames(modFile)
 
