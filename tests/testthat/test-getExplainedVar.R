@@ -11,14 +11,7 @@ dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"
   filter(BLQ == 0) %>%
   distinct(ID,.keep_all = T)
 
-dfCovs <- dfData  %>%
-  select(covNames$orgCovNames) %>%
-  mutate_all(function(x) return(1)) %>%
-  slice(rep(1,ncol(.)+1))
-
-for(i in 2:nrow(dfCovs)) {
-  dfCovs[i, names(dfCovs) != names(dfCovs)[i-1]] <- -99
-}
+dfCovs <- setupdfCovs(dfData,modFile)
 
 expect_snapshot_value(dfCovs,style = "deparse")
 
@@ -30,6 +23,25 @@ functionList2 <- list(
   function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[3]*exp(covthetas[2] + etas[4]))}
 )
 functionListName2 <- c("CL","V")
+
+
+## Test that the inout check for cstrCovariates work
+expect_error(
+dfres0 <- getExplainedVar(type             = 0,
+                          data             = NULL,
+                          dfCovs           = dfCovs,
+                          numNonFREMThetas = 7,
+                          numSkipOm        = 2,
+                          functionList     = functionList2,
+                          functionListName = functionListName2,
+                          cstrCovariates   = c("ALL","AGE"),
+                          modDevDir        = modDevDir,
+                          runno            = fremRunno,
+                          ncores           = 1,
+                          quiet            = TRUE,
+                          seed             = 123
+)
+)
 
 dfres0 <- getExplainedVar(type             = 0,
                           data             = NULL,

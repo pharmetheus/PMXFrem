@@ -10,7 +10,7 @@ createFFEMmodel(
   modName = NULL,
   numFREMThetas = length(grep("THETA", names(dfext))) - numNonFREMThetas,
   covSuffix = "FREMCOV",
-  parNames = paste("Par", 1:numParCov, sep = ""),
+  parNames = NULL,
   numParCov = NULL,
   numSkipOm = 0,
   dataFile,
