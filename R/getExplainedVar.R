@@ -87,7 +87,7 @@ getExplainedVar <- function(type=1,data,dfCovs,dfext=NULL,strID="ID",runno=NULL,
   #Function to get FREM covariate names from FFEM covariates
   getFREMCovNames <- function(currNames) {
     covrow <- NULL
-    ffemCovs <- str_replace(fremCovs, "_[0-9]*", "")
+    ffemCovs <- stringr::str_replace(fremCovs, "_[0-9]*", "")
 
     for (cov in c(currNames, fremCovs)) {
       myCov <- str_replace(cov, "_[0-9]*", "")
