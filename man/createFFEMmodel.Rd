@@ -8,6 +8,8 @@ createFFEMmodel(
   runno = NULL,
   numNonFREMThetas,
   modName = NULL,
+  modExt = ".mod",
+  lstExt = ".lst",
   numFREMThetas = length(grep("THETA", names(dfext))) - numNonFREMThetas,
   covSuffix = "FREMCOV",
   parNames = paste("Par", 1:numParCov, sep = ""),
@@ -30,11 +32,17 @@ createFFEMmodel(
 )
 }
 \arguments{
-\item{runno}{The run number.}
+\item{runno}{The run number. Must be provided if `modName` is NULL. Will be used to create file model and NONMEM results file names  with
+the structure run[runno].[modExt] and run[runno].[lstExt]. NONMEM ext, phi and cov files will be assumed to be named run[runno] followed by the appropriate suffix.}
 
 \item{numNonFREMThetas}{Number of thetas that are not FREM covariates. These need to come before the FREM covariate thetas.}
 
-\item{modName}{The model name. Default is the current directory, i.e. ".".}
+\item{modName}{The model name. Will be used together with `modExt`, `lstExt`, ext, phi and cov to form the NONMEM file names, for
+example [modName].[modExt] for the model file.}
+
+\item{modExt}{The model file name extension. Default is ".mod".}
+
+\item{lstExt}{The NONMEM out file name extension. Default is ".lst".}
 
 \item{numFREMThetas}{The number thetas associated with FREM covariate effects.}
 
@@ -56,7 +64,7 @@ Such omegas has to come before the large FREM omega block.}
 
 \item{idvar}{The name of the ID column,}
 
-\item{modDevDir}{The directory where the files reside.}
+\item{modDevDir}{The directory where the files reside. Default is the current directory, i.e. ".".}
 
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK}
 
@@ -74,6 +82,8 @@ should contain the estimates of the *one* relevant $EST.}
 \item{ffemTabName}{The table file name to insert into the FFEM model. Default is 'ffemtab'.}
 
 \item{ffemModName}{The name of the file to write the ffem model to, or NULL. NULL is the default}
+
+\item{...}{Arguments passed to `createFFEMdata`}
 }
 \value{
 A character vector with the code for the FFEM model.
@@ -107,4 +117,9 @@ ffemMod <- createFFEMmodel(runno            = 31,
                            quiet            = FALSE,
                            baserunno        = 30)
 }
+}
+\seealso{
+[getFileName()]
+[createFFEMdata()]
+[calcFFEM()]]
 }
