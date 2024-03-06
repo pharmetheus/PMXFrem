@@ -1,17 +1,29 @@
-#' buildmatrix
+#' Create the NONMEM model $OMEGA or $SIGMA code from a matrix with
+#' variance-covariance information.
 #'
-#' @param matrix the matrix to be converted
-#' @param strName name of the matrix, normally OMEGA (default) or SIGMA
-#' @param assumesame assume equal block matrix should be marked as SAME
+#' The NONMEM code corresponding to a numerical matrix of variance-covariance
+#' information will be created in a way that is suitable for insertion in a
+#' NONMEM model.
 #'
-#' @return string vector of a NONMEM representation of the matrix
+#' @param matrix The matrix to be converted.
+#' @param strName The name of the matrix, normally "$OMEGA" (default) or
+#'   "$SIGMA".
+#' @param assumesame Assume equal block matrix should be marked as SAME.
+#'
+#' @return A vector of character strings with the NONMEM representation of the
+#'   matrix.
 #' @export
 #' @examples
-#' \dontrun{
-#' buildmatrix(FFEMdata$FullVars)
-#' }
+#' numbasethetas   <- 7
+#' numskipom       <- 2
+#' fremmodelext    <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+#' dfExt           <- getExt(extFile = fremmodelext)
+#' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = numbasethetas, numSkipOm = numskipom, quiet = T)
 #'
-buildmatrix <- function(matrix, strName = "$OMEGA", assumesame = TRUE) {
+#' myMatrix <- buildmatrix(calcFFEMtestout$FullVars)
+buildmatrix <- function(matrix,
+                        strName    = "$OMEGA",
+                        assumesame = TRUE) {
   strres <- c()
 
   getnumstr <- function(blocksize, submat) {
@@ -19,9 +31,9 @@ buildmatrix <- function(matrix, strName = "$OMEGA", assumesame = TRUE) {
     strvec <- rep("", blocksize)
     str    <- ""
 
-     if (blocksize == 1 && !is.matrix(submat)) {
+    if (blocksize == 1 && !is.matrix(submat)) {
       return(paste0(submat))
-     }
+    }
 
     for (i in 1:blocksize) {
       for (j in 1:i) {
