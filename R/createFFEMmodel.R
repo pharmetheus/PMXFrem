@@ -1,11 +1,14 @@
 #' createFFEMmode
 #'
+#' @inheritParams getFileNames
 #' @inheritParams createFFEMdata
+#' @inheritParams calcFFEM
 #' @param baserunno The run number of the base model.
 #' @param baseModName The name of the base model. If NULL (default) no model file will be printed to file.
 #' @param baseModDevDir The directory name in which the base model files can be found. Default the same as modDevDir.
 #' @param ffemTabName The table file name to insert into the FFEM model. Default is 'ffemtab'.
 #' @param ffemModName The name of the file to write the ffem model to, or NULL. NULL is the default
+#' @param ... Arguments passed to `createFFEMdata`
 #'
 #' @details This function creates an FFEM version of a frem model. The starting point is the base model. The following things are done to accomplish this:
 #' \itemize{
@@ -20,6 +23,10 @@
 #'
 #' It is important to check the FFEM model file so that it is correct.
 #' @return A character vector with the code for the FFEM model.
+#' @seealso
+#' [getFileName()]
+#' [createFFEMdata()]
+#' [calcFFEM()]]
 #' @export
 #'
 #' @examples
@@ -37,6 +44,8 @@
 createFFEMmodel <- function(runno         =NULL,
                             numNonFREMThetas,
                             modName       = NULL,
+                            modExt        = ".mod",
+                            lstExt        = ".lst",
                             numFREMThetas = length(grep("THETA",names(dfext)))-numNonFREMThetas,
                             covSuffix     = "FREMCOV",
                             parNames      = NULL,

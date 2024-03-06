@@ -50,11 +50,13 @@ type=3 is that the total variability is calculated using ETA samples instead of 
 
 \item{strID}{the subject identifier in the dfCovs dataset, default='ID'}
 
-\item{runno}{The run number.}
+\item{runno}{The run number. Must be provided if `modName` is NULL. Will be used to create file model and NONMEM results file names  with
+the structure run[runno].[modExt] and run[runno].[lstExt]. NONMEM ext, phi and cov files will be assumed to be named run[runno] followed by the appropriate suffix.}
 
-\item{modName}{The model name. Default is the current directory, i.e. ".".}
+\item{modName}{The model name. Will be used together with `modExt`, `lstExt`, ext, phi and cov to form the NONMEM file names, for
+example [modName].[modExt] for the model file.}
 
-\item{modDevDir}{The directory where the files reside.}
+\item{modDevDir}{The directory where the files reside. Default is the current directory, i.e. ".".}
 
 \item{cstrCovariates}{A string vector with names of the covariates that should be investigated, i.e. must have the same length as the number of rows in dfCovs.
 If NULL then COV1, COV2 etc. will be used.}

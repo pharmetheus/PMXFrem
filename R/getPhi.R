@@ -1,6 +1,6 @@
 #' getPhi
 #'
-#' @description Extracts the  information from a NONMEM .ext file.
+#' @description Extracts the  information from a NONMEM .phi file.
 #' @param phiFile The name of the .phi file.
 #' @inheritParams getExt
 #'

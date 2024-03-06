@@ -15,6 +15,7 @@ createFFEMdata(
   numSkipOm = 0,
   dataFile,
   newDataFile = paste("vpcData", runno, ".csv", sep = ""),
+  filterString = NULL,
   availCov = "all",
   idvar = "ID",
   modDevDir = NULL,
@@ -25,11 +26,13 @@ createFFEMdata(
 )
 }
 \arguments{
-\item{runno}{The run number.}
+\item{runno}{The run number. Must be provided if `modName` is NULL. Will be used to create file model and NONMEM results file names  with
+the structure run[runno].[modExt] and run[runno].[lstExt]. NONMEM ext, phi and cov files will be assumed to be named run[runno] followed by the appropriate suffix.}
 
 \item{numNonFREMThetas}{Number of thetas that are not FREM covariates. These need to come before the FREM covariate thetas.}
 
-\item{modName}{The model name. Default is the current directory, i.e. ".".}
+\item{modName}{The model name. Will be used together with `modExt`, `lstExt`, ext, phi and cov to form the NONMEM file names, for
+example [modName].[modExt] for the model file.}
 
 \item{numFREMThetas}{The number thetas associated with FREM covariate effects.}
 
@@ -47,11 +50,14 @@ Such omegas has to come before the large FREM omega block.}
 
 \item{newDataFile}{The name of a new data file with the FFEM columns added. Default is vpcData{runno}.csv. If NULL, will return a data frame with the data instead of writing it to disk.}
 
+\item{filterString}{A character string with a filter expression to subset the amended FFEM data set so that the number of rows matches the original data file.
+Useful if IGNORE statements were used in the original model file.}
+
 \item{availCov}{Names of the covariates to use in the calculation of the FFEM model.}
 
 \item{idvar}{The name of the ID column,}
 
-\item{modDevDir}{The directory where the files reside.}
+\item{modDevDir}{The directory where the files reside. Default is the current directory, i.e. ".".}
 
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK}
 
@@ -78,6 +84,10 @@ This function will compute a combined term of all (FREM) covariate effects for e
 new data file with these combined effects appended. The combined coefficients are added to the FFEM data set with names that
 appends COV to the parameter name, e.g. the column with the combined covariate effects for parameter PAR will be called PARCOV.
 All rows for an individual will have the same value for PARCOV.
+
+If the original NONMEM model file use IGNORE statements to subset the data file, it is necessary to provide a filter expression as a character string
+to obtain an FFEM data set that only include the subjects in the original analysis. This is dobe with the `filterString` argument, e.g. `STUDYID==7` to only
+include STUDYID 7 (this is the same as saying `IGNORE.NE.7` in the NM-TRAN model file.)
 
 To implement an FFEM model with the covariate effects from the FREM analysis, change the FFEM model from:
 

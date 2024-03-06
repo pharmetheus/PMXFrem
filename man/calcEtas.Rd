@@ -6,33 +6,39 @@
 \usage{
 calcEtas(
   runno = NULL,
-  numNonFREMThetas,
   modName = NULL,
+  FFEMData,
+  filterString = NULL,
+  numNonFREMThetas,
   numSkipOm = 0,
   idvar = "ID",
   modDevDir = NULL,
-  FFEMData = NULL,
   covmodel = "linear",
   ...
 )
 }
 \arguments{
-\item{runno}{The run number.}
+\item{runno}{The run number. Must be provided if `modName` is NULL. Will be used to create file model and NONMEM results file names  with
+the structure run[runno].[modExt] and run[runno].[lstExt]. NONMEM ext, phi and cov files will be assumed to be named run[runno] followed by the appropriate suffix.}
+
+\item{modName}{The model name. Will be used together with `modExt`, `lstExt`, ext, phi and cov to form the NONMEM file names, for
+example [modName].[modExt] for the model file.}
+
+\item{FFEMData}{An FFEMData object as obtained with the function `createFFEMData`.}
+
+\item{filterString}{A character string with a filter expression to subset the amended FFEM data set so that the number of rows matches the original data file.
+Useful if IGNORE statements were used in the original model file.}
 
 \item{numNonFREMThetas}{Number of thetas that are not FREM covariates. These need to come before the FREM covariate thetas.}
-
-\item{modName}{The model name. Default is the current directory, i.e. ".".}
 
 \item{numSkipOm}{Number of diag omegas (variances) that should not be part of the FREM calculations. 
 Such omegas has to come before the large FREM omega block.}
 
 \item{idvar}{The name of the ID column,}
 
-\item{modDevDir}{The directory where the files reside.}
+\item{modDevDir}{The directory where the files reside. Default is the current directory, i.e. ".".}
 
-\item{FFEMData}{An FFEMData object as obtained with the function `createFFEMData`.}
-
-\item{covmodel}{A character string indicating if the covaite models were implemented linearly (additatively) in eth frem model or not. Default is "linear"}
+\item{covmodel}{A character string indicating if the covariate models were implemented linearly (additatively) in the frem model or not. Default is "linear".}
 }
 \value{
 A data frame with the same number of rows as subjects in the data file used in the base model, with columns ID, ETA1-(number of etas in the base model),
@@ -51,7 +57,7 @@ values on the original covariate scale. If argument `covmodel` is not `linear` t
 }
 \examples{
 \dontrun{
-ind_params <- calcParmeters(modName          = "run31",
+ind_params <- calcEtas(modName          = "run31",
                             modDevDir        = ".",
                             numSkipOm        = 2,
                             numNonFREMThetas = 7,
