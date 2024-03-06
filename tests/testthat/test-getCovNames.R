@@ -1,4 +1,4 @@
-PMXRenv::activate.unqualified.packages()
+
 test_that("getCovNames works", {
 
   ## Non-FREM model

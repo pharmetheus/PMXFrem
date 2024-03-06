@@ -14,6 +14,7 @@ LazyData: true
 Author: Niclas Jonsson [aut, cre],
   Joakim Nyberg [aut]
 RoxygenNote: 7.3.1
+Roxygen: list(markdown = TRUE)
 Depends: MASS, foreach, doParallel, tidyverse (>= 1.0.0), stringr, data.table, rlang, numDeriv,Hmisc,xpose4
 Suggests: 
 	PhRame,
