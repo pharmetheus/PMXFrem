@@ -9,11 +9,17 @@
 #' @param idvar The name of the ID column,
 #' @param cores How many cores to use in the calculations of the FFEM expressions.
 #' @param covSuffix Use to create the column name fo rthe covariate effects columns. The column names will be the parameter name followed by this string.
+#' @param filterString A character string with a filter expression to subset the amended FFEM data set so that the number of rows matches the original data file.
+#' Useful if IGNORE statements were used in the original model file.
 #'
 #' @details This function will compute a combined term of all (FREM) covariate effects for each parameter in the FFEM model and create a
 #' new data file with these combined effects appended. The combined coefficients are added to the FFEM data set with names that
 #' appends COV to the parameter name, e.g. the column with the combined covariate effects for parameter PAR will be called PARCOV.
 #' All rows for an individual will have the same value for PARCOV.
+#'
+#' If the original NONMEM model file use IGNORE statements to subset the data file, it is necessary to provide a filter expression as a character string
+#' to obtain an FFEM data set that only include the subjects in the original analysis. This is dobe with the `filterString` argument, e.g. `STUDYID==7` to only
+#' include STUDYID 7 (this is the same as saying `IGNORE.NE.7` in the NM-TRAN model file.)
 #'
 #' To implement an FFEM model with the covariate effects from the FREM analysis, change the FFEM model from:
 #'
@@ -80,6 +86,7 @@ createFFEMdata <- function(runno=NULL,
                           numSkipOm     = 0,
                           dataFile,
                           newDataFile   = paste("vpcData",runno,".csv",sep=""),
+                          filterString  = NULL,
                           availCov      = "all",
                           idvar         = "ID",
                           modDevDir     = NULL,
@@ -232,11 +239,6 @@ createFFEMdata <- function(runno=NULL,
     covEff<-covEff2
   }
 
-  # covEff <- foreach(k = 1:nrow(dataOne)) %do% {
-  #   myFun(data=dataOne[k,],parNames,dataMap=dataMap,availCov=availCov,covSuffix)
-  # }
-  # covEff <- data.frame(rbindlist(covEff))
-  #
 
   ## Add the individual covariateCoefficients to the return object
   retList$indCovEff <- names(covEff)[-1]
@@ -250,11 +252,15 @@ createFFEMdata <- function(runno=NULL,
   data3 <- data3 %>% rename(!!idvar := "ID")
 
   ## Add the modified data set to the return object
-  retList$newData <- data3
+  if(!is.null(filterString)) {
+    retList$newData <- data3 %>% filter(!!rlang::parse_expr(filterString))
+  } else {
+    retList$newData <- data3
+  }
 
   # Write the data to file
   if(!is.null(newDataFile)) {
-    write.csv(data3,file=newDataFile,quote = FALSE,row.names = FALSE)
+    write.csv(retList$newData,file=newDataFile,quote = FALSE,row.names = FALSE)
   }
 
   if (cores>1) stopImplicitCluster()

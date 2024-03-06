@@ -4,7 +4,7 @@
 #'
 #' @inheritParams createFFEMdata
 #' @param FFEMData An FFEMData object as obtained with the function `createFFEMData`.
-#' @param covmodel A character string indicating if the covaite models were implemented linearly (additatively) in eth frem model or not. Default is "linear"
+#' @param covmodel A character string indicating if the covariate models were implemented linearly (additatively) in eth frem model or not. Default is "linear"
 #'
 #' @details The function collects the ETAs from the output of a FREM model, both for the parameters as well as the covariates. The corresponding ETA_prims for the parameter ETAs are computed
 #' by extracting the corresponding individual covariate coefficient provided in the createFFEMdata object, which is a mandatory argument.
@@ -20,20 +20,21 @@
 #'
 #' @examples
 #' \dontrun{
-#' ind_params <- calcParmeters(modName          = "run31",
+#' ind_params <- calcEtas(modName          = "run31",
 #'                             modDevDir        = ".",
 #'                             numSkipOm        = 2,
 #'                             numNonFREMThetas = 7,
 #'                             FFEMData         = FFEMDataObject)
 #' }
 calcEtas <- function(
-    runno          = NULL,
-    numNonFREMThetas,
+    runno         = NULL,
     modName       = NULL,
+    FFEMData      ,
+    filterString = NULL,
+    numNonFREMThetas,
     numSkipOm     = 0,
     idvar         = "ID",
     modDevDir     = NULL,
-    FFEMData      = NULL,
     covmodel      = "linear",
     ...) {
 
@@ -46,9 +47,15 @@ calcEtas <- function(
   dfphi <- getPhi(phiFile)
   dfExt <- getExt(extFile)
 
-  dfone <- FFEMData$newData[!duplicated(FFEMData$newData[[idvar]]), c(idvar, FFEMData$indCovEf)]
 
-  if (nrow(dfphi) != nrow(dfone)) error("Number of unique individuals in the dataset and phi file needs to be the same")
+  ## Select one row and keep ID and the covariate effects.
+  dfone <- FFEMData$newData %>%
+    distinct(!!rlang::parse_expr(idvar),.keep_all=TRUE) %>%
+    select(all_of(c(idvar,FFEMData$indCovEf)))
+
+  # dfone <- FFEMData$newData[!duplicated(FFEMData$newData[[idvar]]), c(idvar, FFEMData$indCovEf)]
+
+  if (nrow(dfphi) != nrow(dfone)) stop("Number of unique individuals in the dataset and phi file needs to be the same")
 
   ## Compute eta_prim
   etafrem <- dfphi[, 3:(2 + numSkipOm + nrow(FFEMData$Omega))]
