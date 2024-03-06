@@ -46,21 +46,21 @@ plotExplainedVar <- function(dfres,
                                           "Explained part of explainable variability (%)"),
                              add.stamp = FALSE,
                              ...) {
-
-
+  
+  
   # Adjust add.stamp if needed
   if ("add.stamp" %in% ls(envir = .GlobalEnv) & missing(add.stamp)){
     add.stamp <- get("add.stamp", envir = .GlobalEnv)
   }else{
     add.stamp
   }
-
+  
   #### REMOVE FROM PUBLIC RELEASE ####
   # save.script functionality
   if((!is.null(peek_option("save.script")) &&
       peek_option("save.script") == TRUE) &&
      !str_detect(as.character(match.call()[1]), "_script")){
-
+    
     argsList <- c(list(funcName = match.call()[1] %>%
                          as.character() %>%
                          str_remove(".+:+") %>%
@@ -70,74 +70,76 @@ plotExplainedVar <- function(dfres,
     return(do.call("save_script", argsList))
   }
   #### REMOVE FROM PUBLIC RELEASE end
-
-
-
+  
+  
+  
   ## Input checks
   if(!(maxVar == 1 | maxVar ==2)) {
     stop("maxVar needs to be 1 or 2")
   }
-
+  
   if(!is.null(parameterLabels)) {
     if(!((length(parameterLabels) == length(parameters)) |
          (length(parameterLabels) ==nrow(dfres)))) {
       stop("The number of parameter labels must either be the same as the number of parameters or have the same length as the number of rows in dfres.")
     }
   }
-
+  
   if(!is.null(covariateLabels)) {
     if(!((length(covariateLabels) == length(unique(dfres$COVNAME))) |
          (length(covariateLabels)  == nrow(dfres)))) {
       stop("The number of group name labels must either be the same as the number of unique values in COVNAME or have the same length as the number of rows in dfres.")
     }
   }
-
+  
   if(!all(parameters %in% dfres$PARAMETER)) {
     stop("All parameters must be present in dfres$PARAMETER")
   }
-
+  
   ## Filter the parameters to use
   dfres <- dfres %>% filter(PARAMETER %in% parameters)
-
+  
   ## Name the PARAMETER column
   if(!is.null(parameterLabels)) {
     dfres$PARAMETERLABEL <- parameterLabels
   } else {
     dfres$PARAMETERLABEL <- dfres$PARAMETER
   }
-
+  
   # Retain order
   dfres$PARAMETERLABEL <- factor(dfres$PARAMETERLABEL,levels=unique(dfres$PARAMETERLABEL[order(dfres$PARAMETER)]))
-
+  
   ## Name the COVNAME column
   if(!is.null(covariateLabels)) {
-
+    
     if(length(covariateLabels) == length(unique(dfres$COVNAME))) {
       names(covariateLabels) <- unique(dfres$COVNAME)
-
+      
       dfres$COVNAMELABEL <- dfres$COVNAME
-
-      for (gName in unique(dfres$COVNAME)) {
-        dfres$COVNAMELABEL <- ifelse(dfres$COVNAME == gName,covariateLabels[gName],dfres$COVNAMELABEL)
+      
+      for (i in seq_along(unique(dfres$COVNAME))) {
+        dfres$COVNAMELABEL <- ifelse(dfres$COVNAME == unique(dfres$COVNAME)[i],
+                                     covariateLabels[unique(dfres$COVNAME)[i]],
+                                     dfres$COVNAMELABEL)
       }
-
+      
     } else {
       dfres$COVNAMELABEL <- covariateLabels
     }
-
+    
   } else {
     dfres$COVNAMELABEL <- dfres$COVNAME
   }
-
+  
   ## Compute the fraction to plot
   dfres <- dfres %>%
     rowwise() %>%
     mutate(Frac = ifelse(maxVar == 1,100*COVVAR/TOTVAR,100*COVVAR/TOTCOVVAR))
-
+  
   ## Reorder the covariates according to FRAC
   dfres$COVNAMELABEL <- reorder(dfres$COVNAMELABEL,dfres$Frac,FUN=median)
-
-
+  
+  
   ##
   if(compareVersion(as.character(packageVersion("ggplot2")),"3.3-0") <0) { # If ggplot version < 3.3.0
     p1 <- ggplot(dfres, aes(x=COVNAMELABEL, y=Frac)) +
@@ -153,11 +155,11 @@ plotExplainedVar <- function(dfres,
       xlab(xlb) +
       ylab("")
   }
-
+  
   if(add.stamp){
     p1 <- PhRame::add_stamp(p1, print = FALSE, ...)
   }
-
+  
   return(p1)
 }
 
