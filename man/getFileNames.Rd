@@ -2,7 +2,7 @@
 % Please edit documentation in R/getFileNames.R
 \name{getFileNames}
 \alias{getFileNames}
-\title{getFileNames}
+\title{Collect filenames that are associated with a NONMEM run}
 \usage{
 getFileNames(
   runno = NULL,
@@ -13,28 +13,36 @@ getFileNames(
 )
 }
 \arguments{
-\item{runno}{The run number. Must be provided if `modName` is NULL. Will be used to create file model and NONMEM results file names  with
-the structure run[runno].[modExt] and run[runno].[lstExt]. NONMEM ext, phi and cov files will be assumed to be named run[runno] followed by the appropriate suffix.}
+\item{runno}{The run number. Must be provided if `modName` is NULL. Will be
+used to create NONMEM model and results file names  with the structure
+run[runno].[modExt] and run[runno].[lstExt]. NONMEM ext, phi and cov files
+will be assumed to be named run[runno] followed by the appropriate suffix.}
 
-\item{modName}{The model name. Will be used together with `modExt`, `lstExt`, ext, phi and cov to form the NONMEM file names, for
-example [modName].[modExt] for the model file.}
+\item{modName}{The model name. Will be used together with `modExt`, `lstExt`,
+ext, phi and cov to form the NONMEM file names, for example
+[modName].[modExt] for the model file.}
 
-\item{modDevDir}{The directory where the files reside. Default is the current directory, i.e. ".".}
+\item{modDevDir}{The directory where the files reside. Default is the current
+directory, i.e. ".".}
 
 \item{modExt}{The model file name extension. Default is ".mod".}
 
 \item{lstExt}{The NONMEM out file name extension. Default is ".lst".}
 }
 \value{
-A list with components "mod", "ext", "phi" and "lst" specifying the path names of the corresponding files.
+A list with components "mod", "ext", "phi" and "lst" specifying the
+path names of the corresponding files.
 }
 \description{
-Assembles the model, ext, phi and lst file names for a run based on either run number or model name (the part of the file name to the left of the filename extension).
+Assembles the model, ext, phi and lst file names for a run based on either
+run number or model name (the part of the file name to the left of the
+filename extension).
 }
 \details{
-runno and modName can not both be NULL. If both are provided, modName is used.
+runno and modName can not both be NULL. If both are provided,
+modName is used.
 
-modDevDir can not be NULL.
+modDevDir can not be NULL. Test
 }
 \examples{
 getFilenNames(modName=9)

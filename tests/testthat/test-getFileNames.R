@@ -1,4 +1,3 @@
-PMXRenv::activate.unqualified.packages()
 test_that("getFiles work", {
 
   expect_error(getFileNames(runno=NULL,modName=NULL))
