@@ -1,35 +1,49 @@
-#' calcEtas
+#' Compute ETA prims
 #'
-#' @description Collects the ETAs (parameter and covariate) from a FREM model and computes the ETA_prims.
+#' Collects the ETAs (parameter and covariate) from a FREM model and computes
+#' the ETA_prims.
 #'
 #' @inheritParams createFFEMdata
-#' @param FFEMData An FFEMData object as obtained with the function `createFFEMData`.
-#' @param covmodel A character string indicating if the covariate models were implemented linearly (additatively) in eth frem model or not. Default is "linear"
+#' @param FFEMData An FFEMData object as obtained with the function
+#'   `createFFEMData`.
+#' @param covmodel A character string indicating if the covariate models were
+#'   implemented linearly (additatively) in eth frem model or not. Default is
+#'   "linear"
 #'
-#' @details The function collects the ETAs from the output of a FREM model, both for the parameters as well as the covariates. The corresponding ETA_prims for the parameter ETAs are computed
-#' by extracting the corresponding individual covariate coefficient provided in the createFFEMdata object, which is a mandatory argument.
+#' @details The function collects the ETAs from the output of a FREM model, both
+#'   for the parameters as well as the covariates. The corresponding ETA_prims
+#'   for the parameter ETAs are computed by extracting the corresponding
+#'   individual covariate coefficient provided in the createFFEMdata object,
+#'   which is a mandatory argument.
 #'
-#' If argument `covmodel` is `linear` the covariate ETAs will be added to the estimates of the mean covariate effects from the FREM model to generate individual covariate
-#' values on the original covariate scale. If argument `covmodel` is not `linear` the covariate ETAs will be reported on the ETA scale. The names of the covariate ETAs will be set to
-#' `getCovNames(modFile = modFile)$covNames` regardless of the value of `covmodel`.
+#'   If argument `covmodel` is `linear` the covariate ETAs will be added to the
+#'   estimates of the mean covariate effects from the FREM model to generate
+#'   individual covariate values on the original covariate scale. If argument
+#'   `covmodel` is not `linear` the covariate ETAs will be reported on the ETA
+#'   scale. The names of the covariate ETAs will be set to `getCovNames(modFile
+#'   = modFile)$covNames` regardless of the value of `covmodel`.
 #'
-#' @seealso [createFFEMData()] for information about creating the FFEMData object
-#' @return A data frame with the same number of rows as subjects in the data file used in the base model, with columns ID, ETA1-(number of etas in the base model),
-#' ETA1-(number of etas in the base model)_PRIM and columns for the covariate etas (see above)
+#' @seealso [createFFEMData()] for information about creating the FFEMData
+#'   object
+#' @return A data frame with the same number of rows as subjects in the data
+#'   file used in the base model, with columns ID, ETA1-(number of etas in the
+#'   base model), ETA1-(number of etas in the base model)_PRIM and columns for
+#'   the covariate etas (see above)
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' ind_params <- calcEtas(modName          = "run31",
-#'                        modDevDir        = ".",
-#'                        numSkipOm        = 2,
-#'                        numNonFREMThetas = 7,
-#'                        FFEMData         = FFEMDataObject)
+#' ind_params <- calcEtas(
+#'   modName          = "run31",
+#'   modDevDir        = ".",
+#'   numSkipOm        = 2,
+#'   numNonFREMThetas = 7,
+#'   FFEMData         = FFEMDataObject)
 #' }
 calcEtas <- function(
     runno         = NULL,
     modName       = NULL,
-    FFEMData      ,
+    FFEMData,
     filterString = NULL,
     numNonFREMThetas,
     numSkipOm     = 0,
@@ -39,7 +53,7 @@ calcEtas <- function(
     ...) {
 
   ## Get the filenames and data to work with
-  fileNames <- getFileNames(runno=runno,modName=modName,modDevDir=modDevDir,...)
+  fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir, ...)
   modFile   <- fileNames$mod
   extFile   <- fileNames$ext
   phiFile   <- fileNames$phi
@@ -50,8 +64,8 @@ calcEtas <- function(
 
   ## Select one row and keep ID and the covariate effects.
   dfone <- FFEMData$newData %>%
-    distinct(!!rlang::parse_expr(idvar),.keep_all=TRUE) %>%
-    select(all_of(c(idvar,FFEMData$indCovEf)))
+    distinct(!!rlang::parse_expr(idvar), .keep_all = TRUE) %>%
+    select(all_of(c(idvar, FFEMData$indCovEf)))
 
   # dfone <- FFEMData$newData[!duplicated(FFEMData$newData[[idvar]]), c(idvar, FFEMData$indCovEf)]
 
@@ -83,11 +97,9 @@ calcEtas <- function(
   }
 
   ## Assign informative names
-  retDf <- cbind(ID=dfphi[,2],etaprim,etafrem,covariates)
-  names(retDf) <- gsub("\\.","",names(retDf))
+  retDf <- cbind(ID = dfphi[, 2], etaprim, etafrem, covariates)
+  names(retDf) <- gsub("\\.", "", names(retDf))
 
   return(retDf)
 
 }
-
-
