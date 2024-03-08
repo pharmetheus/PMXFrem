@@ -1,33 +1,77 @@
-#' createFFEMmode
+#'Create an FFEM version of a FREM model together with an appropriate data file.
 #'
-#' @inheritParams getFileNames
-#' @inheritParams createFFEMdata
-#' @inheritParams calcFFEM
-#' @param baserunno The run number of the base model.
-#' @param baseModName The name of the base model. If NULL (default) no model file will be printed to file.
-#' @param baseModDevDir The directory name in which the base model files can be found. Default the same as modDevDir.
-#' @param ffemTabName The table file name to insert into the FFEM model. Default is 'ffemtab'.
-#' @param ffemModName The name of the file to write the ffem model to, or NULL. NULL is the default
-#' @param ... Arguments passed to `createFFEMdata`
+#'Create FFEM versions of a FREM model and data set to be used for generating
+#'GOF plots and VPC analyses.
 #'
-#' @details This function creates an FFEM version of a frem model. The starting point is the base model. The following things are done to accomplish this:
-#' \itemize{
-#' \item Replace the data file with a file in which columns with individual covariate coefficients has been appended.
-#' \item Append column names to $INPUT to match the new data file.
-#' \item Update the initial estimates for $THETA and $SIGMA with the corresponding estimates from the frem run.
-#' \item Replace the initial estimates of the OMEGAs with the adjusted OMEGA ("Omega prim") from the frem model.
-#' \item Add the individual covariate coefficients to the corresponding ETAs (assuming the same order of the ETAs and the ndividual covariate coefficients).
-#' \item Replace the options on $EST with MAX=1 METHOD=1 INTER. If more that one $EST is present in the file, the second, third, etc are removed.
-#' \item Update any table file name with ffemTabName
-#' }
+#'To create GOF plots and VPC analysies for a FREM model it is necessary to
+#'convert it to a FFEM model, with the appropriate covariate effects and omega
+#'prim.
 #'
-#' It is important to check the FFEM model file so that it is correct.
-#' @return A character vector with the code for the FFEM model.
-#' @seealso
-#' [getFileName()]
-#' [createFFEMdata()]
-#' [calcFFEM()]]
-#' @export
+#'There are two ways the FREM covariate effects can be included in the FFEM
+#'model. The first is to amend the FFEM code with the full covariate model
+#'expressions (these expressions can be obtained from the [createFFEMdata()]
+#'function. This may be practically possible for one or a few covariates, but
+#'will quickly run into NONMEM related issues regarding the number of allowed
+#'constants, and similar. The second and recommended approach, is to precompute
+#'the total impact of the covariates for each individual, and to add these
+#'*individual covariate coefficients* to the original data set. They can then be
+#'added as constants in the the FFEM code additatively to the corresponding ETA:
+#'
+#'Change the FFEM code from:
+#'
+#'`PAR = TVPAR * EXP(ETA)`
+#'
+#'to
+#'
+#'`PAR = TVPAR * EXP(ETA + PARCOV)`
+#'
+#'where PARCOV is the individual covariate coefficient. (The PARCOV term
+#'
+#'The addition of the individual covariate coefficients to the original data set
+#'is done by´ the [createFFEMdata()] function. However, `createFFEMdata()` is
+#'called by `createFFEMmodel()` so there is no need to do this as a separate
+#'step.
+#'
+#'The are also other changes to the original model file to be suitable for
+#'generating GOF diagnostics for the FREM model:
+#' * Replace the data file name on $DATA with name of the file with the individual covariate coefficients.
+#' * Append column names to $INPUT to match the new data file.
+#' * Update the initial estimates for $THETA and $SIGMA with the corresponding estimates from the FREM run.
+#' * Replace the initial estimates of the OMEGAs with the adjusted OMEGA ("Omega prim") from the FREM model.
+#' * Add the individual covariate coefficients to the corresponding ETAs (see above).
+#' * Replace the options on $EST with MAX=1 METHOD=1 INTER. If more that one $EST is present in the file, the second, third, etc are removed.
+#' * Update any table file name with `ffemTabName`
+#'
+#'`createFFEMmodel()` implements these changes to the model automatically.
+#'
+#'The resulting model is not intended for estimation of the population
+#'parameters, only for EBE estimation and generation of predictions in a
+#'MAXEVAL=0 run. The the tabulated output is suitable for the generation of
+#'regular GOF plots. The model file can easily be modified to perform
+#'simulations for a VPC analysis.
+#'
+#'
+#'@inheritParams getFileNames
+#'@inheritParams createFFEMdata
+#'@inheritParams calcFFEM
+#'@param baserunno The run number of the base model.
+#'@param baseModName The name of the base model. If NULL (default) no model file
+#'  will be printed to file.
+#'@param baseModDevDir The directory name in which the base model files can be
+#'  found. Default the same as modDevDir.
+#'@param ffemTabName The table file name to insert into the FFEM model. Default
+#'  is 'ffemtab'.
+#'@param ffemModName The name of the file to write the ffem model to, or NULL.
+#'  NULL is the default
+#'@param ... Arguments passed to `createFFEMdata`
+#'
+#'@return A character vector with the code for the FFEM model.
+#'
+#'@section Side effects: The FFEM model will be written to a file with the name
+#'  `ffemModName` if it is non-`NULL`.
+#'
+#'@seealso [getFileName()] [createFFEMdata()] [calcFFEM()]]
+#'@export
 #'
 #' @examples
 #' \dontrun{
@@ -41,30 +85,31 @@
 #'                            quiet            = FALSE,
 #'                            baserunno        = 30)
 #' }
-createFFEMmodel <- function(runno         =NULL,
-                            numNonFREMThetas,
-                            modName       = NULL,
-                            modExt        = ".mod",
-                            lstExt        = ".lst",
-                            numFREMThetas = length(grep("THETA",names(dfext)))-numNonFREMThetas,
-                            covSuffix     = "FREMCOV",
-                            parNames      = NULL,
-                            numParCov     = NULL,
-                            numSkipOm     = 0,
-                            dataFile,
-                            newDataFile   = paste("vpcData",runno,".csv",sep=""),
-                            availCov      = "all",
-                            idvar         = "ID",
-                            modDevDir     = NULL,
-                            quiet         = FALSE,
-                            cores         = 1,
-                            dfext         = NULL,
-                            baserunno     = NULL,
-                            baseModName   = NULL,
-                            baseModDevDir = modDevDir,
-                            ffemTabName   = "ffemtab",
-                            ffemModName   = NULL,
-                            ...) {
+createFFEMmodel <- function(
+    runno         =NULL,
+    numNonFREMThetas,
+    modName       = NULL,
+    modExt        = ".mod",
+    lstExt        = ".lst",
+    numFREMThetas = length(grep("THETA",names(dfext)))-numNonFREMThetas,
+    covSuffix     = "FREMCOV",
+    parNames      = NULL,
+    numParCov     = NULL,
+    numSkipOm     = 0,
+    dataFile,
+    newDataFile   = paste("vpcData",runno,".csv",sep=""),
+    availCov      = "all",
+    idvar         = "ID",
+    modDevDir     = NULL,
+    quiet         = FALSE,
+    cores         = 1,
+    dfext         = NULL,
+    baserunno     = NULL,
+    baseModName   = NULL,
+    baseModDevDir = modDevDir,
+    ffemTabName   = "ffemtab",
+    ffemModName   = NULL,
+    ...) {
 
   ## Check input
   if(is.null(newDataFile)) stop("newDataFile must be a character string.")
