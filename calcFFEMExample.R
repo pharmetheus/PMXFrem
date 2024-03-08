@@ -14,8 +14,7 @@ phis  <- getPhi(fileNames$phi) %>%
 
 dfext <- getExt(fileNames$ext)
 
-tmp <- calcFFEM(dfext=dfext,numNonFREMThetas,numSkipOm=numSkipOm,fremETA=as.numeric(phis[1,]))
-
+tmp <- calcFFEM(dfext=dfext,numNonFREMThetas=numNonFREMThetas,numSkipOm=numSkipOm,fremETA=as.numeric(phis[1,]))
 
 names(tmp)
 tmp$Eta_prim

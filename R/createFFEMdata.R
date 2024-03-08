@@ -3,22 +3,29 @@
 #'
 #' Add combined FFEM coefficients to the data set for the specified covariates.
 #'
-#' This function computes a combined term of all (FREM) covariate
-#' effects for each parameter in the FFEM model and creates a new data file
-#' with these combined effects appended. The combined coefficients are added
-#' to the FFEM data set with names that appends COV to the parameter name,
-#' e.g. the column with the combined covariate effects for parameter PAR will
-#' be called PARCOV. All rows for an individual in the data set will have the
-#' same value for PARCOV.
+#' This function computes a combined term of all (FREM) covariate effects for
+#' each parameter in the FFEM model (individual covariate coefficients) and
+#' creates a new data file with these combined effects appended. The individual
+#' covariate coefficients are added to the FFEM data set with names that appends
+#' COV to the parameter name, e.g. the column with the combined covariate
+#' effects for parameter PAR will be called PARCOV. All rows for an individual
+#' in the data set will have the same value for PARCOV.
+#'
+#' The function  [calcFFEM()] is used to calculate the individual covariate
+#' coefficients. It is called once per individual in the data set and takes any
+#' missing covariates into account. This means that two subjects with identical
+#' covariate values, except that one subject has a missing value for one of the
+#' covariate, will have different covariate coefficients for the non-missing
+#' covariates.
 #'
 #' If the original NONMEM model file use IGNORE statements to subset the data
-#' file, it is necessary to provide a filter expression as a character string
-#' to obtain an FFEM data set that only include the rows used in the original
-#' model. This is done with the `filterString` argument, e.g. `STUDYID==7`
-#' to only include STUDYID 7 (this is the same as saying `IGNORE.NE.7` in the
-#' NM-TRAN model file.) If IGNORE statements are used in original model file
-#' and `filterString` is not specified, then the resulting FFEM data set will
-#' have the same number of rows as the the original data set.
+#' file, it is necessary to provide a filter expression as a character string to
+#' obtain an FFEM data set that only include the rows used in the original
+#' model. This is done with the `filterString` argument, e.g. `STUDYID==7` to
+#' only include STUDYID 7 (this is the same as saying `IGNORE.NE.7` in the
+#' NM-TRAN model file.) If IGNORE statements are used in original model file and
+#' `filterString` is not specified, then the resulting FFEM data set will have
+#' the same number of rows as the the original data set.
 #'
 #' @inheritParams calcFFEM
 #' @inheritParams getFileNames
@@ -40,18 +47,18 @@
 #' @seealso [createFFEMmodel()]
 #' @return A list with objects:
 #'
-#' * Omega: The omega prim matrix to be used in tm model file. The upper triangle is set to NAs.
+#' * Omega: The omega prim matrix to be used in the model file. The upper triangle is set to NAs.
 #' * Coefficients: An nPar x nCov matrix with covariate coefficients used to compute the individual covariate effects.
 #' * indCovEff: A character vector with the labels for the individual covariate effects. Used for the new columns in the new data set.
 #' * newData: A data.frame with the new data set, i.e. the same as dataFile with individual covariate effects appended.
 #'
 #' @section Side effetcs:
 #'
-#' If `newDataFile` is not NULL, `newData` will be printed as a csv to disk
-#' with the name `newDataFile`.
+#'   If `newDataFile` is not NULL, `newData` will be printed as a csv to disk
+#'   with the name `newDataFile`.
 #'
-#' If quiet is FALSE, the FFEM expressions and new OMEGA matrix is printed in
-#' the console.
+#'   If quiet is FALSE, the FFEM expressions and new OMEGA matrix is printed in
+#'   the console.
 #'
 #' @export
 #'

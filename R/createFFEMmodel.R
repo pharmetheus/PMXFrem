@@ -44,6 +44,9 @@
 #'
 #'`createFFEMmodel()` implements these changes to the model automatically.
 #'
+#'The individual covariate coefficients will take missing covariates into
+#'account while the omega prim will assume that all covariates are non-missing.
+#'
 #'The resulting model is not intended for estimation of the population
 #'parameters, only for EBE estimation and generation of predictions in a
 #'MAXEVAL=0 run. The the tabulated output is suitable for the generation of
