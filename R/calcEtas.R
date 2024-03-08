@@ -21,10 +21,10 @@
 #' @examples
 #' \dontrun{
 #' ind_params <- calcEtas(modName          = "run31",
-#'                             modDevDir        = ".",
-#'                             numSkipOm        = 2,
-#'                             numNonFREMThetas = 7,
-#'                             FFEMData         = FFEMDataObject)
+#'                        modDevDir        = ".",
+#'                        numSkipOm        = 2,
+#'                        numNonFREMThetas = 7,
+#'                        FFEMData         = FFEMDataObject)
 #' }
 calcEtas <- function(
     runno         = NULL,
