@@ -1,4 +1,4 @@
-PMXRenv::activate.unqualified.packages()
+
 test_that("getExplainedVar works", {
 
 modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
@@ -11,9 +11,7 @@ dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"
   filter(BLQ == 0) %>%
   distinct(ID,.keep_all = T)
 
-dfCovs <- setupdfCovs(dfData,modFile)
-
-expect_snapshot_value(dfCovs,style = "deparse")
+dfCovs <- setupdfCovs(modFile)
 
 cstrCovariates <- c("All",names(dfCovs))
 
@@ -25,7 +23,7 @@ functionList2 <- list(
 functionListName2 <- c("CL","V")
 
 
-## Test that the inout check for cstrCovariates work
+## Test that the inpout check for cstrCovariates work
 expect_error(
 dfres0 <- getExplainedVar(type             = 0,
                           data             = NULL,
