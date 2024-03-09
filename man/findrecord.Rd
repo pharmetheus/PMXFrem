@@ -2,27 +2,37 @@
 % Please edit documentation in R/findrecord.R
 \name{findrecord}
 \alias{findrecord}
-\title{findrecord}
+\title{Find/replace a record in a NONMEM model file.}
 \usage{
 findrecord(input, record = "\\\\$OMEGA", replace = NULL, quiet = TRUE)
 }
 \arguments{
-\item{input}{the filename of the NONMEM model file or a list of all lines of the model}
+\item{input}{The filename of the NONMEM model file or a character vector of
+with lines of a model file.}
 
-\item{record}{The NONMEM record to replace/find, note all of the records starting with "record" will be replaced/found}
+\item{record}{The NONMEM record to replace/find, note all of the records
+starting with "record" will be replaced/found}
 
-\item{replace}{string vector to replace with (default=NULL, no replacement)}
+\item{replace}{string vector to replace \code{record} with (default=NULL, no
+replacement)}
 
 \item{quiet}{verbose (quiet=F) or not (quiet=T, default)}
 }
 \value{
-the new model file include the replacement (if replace!=NULL), otherwise the found record(s)
+The new model file including the replacement (if replace!=NULL),
+otherwise the found record(s)
 }
 \description{
-findrecord
+Find/replace a record in a NONMEM model file.
 }
 \examples{
-\dontrun{
-tmp <- findrecord(basemodel,record="\\\\$PROBLEM",replace="$PROBLEM FFEM model",quiet=T)
-}
+
+modFile <- system.file("extData/SimNeb/run30.mod", package = "PMXFrem")
+
+## Return the $PROBLEM record
+tmp <- findrecord(modFile, record = "\\\\$PROBLEM", quiet = T)
+
+## Return the new model with $PROBLEM set to FFEM model
+tmp <- findrecord(modFile, record = "\\\\$PROBLEM", replace = "$PROBLEM FFEM model", quiet = T)
+
 }

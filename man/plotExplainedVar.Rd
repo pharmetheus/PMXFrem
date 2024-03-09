@@ -2,7 +2,7 @@
 % Please edit documentation in R/plotExplainedVar.R
 \name{plotExplainedVar}
 \alias{plotExplainedVar}
-\title{plotExplainedVar}
+\title{Plot the explained variability of covariates in a FREM model}
 \usage{
 plotExplainedVar(
   dfres,
@@ -20,20 +20,27 @@ plotExplainedVar(
 )
 }
 \arguments{
-\item{dfres}{A data.frame with data to plot. Typically obtained by \code{getExplainedVar}.}
+\item{dfres}{A data.frame with data to plot. Typically obtained by
+\code{getExplainedVar}.}
 
-\item{parameters}{A vector with the names of the parameters to include in the plot. The parameter names must be present in the \code{dfres$PARAMETER}.}
+\item{parameters}{A vector with the names of the parameters to include in the
+plot. The parameter names must be present in the \code{dfres$PARAMETER}.}
 
 \item{parameterLabels}{A character vector of alternative parameter labels.
-Should either have the same length as \code{parameters} or the same length as the number of rows in \code{dfres}.}
+Should either have the same length as \code{parameters} or the same length
+as the number of rows in \code{dfres}.}
 
-\item{covariateLabels}{A character vector of alternative covariate labels. Should have the same length as the number of rows in \code{dfres}.}
+\item{covariateLabels}{A character vector of alternative covariate labels.
+Should have the same length as the number of rows in \code{dfres}.}
 
-\item{labelfun}{A label function compatible with \code{labeller}. Used to format \code{parameterLabels} used as row facet labels in the plot.}
+\item{labelfun}{A label function compatible with \code{labeller}. Used to
+format \code{parameterLabels} used as row facet labels in the plot.}
 
 \item{fill_col}{The fill color of the bars.}
 
-\item{maxVar}{maxVar=1 (default): Visualize the explained part of the total variability. maxVar=2: Visualize the explained part of the explainable variability.}
+\item{maxVar}{maxVar=1 (default): Visualize the explained part of the total
+variability. maxVar=2: Visualize the explained part of the explainable
+variability.}
 
 \item{xlb}{X-axis title.}
 
@@ -45,17 +52,18 @@ argument will assume the globally defined value of \code{add.stamp}, unless
 \code{add.stamp} argument is explicitly defined when this function is
 called.}
 
-\item{...}{is optional arguments that are passed tp \code{\link{add_stamp}} and further to \code{\link{ggplot2::ggsave}}}
+\item{...}{is optional arguments that are passed tp \code{\link{add_stamp}}
+and further to \code{\link{ggplot2::ggsave}}}
 }
 \value{
 A plot that illustrates the explained variability
 }
 \description{
-plotExplainedVar
-}
-\details{
-With maxVar=1 the explained variability of the covariate (combination) in each row of dfres (COVVAR) is divided by the value in TOTVAR and multiplied by 100.
-With maxVar=2 the explained variability of the covariate (combination) in each row of dfres (COVVAR) is divided by the value in TOTCOVVAR and multiplied by 100.
+With maxVar=1 the explained variability of the covariate (combination) in
+each row of dfres (COVVAR) is divided by the value in TOTVAR and multiplied
+by 100. With maxVar=2 the explained variability of the covariate
+(combination) in each row of dfres (COVVAR) is divided by the value in
+TOTCOVVAR and multiplied by 100.
 }
 \examples{
 \dontrun{

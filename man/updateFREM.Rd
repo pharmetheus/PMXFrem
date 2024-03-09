@@ -2,12 +2,12 @@
 % Please edit documentation in R/updateFREM.R
 \name{updateFREM}
 \alias{updateFREM}
-\title{updateFREM}
+\title{Modify an exiting FREM model and data set}
 \usage{
 updateFREM(
   strFREMModel,
-  strFREMData = "",
-  strFFEMData = "",
+  strFREMData,
+  strFFEMData,
   cstrContCovsToAdd = NULL,
   cstrCatCovsToAdd = NULL,
   cstrCovsToAddOrder = NULL,
@@ -20,7 +20,8 @@ updateFREM(
   numNonFREMThetas,
   numSkipOm = 0,
   numParCov = NULL,
-  cstrKeepCols = c("ID", "DV", "FREMTYPE"),
+  cstrKeepCols = c("ID", "TIME", "AMT", "II", "EVID", "SS", "RATE"),
+  cstrSetToZero = c("AMT", "II", "SS", "EVID", "RATE"),
   bWriteData = TRUE,
   bWriteFIX = TRUE,
   bWriteMod = TRUE,
@@ -32,85 +33,147 @@ updateFREM(
 )
 }
 \arguments{
-\item{strFREMModel}{File name of the FREM-model to add/remove covariates to/from.}
+\item{strFREMModel}{File name of the FREM-model to add/remove covariates
+to/from.}
 
-\item{strFREMData}{Name of FREM-dataset (file or data.frame) to add/remove covariates to/from (not used with strUpdateType "NoData").}
+\item{strFREMData}{Name of FREM-dataset (file or data.frame) to add/remove
+covariates to/from (not used with strUpdateType "NoData").}
 
-\item{strFFEMData}{Name of FFEM-dataset (normal dataset, (file or data.frame)) that will be used to append the FREM-dataset, (not used with strUpdateType "NoData").}
+\item{strFFEMData}{Name of FFEM-dataset (normal dataset, (file or
+data.frame)) that will be used to append the FREM-dataset, (not used with
+strUpdateType "NoData").}
 
-\item{cstrContCovsToAdd}{A vector of continuous covariate names to add, default = NULL, (not used with strUpdateType "NoData").}
+\item{cstrContCovsToAdd}{A vector of continuous covariate names to add,
+default = NULL, (not used with strUpdateType "NoData").}
 
-\item{cstrCatCovsToAdd}{A vector of categorical covariate names to add, default = NULL, (not used with strUpdateType "NoData").}
+\item{cstrCatCovsToAdd}{A vector of categorical covariate names to add,
+default = NULL, (not used with strUpdateType "NoData").}
 
-\item{cstrCovsToAddOrder}{A vector of the order of the covariate names to add, default = NULL (i.e. alphabetic order will be used), (not used with strUpdateType "NoData").
-Note: if used, this should contain all covariates in cstrCatCovsToAdd as well as cstrContCovsToAdd.}
+\item{cstrCovsToAddOrder}{A vector of the order of the covariate names to
+add, default = NULL (i.e. alphabetic order will be used), (not used with
+strUpdateType "NoData"). Note: if used, this should contain all covariates
+in cstrCatCovsToAdd as well as cstrContCovsToAdd.}
 
-\item{strNewFREMData}{Name of the new dataset, default=paste0(strFREMData_without_extension,"new",".",extension), (not used with strUpdateType "NoData").}
+\item{strNewFREMData}{Name of the new dataset,
+default=paste0(strFREMData_without_extension,"new",".",extension), (not
+used with strUpdateType "NoData").}
 
-\item{strUpdateType}{Update function to run: "DataAndModel" - Create new data and add/remove variables from the model (with updated inits).
-"NoData" - Do not create data or add variables to model, only update the frem model in terms of new inits}
+\item{strUpdateType}{Update function to run: "DataAndModel" - Create new data
+and add/remove variables from the model (with updated inits). "NoData" - Do
+not create data or add variables to model, only update the frem model in
+terms of new inits}
 
-\item{quiet}{If set to FALSE, the function outputs verbose information on what it is doing.}
+\item{quiet}{If set to FALSE, the function outputs verbose information on
+what it is doing.}
 
 \item{strID}{A string with the ID identifier column in the FFEM dataset.}
 
-\item{basenames_th}{A vector of strings with the names of the base variables (used for commenting thetas), should be the same length as number of nonFREMThetas in the model, if NULL, BASE1,BASE2,etc are used as names.}
+\item{basenames_th}{A vector of strings with the names of the base variables
+(used for commenting thetas), should be the same length as number of
+nonFREMThetas in the model, if NULL, BASE1,BASE2,etc are used as names.}
 
-\item{basenames_om}{A vector of strings with the names of the base variables (used for commenting omegas), should be the same length as number of numSkipOm+numParCov in the model, if NULL, BASE1,BASE2,etc are used as names.}
+\item{basenames_om}{A vector of strings with the names of the base variables
+(used for commenting omegas), should be the same length as number of
+numSkipOm+numParCov in the model, if NULL, BASE1,BASE2,etc are used as
+names.}
 
-\item{cstrKeepCols}{A vector of columns to keep in the dataset (for the updated (small) dataset).}
+\item{numNonFREMThetas}{Number of thetas in the FREM model that are not FREM
+covariates. These need to come before the FREM covariate thetas in the FREM
+model file.}
 
-\item{bWriteData}{If FALSE; add new variables to the model file but do not write new datasets, has no effect when "NoData" is used.}
+\item{numSkipOm}{Number of diagonal omegas that should not be part of the
+FREM calculations. Such omegas has to come before the large FREM omega
+block in the FREM model file.}
 
-\item{bWriteFIX}{If TRUE; FIX is written to the theta parameter estimates code for the covariates that were fixed in the model file, if FALSE; all theta parameters are assumed to be estimated.}
+\item{numParCov}{Number of parameters for which covariate relations are
+sought (often the same as numNonFREMThetas). default (NULL) indicates that
+this is guessed by the function by assuming that each covariate effect is
+modeled as one theta and one eta.}
 
-\item{bWriteMod}{If TRUE; write the new model file to disk with _mod appended to the file name (before the suffix).}
+\item{cstrKeepCols}{A vector of columns to keep in the dataset (for the
+updated new dataset).}
 
-\item{cstrDV}{A vector of strings which are DV variables, important if new DVs (or new individuals) should be added, default="HAZ" (i.e. HAZ assumed fremtype=0), new DVs are added with fremtype 1,2,3...etc.}
+\item{cstrSetToZero}{A vector of variable names that should be set to zero on
+the covariate FREMTYPE lines. Typically columns with PK dosing information.}
 
-\item{cstrRemoveCov}{A vector of strings for covariates that should be remove, note that FREMTYPEs for remaining covariates might/will change. The removal of covariates are done before any adding of data and/or new covariates.
-Note that if this functionality is used to remove the last existing category of a categorical covariate, this should be done by removing the orginal name of the covariate and not the specific categorical covariate, i.e. "SITEID" instead of "SITEID_1" to ensure consistent renumbering of FREMTYPEs}
+\item{bWriteData}{If FALSE; add new variables to the model file but do not
+write new datasets, has no effect when "NoData" is used.}
 
-\item{covEpsNum}{The number of the epsilons parameter to be used for the covariates.}
+\item{bWriteFIX}{If TRUE; FIX is written to the theta parameter estimates
+code for the covariates that were fixed in the model file, if FALSE; all
+theta parameters are assumed to be estimated.}
 
-\item{overrideExistingCheck}{If TRUE, the existing check will be overriden and covariates will be added even though they are present in $DATA of the modefile}
+\item{bWriteMod}{If TRUE; write the new model file to disk with _mod appended
+to the file name (before the suffix).}
+
+\item{cstrDV}{A vector of strings with DV variables that should be added,
+default="DV" (i.e. DV assumed fremtype=0), additional DVs are added with
+fremtype 1,2,3...etc.}
+
+\item{cstrRemoveCov}{A vector of strings for covariates that should be
+remove, note that FREMTYPEs for remaining covariates might/will change. The
+removal of covariates are done before any adding of data and/or new
+covariates. Note that if this functionality is used to remove the last
+existing category of a categorical covariate, this should be done by
+removing the orginal name of the covariate and not the specific categorical
+covariate, i.e. "SITEID" instead of "SITEID_1" to ensure consistent
+renumbering of FREMTYPEs}
+
+\item{covEpsNum}{The number of the epsilons parameter to be used for the
+covariates.}
+
+\item{overrideExistingCheck}{If TRUE, the existing check will be overriden
+and covariates will be added even though they are present in $DATA of the
+modefile}
 
 \item{sortFREMDataset}{The columns to sort the new data set on.}
 }
 \value{
-An invisible list with components data and model, containing the new data set (if any, else NULL) and updated model.
-Will write the new fremdata set (if bWriteData is TRUE and strUpdateType is not 'NoData') and updated model file (if bwriteMod is TRUE) to disc. The model file name will be 'stem'_new.mod).
+An invisible list with components data and model, containing the new
+data set (if any, else NULL) and updated model.
 }
 \description{
 Appends or removes covariates in a FREM data set and FREM model.
 }
+\details{
+If the updated model should be written to disc, this will
+be in the same directory as the original model file.
+
+If the updated data file should be written to disc, this will
+be in the working directory.
+}
+\section{Side effects}{
+
+
+Will write the new fremdata set (if bWriteData is TRUE and strUpdateType is
+not 'NoData') and updated model file (if bwriteMod is TRUE) to disc. The
+model file name will be 'stem'_new.mod).
+}
+
 \examples{
-\dontrun{
 ## Remove SEX from the model and data set
 updateFREM(
-     strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
-     strFREMData       = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
-     strFFEMData       = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
-     cstrRemoveCov     = c("SEX"),
-     cstrCatCovsToAdd  = NULL,
-     cstrContCovsToAdd = NULL,
-     strID             = "ID",
-     strNewFREMData    = "frem_dataset_noSEX.csv",
-     numNonFREMThetas  = 7,
-     numSkipOm         = 2,
-     bWriteData        = TRUE,
-     quiet             = F,
-     bWriteFIX         = TRUE,
-     sortFREMDataset  = c("ID","TIME","FREMTYPE"),
-     cstrKeepCols = c("ID","TIME","AMT","EVID","RATE","DV","FOOD","FREMTYPE"))
+  strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+  strFREMData       = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
+  strFFEMData       = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
+  cstrRemoveCov     = c("SEX"),
+  cstrCatCovsToAdd  = NULL,
+  cstrContCovsToAdd = NULL,
+  strID             = "ID",
+  strNewFREMData    = "frem_dataset_noSEX.csv",
+  numNonFREMThetas  = 7,
+  numSkipOm         = 2,
+  bWriteData        = TRUE,
+  quiet             = F,
+  bWriteFIX         = TRUE,
+  sortFREMDataset  = c("ID", "TIME", "FREMTYPE"),
+  cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE"))
 
 ## Only update inits
 updateFREM(strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
-     numNonFREMThetas  = 7,
-     numSkipOm         = 2,
-     bWriteData        = FALSE,
-     quiet             = F,
-     strUpdateType     = "NoData")
-
-}
+  numNonFREMThetas  = 7,
+  numSkipOm         = 2,
+  bWriteData        = FALSE,
+  quiet             = F,
+  strUpdateType     = "NoData")
 }

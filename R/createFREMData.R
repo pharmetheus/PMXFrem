@@ -22,7 +22,7 @@
 #'   default="DV" (i.e. DV assumed fremtype=0), additional DVs are added with
 #'   fremtype 1,2,3...etc.
 #' @param cstrContCovs A vector of strings with continuous covariates to create.
-#'   Default=NULL, i.e. no continous covariates will be added
+#'   Default=NULL, i.e. no continuous covariates will be added
 #' @param cstrCatCovs  A vector of strings with categorical covariates to
 #'   create. Default=NULL, i.e. no categorical covariates will be added
 #' @param bRecodeDichotomous Set to true if dichotomous covariates should be

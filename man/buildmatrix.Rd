@@ -2,26 +2,34 @@
 % Please edit documentation in R/buildmatrix.R
 \name{buildmatrix}
 \alias{buildmatrix}
-\title{buildmatrix}
+\title{Create the NONMEM model $OMEGA or $SIGMA code from a matrix with
+variance-covariance information.}
 \usage{
 buildmatrix(matrix, strName = "$OMEGA", assumesame = TRUE)
 }
 \arguments{
-\item{matrix}{the matrix to be converted}
+\item{matrix}{The matrix to be converted.}
 
-\item{strName}{name of the matrix, normally OMEGA (default) or SIGMA}
+\item{strName}{The name of the matrix, normally "$OMEGA" (default) or
+"$SIGMA".}
 
-\item{assumesame}{assume equal block matrix should be marked as SAME}
+\item{assumesame}{Assume equal block matrix should be marked as SAME.}
 }
 \value{
-string vector of a NONMEM representation of the matrix
+A vector of character strings with the NONMEM representation of the
+matrix.
 }
 \description{
-buildmatrix
+The NONMEM code corresponding to a numerical matrix of variance-covariance
+information will be created in a way that is suitable for insertion in a
+NONMEM model.
 }
 \examples{
-\dontrun{
-buildmatrix(FFEMdata$FullVars)
-}
+numbasethetas   <- 7
+numskipom       <- 2
+fremmodelext    <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+dfExt           <- getExt(extFile = fremmodelext)
+calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = numbasethetas, numSkipOm = numskipom, quiet = T)
 
+myMatrix <- buildmatrix(calcFFEMtestout$FullVars)
 }

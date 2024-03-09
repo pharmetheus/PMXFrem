@@ -35,10 +35,13 @@ fremParTable(
 
 \item{sigmaNum}{The numbers of the sogmas that should appear in the parameter table.}
 
-\item{numNonFREMThetas}{Number of thetas that are not FREM covariates. These need to come before the FREM covariate thetas.}
+\item{numNonFREMThetas}{Number of thetas in the FREM model that are not FREM
+covariates. These need to come before the FREM covariate thetas in the FREM
+model file.}
 
-\item{numSkipOm}{Number of diag omegas (variances) that should not be part of the FREM calculations. 
-Such omegas has to come before the large FREM omega block.}
+\item{numSkipOm}{Number of diagonal omegas that should not be part of the
+FREM calculations. Such omegas has to come before the large FREM omega
+block in the FREM model file.}
 
 \item{extFile}{The path to the ext file of the FREM model.}
 

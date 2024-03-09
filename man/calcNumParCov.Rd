@@ -2,26 +2,31 @@
 % Please edit documentation in R/calcNumParCov.R
 \name{calcNumParCov}
 \alias{calcNumParCov}
-\title{calcNumParCov}
+\title{Calculate the number of parameters in a FREM model that are associated with
+covariates.}
 \usage{
 calcNumParCov(dfext, numNonFREMThetas, numSkipOm = 0)
 }
 \arguments{
-\item{dfext}{}
+\item{dfext}{The NONMEM .ext file from the FREM run.}
 
-\item{numNonFREMThetas}{Number of thetas that are not FREM covariates. These need to come before the FREM covariate thetas.}
+\item{numNonFREMThetas}{Number of thetas in the FREM model that are not FREM
+covariates. These need to come before the FREM covariate thetas in the FREM
+model file.}
 
-\item{numSkipOm}{Number of diag omegas (variances) that should not be part of the FREM calculations. 
-Such omegas has to come before the large FREM omega block.}
+\item{numSkipOm}{Number of diagonal omegas that should not be part of the
+FREM calculations. Such omegas has to come before the large FREM omega
+block in the FREM model file.}
 }
 \value{
 A scalar. The number of parameters for which covariates are sought.
 }
 \description{
-Calculate the number of parameters for which covariates are sought.
+Calculate the number of parameters in a FREM model that are associated with
+covariates.
 }
 \examples{
-\dontrun{
-calcNumParCov(dfExt,numNonFREMThetas = 9,numSkipOm = 2)
-}
+extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+dfExt   <- getExt(extFile = extFile)
+n       <- calcNumParCov(dfExt, numNonFREMThetas = 7, numSkipOm = 2)
 }

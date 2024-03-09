@@ -2,7 +2,7 @@
 % Please edit documentation in R/calcFFEM.R
 \name{calcFFEM}
 \alias{calcFFEM}
-\title{calcFFEM}
+\title{Calculate the corresponding FFEM charactersitics from a FREM model-}
 \usage{
 calcFFEM(
   dfext,
@@ -17,59 +17,98 @@ calcFFEM(
   quiet = FALSE,
   fremETA = NULL,
   eqFile = "",
-  omFile = ""
+  omFile = "",
+  ...
 )
 }
 \arguments{
-\item{dfext}{A data frame of the ext file for the model. In case of multiple $EST, the dfext 
-should contain the estimates of the *one* relevant $EST.}
+\item{dfext}{A data frame of the ext file for the FREM model. In case of
+multiple $EST, the dfext should contain the estimates of the \emph{one} relevant
+$EST.}
 
-\item{numNonFREMThetas}{Number of thetas that are not FREM covariates. These need to come before the FREM covariate thetas.}
+\item{numNonFREMThetas}{Number of thetas in the FREM model that are not FREM
+covariates. These need to come before the FREM covariate thetas in the FREM
+model file.}
 
-\item{numSkipOm}{Number of diag omegas (variances) that should not be part of the FREM calculations. 
-Such omegas has to come before the large FREM omega block.}
+\item{numSkipOm}{Number of diagonal omegas that should not be part of the
+FREM calculations. Such omegas has to come before the large FREM omega
+block in the FREM model file.}
 
-\item{numFREMThetas}{The number thetas associated with FREM covariate effects.}
+\item{numFREMThetas}{The number thetas associated with FREM covariate
+effects.}
 
-\item{numSigmas}{Number of sigma parameters in the ext file model (including zero sigma covariance elements).}
+\item{numSigmas}{Number of sigma parameters in the ext file model from the
+FREM model (including zero sigma covariance elements).}
 
-\item{numParCov}{Number of parameters for which covariate relations are sought (often the same as numNonFREMThetas).
-default (NULL) indicates that this is guessed by the function by assuming that each covariate effect is modelled as one theta and one eta.}
+\item{numParCov}{Number of parameters for which covariate relations are
+sought (often the same as numNonFREMThetas). default (NULL) indicates that
+this is guessed by the function by assuming that each covariate effect is
+modeled as one theta and one eta.}
 
-\item{parNames}{Names of the parameters}
+\item{parNames}{Names of the parameters. Only used in the STDOUT when \code{quiet =FALSE} or in \code{eqFile} if it is non-blank. Defaults to \code{Par} folowed by a
+number.}
 
-\item{covNames}{Names of the covariates}
+\item{covNames}{Names of the covariates. Defaults to \code{Cov} followed by a
+number.}
 
-\item{availCov}{Names of the covariates to use in the calculation of the FFEM model.}
+\item{availCov}{Names of the covariates to use in the calculation of the FFEM
+model.}
 
-\item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK}
+\item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
+STDOUT.}
 
-\item{eqFile}{File name to save the FFEM equations in}
+\item{eqFile}{File name to save the FFEM equations in.}
 
 \item{omFile}{File name to save the omega prim matrix in.}
 
-\item{fremEta}{Computes individual eta_prims.}
+\item{fremEta}{NULL or a vector of individual ETAs from the FREM model.}
 }
 \value{
 A list with components Coefficients, Vars and Expr:
 
-Coeffients: The numNonFREMThetas x availCov matrix with FFEM model coefficients
+Coeffients: The numNonFREMThetas x availCov matrix with FFEM model
+coefficients
 
-Vars:       The numNonFREMThetas x numNonFREMThetas matrix with the FFEM variances (OMEGA)
+Vars:       The numNonFREMThetas x numNonFREMThetas matrix with the FFEM
+variances (OMEGA)
 
-Expr:       The vector of FFEM expressions, one for each base model parameter.
+Expr:       The vector of FFEM expressions, one for each base model
+parameter.
 
-Fullvars:   The full FFEM variance-covariance matrix of all OMEGAs in the model.
+Fullvars:   The full FFEM variance-covariance matrix of all OMEGAs in the
+model.
 
-Uppervars:  The variance-covariance matrix of the skipped OMEGAs in the model.
+Uppervars:  The variance-covariance matrix of the skipped OMEGAs in the
+model.
 
-Eta_prim: The matrix of individual etas re-scaled to FFEM etas.
+Eta_prim:  The matrix of individual etas re-scaled to FFEM etas.
 }
 \description{
-Computes the corresponding FFEM from a FREM model. Can handle missing covariates.
+Computes the corresponding FFEM from a FREM model. Can handle missing
+covariates.
+}
+\details{
+\verb{calcFFEM()`` computes the corresponding FFEM characteristics for a covariate model consisting of the specified covariates (}availCov`). The
+characteristics are the covariate coefficients, the FFEM expressions, the
+omega prims and the full omega matrix to be used in the FFEM model.
+Optionally, it also computes the corresponding eta_prims for a subject with
+the specified set of covariates.
+
+If \code{fremETA} is non-\code{NULL}, ETA prims will be calculated. In this case,
+\code{fremETA} should be a numeric vector of individual ETAs from the FREM model.
+Only one set of ETA prims will be computed (for one individual). To compute
+the ETA prims for all subjects at the same ime, please use \code{\link[=calcEtas]{calcEtas()}}.
 }
 \examples{
-\dontrun{
-calcFFEM(dfExt,numNonFREMThetas = 9,numSkipOm = 2)
-}
+
+extFile         <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+dfExt           <- getExt(extFile = extFile)
+calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = T)
+
+## Use fremETA to also compute the ETA prim
+phiFile         <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
+dfPhi           <- getPhi(phiPhile) \%>\% select(starts_with("ETA"))
+calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = T,
+  etaFREM = as.numeric(dfPhi[1, ]))
+
 }

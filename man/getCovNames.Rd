@@ -2,29 +2,32 @@
 % Please edit documentation in R/getCovNames.R
 \name{getCovNames}
 \alias{getCovNames}
-\title{getCovNames}
+\title{Get the covariate names from a FREM model file}
 \usage{
 getCovNames(modFile, keepComment = FALSE)
 }
 \arguments{
-\item{modFile}{The name of the model file}
+\item{modFile}{The name of the FREM model file}
 
-\item{keepComment}{If FALSE (default), remove the leading ; and white space in front of the covariate name in the model file.}
+\item{keepComment}{If FALSE (default), remove the leading ; and white space
+in front of the covariate name in the model file.}
 }
 \value{
 A list with three components:
-
-covNames = the names of the covariates as given in the model file. These corresponds to the covariate column names in the FREM data set created by PsN.
-
-polyCatCovs = the name of the dichotomized covariates created by PsN.
-
-orgCovNames = original covariate names (removing the frem specific ones)
+\itemize{
+\item covNames = the names of the covariates as given in the model file. These
+corresponds to the covariate column names in the FREM data set created by
+PsN.
+\item polyCatCovs = the name of the dichotomized covariates created by PsN.
+\item orgCovNames = original covariate names (removing the frem specific ones)
+}
 }
 \description{
-Figure out the FREM covariate names from a FREM model file. It relies on the covariate names added by PsN in the FREM code.
+Figure out the FREM covariate names from a FREM model file. It
+relies on the covariate names added by PsN in the FREM code.
 }
 \examples{
-\dontrun{
-covList <- getCovNames(modFile="fremModel.mod")
-}
+
+covList <- getCovNames(modFile = system.file("extData/SimNeb/run31.mod", package = "PMXFrem"))
+
 }

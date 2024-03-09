@@ -13,14 +13,14 @@ getFileNames(
 )
 }
 \arguments{
-\item{runno}{The run number. Must be provided if `modName` is NULL. Will be
+\item{runno}{The run number. Must be provided if \code{modName} is NULL. Will be
 used to create NONMEM model and results file names  with the structure
-run[runno].[modExt] and run[runno].[lstExt]. NONMEM ext, phi and cov files
-will be assumed to be named run[runno] followed by the appropriate suffix.}
+run#.mod and run#. NONMEM ext, phi and cov files will be assumed to be
+named run# followed by the appropriate suffix (where # is \code{runno}).}
 
-\item{modName}{The model name. Will be used together with `modExt`, `lstExt`,
+\item{modName}{The model name. Will be used together with \code{modExt}, \code{lstExt},
 ext, phi and cov to form the NONMEM file names, for example
-[modName].[modExt] for the model file.}
+\code{modName}.mod for the model file.}
 
 \item{modDevDir}{The directory where the files reside. Default is the current
 directory, i.e. ".".}
@@ -39,12 +39,12 @@ run number or model name (the part of the file name to the left of the
 filename extension).
 }
 \details{
-runno and modName can not both be NULL. If both are provided,
-modName is used.
+runno and modName can not both be NULL. If both are provided, modName is
+used.
 
-modDevDir can not be NULL. Test
+modDevDir can not be NULL.
 }
 \examples{
-getFilenNames(modName=9)
+getFileNames(runno = 30, modDevDir = system.file("extData/SimNeb/", package = "PMXFrem"))
 
 }

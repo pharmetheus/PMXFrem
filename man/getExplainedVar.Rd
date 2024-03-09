@@ -2,7 +2,7 @@
 % Please edit documentation in R/getExplainedVar.R
 \name{getExplainedVar}
 \alias{getExplainedVar}
-\title{getExplainedVar}
+\title{Calculate the explained variability for covariates in a FREM model.}
 \usage{
 getExplainedVar(
   type = 1,
@@ -37,12 +37,16 @@ getExplainedVar(
 )
 }
 \arguments{
-\item{type}{Which type of explained var we should use, type=0 (based on FO delta rule),
-type=1 (default), i.e. based on data and calculated etas (ebes),
-type=2 is that the total variability is calculated using ETA samples instead of EBEs and average of individual data for fixed cov relationships, hence etas argument is not needed but numETASamples is needed instead.
-type=3 is that the total variability is calculated using ETA samples instead of EBEs and using the first individual data for fixed cov relationships, hence etas argument is not needed but numETASamples is needed instead. If no fixed cov relationship are used, type=2 is exactly the same as type=3 but type=3 is faster.}
+\item{type}{Which type of explained var we should use:
+\itemize{
+\item type=0 (based on FO delta rule),
+\item type=1 (default), i.e. based on data and calculated etas (ebes),
+\item type=2 is that the total variability is calculated using ETA samples instead of EBEs and average of individual data for fixed cov relationships, hence etas argument is not needed but numETASamples is needed instead.
+\item type=3 is that the total variability is calculated using ETA samples instead of EBEs and using the first individual data for fixed cov relationships, hence etas argument is not needed but numETASamples is needed instead. If no fixed cov relationship are used, type=2 is exactly the same as type=3 but type=3 is faster.
+}}
 
-\item{data}{the dataset to based the explained variability on, used with type=1}
+\item{data}{the dataset to based the explained variability on, used with
+type=1}
 
 \item{dfCovs}{A data frame with covariates to based the variability plots on}
 
@@ -50,20 +54,30 @@ type=3 is that the total variability is calculated using ETA samples instead of 
 
 \item{strID}{the subject identifier in the dfCovs dataset, default='ID'}
 
-\item{runno}{The run number. Must be provided if `modName` is NULL. Will be used to create file model and NONMEM results file names  with
-the structure run[runno].[modExt] and run[runno].[lstExt]. NONMEM ext, phi and cov files will be assumed to be named run[runno] followed by the appropriate suffix.}
+\item{runno}{The run number. Must be provided if \code{modName} is NULL. Will be
+used to create NONMEM model and results file names  with the structure
+run#.mod and run#. NONMEM ext, phi and cov files will be assumed to be
+named run# followed by the appropriate suffix (where # is \code{runno}).}
 
-\item{modName}{The model name. Will be used together with `modExt`, `lstExt`, ext, phi and cov to form the NONMEM file names, for
-example [modName].[modExt] for the model file.}
+\item{modName}{The model name. Will be used together with \code{modExt}, \code{lstExt},
+ext, phi and cov to form the NONMEM file names, for example
+\code{modName}.mod for the model file.}
 
-\item{modDevDir}{The directory where the files reside. Default is the current directory, i.e. ".".}
+\item{modDevDir}{The directory where the files reside. Default is the current
+directory, i.e. ".".}
 
-\item{cstrCovariates}{A string vector with names of the covariates that should be investigated, i.e. must have the same length as the number of rows in dfCovs.
-If NULL then COV1, COV2 etc. will be used.}
+\item{cstrCovariates}{A string vector with names of the covariates that
+should be investigated, i.e. must have the same length as the number of
+rows in dfCovs. If NULL then COV1, COV2 etc. will be used.}
 
-\item{functionList}{A list of functions with input (basethetas, covthetas,dfrow and ...) for in which the explained variability will be calculated. If the function returns a vector of values, each value will be used but functionListName must contain the names with a length of all return for all functions in the functionList}
+\item{functionList}{A list of functions with input (basethetas,
+covthetas,dfrow and ...) for in which the explained variability will be
+calculated. If the function returns a vector of values, each value will be
+used but functionListName must contain the names with a length of all
+return for all functions in the functionList}
 
-\item{functionListName}{A vector of strings (names) of the parameters for each function in the functionList}
+\item{functionListName}{A vector of strings (names) of the parameters for
+each function in the functionList}
 
 \item{numNonFREMThetas}{Number of structural thetas in FREM model}
 
@@ -71,38 +85,94 @@ If NULL then COV1, COV2 etc. will be used.}
 
 \item{numSigmas}{Number of sigmas in FREM model}
 
-\item{numParCov}{Number of parameters for which covariate relations are sought (often the same as numNonFREMThetas).}
+\item{numParCov}{Number of parameters for which covariate relations are
+sought (often the same as numNonFREMThetas).}
 
 \item{parNames}{Names of the parameters}
 
-\item{numSkipOm}{Number of Omegas that are not associated with FREM covariates, i.e. skip before calculating the FREM varianes, default= 0}
+\item{numSkipOm}{Number of Omegas that are not associated with FREM
+covariates, i.e. skip before calculating the FREM varianes, default= 0}
 
-\item{availCov}{Names of the covariates to use in the calculation of the FFEM model, default=NULL (use all covariates)}
+\item{availCov}{Names of the covariates to use in the calculation of the FFEM
+model, default=NULL (use all covariates)}
 
-\item{etas}{the etas used to calculate the explained variability, used with type==1 and should be the same size as number of individuals in data}
+\item{etas}{the etas used to calculate the explained variability, used with
+type==1 and should be the same size as number of individuals in data}
 
-\item{quiet}{If output should be allowed during the function call, default= FALSE,}
+\item{quiet}{If output should be allowed during the function call, default=
+FALSE,}
 
-\item{ncores}{the number of cores to use for the calculations, default = 1 which means no parallellization}
+\item{ncores}{the number of cores to use for the calculations, default = 1
+which means no parallellization}
 
-\item{cstrPackages}{a character vector with the packages needed to run calculations in parallel, default = NULL}
+\item{cstrPackages}{a character vector with the packages needed to run
+calculations in parallel, default = NULL}
 
-\item{cstrExports}{a character vector with variables needed to run the calculations in parallel, default = NULL}
+\item{cstrExports}{a character vector with variables needed to run the
+calculations in parallel, default = NULL}
 
-\item{numETASamples}{(default = 100) the number of samples used ot integrate over individual parameters when calculating the total variance of the functionList, only used using type==2 & type==3}
+\item{numETASamples}{(default = 100) the number of samples used ot integrate
+over individual parameters when calculating the total variance of the
+functionList, only used using type==2 & type==3}
 
-\item{seed}{(default = -1 = random, used when sampling ETAs in type==2 and type==3)}
+\item{seed}{(default = -1 = random, used when sampling ETAs in type==2 and
+type==3)}
 
-\item{...}{additional variables to be forwarded to the the functionList functions}
+\item{...}{additional variables to be forwarded to the the functionList
+functions}
 }
 \value{
-a data frame with summary statistics for each parameters and covariate combinations:
+A data frame with summary statistics for each parameters and
+covariate combinations. There will be one row for each parameter-covariate
+combination + one row for each partameter with the combination of all
+covariates.
+\itemize{
+\item COVNUM: The covariate number. Repeated per PARAMETER. 1 is the explained variability of All covariates.
+\item COVNAME: The name of the covariate as specified in the original data set.
+\item PARAMETER: The name(s) of the parameter(s).
+\item TOTVAR: The total variability according to \code{type}. Repeated for each parameter-covariate combination.
+\item TOTCOVVAR: The total variability explained when all covariates are used.Repeated for each parameter-covariate combination.
+\item COVVAR: The variability explained by each covariate by itself.
+}
 }
 \description{
-Get a data frame with explainable variability information based on a dataset of subjects with covariates
+Get a data frame with explainable variability information based on a dataset
+of subjects with covariates
 }
 \examples{
-\dontrun{
-dfForest <- getExplainableDF(dfCovs)
-}
+modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
+fremRunno <- 31
+modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))
+covNames  <- getCovNames(modFile = modFile)
+
+## Set up dfCovs
+dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) \%>\%
+  filter(BLQ == 0) \%>\%
+  distinct(ID,.keep_all = T)
+
+dfCovs <- setupdfCovs(modFile)
+
+cstrCovariates <- c("All",names(dfCovs))
+
+## The parameter function list
+functionList2 <- list(
+  function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[2]*exp(covthetas[1] + etas[3]))},
+  function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[3]*exp(covthetas[2] + etas[4]))}
+)
+functionListName2 <- c("CL","V")
+
+dfres1 <- getExplainedVar(type             = 1,
+                          data             = dfData,
+                          dfCovs           = dfCovs,
+                          numNonFREMThetas = 7,
+                          numSkipOm        = 2,
+                          functionList     = functionList2,
+                          functionListName = functionListName2,
+                          cstrCovariates   = cstrCovariates,
+                          modDevDir        = modDevDir,
+                          runno            = fremRunno,
+                          ncores           = 10,
+                          quiet            = TRUE,
+                          seed             = 123
+)
 }

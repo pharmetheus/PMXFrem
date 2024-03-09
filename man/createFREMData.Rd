@@ -2,55 +2,95 @@
 % Please edit documentation in R/createFREMData.R
 \name{createFREMData}
 \alias{createFREMData}
-\title{createFREMData}
+\title{Create a FREM dataset from a standard NONMEM dataset.}
 \usage{
 createFREMData(
-  strFREMData = NULL,
-  strFFEMData = "",
+  strFFEMData,
+  strFREMDataFileName = NULL,
   quiet = TRUE,
   strID = "ID",
-  cstrKeepCols = c("ID", "ID2", "AGE", "DV", "BIRTHWT", "BIRTHLEN", "SEXN", "FREMTYPE"),
+  cstrKeepCols = c("ID", "TIME", "AMT", "II", "EVID", "SS", "RATE"),
+  cstrSetToZero = c("AMT", "II", "SS", "EVID", "RATE"),
   cstrDV = "DV",
   cstrContCovs = NULL,
   cstrCatCovs = NULL,
   bRecodeDichotomous = TRUE,
-  cSortCols = c("ID", "AGE", "FREMTYPE"),
+  cSortCols = c("ID", "TIME", "FREMTYPE"),
   cSortDirection = c(1, 1, -1),
   cFremtypes = NULL
 )
 }
 \arguments{
-\item{strFREMData}{Name of FREM-dataset to create. Default=NULL => no dataset is written to disc}
+\item{strFFEMData}{Name of FFEM-dataset (normal dataset) that will be used to
+create the FREM-dataset.}
 
-\item{strFFEMData}{Name of FFEM-dataset (normal dataset) that will be used to create the FREM-dataset.}
+\item{strFREMDataFileName}{Name of FREM dataset to create. Default=NULL => no
+dataset is written to disc}
 
-\item{quiet}{If set to FALSE, the function outputs verbose information on what it is doing.}
+\item{quiet}{If set to FALSE, the function outputs verbose information on
+what it is doing.}
 
-\item{strID}{A string with the ID identifier column in the FMEM dataset.}
+\item{strID}{A string with the ID identifier column in the FFEM dataset.}
 
-\item{cstrKeepCols}{A vector of columns to keep in the dataset (for the updated new dataset).}
+\item{cstrKeepCols}{A vector of columns to keep in the dataset (for the
+updated new dataset).}
 
-\item{cstrDV}{A vector of strings with DV variables that should be added, default="HAZ" (i.e. HAZ assumed fremtype=0), additional DVs are added with fremtype 1,2,3...etc.}
+\item{cstrSetToZero}{A vector of variable names that should be set to zero on
+the covariate FREMTYPE lines. Typically columns with PK dosing information.}
 
-\item{cstrContCovs}{A vector of strings with continuous covariates to create. Default=NULL, i.e. no continous covariates will be added}
+\item{cstrDV}{A vector of strings with DV variables that should be added,
+default="DV" (i.e. DV assumed fremtype=0), additional DVs are added with
+fremtype 1,2,3...etc.}
 
-\item{cstrCatCovs}{A vector of strings with categorical covariates to create. Default=NULL, i.e. no categorical covariates will be added}
+\item{cstrContCovs}{A vector of strings with continuous covariates to create.
+Default=NULL, i.e. no continuous covariates will be added}
 
-\item{bRecodeDichotomous}{Set to true if dichotomous covariates should be re-scaled to 1,0. E.g. if set to TRUE and SEX is coded as 1 or 2, a new variable SEXN_2 will be created with the values of 0 or 1. Only applicable if cstrCatCov is not zero and at least one of the cat covariates is dichotomous}
+\item{cstrCatCovs}{A vector of strings with categorical covariates to
+create. Default=NULL, i.e. no categorical covariates will be added}
 
-\item{cSortCols}{The column names to sort by (must  be present in cstrKeepCols)}
+\item{bRecodeDichotomous}{Set to true if dichotomous covariates should be
+re-scaled to 1,0. E.g. if set to TRUE and SEX is coded as 1 or 2, a new
+variable SEXN_2 will be created with the values of 0 or 1. Only applicable
+if cstrCatCov is not zero and at least one of the cat covariates is
+dichotomous}
 
-\item{cSortDirection}{The sort column order, ascending = 1, descending = -1, must be the same length as cSortCols}
+\item{cSortCols}{The column names to sort by (must  be present in
+cstrKeepCols)}
 
-\item{cFremtypes}{A vector of FREMTYPE values that each DV and covariate should use. The order should be: DV variables, continuous covariates, categorical covariates. Default=NULL, i.e.FREMTYPE of DV1=0, DV2=1,..,CONT1=100, ..CONTN=N*100, CAT1=(N+1+NumLevels1)*100, CATM=(N+M*NumLevelsM)*100}
+\item{cSortDirection}{The sort column order, ascending = 1, descending = -1,
+must be the same length as cSortCols}
+
+\item{cFremtypes}{A vector of FREMTYPE values that each DV and covariate
+should use. The order should be: DV variables, continuous covariates,
+categorical covariates. Default=NULL, i.e.FREMTYPE of DV1=0,
+DV2=1,..,CONT1=100, ..CONTN=N*100, CAT1=(N+1+NumLevels1)\emph{100,
+CATM=(N+M}NumLevelsM)*100}
 }
 \value{
-Will write a new fremdata set to disc if strFREMData is not NULL and return the FREM dataframe
+A data.frame with the FREM data set.
 }
 \description{
-Creates a FREM dataset from a standard NONMEM dataset. Only the basic DV are added (FREMTYPE=0)
+Create a FREM dataset from a standard NONMEM dataset.
 }
+\details{
+If there are more than one DV variable in different columns in the FFEM data
+set, they can be included in the DV column of the FREM data set with
+different FREMTYPES by specifying the names of the columns in the \code{cstrDV}
+argument.
+}
+\section{Side effetcs}{
+
+
+Will write a new FREM data set set to disc if strFREMDataFileName is not
+NULL.
+}
+
 \examples{
-\dontrun{
-}
+strFFEMData <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",
+                            package = "PMXFrem")
+tmp10 <- createFREMData(
+          strFFEMData = strFFEMData,
+          cstrCatCovs = c("SEX","SMOK","NCIL"),
+          cstrContCovs = c("WT","BMI","AGE"))
+
 }
