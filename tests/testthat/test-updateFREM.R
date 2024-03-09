@@ -1,4 +1,4 @@
-PMXRenv::activate.unqualified.packages()
+
 test_that("updateFREM can remove covariates from FREM models", {
 
   tmp <- updateFREM(
