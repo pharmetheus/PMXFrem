@@ -70,7 +70,7 @@ amended FFEM data set so that the number of rows matches the original data
 file. Useful if IGNORE statements were used in the original model file.}
 
 \item{availCov}{Names of the covariates to use in the calculation of the FFEM
-model.}
+model. Should be covariate names used in the FREM model.}
 
 \item{idvar}{The name of the ID column,}
 

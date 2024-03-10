@@ -4,11 +4,13 @@
 #' covariates.
 #'
 #' `calcFFEM()`` computes the corresponding FFEM characteristics for a covariate
-#' model consisting of the specified covariates (`availCov`). The
-#' characteristics are the covariate coefficients, the FFEM expressions, the
-#' omega prims and the full omega matrix to be used in the FFEM model.
-#' Optionally, it also computes the corresponding eta_prims for a subject with
-#' the specified set of covariates.
+#' model consisting of the specified covariates (`availCov`). The covariate
+#' names specified by `availCov` should be among the names listed in `covNames`.
+#'
+#' The computed characteristics are the covariate coefficients, the FFEM
+#' expressions, the omega prims and the full omega matrix to be used in the FFEM
+#' model. Optionally, it also computes the corresponding eta_prims for a subject
+#' with the specified set of covariates.
 #'
 #' If `fremETA` is non-`NULL`, ETA prims will be calculated. In this case,
 #' `fremETA` should be a numeric vector of individual ETAs from the FREM model.
@@ -35,10 +37,10 @@
 #' @param parNames Names of the parameters. Only used in the STDOUT when `quiet
 #'   =FALSE` or in `eqFile` if it is non-blank. Defaults to `Par` folowed by a
 #'   number.
-#' @param covNames Names of the covariates. Defaults to `Cov` followed by a
-#'   number.
+#' @param covNames Names of the covariates in the FREM model. Defaults to `Cov`
+#'   followed by a number.
 #' @param availCov Names of the covariates to use in the calculation of the FFEM
-#'   model.
+#'   model. Should be covariate names used in the FREM model.
 #' @param quiet If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
 #'   STDOUT.
 #' @param fremEta NULL or a vector of individual ETAs from the FREM model.

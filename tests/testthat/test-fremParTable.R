@@ -1,4 +1,4 @@
-PMXRenv::activate.unqualified.packages()
+# PMXRenv::activate.unqualified.packages()
 test_that("fremParTest works", {
   library(PhRame)
   library(PMXForest)

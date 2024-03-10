@@ -76,7 +76,7 @@ Default is vpcData{runno}.csv. If NULL, will return a data frame with the
 data instead of writing it to disk.}
 
 \item{availCov}{Names of the covariates to use in the calculation of the FFEM
-model.}
+model. Should be covariate names used in the FREM model.}
 
 \item{idvar}{The name of the ID column,}
 

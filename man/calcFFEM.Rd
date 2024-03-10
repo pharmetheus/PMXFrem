@@ -48,11 +48,11 @@ modeled as one theta and one eta.}
 \item{parNames}{Names of the parameters. Only used in the STDOUT when \code{quiet =FALSE} or in \code{eqFile} if it is non-blank. Defaults to \code{Par} folowed by a
 number.}
 
-\item{covNames}{Names of the covariates. Defaults to \code{Cov} followed by a
-number.}
+\item{covNames}{Names of the covariates in the FREM model. Defaults to \code{Cov}
+followed by a number.}
 
 \item{availCov}{Names of the covariates to use in the calculation of the FFEM
-model.}
+model. Should be covariate names used in the FREM model.}
 
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
 STDOUT.}
@@ -88,11 +88,12 @@ Computes the corresponding FFEM from a FREM model. Can handle missing
 covariates.
 }
 \details{
-\verb{calcFFEM()`` computes the corresponding FFEM characteristics for a covariate model consisting of the specified covariates (}availCov`). The
-characteristics are the covariate coefficients, the FFEM expressions, the
-omega prims and the full omega matrix to be used in the FFEM model.
-Optionally, it also computes the corresponding eta_prims for a subject with
-the specified set of covariates.
+\verb{calcFFEM()`` computes the corresponding FFEM characteristics for a covariate model consisting of the specified covariates (}availCov\verb{). The covariate names specified by }availCov\verb{should be among the names listed in}covNames`.
+
+The computed characteristics are the covariate coefficients, the FFEM
+expressions, the omega prims and the full omega matrix to be used in the FFEM
+model. Optionally, it also computes the corresponding eta_prims for a subject
+with the specified set of covariates.
 
 If \code{fremETA} is non-\code{NULL}, ETA prims will be calculated. In this case,
 \code{fremETA} should be a numeric vector of individual ETAs from the FREM model.
