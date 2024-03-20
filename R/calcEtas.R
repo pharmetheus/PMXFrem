@@ -7,7 +7,7 @@
 #' @param FFEMData An FFEMData object as obtained with the function
 #'   `createFFEMData`.
 #' @param covmodel A character string indicating if the covariate models were
-#'   implemented linearly (additatively) in eth frem model or not. Default is
+#'   implemented linearly (additatively) in the frem model or not. Default is
 #'   "linear"
 #'
 #' @details The function collects the ETAs from the output of a FREM model, both
@@ -28,7 +28,8 @@
 #' @return A data frame with the same number of rows as subjects in the data
 #'   file used in the base model, with columns ID, ETA1-(number of etas in the
 #'   base model), ETA1-(number of etas in the base model)_PRIM and columns for
-#'   the covariate etas (see above)
+#'   the estimated covariate values (if `covmodel` is "linear") or covariate etas
+#'   (see above).
 #' @export
 #'
 #' @examples
