@@ -163,8 +163,8 @@ calcFFEM <- function(dfext,
   if (!quiet) {
     for (p in 1:nrow(COEFF)) {
       for (c in 1:ncol(COEFF)) {
-        if (c == 1 & p == 1) cat(parNames[p], "", sep = "", file = eqFile)
-        if (c == 1 & p != 1) cat(parNames[p], "", sep = "", file = eqFile, append = TRUE)
+        if (c == 1 & p == 1) cat(parNames[p], ":", sep = "", file = eqFile)
+        if (c == 1 & p != 1) cat(parNames[p], ":", sep = "", file = eqFile, append = TRUE)
         if (length(availCov) == 0) {
           cat(paste("0", "*", "(", covNames[c], "-", paste(round(df_thm[c], 3), ")", sep = ""), sep = ""), file = eqFile, append = TRUE)
         } else {
