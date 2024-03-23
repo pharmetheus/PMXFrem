@@ -97,7 +97,8 @@ covariates, i.e. skip before calculating the FREM varianes, default= 0}
 model, default=NULL (use all covariates)}
 
 \item{etas}{the etas used to calculate the explained variability, used with
-type==1 and should be the same size as number of individuals in data}
+type=1 and should be the same size as number of individuals in data. If \code{NULL}
+when type=1 the estas will be obtained from the phi-file.}
 
 \item{quiet}{If output should be allowed during the function call, default=
 FALSE,}

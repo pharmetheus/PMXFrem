@@ -130,7 +130,8 @@ parameters in the model, the standard errors of the omega prims require a
 numerical derivation, and the \code{fremParameterTable()} can do this bases on
 either a \code{.cov} from NONMEM or PsN bootstrap or sir raw_results file.
 
-In case a .cov file is provided as input, \code{n} parameter vectors are sampled
+In case \code{bsfile} is \code{NULL}when \code{includeRSE} is \code{TRUE} a
+.cov file that match the \code{runno} will be used as input.  \code{n} parameter vectors are sampled
 multivariately from the variance-covariance matrix. For each sample, the
 corresponding THETA, omega prim and sigma are derived (based on \code{thetaNum},
 \code{omegaNum} and \code{sigmaNum}). The RSEs are calculated as the ratio of standard
@@ -184,7 +185,7 @@ tmp <- fremParameterTable(
       availCov         = "all",
       quiet            = TRUE)
 
-## Use kable_extra to generate a nuce looking table
+## Use kable_extra to generate a nice looking table
 tmp$parameterTable \%>\%
     mutate(Estimate=as.character(signif(Estimate,3)))\%>\%
     kbl() \%>\%

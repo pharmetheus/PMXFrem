@@ -25,7 +25,8 @@
 #' numerical derivation, and the `fremParameterTable()` can do this bases on
 #' either a `.cov` from NONMEM or PsN bootstrap or sir raw_results file.
 #'
-#' In case a .cov file is provided as input, `n` parameter vectors are sampled
+#' In case `bsfile` is `NULL`when `includeRSE` is `TRUE` a
+#' .cov file that match the `runno` will be used as input.  `n` parameter vectors are sampled
 #' multivariately from the variance-covariance matrix. For each sample, the
 #' corresponding THETA, omega prim and sigma are derived (based on `thetaNum`,
 #' `omegaNum` and `sigmaNum`). The RSEs are calculated as the ratio of standard
@@ -218,7 +219,6 @@ fremParameterTable <- function(
 
     # Add the RSE information
     retList$parameterTable$`RSE (%)` <- as.numeric(sampleRSE)
-
     ## Compute the condition number from the fremParRses and add it to the parTable
     conditionNumber <- max(eigen(cor(fremParRses))$values)/min(eigen(cor(fremParRses))$values)
     retList$Condition <- conditionNumber

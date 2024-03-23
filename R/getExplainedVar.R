@@ -37,7 +37,8 @@
 #' @param availCov Names of the covariates to use in the calculation of the FFEM
 #'   model, default=NULL (use all covariates)
 #' @param etas the etas used to calculate the explained variability, used with
-#'   type==1 and should be the same size as number of individuals in data
+#'   type=1 and should be the same size as number of individuals in data. If `NULL`
+#'   when type=1 the estas will be obtained from the phi-file.
 #' @param quiet If output should be allowed during the function call, default=
 #'   FALSE,
 #' @param ncores the number of cores to use for the calculations, default = 1

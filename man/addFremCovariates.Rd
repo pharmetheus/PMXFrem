@@ -2,29 +2,55 @@
 % Please edit documentation in R/addFremCovariates.R
 \name{addFREMcovariates}
 \alias{addFREMcovariates}
-\title{addFREMcovariates}
+\title{Add FREM covariates to a FFEM data set}
 \usage{
-addFREMcovariates(dfFFEM, modFile)
+addFREMcovariates(dfFFEM, modFile = NULL, covariates = NULL, iMiss = -99)
 }
 \arguments{
 \item{dfFFEM}{Data frame with FFEM data}
 
-\item{modFile}{name of the FREM model file.}
+\item{modFile}{name of the FREM model file to extract polychotomous
+covariates from}
+
+\item{covariates}{character vector of polychotomous covariates to add
+binarised columns for
+@param iMiss The missing value indicator. Default is -99.}
 }
 \value{
 A data frame with columns appended.
 }
 \description{
-Adds the binarised FREM covariates to the FFEM data set.
-The columns will contain the binarised versions of the polycothomous covariates
-named with the original covariate name appended by "_#", where "#" is the level value of the covariate. For example, for a covariate NCIL
-with the values 0, 1 and 2 addFREMcovariates will add columns NCIL_1 and NCIL_2 each with the values 0 and 1 for rows where the value of NCIL is not 1/2
-and 1 when the in NCIL is 1 or 2, respectively.
+Add binarised FREM covariates to a FFEM data set.
+}
+\details{
+This is mainly an internal utility function.
+
+Binarised covariates will be added based either on the covariates present in
+a frem model (\code{modFile}) file or from the names specified in the \code{covariates}
+vector.
+
+The new columns in the FFEM data set will contain the binarised versions of
+the polychotomous  covariates named with the original covariate name appended
+by "_#", where "#" is the level value of the covariate. For example, for a
+covariate NCIL with the values 0, 1 and 2 \code{addFREMcovariates()} will add
+columns NCIL_1 and NCIL_2 each with the values 0 and 1 for rows where the
+value of NCIL is not 1/2 and 1 when the in NCIL is 1 or 2, respectively. If
+an ID has a missing vaue of NCIL, then NCIL_1 and NCIL_2 will both be 0,
+effectively imputing the missing NCIL with the lowest level of the NCIL
+covariate.
+
+The covariate to add can come either from a frem model file or be specified
+with the argument \code{covariates}.
 }
 \examples{
-\dontrun{
 
+dfFFEM <- read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",package="PMXFrem"),
+show_col_types = FALSE) \%>\% filter(BLQ!=1)
+modFile <- system.file("extdata/SimNeb/run31.mod",package="PMXFrem")
+
+## Add covariates from a FREM model file
 dfFFEMnew <-addFREMcovariates(dfFFEM,modFile = modFile)
 
-}
+## Add the covariates specified on the command line
+dfFFEMnew <-addFREMcovariates(dfFFEM,covariates ="RACEL")
 }

@@ -12,6 +12,7 @@ updateFREM(
   cstrCatCovsToAdd = NULL,
   cstrCovsToAddOrder = NULL,
   strNewFREMData = NULL,
+  filterString = NULL,
   strUpdateType = "DataAndModel",
   quiet = TRUE,
   strID = "ID",

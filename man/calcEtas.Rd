@@ -48,14 +48,15 @@ block in the FREM model file.}
 directory, i.e. ".".}
 
 \item{covmodel}{A character string indicating if the covariate models were
-implemented linearly (additatively) in eth frem model or not. Default is
+implemented linearly (additatively) in the frem model or not. Default is
 "linear"}
 }
 \value{
 A data frame with the same number of rows as subjects in the data
 file used in the base model, with columns ID, ETA1-(number of etas in the
 base model), ETA1-(number of etas in the base model)_PRIM and columns for
-the covariate etas (see above)
+the estimated covariate values (if \code{covmodel} is "linear") or covariate etas
+(see above).
 }
 \description{
 Collects the ETAs (parameter and covariate) from a FREM model and computes
