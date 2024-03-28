@@ -6,3 +6,9 @@
 * Added setupdfCovs fuction that facilitates the creation of the dfCovs for getExplainedVar.
 * Fixed the potential issue with missalignment between panels and facet labels.
 * Moved getForestDFREM from PMXForest to PMXFrem
+* Extensive updates to the help file documentation
+* Made many examples in the help page documentation executable
+* Added a parameter table function (fremParTable())
+* Linting and other cleaning of source code
+* Cleaned up reporsitory directory
+

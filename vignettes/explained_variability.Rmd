@@ -1,6 +1,5 @@
 ---
 title: "Calculate explained variability from a FREM model"
-author: "Joakim Nyberg and Niclas Jonsson"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Calculate explained variability from a FREM model}
@@ -22,11 +21,13 @@ This vignette explains how to use the FREM package to create plots of the degree
 
 Load the package and identify which NONMEM FREM run that is going to be used for the forest plot.
 
-```{r echo=TRUE, warning=FALSE,message=FALSE}
-suppressPackageStartupMessages(library(PMXFrem)) # Read in the FREMfunctions package
-set.seed(865765) #Set seed for reproducability
+```{r ,echo=FALSE}
+suppressPackageStartupMessages(library(PMXFrem)) 
+```
 
-theme_set(theme_bw(base_size=20)) #Change ggplot defaults to get nice plot
+```{r echo=TRUE, warning=FALSE,message=FALSE}
+set.seed(865765)
+theme_set(theme_bw(base_size=20))
 
 ```
 

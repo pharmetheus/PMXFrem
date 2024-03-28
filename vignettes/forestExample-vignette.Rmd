@@ -1,6 +1,5 @@
 ---
 title: "Create a Forest plot for a FREM model"
-author: "Joakim Nyberg and Niclas Jonsson"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Create a Forest plot for a FREM model}
@@ -30,6 +29,10 @@ The creation of the plot is divided into the following steps:
 ## Setting up the pre-requisite
 
 Load the package and identify which NONMEM FREM run that is going to be used for the forest plot.
+
+```{r}
+
+```
 
 ```{r echo=TRUE, warning=FALSE,message=FALSE}
 suppressPackageStartupMessages(library(PMXFrem)) # Read in the FREMfunctions package
