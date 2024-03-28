@@ -3,13 +3,46 @@
 #' Get a data frame with explainable variability information based on a dataset
 #' of subjects with covariates
 #'
+#' The total variability of the metric (e.g. a primary or secondary parameter)
+#' is derived from the FREM model from the estimated multivariate OMEGA matrix,
+#' estimated EBEs, or sampled ETAs from the estimated multivariate OMEGA matrix,
+#' and setting the FREM covariate coefficients to zero. There are four
+#' alternatives that can be requested via the type argument.
 #'
-#' @param type Which type of explained var we should use:
+#' **type=0:** Use the the delta rule (FO approximation) to derive the total variability
+#' of the metric across the involved omegas.
 #'
-#' * type=0 (based on FO delta rule),
-#' * type=1 (default), i.e. based on data and calculated etas (ebes),
-#' * type=2 is that the total variability is calculated using ETA samples instead of EBEs and average of individual data for fixed cov relationships, hence etas argument is not needed but numETASamples is needed instead.
-#' * type=3 is that the total variability is calculated using ETA samples instead of EBEs and using the first individual data for fixed cov relationships, hence etas argument is not needed but numETASamples is needed instead. If no fixed cov relationship are used, type=2 is exactly the same as type=3 but type=3 is faster.
+#' **type=1:** Use the estimated EBEs and calculate the variance of the desired
+#' metric across the individuals in the data set. Requires etas or a phi-file
+#' associated with the model. The default method to calculate the total
+#' variability.
+#'
+#' **type=2:** Use numETASamples sampled eta vectors from the
+#' estimated multivariate omega matrix to compute numETASamples values of the
+#' metric. The total variability is the average (over all individuals) of the
+#' variances of the numETASamples values of the metrics.
+#'
+#' **type=3:** Use numETASamples sampled eta vectors from the
+#' estimated multivariate omega matrix to compute numETASamples values of the
+#' metric for one individual (the first) in the data set. The total variability
+#' is the variance of the numETASamples values of the metric.
+#'
+#' If there are no FFEM covariate relationships in the model, then type 2 and 3
+#' are identical, but type=3 will be faster.
+#'
+#' type=0 will be fast but not always accurate.
+#'
+#' type=1 will also be relatively fast and handles FFEM covariates, but is
+#' sensitive to shrinkage and small data sets.
+#'
+#' type=2 is the slowest way to calculate the total variability but handles FFEM
+#' covariates and is not sensitive to shrinkage.
+#'
+#' type=3 is not sensitive to shrinkage and is preferred over type=2 if there
+#' are no FFEM covariates.
+#'
+#' @param type How the total variability should be derived. See Details.
+
 #' @param data the dataset to based the explained variability on, used with
 #'   type=1
 #' @param dfCovs A data frame with covariates to based the variability plots on
