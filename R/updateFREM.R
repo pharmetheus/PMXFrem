@@ -1,12 +1,13 @@
 #' Modify an exiting FREM model and data set
 #'
-#' Appends or removes covariates in a FREM data set and FREM model.
+#' Add or remove covariates and/or data to a FREM model and data set.
 #'
-#' If the updated model should be written to disc, this will
-#' be in the same directory as the original model file.
+#' Adding/removing covariates will always also update the initial estimates in
+#' the updated model file based on the final estimates from the original FREM
+#' model. It is also possible to only udpate the initial estimates.
 #'
-#' If the updated data file should be written to disc, this will
-#' be in the working directory.
+#' If the updated model and data file are to be written to disc, they will
+#' be saved in the same directory as the original model file.
 #'
 #' @inheritParams createFREMData
 #' @inheritParams calcFFEM
@@ -92,10 +93,15 @@
 #'   cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE"))
 #'
 #' ## Only update inits
-#' updateFREM(strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+#' updateFREM(
+#'   strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+#'   basenames_th      = c("CL","V","MAT","D1","FRELFOOD","MATFOOD"),
+#'   basenames_om      = c("RUV","D1","CL","V","MAT"),
 #'   numNonFREMThetas  = 7,
 #'   numSkipOm         = 2,
 #'   bWriteData        = FALSE,
+#'   bWriteMod         = FALSE,
+#'   bWriteFIX         = TRUE,
 #'   quiet             = F,
 #'   strUpdateType     = "NoData")
 updateFREM <- function(strFREMModel,
@@ -105,6 +111,7 @@ updateFREM <- function(strFREMModel,
                        cstrCatCovsToAdd      = NULL,
                        cstrCovsToAddOrder    = NULL,
                        strNewFREMData        = NULL,
+                       filterString          = NULL,
                        strUpdateType         = "DataAndModel",
                        quiet                 = TRUE,
                        strID                 = "ID",
@@ -113,7 +120,7 @@ updateFREM <- function(strFREMModel,
                        numNonFREMThetas,
                        numSkipOm             = 0,
                        numParCov             = NULL,
-                       cstrKeepCols          = c("ID", "TIME", "AMT", "II", "EVID", "SS", "RATE"),
+                       cstrKeepCols          = c("ID", "TIME", "AMT", "DV","II", "EVID", "SS", "RATE","FREMTYPE"),
                        cstrSetToZero         = c("AMT", "II", "SS", "EVID", "RATE"),
                        bWriteData            = TRUE,
                        bWriteFIX             = TRUE,
@@ -226,6 +233,16 @@ updateFREM <- function(strFREMModel,
     } else {
       stop("Cannot find FFEM dataset: ", strFFEMData)
     }
+
+    ## Check for filter string and apply if not NULL
+    if (!is.null(filterString)) {
+      dfFFEM <- dfFFEM %>% filter(!!rlang::parse_expr(filterString))
+    }
+
+    ## Add columns for binarised covariates that may not be present in the FFEM data set
+    dfFFEM <- addFREMcovariates(dfFFEM,modFile = strFREMModel)
+
+
     if (is.data.frame(strFREMData)) {
       dfFREM <- strFREMData
     } else if (file.exists(strFREMData)) {
@@ -275,6 +292,8 @@ updateFREM <- function(strFREMModel,
       printq(paste0("Recoding all remaining FREMTYPEs in FREM dataset..."), quiet = quiet)
       remainingCovs <- covnames$covNames[which(!(covnames$covNames %in% cCovNamesToRemove))]
       iuniqueFREMTYPEs <- sort(unique(dfFREM[dfFREM[["FREMTYPE"]] >= iFremTypeIncrease, "FREMTYPE"]))
+
+      # browser()
 
       for (i in 1:length(iuniqueFREMTYPEs)) {
         if (iuniqueFREMTYPEs[i] != i * iFremTypeIncrease) {

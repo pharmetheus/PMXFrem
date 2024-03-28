@@ -13,8 +13,9 @@ addFREMcovariates(dfFFEM, modFile = NULL, covariates = NULL, iMiss = -99)
 covariates from}
 
 \item{covariates}{character vector of polychotomous covariates to add
-binarised columns for
-@param iMiss The missing value indicator. Default is -99.}
+binarised columns for}
+
+\item{iMiss}{The missing value indicator. Default is -99.}
 }
 \value{
 A data frame with columns appended.

@@ -21,7 +21,7 @@ updateFREM(
   numNonFREMThetas,
   numSkipOm = 0,
   numParCov = NULL,
-  cstrKeepCols = c("ID", "TIME", "AMT", "II", "EVID", "SS", "RATE"),
+  cstrKeepCols = c("ID", "TIME", "AMT", "DV", "II", "EVID", "SS", "RATE", "FREMTYPE"),
   cstrSetToZero = c("AMT", "II", "SS", "EVID", "RATE"),
   bWriteData = TRUE,
   bWriteFIX = TRUE,
@@ -134,14 +134,15 @@ An invisible list with components data and model, containing the new
 data set (if any, else NULL) and updated model.
 }
 \description{
-Appends or removes covariates in a FREM data set and FREM model.
+Add or remove covariates and/or data to a FREM model and data set.
 }
 \details{
-If the updated model should be written to disc, this will
-be in the same directory as the original model file.
+Adding/removing covariates will always also update the initial estimates in
+the updated model file based on the final estimates from the original FREM
+model. It is also possible to only udpate the initial estimates.
 
-If the updated data file should be written to disc, this will
-be in the working directory.
+If the updated model and data file are to be written to disc, they will
+be saved in the same directory as the original model file.
 }
 \section{Side effects}{
 
@@ -171,10 +172,15 @@ updateFREM(
   cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE"))
 
 ## Only update inits
-updateFREM(strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+updateFREM(
+  strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+  basenames_th      = c("CL","V","MAT","D1","FRELFOOD","MATFOOD"),
+  basenames_om      = c("RUV","D1","CL","V","MAT"),
   numNonFREMThetas  = 7,
   numSkipOm         = 2,
   bWriteData        = FALSE,
+  bWriteMod         = FALSE,
+  bWriteFIX         = TRUE,
   quiet             = F,
   strUpdateType     = "NoData")
 }
