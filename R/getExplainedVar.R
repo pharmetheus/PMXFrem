@@ -43,8 +43,8 @@
 #'
 #' @param type How the total variability should be derived. See Details.
 
-#' @param data the dataset to based the explained variability on, used with
-#'   type=1
+#' @param data the data.frame with dataset to base the explained variability
+#'   on, used with type=1-3
 #' @param dfCovs A data frame with covariates to based the variability plots on
 #' @param dfext a data frame with the final estimates in a ext-file format
 #' @param strID the subject identifier in the dfCovs dataset, default='ID'
@@ -70,8 +70,8 @@
 #' @param availCov Names of the covariates to use in the calculation of the FFEM
 #'   model, default=NULL (use all covariates)
 #' @param etas the etas used to calculate the explained variability, used with
-#'   type=1 and should be the same size as number of individuals in data. If `NULL`
-#'   when type=1 the estas will be obtained from the phi-file.
+#'   type=1 and should be the same size as number of individuals in data. If
+#'   `NULL` when type=1 the estas will be obtained from the phi-file.
 #' @param quiet If output should be allowed during the function call, default=
 #'   FALSE,
 #' @param ncores the number of cores to use for the calculations, default = 1
@@ -168,6 +168,8 @@ getExplainedVar <- function(
     numETASamples    = 100,
     seed             = NULL,
     ...) {
+
+  if(type>0 & missing(data)) stop("data can not be missing with type 1-3.")
 
   fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir, ...)
   modFile   <- fileNames$mod
