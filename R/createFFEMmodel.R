@@ -115,7 +115,7 @@ createFFEMmodel <- function(
     ...) {
 
   ## Check input
-  if(is.null(newDataFile)) stop("newDataFile must be a character string.")
+  # if(is.null(newDataFile)) stop("newDataFile must be a character string.")
   if(is.null(runno) & is.null(modName)) stop("Either runno or modName has to be specified")
   if(is.null(baserunno) & is.null(baseModName)) stop("Either baserunno or baseModName has to be specified")
 
@@ -157,13 +157,6 @@ createFFEMmodel <- function(
                              cores         = cores,
                              dfext         = dfext,
                              ...)
-
-
-
-
-
-
-
 
   ## Start processing the model
 
