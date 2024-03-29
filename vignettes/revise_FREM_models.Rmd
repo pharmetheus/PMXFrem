@@ -1,0 +1,66 @@
+---
+title: "Revise an existing FREM model"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Manipulate an existing FREM model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup,echo=FALSE}
+suppressPackageStartupMessages(library(PMXFrem))
+```
+
+## Introduction
+
+The PsN `frem` command generates a NONMEM model file that includes the FREM implementation of the covariates specified as input to `frem`. However, there may be instances when an existing FREM model has to be modified. Examples include the addition/removal of covariates from the model and the addition or removal of subjects in the analysis data set.
+
+A particular use case may be when there is a lot of data and covariates and the FREM model from the `frem` command has convergence issues, or if the analyst wants to have more control of the addition of covariates and data sources to the model. 
+
+Another model development challenge may be to update the initial estimates in the FREM model. The PsN command `update_inits` can usually be used for this but sometimes, with many covariates, the updated inits may not provide a valid OMEGA matrix for the FREM model.
+
+A straight forward way to remove or add data or covariates to an existing FREM model is to re-run the PsN `frem` command with the new set of covariate. However, the `frem` command can sometime take a long time and the reason to generate a smaller FREM model in the first hand may be to add data and covariate in a granular fashion without involving the `frem` command.
+
+The `PMXFrem` function `updateFREM()` addresses these issues by being able to add or remove covariates from an existing FREM model and/or to update the initial estimates of the parameters.
+
+
+## Removing a covariate from a FREM model
+
+```{r}
+updateFREM(
+  strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+  strFREMData       = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
+  strFFEMData       = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
+  cstrRemoveCov     = c("SEX"),
+  cstrCatCovsToAdd  = NULL,
+  cstrContCovsToAdd = NULL,
+  strID             = "ID",
+  strNewFREMData    = "frem_dataset_noSEX.csv",
+  numNonFREMThetas  = 7,
+  numSkipOm         = 2,
+  bWriteData        = TRUE,
+  quiet             = F,
+  bWriteFIX         = TRUE,
+  sortFREMDataset  = c("ID","TIME","FREMTYPE"),
+  cstrKeepCols = c("ID","TIME","AMT","EVID","RATE","DV","FOOD","FREMTYPE"))
+
+```
+
+## Update initial estimates
+
+```{r}
+updateFREM(strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+           numNonFREMThetas  = 7,
+           numSkipOm         = 2,
+           bWriteData        = FALSE,
+           quiet             = F,
+           strUpdateType     = "NoData")
+```
+

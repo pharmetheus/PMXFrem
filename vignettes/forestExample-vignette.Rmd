@@ -30,19 +30,15 @@ The creation of the plot is divided into the following steps:
 
 Load the package and identify which NONMEM FREM run that is going to be used for the forest plot.
 
-```{r}
-
-```
-
-```{r echo=TRUE, warning=FALSE,message=FALSE}
+```{r, echo=FALSE}
 suppressPackageStartupMessages(library(PMXFrem)) # Read in the FREMfunctions package
 suppressPackageStartupMessages(library(PMXForest)) #Read in the forest package for showing the covariate effects
 suppressPackageStartupMessages(library(ggplot2)) #Read in the ggplot2 package for plotting
+```
 
-set.seed(865765) #Set seed for reproducability
-
-theme_set(theme_bw(base_size=20)) #Change ggplot defaults to get nice plot
-
+```{r echo=TRUE, warning=FALSE,message=FALSE}
+set.seed(865765) 
+theme_set(theme_bw(base_size=20)) 
 ```
 
 Collect the file names related to the FREM run we are visualizing the results from. The utility function `getFileNames` returns a list of file paths for the `.mod`, `.ext`, `.lst`, `.phi` and `.cov` files.
