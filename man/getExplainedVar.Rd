@@ -39,8 +39,8 @@ getExplainedVar(
 \arguments{
 \item{type}{How the total variability should be derived. See Details.}
 
-\item{data}{the dataset to based the explained variability on, used with
-type=1}
+\item{data}{the data.frame with dataset to base the explained variability
+on, used with type=1-3}
 
 \item{dfCovs}{A data frame with covariates to based the variability plots on}
 
@@ -91,8 +91,8 @@ covariates, i.e. skip before calculating the FREM varianes, default= 0}
 model, default=NULL (use all covariates)}
 
 \item{etas}{the etas used to calculate the explained variability, used with
-type=1 and should be the same size as number of individuals in data. If \code{NULL}
-when type=1 the estas will be obtained from the phi-file.}
+type=1 and should be the same size as number of individuals in data. If
+\code{NULL} when type=1 the estas will be obtained from the phi-file.}
 
 \item{quiet}{If output should be allowed during the function call, default=
 FALSE,}
