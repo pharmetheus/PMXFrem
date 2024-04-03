@@ -1,5 +1,7 @@
 # PMXFrem 1.2.1
 
+Fixed bug in addFremCovariates.
+
 # PMXFrem 1.2.0
 
 This release prepares PMXFrem for public release. Some feature additions. bug
