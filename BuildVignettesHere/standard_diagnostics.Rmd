@@ -1,0 +1,280 @@
+---
+title: "Generate standard diagnostics for a FREM model"
+author: "Joakim Nyberg and Niclas Jonsson"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Generate standard diagnostics for a FREM model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, echo=FALSE}
+suppressPackageStartupMessages(library(GGally))
+suppressPackageStartupMessages(library(ggpubr))
+suppressPackageStartupMessages(library(PMXFrem))
+
+theme_set(ggplot2::theme_bw(base_size=20))
+```
+
+## Introduction
+
+Just like with any other model it is important to check that FREM models satisfy basic diagnostic tests, for example goodness-of-fit (GOF) plots of DV versus PRED and CWRES versus TIME. Unlike standard models, some of variables of interest are not directly available from the FREM model itself but will have to be derived based on an FFEM version of the model. 
+
+## Create the FFEM model
+
+Create the FFEM model for the set of covariates to include in the model to be evaluated.Consult the [companion vignette](create_FFEM_model.html) on how to set up the FFEM model and generate the necessary output.
+
+
+```{r}
+modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
+dataFile  <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",package="PMXFrem")
+fremRun   <- 31
+baseRun   <- 30
+fremFiles <- getFileNames(fremRun,modDevDir=modDevDir)
+```
+
+### Comparison of standard diagnostiocs input from Base, FREM and FFEM model
+
+```{r}
+xptabBase <- fread(paste0(modDevDir,"/xptabmax0",baseRun),data.table=FALSE,check.names = T) %>%
+  filter(BLQ==0,EVID==0) %>% 
+    arrange(ID,TAD)
+
+xptabFFEM <- fread(paste0(modDevDir,"/xptabmax0",fremRun),data.table=FALSE,check.names = T) %>%
+  filter(BLQ==0,EVID==0) %>% 
+  arrange(ID,TAD)
+
+
+xptabFREM <- fread(paste0("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model","/xptabFREMmax0",fremRun),data.table=FALSE,check.names = T) %>%
+  filter(BLQ==0,EVID==0,FREMTYPE==0) %>% 
+    arrange(ID,TAD)
+
+
+cwresData <- bind_cols(Base=xptabBase$CWRES, FREM=xptabFREM$CWRES, FFEM=xptabFFEM$CWRES) 
+iwresData <- bind_cols(Base=xptabBase$CIWRES,FREM=xptabFREM$CIWRES,FFEM=xptabFFEM$CIWRES)
+predData  <- bind_cols(Base=xptabBase$CPRED, FREM=xptabFREM$CPRED, FFEM=xptabFFEM$CPRED)
+ipredData <- bind_cols(Base=xptabBase$CIPREDI,FREM=xptabFREM$CIPREDI,FFEM=xptabFFEM$CIPREDI)
+```
+
+
+#### PRED
+```{r,fig.width=10,fig.height=6,out.width="100%"}
+ggpairs(predData)   + ggtitle("PRED")
+```
+
+The PREDs are the same between Base and FREM since the THETAs are the same and no covariates affect the typical individual parameters. FFEM is different from the others due to the covariates.
+
+\begin{align*} 
+\mathrm{PRED}_{Base} &= f(\theta_{base},\eta_i=0) \\
+\mathrm{PRED}_{FREM} &= f(\theta_{base},\eta_i=0)\\
+\mathrm{PRED}_{FFEM} &= f(\theta_{base},\color{red}{\theta_{cov}},\color{red}{X_{cov}},\eta_i=0)
+\end{align*}
+
+(Differences between the models are marked with $\color{red}{red}$.)
+
+#### IPRED
+```{r,fig.width=10,fig.height=6,out.width="100%"}
+ggpairs(ipredData)  + ggtitle("IPRED")
+```
+
+The IPREDs are different between Base and FREM due to eta estimated with different Omegas and is different for the FFEM model due to the covariates and OMEGA prim.
+
+\begin{align*} 
+\mathrm{IPRED}_{Base} &= f(\theta_{base},\eta_i=\color{red}{\eta_{base}}) \\
+\mathrm{IPRED}_{FREM} &= f(\theta_{base},\eta_i=\color{red}{\eta_{FREM}})\\
+\mathrm{IPRED}_{FFEM} &= f(\theta_{base},\color{red}{\theta_{cov}},\color{red}{X_{cov}},\color{red}{\eta_i=\eta_{prim}})
+\end{align*}
+
+where $\eta$ is estmated by:
+$$
+\color{red}{\eta_i} = \operatorname*{arg\,max}_\eta l_i + \log({pdf(\color{red}{\eta_i};\color{red}{\Omega)}})
+$$
+
+where $l_i$ is the individual likelihood and $pdf$ is the probability density function of a normal distribution with variance $\color{red}{\Omega}$.
+
+
+(Differences between the models are marked with $\color{red}{red}$.)
+
+
+#### CWRES
+```{r,fig.width=10,fig.height=6,out.width="100%"}
+ggpairs(cwresData)  + ggtitle("CWRES")
+```
+The CWRES are not the same. This is due to differences in population variance as well as IPRED, eta and omega
+
+\begin{align*}
+\mathrm{CWRES}_i &= \frac{y_i - \color{red}{E[u_i]}}{\color{red}{Var[y_i]^2}}\\
+\color{red}{E[y_i]} &= \color{red}{IPRED_i} - \color{red}{\eta_i\frac{ \delta IPRED_i^T}{\delta\eta_i}}\\
+\color{red}{Var[y_i]} &= \color{red}{\frac{\delta IPRED_i}{\delta \eta_i}\Omega\frac{\delta IPRED_i^T}{\delta \eta_i}} + \Sigma^*
+\end{align*}
+
+$^*$ The residual error model can also differ. See below.
+
+(Differences between the models are marked with $\color{red}{red}$.)
+
+#### IWRES
+```{r,fig.width=10,fig.height=6,out.width="100%"}
+
+ggpairs(iwresData)  + ggtitle("IWRES")
+```
+The IWRES are not the same. Mainly due to difference is IPRED but also residual error model if it depends on IPRED .
+
+\begin{align*}
+\mathrm{IWRES}_i = \frac{y_i - \color{red}{\color{red}{\mathrm{IPRED}_i}}}{\color{red}{R_i^2}}\\
+\color{red}{R_i} = diag \left( \color{red}{\frac{\delta res}{\delta \varepsilon_i}}  \Sigma \color{red}{\frac{\delta res^T}{\delta \varepsilon_i}} \right)
+\end{align*}
+
+(Differences between the models are marked with $\color{red}{red}$.)
+
+## Creating basic GOF plots
+
+```{r,fig.width=10,fig.height=10,out.width="100%"}
+
+## DV vs PRED
+p1 <- xptabFFEM %>% 
+  ggplot(aes(exp(CPRED),exp(DV))) +
+  geom_point(color="#508791") +
+  geom_abline(slope = 1,intercept = 0,size=2) +
+  geom_smooth(se = FALSE,color="red") +
+  xlab("Populaiton predicitions") +
+  ylab("Observations")
+
+
+## DV vs IPRED
+p2 <-xptabFFEM %>% 
+  ggplot(aes(exp(CIPREDI),exp(DV))) +
+  geom_point(color="#508791") +
+  geom_abline(slope = 1,intercept = 0,size=2) +
+  geom_smooth(se = FALSE,color="red") +
+  xlab("Individual predicitions") +
+  ylab("Observations")
+
+## abs(IWRES) vs IPRED
+p3 <- xptabFFEM %>% 
+  ggplot(aes(abs(CIWRES),exp(CIPREDI))) +
+  geom_point(color="#508791") +
+  geom_smooth(se = FALSE,color="red") +
+  xlab("Individual predicitions") +
+  ylab("Absolute IWRES")
+
+## CWRES vs IPRED
+p4 <- xptabFFEM %>% 
+  ggplot(aes(exp(CPRED),CWRES)) +
+  geom_point(color="#508791") +
+  geom_abline(slope = 0,intercept = 0,size=2) +
+  geom_smooth(se = FALSE,color="red") +
+  xlab("Population predicitions") +
+  ylab("Conditional weighted residuals")
+
+ggarrange(p1,p2,p3,p4,ncol=2,nrow=2)
+
+```
+
+## Creating ETA plots
+
+Similarly to the standar diagnostics variables (e.g. CWRES) ETAs will also have to be adjusted to reflect the impact of covariates, i.e. the "ETA prims" needs to be computed. This is done by the `calcEtas` function. This function requires an "FFEM data object" from the `createFFEMmodel` function as input.
+
+```{r}
+
+data <- read_csv(dataFile,show_col_types = FALSE) %>%
+    filter(BLQ!=1)
+
+  ## Check with specified parameter names
+FFEMdata <- createFFEMdata(runno            = fremRun,
+                           modDevDir        = modDevDir,
+                           parNames         = c("CL","V","MAT"),
+                           numNonFREMThetas = 7,
+                           numSkipOm        = 2,
+                           dataFile         = data,
+                           newDataFile      = NULL,
+                           quiet            = TRUE)
+```
+
+Collect the ETAs and compute the ETA_proms
+```{r}
+ind_params <- calcEtas(runno            = fremRun,
+                       modDevDir        = modDevDir,
+                       numSkipOm        = 2,
+                       numNonFREMThetas = 7,
+                       FFEMData         = FFEMdata) %>% 
+  arrange(ID)
+
+print(head(ind_params))
+```
+
+Compare the ETAs and the ETA_prims
+```{r,fig.width=10,fig.height=6,out.width="100%"}
+ind_params %>% select(ETA3,ETA3_PRIM) %>% ggpairs()   + ggtitle("ETA CL")
+```
+
+```{r,fig.width=10,fig.height=6,out.width="100%"}
+ind_params %>% select(ETA4,ETA4_PRIM) %>% ggpairs()   + ggtitle("ETA V")
+```
+
+```{r,fig.width=10,fig.height=6,out.width="100%"}
+ind_params %>% select(ETA4,ETA5_PRIM) %>% ggpairs()   + ggtitle("ETA MAT")
+```
+
+All predicted covariate values will be the same as the observed values, provided there are informative observations for the subject in question (i.e. not only dosing records in PK). 
+```{r fig.width=10,fig.height=6,out.width="100%"}
+
+covariates <- data %>% 
+  group_by(ID) %>% 
+  mutate(haveObs = ifelse(any(DV>0),1,0)) %>% 
+  ungroup %>% 
+  distinct(ID,.keep_all = T) %>% 
+  select(ID,getCovNames(fremFiles$mod)$orgCovNames,haveObs) %>% 
+  arrange(ID)
+
+tmp <- bind_cols(ind_params %>% select(ID,ETA3,ETA3_PRIM,WT),obsWT=covariates$WT,haveObs=covariates$haveObs) %>% 
+  mutate(obsWT = ifelse(obsWT==-99,NA,obsWT)) %>% 
+  mutate(missWT = ifelse(is.na(obsWT),"Missing WT","Not missing WT")) %>% 
+  filter(haveObs==1) # Remove subects with inly dosing records
+
+tmp %>% ggplot(aes(WT,obsWT,color=missWT)) +
+  geom_point(show.legend = FALSE) +
+  xlab("Predicted WT") +
+  ylab("Observed WT")
+```
+
+
+
+Plotting the regular ETA from the FREM model versus WT gives a very different picture compared to plotting ETA prim.
+
+```{r,fig.width=10,fig.height=6,out.width="100%"}
+
+p1 <- tmp %>% 
+  ggplot(aes(WT,ETA3)) +
+  geom_point(aes(color=missWT)) +
+  geom_smooth(se = FALSE,color="red") +
+  ylab("ETA3 (CL)") +
+  labs(color=NULL,linetype=NULL) + theme(legend.position="top") +
+  scale_colour_manual(values = c("Missing WT"="orange","Not missing WT"="#508791")) 
+
+p2 <- tmp %>% 
+  ggplot(aes(WT,ETA3_PRIM)) +
+  geom_point(aes(color=missWT)) +
+  geom_smooth(se = FALSE,color="red") +
+  ylab("ETA3 prim (CL)") +
+  labs(color=NULL,linetype=NULL) + theme(legend.position="top") +
+  scale_colour_manual(values = c("Missing WT"="orange","Not missing WT"="#508791")) 
+
+ggarrange(p1,p2,ncol=2,nrow=1,common.legend = T)
+```
+
+```{r fig.width=10,fig.height=6,out.width="100%"}
+
+tmp %>% mutate(missWT = factor(missWT,levels=c("Not missing WT","Missing WT"))) %>% 
+  ggplot(aes(WT,fill=missWT)) +
+  geom_histogram(position ="identity") +
+  labs(fill=NULL,linetype=NULL) + theme(legend.position="top") +
+  scale_fill_manual(values = c("Missing WT"="orange","Not missing WT"="#508791")) 
+```
+

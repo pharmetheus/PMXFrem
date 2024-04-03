@@ -19,9 +19,10 @@ Depends: MASS, foreach, doParallel, tidyverse (>= 1.0.0), stringr, data.table, r
 Suggests: 
 	PhRame,
 	PMXForest,
-    knitr,
-    rmarkdown,
-    testthat (>= 3.0.0)
-VignetteBuilder: knitr
+  knitr,
+  rmarkdown,
+  testthat (>= 3.0.0),
+  R.rsp
+VignetteBuilder: R.rsp
 NeedsCompilation: no
 Config/testthat/edition: 3
