@@ -73,11 +73,11 @@ addFREMcovariates <- function(dfFFEM,modFile=NULL,covariates=NULL,iMiss = -99) {
       }
 
       if(length(unique(dfFFEMnoMiss[[cov]])) == 1) {
-        warning(cov," has only one non-missing level. Nothing added to data set.")
+        warning(cov," has only one non-missing level, not added to data set.")
         next
         }
       if(length(unique(dfFFEMnoMiss[[cov]])) == 2) {
-        warning(cov," has only two non-missing levels. Nothing added to data set.")
+        warning(cov," has only two non-missing levels, not added to data set.")
         next
       }
 
@@ -90,10 +90,13 @@ addFREMcovariates <- function(dfFFEM,modFile=NULL,covariates=NULL,iMiss = -99) {
 
     ## Get the unique values of the covariates in reverse order and exclude the
     ## lowest number (to match what frem is doing)
-    covVal        <- rev(sort(unique(dfFFEMnoMiss[[cov]]))[-1])
-    for(myCovNum in covVal) {
-      newCovName <- paste0(cov,"_",myCovNum)
-      dfFFEM[[newCovName]] <- ifelse(dfFFEM[[cov]]==myCovNum,1,0)
+    for(cov in addCovs) {
+      covVal        <- rev(sort(unique(dfFFEMnoMiss[[cov]]))[-1])
+      # browser()
+      for(myCovNum in covVal) {
+        newCovName <- paste0(cov,"_",myCovNum)
+        dfFFEM[[newCovName]] <- ifelse(dfFFEM[[cov]]==myCovNum,1,0)
+      }
     }
   }
 
