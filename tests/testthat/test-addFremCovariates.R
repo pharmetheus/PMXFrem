@@ -34,6 +34,10 @@ test_that("the correct columns are added", {
 
   ## Check the case when covariates is not NULL
 
+  # Check that the column naming is OK
+  expect_snapshot(addFREMcovariates(data %>% filter(NCIL!=2),covariates=c("RACEL","NCIL")))
+  expect_snapshot(addFREMcovariates(data %>% filter(NCIL!=2),covariates=c("RACEL","NCIL","RACE")))
+
   # Both warning and error
   expect_snapshot(error=TRUE,addFREMcovariates(data,covariates="test"))
   expect_snapshot(error=TRUE,addFREMcovariates(data,covariates="SEX"))
