@@ -1,3 +1,5 @@
+# PMXFrem 1.2.2
+
 # PMXFrem 1.2.1
 
 Fixed bug in addFremCovariates.
