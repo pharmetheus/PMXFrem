@@ -1,5 +1,7 @@
 # PMXFrem 1.2.2
 
+Removed the import of an non-public package.
+
 # PMXFrem 1.2.1
 
 Fixed bug in addFremCovariates.
