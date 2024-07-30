@@ -202,12 +202,14 @@ fremParameterTable <- function(
     dfSamplesBS <- cbind(ITER=1,dfSamplesBS)
 
     # create empty matrix that will contain rses of all parameters to appear in the parameter table
-    fremParRses <- data.frame(matrix(rep(NA,nrow(dfSamplesBS)*(length(omegaNum)+length(thetaNum)+1)), ncol = length(omegaNum)+length(thetaNum)+1))
+    fremParRses <- data.frame(matrix(rep(NA,nrow(dfSamplesBS)*(length(omegaNum)+length(thetaNum)+length(sigmaNum))),
+                                     ncol = length(omegaNum)+length(thetaNum)+length(sigmaNum)))
 
     ## Loop over the samples values and compute the omega prims and add them together with the thetas and sigma
     for(i in (1:nrow(dfSamplesBS))) {
       fremParRses[i,] <- calcParameterEsts(dfSamplesBS[i,],thetaNum,omegaNum,sigmaNum,numNonFREMThetas,numSkipOm,
                                            covNames=covNames, availCov=availCov,quiet=quiet)
+
     }
 
     names(fremParRses) <- retList$parameterTable$Parameter

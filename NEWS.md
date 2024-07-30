@@ -1,5 +1,8 @@
 # PMXFrem 1.2.3
 
+* Made it possible to omit sigma in fremParameterTable by setting sigmaNum and sigmaLabel to NULL.
+* Made it possible to not have ffem OMEGAS in fremParameterTable
+
 # PMXFrem 1.2.2
 
 Removed the import of an non-public package.

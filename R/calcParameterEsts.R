@@ -38,17 +38,36 @@ calcParameterEsts <- function(parVector,thetaNum,omegaNum,sigmaNum,numNonFREMThe
 
   ## Figure out the non-FREM omegas to extract from the ext information
   extOmegaNum <- head(omegaNum,-length(fremOmegas))
-  extOmegas   <- paste0("OMEGA.",extOmegaNum,".",extOmegaNum,".")
+  if(length(extOmegaNum)>0) {
+    extOmegas   <- paste0("OMEGA.",extOmegaNum,".",extOmegaNum,".")
+  } else {
+    extOmegas <- NULL
+  }
 
   ## Figure out the sigmas to extract from the ext info
-  extSigmas   <- paste0("SIGMA.",sigmaNum,".",sigmaNum,".")
+  if(!is.null(sigmaNum)) {
+    extSigmas   <- paste0("SIGMA.",sigmaNum,".",sigmaNum,".")
+  }
 
-  res <- c(
-    as.numeric(thetaEsts),
-    as.numeric(parVector %>% select(one_of(extOmegas))),
-    fremOmegas,
-    as.numeric(parVector %>% select(one_of(extSigmas)))
-  )
+  res <- c(as.numeric(thetaEsts))
+  if(!is.null(extOmegas)) res <- c(res,as.numeric(parVector %>% select(one_of(extOmegas))))
+  res <- c(res,fremOmegas)
+  if(!is.null(sigmaNum)) res <- c(res,as.numeric(parVector %>% select(one_of(extSigmas))))
+
+
+#     {
+#     res <- c(
+#       as.numeric(thetaEsts),
+# as.numeric(parVector %>% select(one_of(extOmegas))),
+#       fremOmegas,
+#       as.numeric(parVector %>% select(one_of(extSigmas)))
+#     ) } else {
+#       res <- c(
+#         as.numeric(thetaEsts),
+#         fremOmegas,
+#         as.numeric(parVector %>% select(one_of(extSigmas)))
+#       )
+#     }
 
   return(res)
 }
