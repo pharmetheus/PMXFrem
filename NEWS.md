@@ -1,3 +1,7 @@
+# PMXFrem 1.2.4
+
+* Fixed the situation when you have more etas than base thetas, which may occur if you have skipped omegas for etas not associated with thetas.
+
 # PMXFrem 1.2.3
 
 * Made it possible to omit sigma in fremParameterTable by setting sigmaNum and sigmaLabel to NULL.

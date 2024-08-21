@@ -446,7 +446,7 @@ getExplainedVar <- function(
                 val[m] <- var(tmpval[m, ]) # Calculate var over all samples
               }
             }
-            valeta0 <- functionList[[j]](basethetas = thetas, covthetas = coveffectsAll, dfrow = dataI[k, ], etas = rep(0, length(thetas)), ...)
+            valeta0 <- functionList[[j]](basethetas = thetas, covthetas = coveffectsAll, dfrow = dataI[k, ], etas = rep(0, 3*length(thetas)), ...) # Will use a multiple of 3 to handle situations when there are more etas than thetas.
             listcount <- length(valeta0)
             for (l in 1:listcount) {
               if (type != 3 || type == 3 && k == 1) {
@@ -463,7 +463,7 @@ getExplainedVar <- function(
 
         for (j in 1:length(functionList)) {
           datatmp   <- dataI[k, c(tmpcovs, "jxrtp47")]
-          val       <- functionList[[j]](basethetas = thetas, covthetas = coveffects, dfrow = datatmp, etas = rep(0, length(thetas)), ...)
+          val       <- functionList[[j]](basethetas = thetas, covthetas = coveffects, dfrow = datatmp, etas = rep(0, 3*length(thetas)), ...) # Will use a multiple of 3 to handle situations when there are more etas than thetas.
           listcount <- length(val)
 
           for (l in 1:listcount) {
