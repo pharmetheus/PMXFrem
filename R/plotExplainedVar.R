@@ -65,8 +65,8 @@ plotExplainedVar <- function(dfres,
 
   #### REMOVE FROM PUBLIC RELEASE ####
   # save.script functionality
-  if ((!is.null(peek_option("save.script")) &&
-    peek_option("save.script") == TRUE) &&
+  if ((!is.null(rlang::peek_option("save.script")) &&
+       rlang::peek_option("save.script") == TRUE) &&
     !str_detect(as.character(match.call()[1]), "_script")) {
 
     argsList <- c(list(funcName = match.call()[1] %>%
