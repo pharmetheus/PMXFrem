@@ -8,7 +8,8 @@
 
 library(testthat)
 library(PMXFrem)
-
+# PMXRenv::activate.unqualified.packages()
+# library(vdiffr)
 
 
 test_check("PMXFrem")
