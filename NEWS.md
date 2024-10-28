@@ -1,3 +1,7 @@
+# PMXFrem 1.2.5
+
+* Added traceplot() and fixed a bug in createFFEMdata().
+
 # PMXFrem 1.2.4
 
 * Fixed the situation when you have more etas than base thetas, which may occur if you have skipped omegas for etas not associated with thetas.
