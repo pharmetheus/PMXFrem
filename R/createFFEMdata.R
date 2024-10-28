@@ -126,7 +126,7 @@ createFFEMdata <- function(runno = NULL,
 
 
   ## Run this to get the omega matrix to use in the vpc
-  if (availCov == "all") availCov    <- covNames
+  if (length(availCov) == 1 && availCov == "all") availCov    <- covNames
 
   tmp <- calcFFEM(dfext = dfext, numNonFREMThetas, covNames = covNames, parNames = parNames, availCov = availCov, quiet = quiet, numSkipOm = numSkipOm, ...)
 
