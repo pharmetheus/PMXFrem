@@ -12,7 +12,8 @@
 #'
 #' @param extFile,phiFile The name of the .ext/.phi file.
 #' @param set The TABLE in the file the iteration information should be
-#'   extracted from. Will use the last TABLE if set to \code{NULL}.
+#'   extracted from. Will use the last TABLE if set to \code{NULL}. There is one
+#'   TABLE for each \code{$ESTIMATION} in the \code{NONMEM} model file.
 #'
 #' @return A data.frame with the data from the specified TABLE (or the last if
 #'   not specified).
