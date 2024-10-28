@@ -217,9 +217,13 @@ createFFEMmodel <- function(
   ## Change table file name
   tabString <- findrecord(tmp,record="\\$TAB")
 
-  ## Change the table file name to ffemtab
-  tabString <- gsub(x=tabString,pattern = "FILE=.*",replace=paste0("FILE=",ffemTabName))
-  tmp <- findrecord(tmp,record="\\$TAB",replace=tabString)
+  ## If there is no $TAB in the base model file, skip to the next step
+  if(length(tabString)!=0) {
+
+    ## Change the table file name to ffemtab
+    tabString <- gsub(x=tabString,pattern = "FILE=.*",replace=paste0("FILE=",ffemTabName))
+    tmp <- findrecord(tmp,record="\\$TAB",replace=tabString)
+  }
 
   ## Write the ffem model to disk unless ffemModName is NULL
   if(!is.null(ffemModName)) {
