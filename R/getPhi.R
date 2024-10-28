@@ -1,6 +1,6 @@
 #' @rdname getExt
 #' @export
-getPhi <- function(phiFile, set = NULL) {
+getPhi <- function(phiFile, set = NULL, warn=T) {
 
   tmp   <- scan(phiFile, what = "character", sep = "\n", quiet = TRUE)
   tabs  <- grep("TABLE", tmp)
@@ -19,6 +19,14 @@ getPhi <- function(phiFile, set = NULL) {
   } else if (set == 4 & length(tabs) == 4) {
     myphi <- read.table(phiFile, skip = tabs[4], h = T)
   }
+
+  ## Check to see if PHITYPE=1 has been used.
+  if(warn) {
+    if(any(!is.na(str_match(names(myphi),"PHI"))))  {
+      warn("The phi-file appears to have been generated without PHITYPE=1.")
+    }
+  }
+
 
   return(myphi)
 }
