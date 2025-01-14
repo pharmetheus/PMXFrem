@@ -148,7 +148,7 @@ plotExplainedVar <- function(dfres,
     mutate(Frac = ifelse(maxVar == 1, 100 * COVVAR / TOTVAR, 100 * COVVAR / TOTCOVVAR))
 
   ## Reorder the covariates according to FRAC
-  dfres$COVNAMELABEL <- reorder(dfres$COVNAMELABEL, dfres$Frac, FUN = median)
+  dfres$COVNAMELABEL <- reorder(dfres$COVNAMELABEL, dfres$Frac, FUN = mean)
 
   ##
   if (compareVersion(as.character(packageVersion("ggplot2")), "3.3-0") < 0) { # If ggplot version < 3.3.0
