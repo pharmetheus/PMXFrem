@@ -4,7 +4,8 @@ test_that("createFFEMmodel works", {
   modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
   dataFile  <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",package="PMXFrem")
   fremRun   <- 31
-  baseRun   <- 30
+  baseRun1  <- 30
+  baseRun2  <- "30a"
 
 
   expect_error(createFFEMmodel())
@@ -14,7 +15,7 @@ test_that("createFFEMmodel works", {
   expect_error(createFFEMmodel(baseModdName="run6"))
 
 
-  ffemMod <- createFFEMmodel(runno            = fremRun,
+  ffemMod1 <- createFFEMmodel(runno            = fremRun,
                              modDevDir        = modDevDir,
                              numNonFREMThetas = 7,
                              numSkipOm        = 2,
@@ -22,8 +23,18 @@ test_that("createFFEMmodel works", {
                              dataFile         = dataFile,
                              newDataFile      = "testDataFile.csv",
                              quiet            = TRUE,
-                             baserunno        = baseRun)
+                             baserunno        = baseRun1)
+  expect_snapshot(ffemMod1)
 
-  expect_snapshot(ffemMod)
+  ffemMod2 <- createFFEMmodel(runno            = fremRun,
+                              modDevDir        = modDevDir,
+                              numNonFREMThetas = 7,
+                              numSkipOm        = 2,
+                              parNames         = c("CL","V","MAT"),
+                              dataFile         = dataFile,
+                              newDataFile      = "testDataFile.csv",
+                              quiet            = TRUE,
+                              baserunno        = baseRun2)
+  expect_snapshot(ffemMod2)
 
 })

@@ -34,7 +34,7 @@
 #'
 #'The are also other changes to the original model file to be suitable for
 #'generating GOF diagnostics for the FREM model:
-#' * Replace the data file name on $DATA with name of the file with the individual covariate coefficients.
+#' * Replace the data file name on $DATA with name of the file with the individual covariate coefficients. (Note! It is assumed that the data files name follows directly after $DATA. If there are other commands on the same line as $DATA and the data file name, they should follow after the data file name.)
 #' * Append column names to $INPUT to match the new data file.
 #' * Update the initial estimates for $THETA and $SIGMA with the corresponding estimates from the FREM run.
 #' * Replace the initial estimates of the OMEGAs with the adjusted OMEGA ("Omega prim") from the FREM model.
@@ -173,9 +173,12 @@ createFFEMmodel <- function(
 
   if (grepl("^(\\$DATA )(.*)(\\s+.+)$", strData[1]) == FALSE) { # Only filename
     strData[1] <- gsub("^(\\$DATA )(.*)$", paste0("\\1", newDataFile, "\\3"), strData[1])
-  } else {
+  } else if(grepl("IGNORE",strData[1]) == TRUE)  { # There is one or more IGNOREs
     strData[1] <- gsub("^(\\$DATA )(.*)(\\s+.+)$", paste0("\\1", newDataFile, "\\3"), strData[1])
+  } else { # There are no IGNOREs
+    strData[1] <- gsub("^(\\$DATA )(.*)(\\s+.+)$", paste0("\\1", newDataFile, "\\2"), strData[1])
   }
+
   tmp <- findrecord(tmp, record = "\\$DATA", replace = strData, quiet = T)
 
   ## Replace $OMEGA
