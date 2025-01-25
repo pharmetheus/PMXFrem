@@ -209,8 +209,9 @@ createFFEMmodel <- function(
 
   ## Replace FREM eta with ETA+Coefficients
   for (i in 1:nrow(FFEMdata$Coefficients)) {
-    tmp  <- gsub(pattern = paste0("^(.*)([^TH]ETA\\(",i+numSkipOm,"\\))(.*)$"),
-                 replace = paste0("\\1(ETA(",i+numSkipOm,")+",FFEMdata$indCovEff[i],")\\3"),
+
+    tmp  <- gsub(pattern = paste0("^(.*)(([^TH]|\\s*)\\bETA\\(",i+numSkipOm,"\\))(.*)$"),
+                 replace = paste0("\\1(ETA(",i+numSkipOm,")+",FFEMdata$indCovEff[i],")\\4"),
                  x = tmp)
   }
 

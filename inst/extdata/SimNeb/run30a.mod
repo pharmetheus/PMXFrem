@@ -33,7 +33,7 @@ FRELCOVTIME = FRELFOOD
 ;;; FREL-RELATION END
 
 TVFREL  = THETA(1)
-TVCL    = THETA(2)
+TVCL    = THETA(2) + ETA(3)
 TVV     = THETA(3)
 TVMAT   = THETA(4)
 TVD1    = THETA(5)
@@ -46,7 +46,9 @@ MU_5  = LOG(TVMAT)
 
 D1FR  = MU_2                   + ETA(2)
 FREL  = TVFREL*FRELCOVTIME
-CL    = EXP(MU_3               + ETA(3))
+CL    = EXP(MU_3+ETA(3))
+CL    = EXP(ETA(3) + MU_3)
+
 V     = EXP(MU_4               + ETA(4))
 MAT   = MATCOVTIME * EXP(MU_5  + ETA(5))
 D1    = MAT*(1-D1FR)

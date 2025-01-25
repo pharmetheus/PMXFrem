@@ -75,6 +75,51 @@ dfres1 <- getExplainedVar(type             = 1,
 
 expect_snapshot_value(dfres1,style = "deparse")
 
+## Check that you can base the calculations on a subset of the covariates
+dfres1a <- getExplainedVar(type             = 1,
+                          data             = dfData,
+                          dfCovs           = dfCovs %>% select(AGE,WT) %>% slice(1,2,17),
+                          numNonFREMThetas = 7,
+                          numSkipOm        = 2,
+                          functionList     = functionList2,
+                          functionListName = functionListName2,
+                          cstrCovariates   = c("ALL","AGE","WT"),#cstrCovariates,
+                          modDevDir        = modDevDir,
+                          runno            = fremRunno,
+                          availCov         = c("AGE","WT"),
+                          ncores           = 1,
+                          quiet            = TRUE,
+                          seed             = 123
+)
+
+expect_snapshot_value(dfres1a,style = "deparse")
+expect_gt(dfres1 %>% select(TOTCOVVAR) %>% slice(1),dfres1a %>% select(TOTCOVVAR) %>% slice(1))
+val1 <- dfres1 %>% select(TOTVAR) %>% slice(1)
+val2 <- dfres1a %>% select(TOTVAR) %>% slice(1)
+expect_equal(val1,val2)
+
+
+## Check that you can base the calculations on one covariate
+dfres1b <- getExplainedVar(type             = 1,
+                           data             = dfData,
+                           dfCovs           = dfCovs %>% select(AGE) %>% slice(1,2),
+                           numNonFREMThetas = 7,
+                           numSkipOm        = 2,
+                           functionList     = functionList2,
+                           functionListName = functionListName2,
+                           cstrCovariates   = c("ALL","AGE"),#cstrCovariates,
+                           modDevDir        = modDevDir,
+                           runno            = fremRunno,
+                           availCov         = c("AGE"),
+                           ncores           = 1,
+                           quiet            = TRUE,
+                           seed             = 123
+)
+expect_snapshot_value(dfres1b,style = "deparse")
+val1 <- as.numeric(dfres1b %>% select(TOTCOVVAR) %>% slice(1))
+val2 <- as.numeric(dfres1b %>% select(COVVAR) %>% slice(1))
+expect_equal(val1,val2)
+
 dfres2 <- getExplainedVar(type             = 2,
                           data             = dfData,
                           dfCovs           = dfCovs,
