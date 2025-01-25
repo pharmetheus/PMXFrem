@@ -22,6 +22,8 @@
 #'   variability. maxVar=2: Visualize the explained part of the explainable
 #'   variability.
 #' @param xlb X-axis title.
+#' @param reordFun The function used for the main effects ordering of the bars
+#' in the plots. Default is mean.
 #' @param add.stamp if \strong{TRUE} adds a stamp with the source directory and
 #'   time of generation at the bottom of the plot using \code{\link{add_stamp}}
 #'   function. Default is \strong{FALSE}. If there is any variable defined in
@@ -54,6 +56,7 @@ plotExplainedVar <- function(dfres,
                              xlb             = ifelse(maxVar == 1,
                                "Explained part of total variability (%)",
                                "Explained part of explainable variability (%)"),
+                             reordFun = "mean",
                              add.stamp       = FALSE,
                              ...) {
   # Adjust add.stamp if needed
@@ -148,7 +151,7 @@ plotExplainedVar <- function(dfres,
     mutate(Frac = ifelse(maxVar == 1, 100 * COVVAR / TOTVAR, 100 * COVVAR / TOTCOVVAR))
 
   ## Reorder the covariates according to FRAC
-  dfres$COVNAMELABEL <- reorder(dfres$COVNAMELABEL, dfres$Frac, FUN = mean)
+  dfres$COVNAMELABEL <- reorder(dfres$COVNAMELABEL, dfres$Frac, FUN = reordFun)
 
   ##
   if (compareVersion(as.character(packageVersion("ggplot2")), "3.3-0") < 0) { # If ggplot version < 3.3.0

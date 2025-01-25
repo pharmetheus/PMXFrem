@@ -172,6 +172,9 @@ covariates and is not sensitive to shrinkage.
 
 type=3 is not sensitive to shrinkage and is preferred over type=2 if there
 are no FFEM covariates.
+
+The \code{availCov} argument specifies the covariates in the frem model that should be used for the calculations
+of the maximum variability (TOTCOVVAR). If NULL (default), all covariates inteh frem model will be used for the derivation of TOTCOVVAR.
 }
 \examples{
 modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")

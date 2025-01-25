@@ -1,7 +1,7 @@
+PMXRenv::library.unqualified("vdiffr")
 test_that("plotExplained variability works", {
 
   set.seed(2342)
-  PMXRenv::library.unqualified("vdiffr")
   modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
   fremRunno <- 31
   modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))
@@ -51,9 +51,10 @@ test_that("plotExplained variability works", {
   expect_snapshot(dfres0)
 
   svg() # Start a device to make plots cosistent between different ways of running the tests
-  p1 <- plotExplainedVar(dfres0)
-  p2 <- plotExplainedVar(dfres0,maxVar=2)
-  p3 <- plotExplainedVar(dfres0,maxVar=2,parameters = "CL")
+  p1    <- plotExplainedVar(dfres0)
+  p1med <- plotExplainedVar(dfres0,reordFun = "median")
+  p2    <- plotExplainedVar(dfres0,maxVar=2)
+  p3    <- plotExplainedVar(dfres0,maxVar=2,parameters = "CL")
 
   covLabels <- c("All covariates","Age","ALT","AST","Bilirubin","BMI","BSA","Createnine clearance","Ethnicity","Genotype","Height","Lean body weight","NCI","Race","Sex","Smoking","Bodyweight")
   p4 <- plotExplainedVar(dfres0,covariateLabels = covLabels)
@@ -62,6 +63,7 @@ test_that("plotExplained variability works", {
   dev.off()
 
   vdiffr::expect_doppelganger("Explained variability plot with default options", p1)
+  vdiffr::expect_doppelganger("Explained variability plot with median as the reordering function", p1med)
   vdiffr::expect_doppelganger("Explained variability plot with type=2", p2)
   vdiffr::expect_doppelganger("Explained variability plot with type=2 and only CL", p3)
   vdiffr::expect_doppelganger("Explained variability plot with covariateLabels", p4)
