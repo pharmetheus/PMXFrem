@@ -149,7 +149,7 @@ step.
 The are also other changes to the original model file to be suitable for
 generating GOF diagnostics for the FREM model:
 \itemize{
-\item Replace the data file name on $DATA with name of the file with the individual covariate coefficients.
+\item Replace the data file name on $DATA with name of the file with the individual covariate coefficients. (Note! It is assumed that the data files name follows directly after $DATA. If there are other commands on the same line as $DATA and the data file name, they should follow after the data file name.)
 \item Append column names to $INPUT to match the new data file.
 \item Update the initial estimates for $THETA and $SIGMA with the corresponding estimates from the FREM run.
 \item Replace the initial estimates of the OMEGAs with the adjusted OMEGA ("Omega prim") from the FREM model.

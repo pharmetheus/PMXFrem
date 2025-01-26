@@ -36,8 +36,29 @@ directory, i.e. ".".}
 extracted from. Will use the last TABLE if set to \code{NULL}. There is one
 TABLE for each \code{$ESTIMATION} in the \code{NONMEM} model file.}
 
-\item{omegaNum}{}
+\item{startIter}{The iteration to start the traceplot from. Default is 10.
+(The first iterations are typically not particularly informative.)}
+
+\item{main}{The title to use in the generated plots. Default is NULL.}
+
+\item{includeOFV}{Logical (default is \code{TRUE}). Should the traceplot for OFV be included?}
+
+\item{includeTheta}{Logical (default is \code{TRUE}). Should the traceplot for the \code{THETA}s be included?}
+
+\item{includeOmega}{Logical (default is \code{TRUE}). Should the traceplot for the \code{OMEGA}s be included?}
+
+\item{thetaNum}{The number of the \code{THETA}s to include in the plot. Default is NULL, which means that all \code{THETA}s should be included.}
+
+\item{omegaNum}{The number of the \code{OMEGA}s to include in the plot. Default is NULL, which means that all \code{OMEGA}s should be included.}
+}
+\value{
+A list of ggplot objects, one for each of OFV, \code{THETA}s and code{OMEGA}s.
 }
 \description{
-Typically used for NONMEM runs implemented with EM algorithms to check for a stable convergence.
+Use to check for a stable convergence of NONMEM runs, typically for runs
+implemented with EM algorithms.
+}
+\details{
+Each of the parameters and OFV are plotted versus the iteration number.
+The value on the y-axis is normalised to the last iteration.
 }

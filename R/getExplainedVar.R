@@ -102,6 +102,10 @@
 #'
 #' @export
 #'
+#' @details
+#' The \code{availCov} argument specifies the covariates in the frem model that should be used for the calculations
+#' of the maximum variability (TOTCOVVAR). If NULL (default), all covariates inteh frem model will be used for the derivation of TOTCOVVAR.
+#'
 #' @examples
 #' modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
 #' fremRunno <- 31
@@ -214,7 +218,15 @@ getExplainedVar <- function(
   orgCovs  <- CN$orgCovNames
   covNames <- CN$covNames
 
-  if (is.null(availCov)) availCov <- covNames
+  ## Sort out the logic for availCov. allCov will indicate the covariates to base TOTCOVVAR on
+  if(is.null(availCov)) {
+    allCov <- covNames
+  } else {
+    allCov <- availCov
+  }
+
+
+  # if (is.null(availCov)) availCov <- covNames
 
   # Function to get FREM covariate names from FFEM covariates
   getFREMCovNames <- function(currNames) {
@@ -274,7 +286,7 @@ getExplainedVar <- function(
 
     ffemObjAllCov <- calcFFEM(
       numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas, dfext = dfext, covNames = covNames,
-      availCov = covNames, quiet = quiet, numParCov = numParCov, numSkipOm = numSkipOm
+      availCov = allCov, quiet = quiet, numParCov = numParCov, numSkipOm = numSkipOm
     )
 
     dfres <- data.frame()
@@ -364,7 +376,7 @@ getExplainedVar <- function(
     #### Go through all dfCovs combinations to calculate the variability for each of them
     dfrest <- data.frame()
     for (i in 1:nrow(dfCovs)) {
-      currentNames <- names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != -99]
+      currentNames <- names(dfCovs[i, ,drop=FALSE])[as.numeric(dfCovs[i, ]) != -99]
 
       strCovsRow <- names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != -99] # Get the covariate that we should condition on
 
@@ -395,13 +407,13 @@ getExplainedVar <- function(
 
         for (j in 1:length(parNames)) {
           ffem_expr <- stringr::str_replace_all(ffemObj$Expr[j], pattern = "data\\$", replacement = "data47_jxrtp$")
-          if (length(names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != -99]) != 0) coveffects[j] <- as.numeric(eval(parse(text = ffem_expr)))
+          if (length(names(dfCovs[i, ,drop=F])[as.numeric(dfCovs[i, ,drop=F]) != -99]) != 0) coveffects[j] <- as.numeric(eval(parse(text = ffem_expr)))
         }
 
         if (i == 1) { # If first row in dfCovs, Calculate a FFEM for each individual to get the total covariate variability as well
           ffemObjAll <- calcFFEM(
             numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas, dfext = dfext, covNames = covNames,
-            availCov = avcov, quiet = quiet, numParCov = numParCov, numSkipOm = numSkipOm
+            availCov = avcov[avcov %in% allCov], quiet = quiet, numParCov = numParCov, numSkipOm = numSkipOm
           )
           coveffectsAll <- rep(0, length(parNames))
 
@@ -448,6 +460,7 @@ getExplainedVar <- function(
             }
             valeta0 <- functionList[[j]](basethetas = thetas, covthetas = coveffectsAll, dfrow = dataI[k, ], etas = rep(0, 3*length(thetas)), ...) # Will use a multiple of 3 to handle situations when there are more etas than thetas.
             listcount <- length(valeta0)
+
             for (l in 1:listcount) {
               if (type != 3 || type == 3 && k == 1) {
                 dftmp <- dplyr::bind_rows(dftmp, data.frame(ITER = k, COVS = 0, NAME = as.character(functionListName[n]), VALUE = val[[l]]))
@@ -505,6 +518,7 @@ getExplainedVar <- function(
       }
     }
     TOTCOVVAR <- var(subset(dfrest, NAME == as.character(functionListName[j]) & COVS == -1)$VALUE) # Get total covariate variability, i.e. ITER == -1
+
     for (i in 1:nrow(dfCovs)) {
       dfres <- rbind(dfres,
         data.frame(COVNUM = i, COVNAME = cstrCovariates[i], PARAMETER = functionListName[j],
