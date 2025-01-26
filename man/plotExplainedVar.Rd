@@ -15,6 +15,7 @@ plotExplainedVar(
   maxVar = 1,
   xlb = ifelse(maxVar == 1, "Explained part of total variability (\%)",
     "Explained part of explainable variability (\%)"),
+  reordFun = "mean",
   add.stamp = FALSE,
   ...
 )
@@ -43,6 +44,9 @@ variability. maxVar=2: Visualize the explained part of the explainable
 variability.}
 
 \item{xlb}{X-axis title.}
+
+\item{reordFun}{The function used for the main effects ordering of the bars
+in the plots. Default is mean.}
 
 \item{add.stamp}{if \strong{TRUE} adds a stamp with the source directory and
 time of generation at the bottom of the plot using \code{\link{add_stamp}}

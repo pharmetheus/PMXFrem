@@ -1,4 +1,4 @@
-# PMXFrem (development version)
+# PMXFrem 1.2.6
 
 * Made it possible to use availCov to specify the covariates to be used for the derivation of TOTCOVVAR.
 * Changed the default in plotExplainedVar so tha the main effects ordering is based on the mean instead of the median.
