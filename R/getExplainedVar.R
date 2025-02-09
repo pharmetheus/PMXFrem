@@ -30,7 +30,10 @@
 #' If there are no FFEM covariate relationships in the model, then type 2 and 3
 #' are identical, but type=3 will be faster.
 #'
-#' type=0 will be fast but not always accurate.
+#' type=0 will be fast but not always accurate. It assumes that each
+#' paramFunction in `functionList` only returns a single value. If you want to
+#' handle multiple parameters in your explained variability plot, you can
+#' provide multiple function in `funcitonList`.
 #'
 #' type=1 will also be relatively fast and handles FFEM covariates, but is
 #' sensitive to shrinkage and small data sets.
@@ -415,6 +418,7 @@ getExplainedVar <- function(
             numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas, dfext = dfext, covNames = covNames,
             availCov = avcov[avcov %in% allCov], quiet = quiet, numParCov = numParCov, numSkipOm = numSkipOm
           )
+
           coveffectsAll <- rep(0, length(parNames))
 
           for (j in 1:length(parNames)) {

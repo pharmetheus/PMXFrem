@@ -1,3 +1,8 @@
+# PMXFrem (development version)
+
+* Updated documentation of `getExplainedVar()` to make i clear that `type=0` assumes that each function in `functionList` returns a scalar value and not a vector or list.
+* Added information in the documentation to `updateFREM()` about the assumption that binary covariates are coded as 0 and 1.
+
 # PMXFrem 1.2.6
 
 * Made it possible to use availCov to specify the covariates to be used for the derivation of TOTCOVVAR.
