@@ -31,6 +31,13 @@ functionList2 <- list(
   function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[2]*exp(covthetas[1] + etas[3]))},
   function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[3]*exp(covthetas[2] + etas[4]))}
 )
+
+functionList22 <- function(basethetas,covthetas, dfrow, etas, ...) {
+return(list(basethetas[2]*exp(covthetas[1] + etas[3]),
+            basethetas[3]*exp(covthetas[2] + etas[4])))
+}
+
+
 functionListName2 <- c("CL","V")
 
 ## On windows, this produces an error wrt to stringr
@@ -56,7 +63,7 @@ dfres0 <- getExplainedVar(type             = 1,
                           dfCovs           = dfCovs,
                           numNonFREMThetas = 7,
                           numSkipOm        = 2,
-                          functionList     = functionList2,
+                          functionList     = list(functionList22),
                           functionListName = functionListName2,
                           cstrCovariates   = cstrCovariates,
                           modDevDir        = modDevDir,

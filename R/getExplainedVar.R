@@ -256,22 +256,25 @@ getExplainedVar <- function(
   if (type == 0) {
     # Define delta_rule function
     deltarule <- function(params, covmatrix, transform_fun, ...) {
-      param_new <- transform_fun(params, ...) # Calculate the transformation
-
+      
       # Calculate the derivatives by numeric differentiation with the numDeriv library
       # library(numDeriv)
       # Options to grad function, i.e. could be e.g. global settings
       if (!exists("ma")) ma <- list(eps = 1e-4, d = 0.0001, zero.tol = sqrt(.Machine$double.eps / 7e-7), r = 4, v = 2, show.details = FALSE)
-      param_deriv <- grad(transform_fun, params, method = "Richardson", method.args = ma, ...)
-
-      new_var <- 0 # Initialize the variance of the transformed function
-      for (i in 1:length(params)) {
-        for (j in 1:length(params)) {
-          new_var <- new_var + param_deriv[i] * param_deriv[j] * covmatrix[i, j]
-        }
-      }
-
-      return(c(param_new, new_var)) # Return a vector with the tranformed parameter value and the transformed parameter variance
+      
+      param_new <- transform_fun(params, ...) # Calculate the transformation
+      new_var <- rep(0,length(param_new)) # Initialize the variance of the transformed function
+      for (k in 1:length(param_new)) {
+       tf1<-function(params,...) transform_fun(params,...)[[k]] #Just take one output at a time from a multi return function
+       param_deriv <- grad(tf1, params, method = "Richardson", method.args = ma, ...)
+        
+       for (i in 1:length(params)) {
+         for (j in 1:length(params)) {
+           new_var[k] <- new_var[k] + param_deriv[i] * param_deriv[j] * covmatrix[i, j]
+         }
+       }
+     }
+     return(c(param_new, new_var)) # Return a vector with the tranformed parameter value and the transformed parameter variance
     }
 
     # Define internal wrapper function to be used with propagation of variabilities
@@ -290,16 +293,18 @@ getExplainedVar <- function(
     )
 
     dfres <- data.frame()
-    for (j in 1:length(functionListName)) {
+    m<-1 #Index for functionListName
+    for (j in 1:length(functionList)) {
       TOTVAR <- deltarule(
         params = rep(0, length(diag(ffemObjAllNoCov$FullVars))), covmatrix = ffemObjAllNoCov$FullVars, transform_fun = parf, basethetas = thetas,
         covthetas = rep(0, length(parNames)), dfrow = dfCovs[1, ], myfunc = functionList[[j]], ...
-      )[2]
+      )
+      TOTVAR <-TOTVAR[(length(TOTVAR)/2+1):length(TOTVAR)] #Get only the variance parameters
       TOTCOVVAR <- deltarule(
         params = rep(0, length(diag(ffemObjAllCov$FullVars))), covmatrix = ffemObjAllCov$FullVars, transform_fun = parf, basethetas = thetas,
         covthetas = rep(0, length(parNames)), dfrow = dfCovs[1, ], myfunc = functionList[[j]], ...
-      )[2]
-
+      )
+      TOTCOVVAR <-TOTCOVVAR[(length(TOTCOVVAR)/2+1):length(TOTCOVVAR)] #Get only the variance parameters
 
       for (i in 1:nrow(dfCovs)) {
         currentNames <- names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != -99]
@@ -312,20 +317,23 @@ getExplainedVar <- function(
         COVVAR <- deltarule(
           params = rep(0, length(diag(ffemObj$FullVars))), covmatrix = ffemObj$FullVars, transform_fun = parf, basethetas = thetas,
           covthetas = rep(0, length(parNames)), dfrow = dfCovs[1, ], myfunc = functionList[[j]], ...
-        )[2]
+        )
+        COVVAR <-COVVAR[(length(COVVAR)/2+1):length(COVVAR)] #Get only the variance parameters
+        
         dfres <- rbind(
           dfres,
           data.frame(
             COVNUM    = i, COVNAME = cstrCovariates[i],
-            PARAMETER = functionListName[j],
+            PARAMETER = functionListName[m:(m+length(TOTVAR)-1)],
             TOTVAR    = TOTVAR,
             TOTCOVVAR = TOTVAR - TOTCOVVAR,
             COVVAR    = TOTVAR - COVVAR
           )
         )
       }
+      m<-m+length(TOTVAR) #Update functionListName index
     }
-    return(dfres)
+    return(dfres[order(match(dfres$PARAMETER, functionListName)),]) #Sort according to functionListName
   }
 
 
