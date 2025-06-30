@@ -10,7 +10,8 @@
 #' alternatives that can be requested via the type argument.
 #'
 #' **type=0:** Use the the delta rule (FO approximation) to derive the total variability
-#' of the metric across the involved omegas.
+#' of the metric across the involved omegas. The first row in dfCovs is used for values of
+#' any FFEM covariates.
 #'
 #' **type=1:** Use the estimated EBEs and calculate the variance of the desired
 #' metric across the individuals in the data set. Requires etas or a phi-file
@@ -226,6 +227,13 @@ getExplainedVar <- function(
   }
 
 
+  if (type==2) {
+    if (length(dfCovs)<=length(orgCovs)) {
+      warning("Presence of FFEM covariates is indicated (trough type=2), make sure that all FFEM covariates are also available in dfCovs")
+    }
+  }
+    
+  
   # if (is.null(availCov)) availCov <- covNames
 
   # Function to get FREM covariate names from FFEM covariates
@@ -354,7 +362,7 @@ getExplainedVar <- function(
     dataI <- data[!duplicated(strID), ] # Get one row per subject and keep only covariates and ID
 
     ## Check that the number of etas is the same as the number of subjects in the data set
-    if (type == 1 && (nrow(etas) != nrow(dataI))) stop("The number of etas should be the same as the number of sibjects in the data set.")
+    if (type == 1 && (nrow(etas) != nrow(dataI))) stop("The number of etas should be the same as the number of subjects in the data set.")
 
 
     ## Register to allow for parallel computing
@@ -398,12 +406,14 @@ getExplainedVar <- function(
       }
 
       internalCalc <- function(k) { # The calculation function
-
         # Get the FREM covariates that is used in each row of dfCovs
         tmpcovs      <- getFREMCovNames(currentNames)
         dftmp        <- data.frame()
         datatmp      <- dataI[k, covNames] # Get only covnames
         avcov        <- names(datatmp)[which(datatmp != -99)] # Get the non-missing covariates only
+        
+        ####Is avcov really correct shouldn't it be based on the dfCovs covNames???
+        
         data47_jxrtp <- datatmp
         coveffects   <- rep(0, length(parNames))
 
@@ -437,7 +447,7 @@ getExplainedVar <- function(
             if (type == 2) {
               val <- 0
               tmpval <- 0
-              for (m in 1:numETASamples) { # For all ETA samples
+              for (m in 1:numETASamples) { # For all ETA samples  , dataI versus dfCovs, think about it for FFEM covs
                 val <- functionList[[j]](basethetas = thetas, covthetas = rep(0, length(coveffectsAll)), dfrow = dataI[k, ], etas = etasamples[m, ], ...) ### CHECK THIS, coveffectsAll=0?
 
                 if (m == 1) {
@@ -481,7 +491,6 @@ getExplainedVar <- function(
 
         ## Call each parameters in the functionList to calculate
         n <- 1
-
         for (j in 1:length(functionList)) {
           datatmp   <- dataI[k, c(tmpcovs, "jxrtp47")]
           val       <- functionList[[j]](basethetas = thetas, covthetas = coveffects, dfrow = datatmp, etas = rep(0, 3*length(thetas)), ...) # Will use a multiple of 3 to handle situations when there are more etas than thetas.

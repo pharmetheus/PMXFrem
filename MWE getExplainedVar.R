@@ -37,8 +37,20 @@ return(list(basethetas[2]*exp(covthetas[1] + etas[3]),
             basethetas[3]*exp(covthetas[2] + etas[4])))
 }
 
+functionListFFEMCovs<-function(basethetas,covthetas, dfrow, etas, ...) {
+  MATCOVTIME<-1
+  if (any(names(dfrow)=="FD") && dfrow$FD !=-99 && dfrow$FD == 0) MATCOVTIME<-1+basethetas[6]
 
-functionListName2 <- c("CL","V")
+  
+  MAT   = basethetas[4]*MATCOVTIME*exp(covthetas[3]  + etas[5]) 
+  
+  return(list(MAT,
+              basethetas[2]*exp(covthetas[1] + etas[3]),
+              basethetas[3]*exp(covthetas[2] + etas[4])))
+}
+
+
+functionListName2 <- c("MAT","CL","V")
 
 ## On windows, this produces an error wrt to stringr
 dfres0 <- getExplainedVar(type             = 0,
@@ -58,7 +70,7 @@ dfres0 <- getExplainedVar(type             = 0,
 
 
 ## On windows, this produces an error wrt to calcFFEM (which is a function in PMXFrem)
-dfres0 <- getExplainedVar(type             = 1,
+dfres1 <- getExplainedVar(type             = 1,
                           data             = dfData,
                           dfCovs           = dfCovs,
                           numNonFREMThetas = 7,
@@ -68,14 +80,14 @@ dfres0 <- getExplainedVar(type             = 1,
                           cstrCovariates   = cstrCovariates,
                           modDevDir        = modDevDir,
                           runno            = fremRunno,
-                          ncores           = 10,
+                          ncores           = 1,
                           quiet            = TRUE,
                           seed             = 123,
                           cstrPackages     = c("stringr")
 )
 
 ## On windows, this produces an error wrt to not finding PMXFrem
-dfres0 <- getExplainedVar(type             = 2,
+dfres2 <- getExplainedVar(type             = 2,
                           data             = dfData,
                           dfCovs           = dfCovs,
                           numNonFREMThetas = 7,
@@ -85,9 +97,148 @@ dfres0 <- getExplainedVar(type             = 2,
                           cstrCovariates   = cstrCovariates,
                           modDevDir        = modDevDir,
                           runno            = fremRunno,
-                          ncores           = 10,
+                          ncores           = 1,
                           quiet            = TRUE,
                           seed             = 123,
                           cstrPackages     = c("stringr","PMXFrem")
 )
 
+
+#### FFEM covariates
+
+## On windows, this produces an error wrt to stringr
+# No FOOD effect (FD==0)
+dfres0 <- getExplainedVar(type             = 0,
+                          data             = NULL,
+                          dfCovs           = dfCovs,
+                          numNonFREMThetas = 7,
+                          numSkipOm        = 2,
+                          functionList     = list(functionListFFEMCovs),
+                          functionListName = functionListName2,
+                          cstrCovariates   = cstrCovariates,
+                          modDevDir        = modDevDir,
+                          runno            = fremRunno,
+                          ncores           = 10,
+                          quiet            = TRUE,
+                          seed             = 123
+)
+
+#FD=1
+dfCovs1<-dfCovs
+dfCovs1$FOOD<-1
+dfres1 <- getExplainedVar(type             = 0,
+                          data             = NULL,
+                          dfCovs           = dfCovs1,
+                          numNonFREMThetas = 7,
+                          numSkipOm        = 2,
+                          functionList     = list(functionListFFEMCovs),
+                          functionListName = functionListName2,
+                          cstrCovariates   = cstrCovariates,
+                          modDevDir        = modDevDir,
+                          runno            = fremRunno,
+                          ncores           = 10,
+                          quiet            = TRUE,
+                          seed             = 123
+)
+
+#FD=2
+dfCovs2<-dfCovs
+dfCovs2$FOOD<-2
+dfres2 <- getExplainedVar(type             = 0,
+                          data             = NULL,
+                          dfCovs           = dfCovs2,
+                          numNonFREMThetas = 7,
+                          numSkipOm        = 2,
+                          functionList     = list(functionListFFEMCovs),
+                          functionListName = functionListName2,
+                          cstrCovariates   = cstrCovariates,
+                          modDevDir        = modDevDir,
+                          runno            = fremRunno,
+                          ncores           = 10,
+                          quiet            = TRUE,
+                          seed             = 123
+)
+
+#All figures looks the same
+plotExplainedVar(dfres0,maxVar = 2)
+plotExplainedVar(dfres1,maxVar = 2)
+plotExplainedVar(dfres2,maxVar = 2)
+
+#Including Actual food effect of 0
+dfCovs2<-dfCovs
+dfCovs2$FD<-0
+dfres2 <- getExplainedVar(type             = 0,
+                          data             = NULL,
+                          dfCovs           = dfCovs2,
+                          numNonFREMThetas = 7,
+                          numSkipOm        = 2,
+                          functionList     = list(functionListFFEMCovs),
+                          functionListName = functionListName2,
+                          cstrCovariates   = cstrCovariates,
+                          modDevDir        = modDevDir,
+                          runno            = fremRunno,
+                          ncores           = 10,
+                          quiet            = TRUE,
+                          seed             = 123
+)
+
+plotExplainedVar(dfres2,maxVar = 1)
+
+
+### Type = 2
+
+
+dfCovs2<-dfCovs
+dfCovs2$FD<--99
+dfCovs2$FD[1]<-1
+arow<-dfCovs2[1,]
+arow[,]<- -99
+arow$FD<-1
+dfCovs2<-rbind(dfCovs2,arow)
+dfData$FD<-dfData$FOOD
+dfres2 <- getExplainedVar(type             = 2,
+                          data             = dfData,
+                          dfCovs           = dfCovs2,
+                          numNonFREMThetas = 7,
+                          numSkipOm        = 2,
+                          functionList     = list(functionListFFEMCovs),
+                          functionListName = functionListName2,
+                          cstrCovariates   = c(cstrCovariates,"FOOD"),
+                          modDevDir        = modDevDir,
+                          runno            = fremRunno,
+                          ncores           = 1,
+                          quiet            = TRUE,
+                          seed             = 123
+)
+
+plotExplainedVar(dfres2,maxVar = 2)
+plotExplainedVar(dfres2,maxVar = 1)
+
+#Only showcase FOOD=0 or FOOD=1
+### Type = 2
+dfCovs2<-dfCovs
+dfCovs2$FD<--99
+dfCovs2$FD[1]<-1
+arow<-dfCovs2[1,]
+arow[,]<- -99
+arow$FD<-1
+dfCovs2<-rbind(dfCovs2,arow)
+dfData$FD<-dfData$FOOD
+dfDatatmp<-dfData
+dfDatatmp$FD<-1
+dfres2 <- getExplainedVar(type             = 2,
+                          data             = dfDatatmp,
+                          dfCovs           = dfCovs2,
+                          numNonFREMThetas = 7,
+                          numSkipOm        = 2,
+                          functionList     = list(functionListFFEMCovs),
+                          functionListName = functionListName2,
+                          cstrCovariates   = c(cstrCovariates,"FOOD"),
+                          modDevDir        = modDevDir,
+                          runno            = fremRunno,
+                          ncores           = 1,
+                          quiet            = TRUE,
+                          seed             = 123
+)
+
+plotExplainedVar(dfres2,maxVar = 1)
