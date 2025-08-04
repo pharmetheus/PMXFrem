@@ -20,6 +20,14 @@ functionList2 <- list(
   function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[2]*exp(covthetas[1] + etas[3]))},
   function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[3]*exp(covthetas[2] + etas[4]))}
 )
+
+## The function that returns a list of return values
+functionList22 <- function(basethetas,covthetas, dfrow, etas, ...) {
+  return(
+    c(basethetas[2]*exp(covthetas[1] + etas[3]),
+      basethetas[3]*exp(covthetas[2] + etas[4]))
+    )
+}
 functionListName2 <- c("CL","V")
 
 
@@ -55,8 +63,25 @@ dfres0 <- getExplainedVar(type             = 0,
                           quiet            = TRUE,
                           seed             = 123
 )
-
 expect_snapshot_value(dfres0,style = "deparse")
+
+## Test that the delta rule can handle 2 return values
+dfres02 <- getExplainedVar(type             = 0,
+                           data             = NULL,
+                           dfCovs           = dfCovs,
+                           numNonFREMThetas = 7,
+                           numSkipOm        = 2,
+                           functionList     = list(functionList22),
+                           functionListName = functionListName2,
+                           cstrCovariates   = cstrCovariates,
+                           modDevDir        = modDevDir,
+                           runno            = fremRunno,
+                           ncores           = 1,
+                           quiet            = TRUE,
+                           seed             = 123
+)
+expect_snapshot_value(dfres02,style = "deparse")
+
 
 dfres1 <- getExplainedVar(type             = 1,
                           data             = dfData,
