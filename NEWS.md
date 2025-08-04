@@ -1,3 +1,7 @@
+# PMXFrem 1.2.7
+
+* Made it possible to use type=0 in `getExplainedVar()` together with a function that returns multiple values.
+
 # PMXFrem 1.2.6
 
 * Made it possible to use availCov to specify the covariates to be used for the derivation of TOTCOVVAR.
