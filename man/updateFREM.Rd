@@ -143,6 +143,9 @@ model. It is also possible to only udpate the initial estimates.
 
 If the updated model and data file are to be written to disc, they will
 be saved in the same directory as the original model file.
+
+Note! When adding a binary covariate, it will be included in the updated data
+file as 0 or 1, regardless of original coding.
 }
 \section{Side effects}{
 
