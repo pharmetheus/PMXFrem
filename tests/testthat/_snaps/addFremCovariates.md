@@ -2,7 +2,8 @@
 
     Code
       addFREMcovariates(data %>% filter(NCIL != 2), covariates = c("RACEL", "NCIL"))
-    Warning <simpleWarning>
+    Condition
+      Warning in `addFREMcovariates()`:
       NCIL has only two non-missing levels, not added to data set.
     Output
       # A tibble: 33,454 x 37
@@ -18,18 +19,20 @@
        8     2     1       1  12    12      15     0     0 23.9   3.18     0     0
        9     2     1       1  16    16      16     0     0 10.9   2.39     0     0
       10     2     1       1  24    24      16     0     0  6.88  1.93     0     0
-      # ... with 33,444 more rows, and 25 more variables: DOSE <dbl>, FOOD <dbl>,
-      #   FORM <dbl>, TYPE <dbl>, WT <dbl>, HT <dbl>, LBWT <dbl>, BSA <dbl>,
-      #   SEX <dbl>, RACE <dbl>, AGE <dbl>, AST <dbl>, ALT <dbl>, BILI <dbl>,
-      #   CRCL <dbl>, BMI <dbl>, NCI <dbl>, GENO2 <dbl>, ETHNIC <dbl>, SMOK <dbl>,
-      #   RACEL <dbl>, NCIL <dbl>, RACEL_3 <dbl>, RACEL_2 <dbl>, RACEL_1 <dbl>
+      # i 33,444 more rows
+      # i 25 more variables: DOSE <dbl>, FOOD <dbl>, FORM <dbl>, TYPE <dbl>,
+      #   WT <dbl>, HT <dbl>, LBWT <dbl>, BSA <dbl>, SEX <dbl>, RACE <dbl>,
+      #   AGE <dbl>, AST <dbl>, ALT <dbl>, BILI <dbl>, CRCL <dbl>, BMI <dbl>,
+      #   NCI <dbl>, GENO2 <dbl>, ETHNIC <dbl>, SMOK <dbl>, RACEL <dbl>, NCIL <dbl>,
+      #   RACEL_3 <dbl>, RACEL_2 <dbl>, RACEL_1 <dbl>
 
 ---
 
     Code
       addFREMcovariates(data %>% filter(NCIL != 2), covariates = c("RACEL", "NCIL",
         "RACE"))
-    Warning <simpleWarning>
+    Condition
+      Warning in `addFREMcovariates()`:
       NCIL has only two non-missing levels, not added to data set.
     Output
       # A tibble: 33,454 x 40
@@ -45,38 +48,43 @@
        8     2     1       1  12    12      15     0     0 23.9   3.18     0     0
        9     2     1       1  16    16      16     0     0 10.9   2.39     0     0
       10     2     1       1  24    24      16     0     0  6.88  1.93     0     0
-      # ... with 33,444 more rows, and 28 more variables: DOSE <dbl>, FOOD <dbl>,
-      #   FORM <dbl>, TYPE <dbl>, WT <dbl>, HT <dbl>, LBWT <dbl>, BSA <dbl>,
-      #   SEX <dbl>, RACE <dbl>, AGE <dbl>, AST <dbl>, ALT <dbl>, BILI <dbl>,
-      #   CRCL <dbl>, BMI <dbl>, NCI <dbl>, GENO2 <dbl>, ETHNIC <dbl>, SMOK <dbl>,
-      #   RACEL <dbl>, NCIL <dbl>, RACEL_3 <dbl>, RACEL_2 <dbl>, RACE_5 <dbl>,
-      #   RACE_4 <dbl>, RACE_3 <dbl>, RACE_2 <dbl>
+      # i 33,444 more rows
+      # i 28 more variables: DOSE <dbl>, FOOD <dbl>, FORM <dbl>, TYPE <dbl>,
+      #   WT <dbl>, HT <dbl>, LBWT <dbl>, BSA <dbl>, SEX <dbl>, RACE <dbl>,
+      #   AGE <dbl>, AST <dbl>, ALT <dbl>, BILI <dbl>, CRCL <dbl>, BMI <dbl>,
+      #   NCI <dbl>, GENO2 <dbl>, ETHNIC <dbl>, SMOK <dbl>, RACEL <dbl>, NCIL <dbl>,
+      #   RACEL_3 <dbl>, RACEL_2 <dbl>, RACE_5 <dbl>, RACE_4 <dbl>, RACE_3 <dbl>,
+      #   RACE_2 <dbl>
 
 ---
 
     Code
       addFREMcovariates(data, covariates = "test")
-    Warning <simpleWarning>
+    Condition
+      Warning in `addFREMcovariates()`:
       test does not exist in the data set
-    Error <simpleError>
-      No binarised covariates to add to the FFEM data.
+      Error in `addFREMcovariates()`:
+      ! No binarised covariates to add to the FFEM data.
 
 ---
 
     Code
       addFREMcovariates(data, covariates = "SEX")
-    Warning <simpleWarning>
+    Condition
+      Warning in `addFREMcovariates()`:
       SEX has only two non-missing levels, not added to data set.
-    Error <simpleError>
-      No binarised covariates to add to the FFEM data.
+      Error in `addFREMcovariates()`:
+      ! No binarised covariates to add to the FFEM data.
 
 ---
 
     Code
       addFREMcovariates(data, covariates = c("ETHNIC", "SEX"))
-    Warning <simpleWarning>
+    Condition
+      Warning in `addFREMcovariates()`:
       ETHNIC has only two non-missing levels, not added to data set.
+      Warning in `addFREMcovariates()`:
       SEX has only two non-missing levels, not added to data set.
-    Error <simpleError>
-      No binarised covariates to add to the FFEM data.
+      Error in `addFREMcovariates()`:
+      ! No binarised covariates to add to the FFEM data.
 

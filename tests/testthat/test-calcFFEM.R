@@ -1,4 +1,3 @@
-# PMXRenv::activate.unqualified.packages()
 test_that("calcFFEM output works", {
 
 modFile <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")

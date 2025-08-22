@@ -1,4 +1,3 @@
-# PMXRenv::activate.unqualified.packages()
 test_that("createFFEMmodel works", {
 
   modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")

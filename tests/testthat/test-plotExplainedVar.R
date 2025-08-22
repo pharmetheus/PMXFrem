@@ -1,5 +1,11 @@
-PMXRenv::library.unqualified("vdiffr")
+
 test_that("plotExplained variability works", {
+
+  if (compareVersion(paste0(R.version$major,".",R.version$minor),"4.2.2") > 0) {
+    library(vdiffr)
+  } else {
+    PMXRenv::library.unqualified("vdiffr")
+  }
 
   set.seed(2342)
   modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
