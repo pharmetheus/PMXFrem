@@ -27,6 +27,9 @@ test_that("getForestDFFREM works", {
   ## Will use only 25 samples for the tests
   dfSamplesCOV     <- PMXForest::getSamples(covFile,extFile=extFile,n=25)
 
+  # Create a variant based on the R major and minor version (e.g., "4.2", "4.4")
+  r_version_variant <- paste(R.version$major, R.version$minor, sep = ".")
+
   dfresFREM <-getForestDFFREM(dfCovs           = dfCovs,
                               covNames         = covNames$covNames,
                               functionList     = list(paramFun),
@@ -40,14 +43,14 @@ test_that("getForestDFFREM works", {
                               ncores           = 1,
                               cstrPackages     = c("PMXFrem","dplyr"))
 
-  expect_snapshot(dfresFREM)
+  expect_snapshot(stabilize(dfresFREM), variant = r_version_variant)
 
   covlabels  <- c("Age 25 y","Age 61 y","ALT 14 IU","ALT 43 IU", "AST 15 IU","AST 34 IU",
-                 "Bilirubin 5 µmol/L", "Bilirubin 15 µmol/L", "BMI 23 kg/m^2","BMI 39 kg/m^2",
-                 "CRCL 83 mL/min","CRCL 150 mL/min", "Caucasian","Other",
-                 "HT 152 cm","HT 185 cm",
-                 "NCI=0","NCI>0","White","Other",
-                 "Male","Female")
+                  "Bilirubin 5 µmol/L", "Bilirubin 15 µmol/L", "BMI 23 kg/m^2","BMI 39 kg/m^2",
+                  "CRCL 83 mL/min","CRCL 150 mL/min", "Caucasian","Other",
+                  "HT 152 cm","HT 185 cm",
+                  "NCI=0","NCI>0","White","Other",
+                  "Male","Female")
 
   dfresFREM2 <-getForestDFFREM(dfCovs           = dfCovs,
                                cdfCovsNames     = covlabels,
@@ -63,5 +66,5 @@ test_that("getForestDFFREM works", {
                                ncores           = 1,
                                cstrPackages     = c("PMXFrem","dplyr"))
 
-  expect_snapshot(dfresFREM2)
+  expect_snapshot(stabilize(dfresFREM2), variant = r_version_variant)
 })

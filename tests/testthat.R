@@ -7,9 +7,7 @@
 # * https://testthat.r-lib.org/reference/test_package.html#special-files
 
 library(testthat)
-library(PMXFrem)
-# PMXRenv::activate.unqualified.packages()
-# library(vdiffr)
+# library(PMXFrem)
 
 
 test_check("PMXFrem")

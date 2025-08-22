@@ -1,6 +1,11 @@
 test_that("traceplot works", {
 
-  PMXRenv::library.unqualified("vdiffr")
+  if (compareVersion(paste0(R.version$major,".",R.version$minor),"4.2.2") > 0) {
+    library(vdiffr)
+  } else {
+    PMXRenv::library.unqualified("vdiffr")
+  }
+
   retList3 <- traceplot(30,modDevDir=system.file("extdata","SimNeb/",package="PMXFrem"))
   expect_type(retList3,"list")
   expect_equal(length(retList3),3)

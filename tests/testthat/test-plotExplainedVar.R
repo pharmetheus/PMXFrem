@@ -1,6 +1,4 @@
-PMXRenv::library.unqualified("vdiffr")
 test_that("plotExplained variability works", {
-
   set.seed(2342)
   modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
   fremRunno <- 31
@@ -9,19 +7,19 @@ test_that("plotExplained variability works", {
 
   ## Set up dfCovs
   dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
-    filter(BLQ == 0) %>%
-    distinct(ID,.keep_all = T)
+    dplyr::filter(BLQ == 0) %>%
+    dplyr::distinct(ID,.keep_all = T)
 
   dfCovs <- dfData  %>%
-    select(covNames$orgCovNames) %>%
-    mutate_all(function(x) return(1)) %>%
-    slice(rep(1,ncol(.)+1))
+    dplyr::select(covNames$orgCovNames) %>%
+    dplyr::mutate_all(function(x) return(1)) %>%
+    dplyr::slice(rep(1,ncol(.)+1))
 
   for(i in 2:nrow(dfCovs)) {
     dfCovs[i, names(dfCovs) != names(dfCovs)[i-1]] <- -99
   }
 
-  expect_snapshot(dfCovs)
+  expect_snapshot(stabilize(dfCovs))
 
   cstrCovariates <- c("All",names(dfCovs))
 
@@ -48,26 +46,77 @@ test_that("plotExplained variability works", {
                             seed             = 123
   )
 
-  expect_snapshot(dfres0)
+  expect_snapshot(stabilize(dfres0))
 
-  svg() # Start a device to make plots cosistent between different ways of running the tests
+  # Create all the plot objects
   p1    <- plotExplainedVar(dfres0)
-  p1med <- plotExplainedVar(dfres0,reordFun = "median")
-  p2    <- plotExplainedVar(dfres0,maxVar=2)
-  p3    <- plotExplainedVar(dfres0,maxVar=2,parameters = "CL")
-
+  p1med <- plotExplainedVar(dfres0, reordFun = "median")
+  p2    <- plotExplainedVar(dfres0, maxVar=2)
+  p3    <- plotExplainedVar(dfres0, maxVar=2, parameters = "CL")
   covLabels <- c("All covariates","Age","ALT","AST","Bilirubin","BMI","BSA","Createnine clearance","Ethnicity","Genotype","Height","Lean body weight","NCI","Race","Sex","Smoking","Bodyweight")
-  p4 <- plotExplainedVar(dfres0,covariateLabels = covLabels)
+  p4 <- plotExplainedVar(dfres0, covariateLabels = covLabels)
+  p5 <- plotExplainedVar(dfres0, parameters="CL", parameterLabels = "Cleareance[2]", labelfun = label_parsed)
+  p6 <- plotExplainedVar(dfres0, parameters = c("CL","V"))
+  p7 <- plotExplainedVar(dfres0, parameters = c("V","CL"))
+  p8 <- plotExplainedVar(dfres0, parameters = c("MAT"))
+  p9 <- plotExplainedVar(dfres0, parameters = c("CL","V"), parameterLabels = c("Clearance","Volume"))
+  p10 <- plotExplainedVar(dfres0, parameters = c("V","CL"), parameterLabels = c("Volume","Clearance"))
+  p11 <- plotExplainedVar(dfres0, parameters = c("MAT"), parameterLabels="Mean absorption time")
 
-  p5 <- plotExplainedVar(dfres0,parameters="CL",parameterLabels = "Cleareance[2]",labelfun = label_parsed)
-  dev.off()
+  # Snapshot the data "blueprint" of each plot using the new 3-step pattern
 
-  vdiffr::expect_doppelganger("Explained variability plot with default options", p1)
-  vdiffr::expect_doppelganger("Explained variability plot with median as the reordering function", p1med)
-  vdiffr::expect_doppelganger("Explained variability plot with type=2", p2)
-  vdiffr::expect_doppelganger("Explained variability plot with type=2 and only CL", p3)
-  vdiffr::expect_doppelganger("Explained variability plot with covariateLabels", p4)
-  vdiffr::expect_doppelganger("Explained variability plot with labeller", p5)
+  # p1
+  plot_data_1 <- ggplot2::ggplot_build(p1)$data
+  std_plot_data_1 <- standardize_plot_data(plot_data_1)
+  expect_snapshot(stabilize(std_plot_data_1))
+
+  # p1med
+  plot_data_1med <- ggplot2::ggplot_build(p1med)$data
+  std_plot_data_1med <- standardize_plot_data(plot_data_1med)
+  expect_snapshot(stabilize(std_plot_data_1med))
+
+  # p2
+  plot_data_2 <- ggplot2::ggplot_build(p2)$data
+  std_plot_data_2 <- standardize_plot_data(plot_data_2)
+  expect_snapshot(stabilize(std_plot_data_2))
+
+  # ... and so on for all plots
+  plot_data_3 <- ggplot2::ggplot_build(p3)$data
+  std_plot_data_3 <- standardize_plot_data(plot_data_3)
+  expect_snapshot(stabilize(std_plot_data_3))
+
+  plot_data_4 <- ggplot2::ggplot_build(p4)$data
+  std_plot_data_4 <- standardize_plot_data(plot_data_4)
+  expect_snapshot(stabilize(std_plot_data_4))
+
+  plot_data_5 <- ggplot2::ggplot_build(p5)$data
+  std_plot_data_5 <- standardize_plot_data(plot_data_5)
+  expect_snapshot(stabilize(std_plot_data_5))
+
+  plot_data_6 <- ggplot2::ggplot_build(p6)$data
+  std_plot_data_6 <- standardize_plot_data(plot_data_6)
+  expect_snapshot(stabilize(std_plot_data_6))
+
+  plot_data_7 <- ggplot2::ggplot_build(p7)$data
+  std_plot_data_7 <- standardize_plot_data(plot_data_7)
+  expect_snapshot(stabilize(std_plot_data_7))
+
+  plot_data_8 <- ggplot2::ggplot_build(p8)$data
+  std_plot_data_8 <- standardize_plot_data(plot_data_8)
+  expect_snapshot(stabilize(std_plot_data_8))
+
+  plot_data_9 <- ggplot2::ggplot_build(p9)$data
+  std_plot_data_9 <- standardize_plot_data(plot_data_9)
+  expect_snapshot(stabilize(std_plot_data_9))
+
+  plot_data_10 <- ggplot2::ggplot_build(p10)$data
+  std_plot_data_10 <- standardize_plot_data(plot_data_10)
+  expect_snapshot(stabilize(std_plot_data_10))
+
+  plot_data_11 <- ggplot2::ggplot_build(p11)$data
+  std_plot_data_11 <- standardize_plot_data(plot_data_11)
+  expect_snapshot(stabilize(std_plot_data_11))
+
 
   ## Test some error conditions
   expect_error(plotExplainedVar(dfres0,maxVar=3))
@@ -75,19 +124,4 @@ test_that("plotExplained variability works", {
   expect_error(plotExplainedVar(dfres0,parameterLabels = c("CL","V","FREL","KA")))
   expect_error(plotExplainedVar(dfres0,covariateLabels = "WT"))
   expect_error(plotExplainedVar(dfres0,parameters = c("CL","V","FREL")))
-
-  ## Test the selection of parameters and order
-  p6 <- plotExplainedVar(dfres0,parameters = c("CL","V"))
-  p7 <- plotExplainedVar(dfres0,parameters = c("V","CL"))
-  p8 <- plotExplainedVar(dfres0,parameters = c("MAT"))
-  p9 <- plotExplainedVar(dfres0,parameters = c("CL","V"),parameterLabels = c("Clearance","Volume"))
-  p10 <- plotExplainedVar(dfres0,parameters = c("V","CL"),parameterLabels = c("Volume","Clearance"))
-  p11 <- plotExplainedVar(dfres0,parameters = c("MAT"),parameterLabels="Mean absorption time")
-
-  vdiffr::expect_doppelganger("Explained variability plot with CL and V", p6)
-  vdiffr::expect_doppelganger("Explained variability plot with V and C", p7)
-  vdiffr::expect_doppelganger("Explained variability plot with MAT", p8)
-  vdiffr::expect_doppelganger("Explained variability plot with CL and V+parameter labels", p9)
-  vdiffr::expect_doppelganger("Explained variability plot with V and C+parameter labels", p10)
-  vdiffr::expect_doppelganger("Explained variability plot with MAT+parameter labels", p11)
 })

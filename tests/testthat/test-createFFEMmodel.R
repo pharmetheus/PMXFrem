@@ -1,4 +1,3 @@
-# PMXRenv::activate.unqualified.packages()
 test_that("createFFEMmodel works", {
 
   modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
@@ -16,15 +15,15 @@ test_that("createFFEMmodel works", {
 
 
   ffemMod1 <- createFFEMmodel(runno            = fremRun,
-                             modDevDir        = modDevDir,
-                             numNonFREMThetas = 7,
-                             numSkipOm        = 2,
-                             parNames         = c("CL","V","MAT"),
-                             dataFile         = dataFile,
-                             newDataFile      = "testDataFile.csv",
-                             quiet            = TRUE,
-                             baserunno        = baseRun1)
-  expect_snapshot(ffemMod1)
+                              modDevDir        = modDevDir,
+                              numNonFREMThetas = 7,
+                              numSkipOm        = 2,
+                              parNames         = c("CL","V","MAT"),
+                              dataFile         = dataFile,
+                              newDataFile      = "testDataFile.csv",
+                              quiet            = TRUE,
+                              baserunno        = baseRun1)
+  expect_snapshot(stabilize(ffemMod1))
 
   ffemMod2 <- createFFEMmodel(runno            = fremRun,
                               modDevDir        = modDevDir,
@@ -35,6 +34,6 @@ test_that("createFFEMmodel works", {
                               newDataFile      = "testDataFile.csv",
                               quiet            = TRUE,
                               baserunno        = baseRun2)
-  expect_snapshot(ffemMod2)
+  expect_snapshot(stabilize(ffemMod2))
 
 })

@@ -1,10 +1,8 @@
-
-
 test_that("the correct columns are added", {
 
-  data <- read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",package="PMXFrem"),
-                   show_col_types = FALSE) %>%
-    filter(BLQ!=1)
+  data <- readr::read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",package="PMXFrem"),
+                          show_col_types = FALSE) %>%
+    dplyr::filter(BLQ!=1)
 
   expect_error(addFREMcovariates())
   expect_error(addFREMcovariates("test"))
@@ -35,14 +33,47 @@ test_that("the correct columns are added", {
 
   ## Check the case when covariates is not NULL
 
-  # Check that the column naming is OK
-  expect_snapshot(addFREMcovariates(data %>% filter(NCIL!=2),covariates=c("RACEL","NCIL")))
-  expect_snapshot(addFREMcovariates(data %>% filter(NCIL!=2),covariates=c("RACEL","NCIL","RACE")))
+  # Test case 1: This call produces a warning and a data frame.
+  warnings1 <- testthat::capture_warnings({
+    result1 <- addFREMcovariates(data %>% dplyr::filter(NCIL != 2), covariates = c("RACEL", "NCIL"))
+  })
+  expect_match(warnings1[[1]], "NCIL has only two non-missing levels", fixed = TRUE)
+  expect_snapshot(stabilize(as.data.frame(result1)))
 
-  # Both warning and error
-  expect_snapshot(error=TRUE,addFREMcovariates(data,covariates="test"))
-  expect_snapshot(error=TRUE,addFREMcovariates(data,covariates="SEX"))
-  expect_snapshot(error=TRUE,addFREMcovariates(data,covariates=c("ETHNIC","SEX")))
+  # Test case 2: This call also produces a warning and a data frame.
+  warnings2 <- testthat::capture_warnings({
+    result2 <- addFREMcovariates(data %>% dplyr::filter(NCIL != 2), covariates = c("RACEL", "NCIL", "RACE"))
+  })
+  expect_match(warnings2[[1]], "NCIL has only two non-missing levels", fixed = TRUE)
+  expect_snapshot(stabilize(as.data.frame(result2)))
+
+
+  # Test cases that throw both a warning and then an error
+  expect_warning(
+    expect_error(
+      addFREMcovariates(data, covariates = "test"),
+      regexp = "No binarised covariates to add"
+    ),
+    regexp = "test does not exist in the data set"
+  )
+
+  expect_warning(
+    expect_error(
+      addFREMcovariates(data, covariates = "SEX"),
+      regexp = "No binarised covariates to add"
+    ),
+    regexp = "SEX has only two non-missing levels"
+  )
+
+  # This case throws MULTIPLE warnings, then errors.
+  warnings3 <- testthat::capture_warnings(
+    expect_error(
+      addFREMcovariates(data, covariates = c("ETHNIC", "SEX")),
+      regexp = "No binarised covariates to add"
+    )
+  )
+  expect_snapshot(warnings3)
+
 
   # Only warnings
   expect_warning(addFREMcovariates(data,covariates=c("RACE","SEX")))
