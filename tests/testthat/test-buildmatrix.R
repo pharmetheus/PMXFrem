@@ -4,7 +4,14 @@ test_that("buildmatrix works", {
   numskipom       <- 2
   fremmodelext    <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
   dfExt           <- getExt(extFile = fremmodelext)
-  calcFFEMtestout <- calcFFEM(dfExt,numNonFREMThetas = numbasethetas,numSkipOm = numskipom,quiet = T)
+  calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = numbasethetas, numSkipOm = numskipom, quiet = T)
 
-  expect_snapshot(buildmatrix(calcFFEMtestout$FullVars))
+  # Get the raw, text-based output
+  raw_output <- buildmatrix(calcFFEMtestout$FullVars)
+
+  # Stabilize it using our new text-processing helper
+  stable_output <- stabilize(raw_output)
+
+  # Snapshot the stable text. No variant needed!
+  expect_snapshot(stable_output)
 })

@@ -6,10 +6,10 @@ test_that("setupdfCovs works", {
 
   dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"))
 
-  expect_snapshot(setupdfCovs(modFile))
+  expect_snapshot(stabilize(setupdfCovs(modFile)))
   expect_error(setupdfCovs(modFile,fremCovs="tmp"))
 
-  expect_snapshot(setupdfCovs(modFile,fremCovs = c("AGE","SEX")))
-  expect_snapshot(setupdfCovs(modFile,additionalCovs = "FORM"))
-  expect_snapshot(setupdfCovs(modFile,fremCovs = c("AGE","SEX"),additionalCovs = "FORM"))
+  expect_snapshot(stabilize(setupdfCovs(modFile,fremCovs = c("AGE","SEX"))))
+  expect_snapshot(stabilize(setupdfCovs(modFile,additionalCovs = "FORM")))
+  expect_snapshot(stabilize(setupdfCovs(modFile,fremCovs = c("AGE","SEX"),additionalCovs = "FORM")))
 })

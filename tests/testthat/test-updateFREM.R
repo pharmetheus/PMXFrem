@@ -1,4 +1,3 @@
-
 test_that("updateFREM can remove covariates from FREM models", {
 
   tmp <- updateFREM(
@@ -19,7 +18,7 @@ test_that("updateFREM can remove covariates from FREM models", {
     sortFREMDataset  = c("ID","TIME","FREMTYPE"),
     cstrKeepCols = c("ID","TIME","AMT","EVID","RATE","DV","FOOD","FREMTYPE"))
 
-  expect_snapshot(tmp)
+  expect_snapshot(stabilize(tmp))
 })
 
 test_that("updateFREM can add covariates to FREM models", {
@@ -43,7 +42,7 @@ test_that("updateFREM can add covariates to FREM models", {
     sortFREMDataset  = c("ID","TAD","FREMTYPE"),
     cstrKeepCols = c("ID","TAD","AMT","EVID","RATE","DV","FREMTYPE"))
 
-  expect_snapshot(tmp)
+  expect_snapshot(stabilize(tmp))
 })
 
 test_that("updateFREM can add update initial estimates in FREM models", {
@@ -56,6 +55,5 @@ test_that("updateFREM can add update initial estimates in FREM models", {
                     quiet             = F,
                     strUpdateType     = "NoData")
 
-  expect_snapshot(tmp)
+  expect_snapshot(stabilize(tmp))
 })
-

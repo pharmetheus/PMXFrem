@@ -1,7 +1,7 @@
 # setupdfCovs works
 
     Code
-      setupdfCovs(modFile)
+      stabilize(setupdfCovs(modFile))
     Output
          AGE ALT AST BILI BMI BSA CRCL ETHNIC GENO2  HT LBWT NCIL RACEL SEX SMOK  WT
       1    1   1   1    1   1   1    1      1     1   1    1    1     1   1    1   1
@@ -25,7 +25,7 @@
 ---
 
     Code
-      setupdfCovs(modFile, fremCovs = c("AGE", "SEX"))
+      stabilize(setupdfCovs(modFile, fremCovs = c("AGE", "SEX")))
     Output
         AGE SEX
       1   1   1
@@ -35,7 +35,7 @@
 ---
 
     Code
-      setupdfCovs(modFile, additionalCovs = "FORM")
+      stabilize(setupdfCovs(modFile, additionalCovs = "FORM"))
     Output
          AGE ALT AST BILI BMI BSA CRCL ETHNIC GENO2  HT LBWT NCIL RACEL SEX SMOK  WT
       1    1   1   1    1   1   1    1      1     1   1    1    1     1   1    1   1
@@ -79,7 +79,7 @@
 ---
 
     Code
-      setupdfCovs(modFile, fremCovs = c("AGE", "SEX"), additionalCovs = "FORM")
+      stabilize(setupdfCovs(modFile, fremCovs = c("AGE", "SEX"), additionalCovs = "FORM"))
     Output
         AGE SEX FORM
       1   1   1    1

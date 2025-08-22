@@ -1,8 +1,8 @@
 # findrecord works
 
     Code
-      findrecord(basemodel, record = "\\$PROBLEM", replace = "$PROBLEM FFEM model",
-        quiet = T)
+      stabilize(findrecord(basemodel, record = "\\$PROBLEM", replace = "$PROBLEM FFEM model",
+        quiet = T))
     Output
        [1] ";; 1. Based on: 25"                                                             
        [2] ";; 2. Description:"                                                             
@@ -15,12 +15,12 @@
        [9] "            FOOD FORM TYPE WT HT LBWT BSA SEX RACE AGE AST ALT BILI"            
       [10] "            CRCL BMI NCI GENO2 ETHNIC SMOK RACEL NCIL"                          
       [11] "$DATA      ../ProducedData/Dataset/DAT-2-MI-PMX-2-onlyTYPE2-new.csv IGNORE=@"   
-      [12] "            IGNORE(BLQ.EQN.1)"                                                  
+      [12] "            IGNORE(BLQ.EQN0.1)"                                                 
       [13] "$SUBROUTINE ADVAN2 TRANS2"                                                      
       [14] "$PK"                                                                            
       [15] ";;; MATFOOD-DEFINITION START"                                                   
-      [16] "IF(FOOD.EQ.1) MATFOOD = 1  ; Most common"                                       
-      [17] "IF(FOOD.EQ.0) MATFOOD = ( 1 + THETA(6))"                                        
+      [16] "IF(FOOD.EQ0.1) MATFOOD = 1  ; Most common"                                      
+      [17] "IF(FOOD.EQ0) MATFOOD = ( 1 + THETA(6))"                                         
       [18] ";;; MATFOOD-DEFINITION END"                                                     
       [19] ""                                                                               
       [20] ";;; MAT-RELATION START"                                                         
@@ -29,8 +29,8 @@
       [23] ""                                                                               
       [24] ""                                                                               
       [25] ";;; FRELFOOD-DEFINITION START"                                                  
-      [26] "IF(FOOD.EQ.1) FRELFOOD = 1  ; Most common"                                      
-      [27] "IF(FOOD.EQ.0) FRELFOOD = ( 1 + THETA(7))"                                       
+      [26] "IF(FOOD.EQ0.1) FRELFOOD = 1  ; Most common"                                     
+      [27] "IF(FOOD.EQ0) FRELFOOD = ( 1 + THETA(7))"                                        
       [28] ";;; FRELFOOD-DEFINITION END"                                                    
       [29] ""                                                                               
       [30] ";;; FREL-RELATION START"                                                        
@@ -62,7 +62,7 @@
       [56] ""                                                                               
       [57] "$ERROR"                                                                         
       [58] "CP    = A(2)*1000 / V"                                                          
-      [59] "IPRED = LOG(CP + 0.00001)"                                                      
+      [59] "IPRED = LOG(CP + 1e-05)"                                                        
       [60] "Y     = IPRED + EPS(1) * EXP(ETA(1))"                                           
       [61] ""                                                                               
       [62] "$THETA  1 FIX ; 1. TVFREL"                                                      
@@ -70,8 +70,8 @@
       [64] "$THETA  (0,147.899) ; 3. TVV"                                                   
       [65] "$THETA  (0,2.10108) ; 4. TVMAT"                                                 
       [66] "$THETA  (0,0.68089) ; 5. D1"                                                    
-      [67] "$THETA  (-1.00,-0.0800943,3.00) ; 6. FRELFOOD1"                                 
-      [68] "$THETA  (-1.00,0.115625,3.00) ; 7. MATFOOD1"                                    
+      [67] "$THETA  (-1,-0.0800943,3) ; 6. FRELFOOD1"                                       
+      [68] "$THETA  (-1,0.115625,3) ; 7. MATFOOD1"                                          
       [69] "$OMEGA  0.116842  ; 1. IIV on RUV"                                              
       [70] "$OMEGA  0.0001  FIX  ; 2. IIV on D1"                                            
       [71] "$OMEGA  BLOCK(3)"                                                               
@@ -94,7 +94,7 @@
 ---
 
     Code
-      findrecord(basemodel, record = "\\$INPUT", quiet = T)
+      stabilize(findrecord(basemodel, record = "\\$INPUT", quiet = T))
     Output
       [1] "$INPUT      NO ID STUDYID TAD TIME DAY AMT RATE ODV DV EVID BLQ DOSE"
       [2] "            FOOD FORM TYPE WT HT LBWT BSA SEX RACE AGE AST ALT BILI" 

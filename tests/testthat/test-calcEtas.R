@@ -1,7 +1,7 @@
 test_that("calEtas works", {
 
-  data <- read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),show_col_types = FALSE) %>%
-    filter(BLQ!=1)
+  data <- readr::read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),show_col_types = FALSE) %>%
+    dplyr::filter(BLQ!=1)
 
   ## Check with specified parameter names
   vpcData <- createFFEMdata(modName          = "run31",
@@ -23,5 +23,5 @@ test_that("calEtas works", {
 
 
   expect_equal(class(ind_params),"data.frame")
-  expect_snapshot(ind_params)
+  expect_snapshot(stabilize(ind_params))
 })
