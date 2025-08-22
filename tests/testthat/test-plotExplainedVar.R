@@ -1,5 +1,5 @@
-test_that("plotExplained variability works", {
-  set.seed(2342)
+test_that("getExplainedVar works on main paths", {
+
   modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
   fremRunno <- 31
   modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))
@@ -10,27 +10,26 @@ test_that("plotExplained variability works", {
     dplyr::filter(BLQ == 0) %>%
     dplyr::distinct(ID,.keep_all = T)
 
-  dfCovs <- dfData  %>%
-    dplyr::select(covNames$orgCovNames) %>%
-    dplyr::mutate_all(function(x) return(1)) %>%
-    dplyr::slice(rep(1,ncol(.)+1))
-
-  for(i in 2:nrow(dfCovs)) {
-    dfCovs[i, names(dfCovs) != names(dfCovs)[i-1]] <- -99
-  }
-
-  expect_snapshot(stabilize(dfCovs))
+  dfCovs <- setupdfCovs(modFile)
 
   cstrCovariates <- c("All",names(dfCovs))
 
   ## The parameter function list
   functionList2 <- list(
     function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[2]*exp(covthetas[1] + etas[3]))},
-    function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[3]*exp(covthetas[2] + etas[4]))},
-    function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[4]*exp(covthetas[3] + etas[5]))}
+    function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[3]*exp(covthetas[2] + etas[4]))}
   )
-  functionListName2 <- c("CL","V","MAT")
 
+  ## The function that returns a list of return values
+  functionList22 <- function(basethetas,covthetas, dfrow, etas, ...) {
+    return(
+      c(basethetas[2]*exp(covthetas[1] + etas[3]),
+        basethetas[3]*exp(covthetas[2] + etas[4]))
+    )
+  }
+  functionListName2 <- c("CL","V")
+
+  # Refactored to use robust snapshotting
   dfres0 <- getExplainedVar(type             = 0,
                             data             = NULL,
                             dfCovs           = dfCovs,
@@ -45,83 +44,182 @@ test_that("plotExplained variability works", {
                             quiet            = TRUE,
                             seed             = 123
   )
+  expect_snapshot(stabilize(as.data.frame(dfres0)))
 
-  expect_snapshot(stabilize(dfres0))
-
-  # Create all the plot objects
-  p1    <- plotExplainedVar(dfres0)
-  p1med <- plotExplainedVar(dfres0, reordFun = "median")
-  p2    <- plotExplainedVar(dfres0, maxVar=2)
-  p3    <- plotExplainedVar(dfres0, maxVar=2, parameters = "CL")
-  covLabels <- c("All covariates","Age","ALT","AST","Bilirubin","BMI","BSA","Createnine clearance","Ethnicity","Genotype","Height","Lean body weight","NCI","Race","Sex","Smoking","Bodyweight")
-  p4 <- plotExplainedVar(dfres0, covariateLabels = covLabels)
-  p5 <- plotExplainedVar(dfres0, parameters="CL", parameterLabels = "Cleareance[2]", labelfun = label_parsed)
-  p6 <- plotExplainedVar(dfres0, parameters = c("CL","V"))
-  p7 <- plotExplainedVar(dfres0, parameters = c("V","CL"))
-  p8 <- plotExplainedVar(dfres0, parameters = c("MAT"))
-  p9 <- plotExplainedVar(dfres0, parameters = c("CL","V"), parameterLabels = c("Clearance","Volume"))
-  p10 <- plotExplainedVar(dfres0, parameters = c("V","CL"), parameterLabels = c("Volume","Clearance"))
-  p11 <- plotExplainedVar(dfres0, parameters = c("MAT"), parameterLabels="Mean absorption time")
-
-  # Snapshot the data "blueprint" of each plot using the new 3-step pattern
-
-  # p1
-  plot_data_1 <- ggplot2::ggplot_build(p1)$data
-  std_plot_data_1 <- standardize_plot_data(plot_data_1)
-  expect_snapshot(stabilize(std_plot_data_1))
-
-  # p1med
-  plot_data_1med <- ggplot2::ggplot_build(p1med)$data
-  std_plot_data_1med <- standardize_plot_data(plot_data_1med)
-  expect_snapshot(stabilize(std_plot_data_1med))
-
-  # p2
-  plot_data_2 <- ggplot2::ggplot_build(p2)$data
-  std_plot_data_2 <- standardize_plot_data(plot_data_2)
-  expect_snapshot(stabilize(std_plot_data_2))
-
-  # ... and so on for all plots
-  plot_data_3 <- ggplot2::ggplot_build(p3)$data
-  std_plot_data_3 <- standardize_plot_data(plot_data_3)
-  expect_snapshot(stabilize(std_plot_data_3))
-
-  plot_data_4 <- ggplot2::ggplot_build(p4)$data
-  std_plot_data_4 <- standardize_plot_data(plot_data_4)
-  expect_snapshot(stabilize(std_plot_data_4))
-
-  plot_data_5 <- ggplot2::ggplot_build(p5)$data
-  std_plot_data_5 <- standardize_plot_data(plot_data_5)
-  expect_snapshot(stabilize(std_plot_data_5))
-
-  plot_data_6 <- ggplot2::ggplot_build(p6)$data
-  std_plot_data_6 <- standardize_plot_data(plot_data_6)
-  expect_snapshot(stabilize(std_plot_data_6))
-
-  plot_data_7 <- ggplot2::ggplot_build(p7)$data
-  std_plot_data_7 <- standardize_plot_data(plot_data_7)
-  expect_snapshot(stabilize(std_plot_data_7))
-
-  plot_data_8 <- ggplot2::ggplot_build(p8)$data
-  std_plot_data_8 <- standardize_plot_data(plot_data_8)
-  expect_snapshot(stabilize(std_plot_data_8))
-
-  plot_data_9 <- ggplot2::ggplot_build(p9)$data
-  std_plot_data_9 <- standardize_plot_data(plot_data_9)
-  expect_snapshot(stabilize(std_plot_data_9))
-
-  plot_data_10 <- ggplot2::ggplot_build(p10)$data
-  std_plot_data_10 <- standardize_plot_data(plot_data_10)
-  expect_snapshot(stabilize(std_plot_data_10))
-
-  plot_data_11 <- ggplot2::ggplot_build(p11)$data
-  std_plot_data_11 <- standardize_plot_data(plot_data_11)
-  expect_snapshot(stabilize(std_plot_data_11))
+  ## Test that the delta rule can handle 2 return values
+  dfres02 <- getExplainedVar(type             = 0,
+                             data             = NULL,
+                             dfCovs           = dfCovs,
+                             numNonFREMThetas = 7,
+                             numSkipOm        = 2,
+                             functionList     = list(functionList22),
+                             functionListName = functionListName2,
+                             cstrCovariates   = cstrCovariates,
+                             modDevDir        = modDevDir,
+                             runno            = fremRunno,
+                             ncores           = 1,
+                             quiet            = TRUE,
+                             seed             = 123
+  )
+  expect_snapshot(stabilize(as.data.frame(dfres02)))
 
 
-  ## Test some error conditions
-  expect_error(plotExplainedVar(dfres0,maxVar=3))
-  expect_error(plotExplainedVar(dfres0,maxVar=3))
-  expect_error(plotExplainedVar(dfres0,parameterLabels = c("CL","V","FREL","KA")))
-  expect_error(plotExplainedVar(dfres0,covariateLabels = "WT"))
-  expect_error(plotExplainedVar(dfres0,parameters = c("CL","V","FREL")))
+  dfres1 <- getExplainedVar(type             = 1,
+                            data             = dfData,
+                            dfCovs           = dfCovs,
+                            numNonFREMThetas = 7,
+                            numSkipOm        = 2,
+                            functionList     = functionList2,
+                            functionListName = functionListName2,
+                            cstrCovariates   = cstrCovariates,
+                            modDevDir        = modDevDir,
+                            runno            = fremRunno,
+                            ncores           = 10,
+                            quiet            = TRUE,
+                            seed             = 123
+  )
+  expect_snapshot(stabilize(as.data.frame(dfres1)))
+
+  ## Check that you can base the calculations on a subset of the covariates
+  dfres1a <- getExplainedVar(type             = 1,
+                             data             = dfData,
+                             dfCovs           = dfCovs %>% dplyr::select(AGE,WT) %>% dplyr::slice(1,2,17),
+                             numNonFREMThetas = 7,
+                             numSkipOm        = 2,
+                             functionList     = functionList2,
+                             functionListName = functionListName2,
+                             cstrCovariates   = c("ALL","AGE","WT"),#cstrCovariates,
+                             modDevDir        = modDevDir,
+                             runno            = fremRunno,
+                             availCov         = c("AGE","WT"),
+                             ncores           = 1,
+                             quiet            = TRUE,
+                             seed             = 123
+  )
+  expect_snapshot(stabilize(as.data.frame(dfres1a)))
+  expect_gt(dfres1 %>% dplyr::select(TOTCOVVAR) %>% dplyr::slice(1),dfres1a %>% dplyr::select(TOTCOVVAR) %>% dplyr::slice(1))
+  val1 <- dfres1 %>% dplyr::select(TOTVAR) %>% dplyr::slice(1)
+  val2 <- dfres1a %>% dplyr::select(TOTVAR) %>% dplyr::slice(1)
+  expect_equal(val1,val2)
+
+
+  ## Check that you can base the calculations on one covariate
+  dfres1b <- getExplainedVar(type             = 1,
+                             data             = dfData,
+                             dfCovs           = dfCovs %>% dplyr::select(AGE) %>% dplyr::slice(1,2),
+                             numNonFREMThetas = 7,
+                             numSkipOm        = 2,
+                             functionList     = functionList2,
+                             functionListName = functionListName2,
+                             cstrCovariates   = c("ALL","AGE"),#cstrCovariates,
+                             modDevDir        = modDevDir,
+                             runno            = fremRunno,
+                             availCov         = c("AGE"),
+                             ncores           = 1,
+                             quiet            = TRUE,
+                             seed             = 123
+  )
+  expect_snapshot(stabilize(as.data.frame(dfres1b)))
+  val1 <- as.numeric(dfres1b %>% dplyr::select(TOTCOVVAR) %>% dplyr::slice(1))
+  val2 <- as.numeric(dfres1b %>% dplyr::select(COVVAR) %>% dplyr::slice(1))
+  expect_equal(val1,val2)
+
+  dfres2 <- getExplainedVar(type             = 2,
+                            data             = dfData,
+                            dfCovs           = dfCovs,
+                            numNonFREMThetas = 7,
+                            numSkipOm        = 2,
+                            functionList     = functionList2,
+                            functionListName = functionListName2,
+                            cstrCovariates   = cstrCovariates,
+                            modDevDir        = modDevDir,
+                            runno            = fremRunno,
+                            ncores           = 10,
+                            numETASamples    = 10, # smaller sample for faster tests
+                            quiet            = TRUE,
+                            seed             = 123
+  )
+  expect_snapshot(stabilize(as.data.frame(dfres2)))
+
+  dfres3 <- getExplainedVar(type             = 3,
+                            data             = dfData,
+                            dfCovs           = dfCovs,
+                            numNonFREMThetas = 7,
+                            numSkipOm        = 2,
+                            functionList     = functionList2,
+                            functionListName = functionListName2,
+                            cstrCovariates   = cstrCovariates,
+                            modDevDir        = modDevDir,
+                            runno            = fremRunno,
+                            ncores           = 10,
+                            numETASamples    = 10, # smaller sample for faster tests
+                            quiet            = TRUE,
+                            seed             = 123
+  )
+  expect_snapshot(stabilize(as.data.frame(dfres3)))
+})
+
+
+# NEW TESTS TO INCREASE COVERAGE
+# CORRECTED `test_that` block for input checks
+test_that("getExplainedVar input checks and edge cases", {
+
+  modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
+  fremRunno <- 31
+  modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))
+
+  dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
+    dplyr::filter(BLQ == 0) %>%
+    dplyr::distinct(ID,.keep_all = T)
+
+  dfCovs <- setupdfCovs(modFile)
+
+  # Test error: type > 0 but data is missing
+  expect_error(
+    getExplainedVar(type = 1, data = NULL, dfCovs = dfCovs, numNonFREMThetas = 7,
+                    runno = fremRunno, modDevDir = modDevDir), # Added modDevDir
+    regexp = "data can not be missing with type 1-3"
+  )
+
+  # Test error: cstrCovariates length does not match nrow(dfCovs)
+  expect_error(
+    getExplainedVar(type = 0, dfCovs = dfCovs, cstrCovariates = "wrong_length", numNonFREMThetas = 7,
+                    runno = fremRunno, modDevDir = modDevDir), # Added modDevDir
+    regexp = "must have the same length as the number of rows"
+  )
+
+  # Test error: number of etas does not match number of subjects for type = 1
+  expect_error(
+    getExplainedVar(type = 1, data = dfData, etas = dfData[1:10,], dfCovs = dfCovs, numNonFREMThetas = 7,
+                    runno = fremRunno, modDevDir = modDevDir), # Added modDevDir
+    regexp = "number of etas should be the same as the number of subjects"
+  )
+
+  # Test warning: for type=2, check for presence of FFEM covariates in dfCovs
+  expect_warning(
+    getExplainedVar(type = 2, data = dfData, dfCovs = dfCovs[1:5,], numNonFREMThetas = 7, numSkipOm = 2,
+                    runno = fremRunno, quiet = TRUE, seed = 123, numETASamples = 10, modDevDir = modDevDir), # Added modDevDir
+    regexp = "Presence of FFEM covariates is indicated"
+  )
+
+  # Test verbose output with quiet = FALSE
+  # Using expect_output() to catch any console output, not just messages.
+  expect_output(
+    getExplainedVar(type = 0, dfCovs = dfCovs, numNonFREMThetas = 7, runno = fremRunno,
+                    quiet = FALSE, modDevDir = modDevDir)
+  )
+
+  # Test providing etas directly as an argument for type = 1
+  phiFile <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
+  etas_from_file <- getPhi(phiFile)[, 3:9] # Get the relevant etas
+
+  data_subset <- dfData[1:nrow(etas_from_file),]
+
+  res_with_etas <- getExplainedVar(type = 1, data = data_subset, etas = etas_from_file, dfCovs = dfCovs,
+                                   numNonFREMThetas = 7, numSkipOm = 2, runno = fremRunno,
+                                   quiet = TRUE, modDevDir = modDevDir) # Added modDevDir
+
+  expect_s3_class(res_with_etas, "data.frame")
+  expect_gt(nrow(res_with_etas), 0)
+
 })

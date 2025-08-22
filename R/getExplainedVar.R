@@ -198,7 +198,7 @@ getExplainedVar <- function(
     seed             = NULL,
     ...) {
 
-  if(type>0 & missing(data)) stop("data can not be missing with type 1-3.")
+  if (type > 0 && is.null(data)) stop("data can not be missing with type 1-3.")
 
   fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir, ...)
   modFile   <- fileNames$mod
@@ -383,6 +383,7 @@ getExplainedVar <- function(
       }
       data[[cov]] <- ifelse(data[[myCov]] == myCovNum, 1, 0)
     }
+
     dataI <- data[!duplicated(strID), ] # Get one row per subject and keep only covariates and ID
 
     ## Check that the number of etas is the same as the number of subjects in the data set
