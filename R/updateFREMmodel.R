@@ -145,6 +145,26 @@ updateFREMmodel <- function(strFREMModel,
   }
 
   if (strUpdateType != "NoData") {
+
+    # <<< ROBUSTNESS FIX START >>>
+    # Ensure internal data objects are standard data.frames to prevent
+    # class-specific syntax errors (e.g., from data.table or tibble).
+    if (is.data.frame(strFFEMData)) {
+      dfFFEM <- as.data.frame(strFFEMData)
+    } else if (file.exists(strFFEMData)) {
+      dfFFEM <- as.data.frame(data.table::fread(strFFEMData, h = T, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
+    } else {
+      stop("Cannot find FFEM dataset: ", strFFEMData)
+    }
+
+    if (is.data.frame(strFREMData)) {
+      dfFREM <- as.data.frame(strFREMData)
+    } else if (file.exists(strFREMData)) {
+      dfFREM <- as.data.frame(data.table::fread(strFREMData, h = T, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
+    } else {
+      stop("Cannot find FREM dataset: ", strFREMData)
+    }
+
     if (is.null(strNewFREMData)) strNewFREMData <- paste0(file_path_sans_ext(strFREMData), "_new.", file_ext(strFREMData))
     if (!is.data.frame(strFREMData) && (is.null(strFREMData) || strFREMData == ""))
       stop("strFREMData must be set to dataset or data.frame")
@@ -232,9 +252,9 @@ updateFREMmodel <- function(strFREMModel,
   noBaseThetas <- numNonFREMThetas
   if (strUpdateType != "NoData") {
     if (is.data.frame(strFFEMData)) {
-      dfFFEM <- strFFEMData
+      dfFFEM <- as.data.frame(strFFEMData)
     } else if (file.exists(strFFEMData)) {
-      dfFFEM <- fread(strFFEMData, h = T, data.table = FALSE, check.names = TRUE, showProgress = !quiet)
+      dfFFEM <- as.data.frame(fread(strFFEMData, h = T, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
     } else {
       stop("Cannot find FFEM dataset: ", strFFEMData)
     }
@@ -251,7 +271,7 @@ updateFREMmodel <- function(strFREMModel,
     if (is.data.frame(strFREMData)) {
       dfFREM <- strFREMData
     } else if (file.exists(strFREMData)) {
-      dfFREM <- fread(strFREMData, h = T, data.table = FALSE, check.names = TRUE, showProgress = !quiet)
+      dfFREM <- as.data.frame(fread(strFREMData, h = T, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
     } else {
       stop("Cannot find FREM dataset: ", strFREMData)
     }
@@ -296,7 +316,7 @@ updateFREMmodel <- function(strFREMModel,
       # Recode all FREMTYPES in frem dataset
       printq(paste0("Recoding all remaining FREMTYPEs in FREM dataset..."), quiet = quiet)
       remainingCovs <- covnames$covNames[which(!(covnames$covNames %in% cCovNamesToRemove))]
-      iuniqueFREMTYPEs <- sort(unique(dfFREM[dfFREM[["FREMTYPE"]] >= iFremTypeIncrease, "FREMTYPE"]))
+      iuniqueFREMTYPEs <- sort(unique(dfFREM[["FREMTYPE"]][dfFREM[["FREMTYPE"]] >= iFremTypeIncrease]))
 
       # browser()
 
@@ -338,7 +358,8 @@ updateFREMmodel <- function(strFREMModel,
     for (strCov in cstrCovsToAddOrder) { # Generate values, mean/variance for each covariate
 
       # Move categorical covariates with only 2 levels to cont covariates instead
-      if (strCov %in% cstrCatCovsToAdd && length(unique(dfFFEM[dfFFEM[[strCov]] != -99, strCov])) == 2) {
+
+      if (strCov %in% cstrCatCovsToAdd && length(unique(dfFFEM[[strCov]][dfFFEM[[strCov]] != -99])) == 2) {
         cstrContCovsToAdd <- c(strCov, cstrContCovsToAdd)
         cstrCatCovsToAdd  <- cstrCatCovsToAdd[-which(cstrCatCovsToAdd == strCov)]
         printq(paste0("Switching: ", strCov, ", from categorical to continuous since only 2 levels"), quiet = quiet)
@@ -358,7 +379,7 @@ updateFREMmodel <- function(strFREMModel,
           printq(paste0("Skipping continuous covariate: ", strCov, ", already existing as fremtype"), quiet = quiet)
         }
       } else { ### Add a categorical covariate to the fremdataset
-        covValues <- sort(unique(dfFFEM[dfFFEM[[strCov]] != -99, strCov]))
+        covValues <- sort(unique(dfFFEM[[strCov]][dfFFEM[[strCov]] != -99]))
         for (j in 2:length(covValues)) {
           strCov2 <- paste0(strCov, "_", covValues[j])
 
@@ -389,7 +410,8 @@ updateFREMmodel <- function(strFREMModel,
 
 
     ### Add existing (and new) DVs
-    iFremtypeDV <- unique(dfFREM["FREMTYPE"][dfFREM["FREMTYPE"] < iFremTypeIncrease])
+    # Corrected (Robust) Line:
+    iFremtypeDV <- unique(dfFREM[["FREMTYPE"]][dfFREM[["FREMTYPE"]] < iFremTypeIncrease])
     iNewFremtypeDV <- NULL
     if (is.null(cstrDV)) {
       warning("No DVs recognized; no DVs added for new individuals")
