@@ -647,13 +647,17 @@ updateFREMmodel <- function(strFREMModel,
   # Replace $OMEGA
   line <- findrecord(line, record = "\\$OMEGA", replace = newommatrix, quiet = T)
 
-  ## Replace $DATA
-  line <- findrecord(line, record = "\\$DATA", replace = paste0("$DATA ", strNewFREMData, " IGNORE=@"), quiet = T)
+  # <<< START OF BUG FIX for strUpdateType = "NoData" >>>
+  if(strUpdateType != "NoData") {
+    ## Replace $DATA
+    line <- findrecord(line, record = "\\$DATA", replace = paste0("$DATA ", strNewFREMData, " IGNORE=@"), quiet = T)
 
-  ## Replace $INPUT
-  line <- findrecord(line, record = "\\$INPUT", replace = paste0("$INPUT ", paste0(names(dfFREM), collapse = " ")), quiet = T)
-
-
+    ## Replace $INPUT
+    if (!is.null(dfFREM)) {
+      line <- findrecord(line, record = "\\$INPUT", replace = paste0("$INPUT ", paste0(names(dfFREM), collapse = " ")), quiet = T)
+    }
+  }
+  # <<< END OF BUG FIX >>>
   ## Write new model file
   if (bWriteMod) {
     strNewModelFileName <- paste0(file_path_sans_ext(strFREMModel), "_new.mod")
