@@ -117,6 +117,8 @@ updateFREMmodel <- function(strFREMModel,
                        filterString          = NULL,
                        strUpdateType         = "DataAndModel",
                        quiet                 = TRUE,
+
+
                        strID                 = "ID",
                        basenames_th          = NULL,
                        basenames_om          = NULL,
