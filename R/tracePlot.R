@@ -14,15 +14,15 @@
 #' @param thetaNum The number of the \code{THETA}s to include in the plot. Default is NULL, which means that all \code{THETA}s should be included.
 #' @param omegaNum The number of the \code{OMEGA}s to include in the plot. Default is NULL, which means that all \code{OMEGA}s should be included.
 #'
-#' @return A list of ggplot objects, one for each of OFV, \code{THETA}s and code{OMEGA}s.
+#' @return A list of ggplot objects, one for each of an object of OFV, \code{THETA}s and code{OMEGA}s.
 #' @details Each of the parameters and OFV are plotted versus the iteration number.
 #' The value on the y-axis is normalised to the last iteration.
 #' @export
 #'
 #' @examples
-#' \dontrun
+#' \dontrun{
 #'  traceplot(30,modDevDir=system.file("extdata","SimNeb/",package="PMXFrem"))
-#'  }
+#' }
 traceplot <- function(runno        = NULL,
                       modName      = NULL,
                       modDevDir    = NULL,
@@ -36,29 +36,18 @@ traceplot <- function(runno        = NULL,
                       thetaNum     = NULL,
                       omegaNum     = NULL) {
 
-  fileNames   <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)
-  extFileName <- fileNames$ext
-
-  tmp   <- scan(extFileName,what="character",sep="\n")
-  tabs <- grep("TABLE",tmp)
-
-  if(set=="last") set <- length(tabs)
-
-  if(set==1 & length(tabs)==1) { # Only one set of results
-    myext <- read.table(extFileName,skip=1,h=T)
-  } else if(set== 1 & length(tabs)>1) {
-    myext <- read.table(extFileName,skip=1,nrows=tabs[2]-3,h=T)
-  } else if(set==2 & length(tabs)==2) {
-    myext <- read.table(extFileName,skip=tabs[2],h=T)
-  } else if(set==2 & length(tabs)==3) {
-    myext <- read.table(extFileName,skip=tabs[2],nrows=length(tmp)-tabs[2]-(length(tmp)-tabs[3])-2,h=T)
-  } else if(set==3 & length(tabs)==4) {
-    myext <- read.table(extFileName,skip=tabs[3],nrows=length(tmp)-tabs[3]-(length(tmp)-tabs[4])-2,h=T)
-  } else if(set==4 & length(tabs)==4) {
-    myext <- read.table(extFileName,skip=tabs[4],h=T)
+  if (is.null(extFileName)) {
+    fileNames   <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)
+    extFileName <- fileNames$ext
   }
 
-  #browser()
+  if (set == "last") {
+    tmp  <- scan(extFileName, what = "character", sep = "\n", quiet = TRUE)
+    tabs <- grep("TABLE", tmp)
+    set  <- length(tabs)
+  }
+
+  myext <- getExt(extFile = extFileName, set = set)
 
   ## Get the starting parameters
   Startpar <- subset(myext,ITERATION==0)
@@ -70,49 +59,55 @@ traceplot <- function(runno        = NULL,
   myext  <- subset(myext,ITERATION>0)
 
   myTrash <- c()
-  for(i in 2:(ncol(myext)-1)) {
-    if(sum(myext[,i])==0) myTrash <- c(myTrash,i)
+  if (ncol(myext) > 2) {
+    for(i in 2:(ncol(myext)-1)) {
+      if(sum(myext[,i])==0) myTrash <- c(myTrash,i)
+    }
   }
 
   # Select the parameters
-  if(!is.null(myTrash)) myext <- myext[,-myTrash]
-  if(!is.null(myTrash))  Finpar <- Finpar[,-myTrash]
-  if(!is.null(myTrash))  Startpar <- Startpar[,-myTrash]
-
-
-  myext2 <- myext
-  for (i in 2:(length(Finpar)-1)) {
-    myext2[,i] <- myext[,i]/as.numeric(Finpar[i])
-    #myext2[,i] <- myext[,i]/as.numeric(Startpar[i])
+  if(!is.null(myTrash) && length(myTrash) > 0) {
+    myext <- myext[,-myTrash]
+    Finpar <- Finpar[,-myTrash]
+    Startpar <- Startpar[,-myTrash]
   }
 
-  if("SAEMOBJ" %in% names(myext2)) myext2 <- myext2 %>% rename(OBJ =SAEMOBJ)
+  myext2 <- myext
+  if (length(Finpar) > 1) {
+    for (i in 2:(length(Finpar)-1)) {
+      myext2[,i] <- myext[,i]/as.numeric(Finpar[i])
+    }
+  }
 
-  myextlong <- myext2 %>% gather("Parameter","Value",-ITERATION)
+  if("SAEMOBJ" %in% names(myext2)) myext2 <- myext2 %>% dplyr::rename(OBJ =SAEMOBJ)
+
+  myextlong <- myext2 %>% tidyr::gather("Parameter","Value",-ITERATION)
 
   thData <- subset(myextlong,Parameter!="OBJ" & ITERATION > startIter & grepl("THETA",myextlong$Parameter))
   if(!is.null(thetaNum)) thData <- subset(thData,Parameter %in%paste("THETA",thetaNum,sep=""))
 
-  p1 <- ggplot(thData,aes(ITERATION,Value,color=Parameter,group=Parameter))
-  p1 <- p1 + geom_line(show.legend=FALSE)
-  p1 <- p1 + geom_hline(yintercept = 1)
-  p1 <- p1 + facet_wrap(~Parameter) + ggtitle(main)
+  p1 <- ggplot2::ggplot(thData,ggplot2::aes(ITERATION,Value,color=Parameter,group=Parameter)) +
+    ggplot2::geom_line(show.legend=FALSE) +
+    ggplot2::geom_hline(yintercept = 1) +
+    ggplot2::facet_wrap(~Parameter) +
+    ggplot2::ggtitle(main)
 
   omData <- subset(myextlong,Parameter!="OBJ" & ITERATION > startIter & grepl("OMEGA",myextlong$Parameter))
-  if(!is.null(omegaNum)) omData <- subset(omData,Parameter %in%paste("OMEGA.",omegaNum,".",omegaNum,".",sep=""))
+  if(!is.null(omegaNum)) omData <- subset(omData,Parameter %in%paste0("OMEGA.",omegaNum,".",omegaNum,"."))
 
-  p1a <- ggplot(omData,aes(ITERATION,Value,color=Parameter,group=Parameter))
-  p1a <- p1a + geom_line(show.legend=FALSE)
-  p1a <- p1a + facet_wrap(~Parameter)
+  p1a <- ggplot2::ggplot(omData,ggplot2::aes(ITERATION,Value,color=Parameter,group=Parameter)) +
+    ggplot2::geom_line(show.legend=FALSE) +
+    ggplot2::facet_wrap(~Parameter)
 
-  p2 <- ggplot(subset(myextlong,Parameter=="OBJ" & ITERATION > startIter ),aes(ITERATION,Value,color=Parameter,group=Parameter))
-  p2 <- p2 + geom_line(show.legend=FALSE) + geom_point(show.legend=FALSE)
-  p2 <- p2 + ylab("OFV")+ ggtitle(main)
+  p2 <- ggplot2::ggplot(subset(myextlong,Parameter=="OBJ" & ITERATION > startIter ),ggplot2::aes(ITERATION,Value,color=Parameter,group=Parameter)) +
+    ggplot2::geom_line(show.legend=FALSE) +
+    ggplot2::geom_point(show.legend=FALSE) +
+    ggplot2::ylab("OFV")+
+    ggplot2::ggtitle(main)
 
   retList <- list()
   if(includeOFV) retList[["OFV"]]     <- p2
   if(includeTheta) retList[["Theta"]] <- p1
   if(includeOmega) retList[["Omegas"]]  <- p1a
   return(retList)
-
 }

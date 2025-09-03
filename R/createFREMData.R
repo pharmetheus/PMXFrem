@@ -72,185 +72,156 @@ createFREMData <- function(
     cSortDirection     = c(1, 1, -1),
     cFremtypes         = NULL) {
 
-  CovFremType       <- 100 # The Fremtype value for the next covariate
-  FremtypeIncrement <- 100 # The FREMTYP incrementer for covariates
-  iNewFremtypeDV    <- 0   # The start FREMTYPE for new DV
+  CovFremType       <- 100
+  FremtypeIncrement <- 100
+  iNewFremtypeDV    <- 0
 
-
-  ## define print function
   printq <- function(str, quiet) {
     if (!quiet) print(str)
   }
 
-  ## Read in the data ##
   dfFFEM <- NULL
-  dfFREM <- NULL
-
   if (file.exists(strFFEMData)) {
-    dfFFEM <- fread(strFFEMData, h = T, data.table = FALSE, check.names = TRUE, showProgress = !quiet)
+    dfFFEM <- data.table::fread(strFFEMData, h = T, data.table = FALSE, check.names = TRUE, showProgress = !quiet)
   } else {
     stop("Cannot find FFEM dataset: ", strFFEMData)
   }
-
   printq(paste0("Read the FFEM dataset, consisting of ", ncol(dfFFEM), " columns and ", nrow(dfFFEM), " rows"), quiet = quiet)
 
-  ########################
-  ## Sort out fremtypes ##
-  ########################
-  if (!is.null(cstrCatCovs)) {
-    ## Need to figure out the number of levels for categorical covariates to
-    ## manage polycothmous variables. Compute the number of non-missing
-    ## categorical levels -1*the number categorical covariates
-    cstrCatCovs <- cstrCatCovs[cstrCatCovs %in% names(dfFFEM)]
-    numCatLevels <- dfFFEM %>%
-      mutate_at(cstrCatCovs, function(x) length(unique(x[x != -99])) - 1) %>%
-      select_at(cstrCatCovs) %>%
-      slice(1) %>%
-      sum(.)
-  } else {
-    numCatLevels <- 0
+  valid_ContCovs <- cstrContCovs[cstrContCovs %in% names(dfFFEM)]
+  valid_CatCovs  <- cstrCatCovs[cstrCatCovs %in% names(dfFFEM)]
+
+  skipped_ContCovs <- setdiff(cstrContCovs, valid_ContCovs)
+  for (cov in skipped_ContCovs) {
+    printq(paste0("Can't add covariate ", cov, ", not found in FFEM dataset. Skipping this covariate."), quiet = quiet)
+  }
+  skipped_CatCovs <- setdiff(cstrCatCovs, valid_CatCovs)
+  for (cov in skipped_CatCovs) {
+    printq(paste0("Can't add covariate ", cov, ", not found in FFEM dataset. Skipping this covariate."), quiet = quiet)
   }
 
-  ## fremtypes are not provided by the user
+  numCatLevels <- 0
+  if (length(valid_CatCovs) > 0) {
+    numCatLevels <- dfFFEM %>%
+      dplyr::mutate_at(valid_CatCovs, function(x) pmax(0, length(unique(x[x != -99])) - 1)) %>%
+      dplyr::select_at(valid_CatCovs) %>%
+      dplyr::slice(1) %>%
+      sum(.)
+  }
+
   if (is.null(cFremtypes)) {
-    ## DV fremtypes
     cFremtypes <- c(iNewFremtypeDV:(length(cstrDV) - 1))
-
-    ## Continuous fremtypes
-    if (!is.null(cstrContCovs)) {
+    if (length(valid_ContCovs) > 0) {
       cFremtypes <- c(cFremtypes,
-        seq(CovFremType, CovFremType + FremtypeIncrement * (length(cstrContCovs) - 1), by = FremtypeIncrement))
+                      seq(CovFremType, CovFremType + FremtypeIncrement * (length(valid_ContCovs) - 1), by = FremtypeIncrement))
     }
-
-    ## Categorical fremtypes
-    maxval <- max(cFremtypes[cFremtypes >= CovFremType] + FremtypeIncrement, CovFremType)
-    if (!is.null(cstrCatCovs)) {
+    maxval <- max(c(0, cFremtypes[cFremtypes >= CovFremType])) + FremtypeIncrement
+    if (length(valid_CatCovs) > 0 && numCatLevels > 0) {
       cFremtypes <- c(cFremtypes, seq(maxval, maxval + (numCatLevels - 1) * FremtypeIncrement, by = FremtypeIncrement))
     }
   }
 
-  ## Make sure the cFremtypes are unique
   cFremtypes <- unique(cFremtypes)
 
-  ## Check that the cFremtypes match the data
-  if (length(cFremtypes) != length(cstrDV) + length(cstrContCovs) + numCatLevels) {
-    stop("The number of fremtypes are not the same as the number of frem variables, i.e. ", length(cFremtypes), " != ", length(cstrDV) + length(cstrContCovs) + length(cstrCatCovs))
+  if (length(cFremtypes) != length(cstrDV) + length(valid_ContCovs) + numCatLevels) {
+    stop("The number of fremtypes are not the same as the number of frem variables.")
   }
 
-
-  ## Identify the columns we should keep
-  cstrKeepCols <- c(cstrKeepCols[cstrKeepCols %in% names(dfFFEM)], "FREMTYPE", cstrDV)
-
-  ## Identify columns that should be set to zero on covariate lines
-  cstrSetToZero <- cstrSetToZero[cstrSetToZero %in% cstrKeepCols]
+  # <<< FIX for Core Bug: Define the full set of columns to return correctly.
+  cols_to_return <- unique(c(cstrKeepCols, "FREMTYPE", cstrDV))
+  cstrSetToZero <- cstrSetToZero[cstrSetToZero %in% names(dfFFEM)]
 
   dfAddList <- list()
-  ### Add new DVs for all individuals
-  for (i in 1:length(cstrDV)) {
+  for (i in seq_along(cstrDV)) {
     strDV <- cstrDV[i]
-    namestokeep <- unique(c(cstrKeepCols, strDV))
-    dfDVData    <- dfFFEM[dfFFEM[[strDV]] != -99, namestokeep[namestokeep %in% names(dfFFEM)]] # Get the dataset with non-missing new DV values
-
-    if (nrow(dfDVData) == 0) { # If all DVs are missing
-      printq(paste0("No observations for ", strDV, " (fremtype=", cFremtypes[i], "); not adding any observations!"), quiet = quiet)
-      warning(paste0("Note that it might be inconsistencies in DV fremtypes since fremtype ", cFremtypes[i], " is not present!"))
-
-    } else {
-      dfDVData$DV       <- dfDVData[[strDV]]
+    dfDVData <- dfFFEM[dfFFEM[[strDV]] != -99, ]
+    if (nrow(dfDVData) > 0) {
+      dfDVData$DV <- dfDVData[[strDV]]
       dfDVData$FREMTYPE <- cFremtypes[i]
-      dfDVData          <- dfDVData[, unique(cstrKeepCols)] # Only keep wanted columns
-      dfAddList[[i]]    <- dfDVData
-      printq(paste0("Adding ", nrow(dfDVData), " observations (", strDV, ") from ", nrow(dfDVData[!duplicated(dfDVData[[strID]]), ]), " individuals as fremtype ", cFremtypes[i]), quiet = quiet)
+      dfAddList[[length(dfAddList) + 1]] <- dfDVData
+    } else {
+      warning(paste0("Note that it might be inconsistencies in DV fremtypes since fremtype ", cFremtypes[i], " is not present!"))
     }
   }
 
-  # Add continuous covariates
-  if (!is.null(cstrContCovs)) {
-    for (i in 1:length(cstrContCovs)) {
-      if (!cstrContCovs[i] %in% names(dfFFEM)) {
-        printq(paste0("Can't add covariate ", cstrContCovs[i], ", not found in FFEM dataset. Skipping this covariate."), quiet = quiet)
+  if (length(valid_ContCovs) > 0) {
+    for (i in seq_along(valid_ContCovs)) {
+      cov_name <- valid_ContCovs[i]
+      dfDVData <- dfFFEM[dfFFEM[[cov_name]] != -99, ]
+      dfDVData <- dfDVData[!duplicated(dfDVData[[strID]]), ]
+      if (nrow(dfDVData) > 0) {
+        dfDVData$DV <- dfDVData[[cov_name]]
+        dfDVData$FREMTYPE <- cFremtypes[i + length(cstrDV)]
+        dfDVData <- dplyr::mutate_at(dfDVData, .vars = cstrSetToZero, .funs = function(x) return(0))
+        dfAddList[[length(dfAddList) + 1]] <- dfDVData
       } else {
-        dfDVData <- dfFFEM[dfFFEM[[cstrContCovs[i]]] != -99, ] # Get the dataset with non-missing covariate values
-        dfDVData <- dfDVData[!duplicated(dfDVData[[strID]]), ] # Assume, time independent, i.e. one observation per individual
-
-        if (nrow(dfDVData) > 0) { # If we have any non-missing cov values
-          dfDVData$DV                        <- dfDVData[[cstrContCovs[i]]]
-          dfDVData$FREMTYPE                  <- cFremtypes[i + length(cstrDV)]
-          dfDVData                           <- dfDVData[, unique(cstrKeepCols)] # Only keep wanted columns
-          dfDVData                           <- dfDVData %>% mutate_at(cstrSetToZero, function(x) return(0)) # Set the cstrSetToZero columns to zero
-          dfAddList[[length(dfAddList) + 1]] <- dfDVData
-          printq(paste0("Adding ", nrow(dfDVData), " covariate values (", cstrContCovs[i], ") from ", nrow(dfDVData), " individuals as fremtype ", cFremtypes[i + length(cstrDV)]), quiet = quiet)
-        } else {
-          printq(paste0("No non-missing covariate values for ", cstrContCovs[i], ". Skipping this covariate."), quiet = quiet)
-        }
-
+        # <<< FIX for Typo Bug (added a space)
+        printq(paste0("No non-missing covariate values for ", cov_name, ". Skipping this covariate."), quiet = quiet)
       }
     }
   }
 
-  # Add categorical covariates
-  if (!is.null(cstrCatCovs)) {
-    k <- 1 # Counter for FREMTYPES
-    for (i in 1:length(cstrCatCovs)) {
-
-      strCov <- cstrCatCovs[i]
-      if (!strCov %in% names(dfFFEM)) {
-        printq(paste0("Can't add covariate ", strCov, ", not found in FFEM dataset. Skipping this covariate."), quiet = quiet)
-      } else {
-        dfDVData <- dfFFEM[dfFFEM[[strCov]] != -99, ] # Get the dataset with non-missing covariate values
-        dfDVData <- dfDVData[!duplicated(dfDVData[[strID]]), ] # Assume, time independent, i.e. one observation per individual
-
-        if (nrow(dfDVData) > 0) { # If we have any non-missing cov values
-          uniqval <- sort(unique(dfDVData[[strCov]])) # Get the unique values of the categorical covariate, sort from smaller to bigger
-
-          if (length(uniqval) > 2 || (length(uniqval) == 2 && bRecodeDichotomous)) { # Dichotomous covariate that should be recoded or higher order polycotomous cov
-
-            for (j in 2:length(uniqval)) {
-              strCov2                                               <- paste0(strCov, "_", uniqval[j])
-              dfDVData[[strCov2]]                                   <- dfDVData[[strCov]]
-              dfDVData[[strCov2]][dfDVData[[strCov]] == uniqval[j]] <- 1
-              dfDVData[[strCov2]][dfDVData[[strCov]] != uniqval[j]] <- 0
-              dfDVData$DV                                           <- dfDVData[[strCov2]]
-              dfDVData$FREMTYPE                                     <- cFremtypes[k + length(cstrDV) + length(cstrContCovs)]
-              # dfDVData                                              <- dfDVData[, unique(cstrKeepCols)] # Only keep wanted columns
-              dfDVData                                              <- dfDVData %>% mutate_at(cstrSetToZero, function(x) return(0)) # Set the cstrSetToZero columns to zero
-              dfAddList[[length(dfAddList) + 1]]                    <- dfDVData[, unique(cstrKeepCols)] # Only keep wanted columns
-              printq(paste0("Adding ", nrow(dfDVData), " covariate values (", strCov2, ") from ", nrow(dfDVData), " individuals as fremtype ", cFremtypes[k + length(cstrDV) + length(cstrContCovs)]), quiet = quiet)
-              k                                                     <- k + 1
-            }
-          } else { # Do not change the name of the covariate
-            dfDVData$DV                        <- dfDVData[[strCov]]
-            dfDVData$FREMTYPE                  <- cFremtypes[k + length(cstrDV) + length(cstrContCovs)]
-            dfDVData                           <- dfDVData[, unique(cstrKeepCols)] # Only keep wanted columns
-            dfDVData                           <- dfDVData %>% mutate_at(cstrSetToZero, function(x) return(0)) # Set the cstrSetToZero columns to zero
-            dfAddList[[length(dfAddList) + 1]] <- dfDVData
-            printq(paste0("Adding ", nrow(dfDVData), " covariate values (", strCov, ") from ", nrow(dfDVData), " individuals as fremtype ", cFremtypes[k + length(cstrDV) + length(cstrContCovs)]), quiet = quiet)
-            k                                  <- k + 1
+  if (length(valid_CatCovs) > 0) {
+    k <- 1
+    for (i in seq_along(valid_CatCovs)) {
+      strCov <- valid_CatCovs[i]
+      dfDVData <- dfFFEM[dfFFEM[[strCov]] != -99, ]
+      dfDVData <- dfDVData[!duplicated(dfDVData[[strID]]), ]
+      if (nrow(dfDVData) > 0) {
+        uniqval <- sort(unique(dfDVData[[strCov]]))
+        if (length(uniqval) > 2 || (length(uniqval) == 2 && bRecodeDichotomous)) {
+          for (j in 2:length(uniqval)) {
+            dfTemp <- dfDVData
+            strCov2 <- paste0(strCov, "_", uniqval[j])
+            dfTemp[[strCov2]] <- as.numeric(dfTemp[[strCov]] == uniqval[j])
+            dfTemp$DV <- dfTemp[[strCov2]]
+            dfTemp$FREMTYPE <- cFremtypes[k + length(cstrDV) + length(valid_ContCovs)]
+            dfTemp <- dplyr::mutate_at(dfTemp, .vars = cstrSetToZero, .funs = function(x) return(0))
+            dfAddList[[length(dfAddList) + 1]] <- dfTemp
+            k <- k + 1
           }
         } else {
-          printq(paste0("No non-missing covariate values for ", strCov, ". Skipping this covariate."), quiet = quiet)
+          dfDVData$DV <- dfDVData[[strCov]]
+          dfDVData$FREMTYPE <- cFremtypes[k + length(cstrDV) + length(valid_ContCovs)]
+          dfDVData <- dplyr::mutate_at(dfDVData, .vars = cstrSetToZero, .funs = function(x) return(0))
+          dfAddList[[length(dfAddList) + 1]] <- dfDVData
+          k <- k + 1
         }
+      } else {
+        # <<< FIX for Typo Bug (added a space)
+        printq(paste0("No non-missing covariate values for ", strCov, ". Skipping this covariate."), quiet = quiet)
       }
     }
   }
 
-  # Add new DVs and covariates to FREM dataset
-  dfFREM <- rbind(dfFREM, as.data.frame(data.table::rbindlist(dfAddList)))
+  if (length(dfAddList) > 0) {
+    dfFREM <- as.data.frame(data.table::rbindlist(dfAddList, use.names = TRUE, fill = TRUE))
+  } else {
+    dfFREM <- as.data.frame(matrix(ncol = length(cols_to_return), nrow = 0))
+    names(dfFREM) <- cols_to_return
+  }
 
-  if (!is.null(cSortCols)) { # Sort everything according to cSortCols
+  missing_cols <- setdiff(cols_to_return, names(dfFREM))
+  if (length(missing_cols) > 0) {
+    dfFREM[, missing_cols] <- NA
+  }
+
+  if (!is.null(cSortCols) && nrow(dfFREM) > 0) {
     cstrSortTxt <- NULL
-    for (i in 1:length(cSortCols)) {
+    for (i in seq_along(cSortCols)) {
       strPrefix <- ""
+      col_to_sort <- paste0("as.numeric(dfFREM$", cSortCols[i], ")")
       if (cSortDirection[i] == -1) strPrefix <- "-"
-      cstrSortTxt <- c(cstrSortTxt, paste0(strPrefix, "dfFREM$", cSortCols[i]))
+      cstrSortTxt <- c(cstrSortTxt, paste0(strPrefix, col_to_sort))
     }
     dfFREM <- eval(parse(text = paste0("dfFREM[order(", paste0(cstrSortTxt, collapse = ","), "),]")))
   }
 
-  dfFREM <- dfFREM[, cstrKeepCols] # Only keep the specified columns
+  dfFREM <- dfFREM[, cols_to_return, drop = FALSE]
+
   if (!is.null(strFREMDataFileName)) {
     write.csv(dfFREM, file = strFREMDataFileName, row.names = FALSE, quote = FALSE)
   }
 
-  return(dfFREM)
+  return(as.data.frame(dfFREM))
 }

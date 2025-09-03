@@ -153,21 +153,21 @@ plotExplainedVar <- function(dfres,
   ## Reorder the covariates according to FRAC
   dfres$COVNAMELABEL <- reorder(dfres$COVNAMELABEL, dfres$Frac, FUN = reordFun)
 
-  ##
-  if (compareVersion(as.character(packageVersion("ggplot2")), "3.3-0") < 0) { # If ggplot version < 3.3.0
-    p1 <- ggplot(dfres, aes(x = COVNAMELABEL, y = Frac)) +
-      geom_bar(position = "dodge", stat = "identity", fill = fill_col) +
-      coord_flip() +
-      facet_wrap(~PARAMETERLABEL, scales = x_scale, labeller = labeller(PARAMETERLABEL = labelfun)) +
-      ylab(xlb) +
-      xlab("")
-  } else {
+  # ##
+  # if (compareVersion(as.character(packageVersion("ggplot2")), "3.3-0") < 0) { # If ggplot version < 3.3.0
+  #   p1 <- ggplot(dfres, aes(x = COVNAMELABEL, y = Frac)) +
+  #     geom_bar(position = "dodge", stat = "identity", fill = fill_col) +
+  #     coord_flip() +
+  #     facet_wrap(~PARAMETERLABEL, scales = x_scale, labeller = labeller(PARAMETERLABEL = labelfun)) +
+  #     ylab(xlb) +
+  #     xlab("")
+  # } else {
     p1 <- ggplot(data = dfres, aes(x = Frac, y = COVNAMELABEL)) +
       geom_bar(position = "dodge", stat = "identity", fill = fill_col) +
       facet_wrap(~PARAMETERLABEL, scales = x_scale, labeller = labeller(PARAMETERLABEL = labelfun)) +
       xlab(xlb) +
       ylab("")
-  }
+  # }
 
   if (add.stamp) {
     p1 <- PhRame::add_stamp(p1, print = FALSE, ...)

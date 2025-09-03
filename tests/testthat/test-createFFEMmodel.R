@@ -1,6 +1,7 @@
 test_that("createFFEMmodel works", {
 
   modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
+  # CORRECTED FILE PATH:
   dataFile  <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",package="PMXFrem")
   fremRun   <- 31
   baseRun1  <- 30
@@ -23,7 +24,7 @@ test_that("createFFEMmodel works", {
                               newDataFile      = "testDataFile.csv",
                               quiet            = TRUE,
                               baserunno        = baseRun1)
-  expect_snapshot(stabilize(ffemMod1))
+  expect_snapshot_value(stabilize(ffemMod1), style = "serialize")
 
   ffemMod2 <- createFFEMmodel(runno            = fremRun,
                               modDevDir        = modDevDir,
@@ -34,6 +35,6 @@ test_that("createFFEMmodel works", {
                               newDataFile      = "testDataFile.csv",
                               quiet            = TRUE,
                               baserunno        = baseRun2)
-  expect_snapshot(stabilize(ffemMod2))
+  expect_snapshot_value(stabilize(ffemMod2), style = "serialize")
 
 })

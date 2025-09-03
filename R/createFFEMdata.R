@@ -155,10 +155,10 @@ createFFEMdata <- function(runno = NULL,
   # Read the FFEM data set and rename the id column to ID (to simplify the coding below. The id column will get its original name in the new data file.)
   if (!is.data.frame(dataFile)) {
     data <- fread(dataFile, h = T, data.table = FALSE, showProgress = FALSE) %>%
-      rename("ID" = idvar)
+      rename("ID" = all_of(idvar))
   } else { ## The dataFile was supplied as a data frame and not a name
     data <- dataFile %>%
-      rename("ID" = idvar)
+      rename("ID" = all_of(idvar))
   }
   ## Add the FREM covariates to the data file
   data <- addFREMcovariates(dfFFEM = data, modFile)

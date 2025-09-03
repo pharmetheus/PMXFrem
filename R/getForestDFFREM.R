@@ -117,7 +117,7 @@ getForestDFFREM <- function(dfCovs,
   }
   ## Try to make dfCovs into a data.frame if it isn't that already
   if (!is.data.frame(dfCovs)) {
-    dfCovs <- createInputForestData(dfCovs)
+    dfCovs <- PMXForest::createInputForestData(dfCovs)
   }
   ## Replace potential NAs in dfCovs with the missing value token
   dfCovs[is.na(dfCovs)] <- iMiss

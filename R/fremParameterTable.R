@@ -162,15 +162,12 @@ fremParameterTable <- function(
     stop("The number of sigma labels must be the same as the number of sigmas in the parameter table")
 
   ## Process input
-  ## Process ext-file
-  # Only read it from file if it isn't passed via dfext
   if(is.null(dfext)) {
     dfExt <- getExt(extFile)
   } else {
-    dfExt <- dfExt
+    dfExt <- dfext
   }
-  ## Extract the line with final parameter estimates
-  extRes      <- getExt(extFile = extFile,set = NULL) %>% filter(ITERATION==-1000000000)
+  extRes <- dfExt %>% dplyr::filter(ITERATION == -1000000000)
 
   ## Sort out the covariates to use
   covNames <- getCovNames(modFile)$covNames
@@ -184,46 +181,51 @@ fremParameterTable <- function(
 
   ## Assemble the output
   retList <- list()
-
   retList$parameterTable <- data.frame(Type=c(rep("THETA",length(thetaLabels)),
                                               rep("OMEGA",length(omegaLabels)),
                                               rep("SIGMA",length(sigmaLabels))),
-                                              Parameter=c(thetaLabels,omegaLabels,sigmaLabels),
-                                              Estimate=fremParEsts)
+                                       Parameter=c(thetaLabels,omegaLabels,sigmaLabels),
+                                       Estimate=fremParEsts)
   retList$Samples <- data.frame()
 
   ## Add the RSEs if requested
   if(includeRSE) {
-
     if(is.null(rseFile)) stop("You need to set rseFile to either a .cov file or a bootstrap raw results file")
-
-    ## Get the uncertainty in the parameters including omega prims. Use a numerical derivation from a bootstrap
     dfSamplesBS <- PMXForest::getSamples(rseFile,extFile=extFile,n=n)
     dfSamplesBS <- cbind(ITER=1,dfSamplesBS)
-
-    # create empty matrix that will contain rses of all parameters to appear in the parameter table
     fremParRses <- data.frame(matrix(rep(NA,nrow(dfSamplesBS)*(length(omegaNum)+length(thetaNum)+length(sigmaNum))),
                                      ncol = length(omegaNum)+length(thetaNum)+length(sigmaNum)))
-
-    ## Loop over the samples values and compute the omega prims and add them together with the thetas and sigma
     for(i in (1:nrow(dfSamplesBS))) {
       fremParRses[i,] <- calcParameterEsts(dfSamplesBS[i,],thetaNum,omegaNum,sigmaNum,numNonFREMThetas,numSkipOm,
                                            covNames=covNames, availCov=availCov,quiet=quiet)
-
     }
-
     names(fremParRses) <- retList$parameterTable$Parameter
-
-    ## Compute the RSEs
-    sampleMeans <- fremParRses %>% summarise_all(mean)
-    sampleSD    <- fremParRses %>% summarise_all(sd)
+    sampleMeans <- fremParRses %>% dplyr::summarise_all(mean)
+    sampleSD    <- fremParRses %>% dplyr::summarise_all(sd)
     sampleRSE   <- abs(100*sampleSD/sampleMeans)
-
-    # Add the RSE information
     retList$parameterTable$`RSE (%)` <- as.numeric(sampleRSE)
-    ## Compute the condition number from the fremParRses and add it to the parTable
-    conditionNumber <- max(eigen(cor(fremParRses))$values)/min(eigen(cor(fremParRses))$values)
-    retList$Condition <- conditionNumber
+
+    # --- Start of Robustness Fix for Condition Number ---
+    # Check for columns with zero variance, as they make cor() produce NA/NaN
+    # and cause eigen() to fail.
+    col_sds <- sapply(fremParRses, sd, na.rm = TRUE)
+    fremParRses_for_cor <- fremParRses[, col_sds > 1e-9, drop = FALSE]
+
+    # Only compute condition number if there's more than one varying parameter
+    if (ncol(fremParRses_for_cor) > 1) {
+      correlation_matrix <- suppressWarnings(cor(fremParRses_for_cor))
+
+      if (anyNA(correlation_matrix) || any(is.infinite(correlation_matrix))) {
+        retList$Condition <- NA
+        warning("Could not compute condition number due to issues in the correlation matrix.")
+      } else {
+        eigen_values <- eigen(correlation_matrix)$values
+        retList$Condition <- max(eigen_values) / min(eigen_values)
+      }
+    } else {
+      retList$Condition <- NA # Not enough varying parameters to compute
+    }
+    # --- End of Robustness Fix ---
 
     retList$Samples <- fremParRses
   }
@@ -232,18 +234,16 @@ fremParameterTable <- function(
   if(omegaSD) {
     retList$parameterTable <-
       retList$parameterTable %>%
-      mutate(Estimate=ifelse(Type=="OMEGA",Estimate^0.5,Estimate)) %>%
-      mutate(Parameter=ifelse(Type=="OMEGA",paste(Parameter,"(SD)"),Parameter))
+      dplyr::mutate(Estimate=ifelse(Type=="OMEGA",Estimate^0.5,Estimate)) %>%
+      dplyr::mutate(Parameter=ifelse(Type=="OMEGA",paste(Parameter,"(SD)"),Parameter))
   }
 
   if(sigmaSD) {
     retList$parameterTable <-
       retList$parameterTable %>%
-      mutate(Estimate=ifelse(Type=="SIGMA",Estimate^0.5,Estimate)) %>%
-      mutate(Parameter=ifelse(Type=="SIGMA",paste(Parameter,"(SD)"),Parameter))
+      dplyr::mutate(Estimate=ifelse(Type=="SIGMA",Estimate^0.5,Estimate)) %>%
+      dplyr::mutate(Parameter=ifelse(Type=="SIGMA",paste(Parameter,"(SD)"),Parameter))
   }
 
   return(retList)
 }
-
-
