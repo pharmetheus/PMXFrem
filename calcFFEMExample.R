@@ -23,6 +23,7 @@ dfext <- getExt(fileNames$ext)
 
 getCovNames(fileNames$mod)
 
+modFile <- fileNames$mod
 myCovs <- getCovNames(modFile = modFile)$orgCovNames[!(getCovNames(modFile = modFile)$orgCovNames %in%
                                                          c("AST","HT","ALT","BILI","RACEL",
                                                            "ETHNIC","AGE","SMOK","LBWT","NCIL"))]
