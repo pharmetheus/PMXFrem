@@ -44,6 +44,6 @@ covr::report(
  devtools::test()
 
  covr::file_coverage(
-   source_files = "R/plotExplainedVar.R",
-   test_files = "tests/testthat/test-plotExplainedVar.R"
+   source_files = "R/calcFFEM.R",
+   test_files = "tests/testthat/test-calcFFEM.R"
  )
