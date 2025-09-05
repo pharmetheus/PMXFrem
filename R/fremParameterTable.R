@@ -86,6 +86,9 @@
 #' @seealso [PMXForest::getSamples()] [calcFFEM()]
 #'
 #' @examples
+#' library(dplyr)
+#' library(magrittr)
+#' library(kableExtra)
 #'
 #' set.seed(123)
 #' runno            <- 31
@@ -113,7 +116,7 @@
 #' tmp$parameterTable %>%
 #'     mutate(Estimate=as.character(signif(Estimate,3)))%>%
 #'     kbl() %>%
-#'     kable_classic(full_width = F, html_font = "Cambria")
+#'     kable_classic(full_width = FALSE, html_font = "Cambria")
 fremParameterTable <- function(
     runno         = NULL,
     modDevDir     = NULL,
@@ -191,6 +194,11 @@ fremParameterTable <- function(
   ## Add the RSEs if requested
   if(includeRSE) {
     if(is.null(rseFile)) stop("You need to set rseFile to either a .cov file or a bootstrap raw results file")
+
+    if (!requireNamespace("PMXForest", quietly = TRUE)) {
+      stop("The 'PMXForest' package is required for this functionality. Please install it.", call. = FALSE)
+    }
+
     dfSamplesBS <- PMXForest::getSamples(rseFile,extFile=extFile,n=n)
     dfSamplesBS <- cbind(ITER=1,dfSamplesBS)
     fremParRses <- data.frame(matrix(rep(NA,nrow(dfSamplesBS)*(length(omegaNum)+length(thetaNum)+length(sigmaNum))),

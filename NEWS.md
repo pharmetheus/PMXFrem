@@ -1,3 +1,13 @@
+# PMXFrem 1.2.8
+
+## BUG FIXES & QUALITY IMPROVEMENTS
+
+* Greatly improved test coverage across the package, with most core functions now exceeding 90% coverage.
+* Fixed numerous bugs and edge cases in `updateFREMmodel()`, `createFREMData()`, and `calcFFEM()` that were discovered through the expanded test suite.
+* Refactored tests to run in a self-contained manner, eliminating side effects such as writing files to the project directory.
+* Resolved test inconsistencies across different R versions by updating and stabilizing test snapshots.
+* devtools::check() pass without errors.
+
 # PMXFrem 1.2.7
 
 * Made it possible to use type=0 in `getExplainedVar()` together with a function that returns multiple values.

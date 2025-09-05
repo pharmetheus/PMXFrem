@@ -16,6 +16,7 @@
 #'
 #' @examples
 #'
+#' \dontrun{
 #' setupdfCovs(modFile)
 #'
 #' #   AGE ALT AST BILI BMI BSA CRCL ETHNIC GENO2  HT LBWT NCIL RACEL SEX SMOK  WT
@@ -44,6 +45,7 @@
 #' # 2   1 -99  -99
 #' # 3 -99   1  -99
 #' # 4 -99 -99    1
+#' }
 setupdfCovs <- function(modFileName,
                         fremCovs       = getCovNames(modFile = modFileName)$orgCovNames,
                         additionalCovs = NULL) {

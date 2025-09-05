@@ -55,7 +55,7 @@ test_that("plotExplainedVar generates correct plot data", {
   p3    <- plotExplainedVar(dfres0, maxVar=2, parameters = "CL")
   covLabels <- c("All covariates","Age","ALT","AST","Bilirubin","BMI","BSA","Createnine clearance","Ethnicity","Genotype","Height","Lean body weight","NCI","Race","Sex","Smoking","Bodyweight")
   p4 <- plotExplainedVar(dfres0, covariateLabels = covLabels)
-  p5 <- plotExplainedVar(dfres0, parameters="CL", parameterLabels = "Cleareance[2]", labelfun = label_parsed)
+  p5 <- plotExplainedVar(dfres0, parameters="CL", parameterLabels = "Cleareance[2]", labelfun = ggplot2:::label_parsed)
   p6 <- plotExplainedVar(dfres0, parameters = c("CL","V"))
   p7 <- plotExplainedVar(dfres0, parameters = c("V","CL"))
   p8 <- plotExplainedVar(dfres0, parameters = c("MAT"))

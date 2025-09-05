@@ -18,7 +18,7 @@
 #' numskipom       <- 2
 #' fremmodelext    <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
 #' dfExt           <- getExt(extFile = fremmodelext)
-#' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = numbasethetas, numSkipOm = numskipom, quiet = T)
+#' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = numbasethetas, numSkipOm = numskipom, quiet = TRUE)
 #'
 #' myMatrix <- buildmatrix(calcFFEMtestout$FullVars)
 buildmatrix <- function(matrix,
@@ -57,7 +57,7 @@ buildmatrix <- function(matrix,
 
     if (((!is.matrix(tmpmat) && !is.matrix(anmat)) ||
       (nrow(tmpmat) == nrow(anmat) && ncol(tmpmat) == ncol(anmat))) &&
-      all(tmpmat == anmat) && as == T) {
+      all(tmpmat == anmat) && as == TRUE) {
       return("SAME")
     }
 

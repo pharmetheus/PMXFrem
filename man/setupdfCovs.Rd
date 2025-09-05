@@ -30,6 +30,7 @@ function.
 }
 \examples{
 
+\dontrun{
 setupdfCovs(modFile)
 
 #   AGE ALT AST BILI BMI BSA CRCL ETHNIC GENO2  HT LBWT NCIL RACEL SEX SMOK  WT
@@ -58,4 +59,5 @@ setupdfCovs(modFile, fremCovs = c("AGE", "SEX"), additionalCovs = "FORM")
 # 2   1 -99  -99
 # 3 -99   1  -99
 # 4 -99 -99    1
+}
 }

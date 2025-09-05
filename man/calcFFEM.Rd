@@ -11,7 +11,7 @@ calcFFEM(
   numFREMThetas = length(grep("THETA", names(dfext))) - numNonFREMThetas,
   numSigmas = length(grep("SIGMA", names(dfext))),
   numParCov = NULL,
-  parNames = paste("Par", 1:numParCov, sep = ""),
+  parNames = NULL,
   covNames = paste("Cov", 1:numFREMThetas, sep = ""),
   availCov = covNames,
   quiet = FALSE,
@@ -101,15 +101,17 @@ Only one set of ETA prims will be computed (for one individual). To compute
 the ETA prims for all subjects at the same ime, please use \code{\link[=calcEtas]{calcEtas()}}.
 }
 \examples{
+library(dplyr)
+library(magrittr)
 
 extFile         <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
 dfExt           <- getExt(extFile = extFile)
-calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = T)
+calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE)
 
 ## Use fremETA to also compute the ETA prim
 phiFile         <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
-dfPhi           <- getPhi(phiPhile) \%>\% select(starts_with("ETA"))
-calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = T,
+dfPhi           <- getPhi(phiFile) \%>\% select(starts_with("ETA"))
+calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
   etaFREM = as.numeric(dfPhi[1, ]))
 
 }

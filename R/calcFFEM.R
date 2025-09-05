@@ -69,15 +69,17 @@
 #' @export
 #'
 #' @examples
+#' library(dplyr)
+#' library(magrittr)
 #'
 #' extFile         <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
 #' dfExt           <- getExt(extFile = extFile)
-#' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = T)
+#' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE)
 #'
 #' ## Use fremETA to also compute the ETA prim
 #' phiFile         <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
-#' dfPhi           <- getPhi(phiPhile) %>% select(starts_with("ETA"))
-#' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = T,
+#' dfPhi           <- getPhi(phiFile) %>% select(starts_with("ETA"))
+#' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
 #'   etaFREM = as.numeric(dfPhi[1, ]))
 #'
 calcFFEM <- function(dfext,

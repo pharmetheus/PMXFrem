@@ -1,3 +1,10 @@
+# Register a parallel backend with a safe number of cores for testing
+doParallel::registerDoParallel(cores = 2)
+
+# Ensure the cluster is stopped when the test file finishes
+# This prevents leftover processes and is good practice
+withr::defer(doParallel::stopImplicitCluster(), teardown_env())
+
 test_that("getExplainedVar works on main paths", {
 
   modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
@@ -73,7 +80,7 @@ test_that("getExplainedVar works on main paths", {
                             cstrCovariates   = cstrCovariates,
                             modDevDir        = modDevDir,
                             runno            = fremRunno,
-                            ncores           = 10,
+                            ncores           = 2,
                             quiet            = TRUE,
                             seed             = 123
   )
@@ -135,7 +142,7 @@ test_that("getExplainedVar works on main paths", {
                               cstrCovariates   = cstrCovariates,
                               modDevDir        = modDevDir,
                               runno            = fremRunno,
-                              ncores           = 10,
+                              ncores           = 2,
                               numETASamples    = 10,
                               quiet            = TRUE,
                               seed             = 123
@@ -154,7 +161,7 @@ test_that("getExplainedVar works on main paths", {
                             cstrCovariates   = cstrCovariates,
                             modDevDir        = modDevDir,
                             runno            = fremRunno,
-                            ncores           = 10,
+                            ncores           = 2,
                             numETASamples    = 10,
                             quiet            = TRUE,
                             seed             = 123

@@ -78,7 +78,7 @@
 #'
 #' @examples
 #' ## Remove SEX from the model and data set
-#' updateFREM(
+#' updateFREMmodel(
 #'   strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
 #'   strFREMData       = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
 #'   strFFEMData       = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
@@ -90,13 +90,13 @@
 #'   numNonFREMThetas  = 7,
 #'   numSkipOm         = 2,
 #'   bWriteData        = TRUE,
-#'   quiet             = F,
+#'   quiet             = FALSE,
 #'   bWriteFIX         = TRUE,
 #'   sortFREMDataset  = c("ID", "TIME", "FREMTYPE"),
 #'   cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE"))
 #'
 #' ## Only update inits
-#' updateFREM(
+#' updateFREMmodel(
 #'   strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
 #'   basenames_th      = c("CL","V","MAT","D1","FRELFOOD","MATFOOD"),
 #'   basenames_om      = c("RUV","D1","CL","V","MAT"),
@@ -105,7 +105,7 @@
 #'   bWriteData        = FALSE,
 #'   bWriteMod         = FALSE,
 #'   bWriteFIX         = TRUE,
-#'   quiet             = F,
+#'   quiet             = FALSE,
 #'   strUpdateType     = "NoData")
 updateFREMmodel <- function(strFREMModel,
                        strFREMData,
@@ -152,7 +152,7 @@ updateFREMmodel <- function(strFREMModel,
     if (is.data.frame(strFFEMData)) {
       dfFFEM <- as.data.frame(strFFEMData)
     } else if (file.exists(strFFEMData)) {
-      dfFFEM <- as.data.frame(data.table::fread(strFFEMData, h = T, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
+      dfFFEM <- as.data.frame(data.table::fread(strFFEMData, h = TRUE, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
     } else {
       stop("Cannot find FFEM dataset: ", strFFEMData)
     }
@@ -160,7 +160,7 @@ updateFREMmodel <- function(strFREMModel,
     if (is.data.frame(strFREMData)) {
       dfFREM <- as.data.frame(strFREMData)
     } else if (file.exists(strFREMData)) {
-      dfFREM <- as.data.frame(data.table::fread(strFREMData, h = T, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
+      dfFREM <- as.data.frame(data.table::fread(strFREMData, h = TRUE, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
     } else {
       stop("Cannot find FREM dataset: ", strFREMData)
     }
@@ -254,7 +254,7 @@ updateFREMmodel <- function(strFREMModel,
     if (is.data.frame(strFFEMData)) {
       dfFFEM <- as.data.frame(strFFEMData)
     } else if (file.exists(strFFEMData)) {
-      dfFFEM <- as.data.frame(fread(strFFEMData, h = T, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
+      dfFFEM <- as.data.frame(fread(strFFEMData, h = TRUE, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
     } else {
       stop("Cannot find FFEM dataset: ", strFFEMData)
     }
@@ -271,7 +271,7 @@ updateFREMmodel <- function(strFREMModel,
     if (is.data.frame(strFREMData)) {
       dfFREM <- strFREMData
     } else if (file.exists(strFREMData)) {
-      dfFREM <- as.data.frame(fread(strFREMData, h = T, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
+      dfFREM <- as.data.frame(fread(strFREMData, h = TRUE, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
     } else {
       stop("Cannot find FREM dataset: ", strFREMData)
     }
@@ -619,7 +619,7 @@ updateFREMmodel <- function(strFREMModel,
   ## Print the ;;;FREM CODE END COMPACT
   strinput <- c(strinput, paste0(";;;FREM CODE END COMPACT"))
   # Replace FREM code
-  line <- findrecord(line, record = ";;;FREM CODE BEGIN COMPACT", replace = strinput, quiet = T)
+  line <- findrecord(line, record = ";;;FREM CODE BEGIN COMPACT", replace = strinput, quiet = TRUE)
 
   #### Print parameters values, $THETA, $OMEGA
   if (is.null(basenames_th)) basenames_th <- paste0("BASE", 1:numNonFREMThetas)
@@ -658,7 +658,7 @@ updateFREMmodel <- function(strFREMModel,
   }
 
   # Add new $THETA
-  line <- findrecord(line, record = "\\$THETA", replace = strinput, quiet = T)
+  line <- findrecord(line, record = "\\$THETA", replace = strinput, quiet = TRUE)
 
   # Build OM Matrix
   newommatrix <- buildmatrix(as.matrix(OM))
@@ -669,16 +669,16 @@ updateFREMmodel <- function(strFREMModel,
     j <- j - 1
   }
   # Replace $OMEGA
-  line <- findrecord(line, record = "\\$OMEGA", replace = newommatrix, quiet = T)
+  line <- findrecord(line, record = "\\$OMEGA", replace = newommatrix, quiet = TRUE)
 
   # <<< START OF BUG FIX for strUpdateType = "NoData" >>>
   if(strUpdateType != "NoData") {
     ## Replace $DATA
-    line <- findrecord(line, record = "\\$DATA", replace = paste0("$DATA ", strNewFREMData, " IGNORE=@"), quiet = T)
+    line <- findrecord(line, record = "\\$DATA", replace = paste0("$DATA ", strNewFREMData, " IGNORE=@"), quiet = TRUE)
 
     ## Replace $INPUT
     if (!is.null(dfFREM)) {
-      line <- findrecord(line, record = "\\$INPUT", replace = paste0("$INPUT ", paste0(names(dfFREM), collapse = " ")), quiet = T)
+      line <- findrecord(line, record = "\\$INPUT", replace = paste0("$INPUT ", paste0(names(dfFREM), collapse = " ")), quiet = TRUE)
     }
   }
   # <<< END OF BUG FIX >>>

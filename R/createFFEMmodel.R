@@ -169,7 +169,7 @@ createFFEMmodel <- function(
   tmp      <- findrecord(tmp,record="\\$INPUT",replace=strInput,quiet=T)
 
   ## Replace $DATA
-  strData <- findrecord(basemodel, record = "\\$DATA", quiet = T)
+  strData <- findrecord(basemodel, record = "\\$DATA", quiet = TRUE)
 
   if (grepl("^(\\$DATA )(.*)(\\s+.+)$", strData[1]) == FALSE) { # Only filename
     strData[1] <- gsub("^(\\$DATA )(.*)$", paste0("\\1", newDataFile, "\\3"), strData[1])
@@ -179,10 +179,10 @@ createFFEMmodel <- function(
     strData[1] <- gsub("^(\\$DATA )(.*)(\\s+.+)$", paste0("\\1", newDataFile, "\\2"), strData[1])
   }
 
-  tmp <- findrecord(tmp, record = "\\$DATA", replace = strData, quiet = T)
+  tmp <- findrecord(tmp, record = "\\$DATA", replace = strData, quiet = TRUE)
 
   ## Replace $OMEGA
-  tmp <- findrecord(tmp,record="\\$OMEGA",replace=buildmatrix(FFEMdata$FullVars),quiet=T)
+  tmp <- findrecord(tmp,record="\\$OMEGA",replace=buildmatrix(FFEMdata$FullVars),quiet=TRUE)
 
   ## Replace $THETA
   thvalues <- dfExt[dfExt$ITERATION==-1000000000,names(dfExt)[grepl("THETA.*",names(dfExt))]][1:numNonFREMThetas]

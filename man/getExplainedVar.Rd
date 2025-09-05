@@ -177,6 +177,9 @@ The \code{availCov} argument specifies the covariates in the frem model that sho
 of the maximum variability (TOTCOVVAR). If NULL (default), all covariates inteh frem model will be used for the derivation of TOTCOVVAR.
 }
 \examples{
+library(dplyr)
+library(magrittr)
+
 modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
 fremRunno <- 31
 modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))
@@ -185,7 +188,7 @@ covNames  <- getCovNames(modFile = modFile)
 ## Set up dfCovs
 dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) \%>\%
   filter(BLQ == 0) \%>\%
-  distinct(ID,.keep_all = T)
+  distinct(ID,.keep_all = TRUE)
 
 dfCovs <- setupdfCovs(modFile)
 
@@ -209,7 +212,7 @@ dfres1 <- getExplainedVar(type             = 1,
                           cstrCovariates   = cstrCovariates,
                           modDevDir        = modDevDir,
                           runno            = fremRunno,
-                          ncores           = 10,
+                          ncores           = 2,
                           quiet            = TRUE,
                           seed             = 123
 )
@@ -232,7 +235,7 @@ dfres12 <- getExplainedVar(type            = 0,
                           cstrCovariates   = cstrCovariates,
                           modDevDir        = modDevDir,
                           runno            = fremRunno,
-                          ncores           = 10,
+                          ncores           = 2,
                           quiet            = TRUE,
                           seed             = 123
 )

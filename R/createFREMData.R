@@ -82,7 +82,7 @@ createFREMData <- function(
 
   dfFFEM <- NULL
   if (file.exists(strFFEMData)) {
-    dfFFEM <- data.table::fread(strFFEMData, h = T, data.table = FALSE, check.names = TRUE, showProgress = !quiet)
+    dfFFEM <- data.table::fread(strFFEMData, h = TRUE, data.table = FALSE, check.names = TRUE, showProgress = !quiet)
   } else {
     stop("Cannot find FFEM dataset: ", strFFEMData)
   }

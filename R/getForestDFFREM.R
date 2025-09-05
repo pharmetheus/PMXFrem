@@ -300,14 +300,14 @@ getForestDFFREM <- function(dfCovs,
 
     for (j in 1:length(functionListName)) {
       dft         <- dfres[dfres$COVS == i & dfres$NAME == functionListName[j], ]
-      quant       <- quantile(dft$VALUE, probs = probs, names = FALSE, na.rm = T)
+      quant       <- quantile(dft$VALUE, probs = probs, names = FALSE, na.rm = TRUE)
       # Calculate the point value of the forest plot
       FUNCVAL <- pointFunction(dft$VALUE)
 
       # Define the relative without parameter uncertainty
       dft$RELINTERNAL <- dft$VALUE / dft$VALUEBASE
       # Get quantile and pointvalue when uncertainty is not taken into account
-      quantrel <- quantile(dft$RELINTERNAL, probs = probs, names = FALSE, na.rm = T)
+      quantrel <- quantile(dft$RELINTERNAL, probs = probs, names = FALSE, na.rm = TRUE)
       FUNCNOVAR <- pointFunction(dft$RELINTERNAL)
 
       # Calculate reference value based one the pointFunction

@@ -29,7 +29,7 @@ numbasethetas   <- 7
 numskipom       <- 2
 fremmodelext    <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
 dfExt           <- getExt(extFile = fremmodelext)
-calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = numbasethetas, numSkipOm = numskipom, quiet = T)
+calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = numbasethetas, numSkipOm = numskipom, quiet = TRUE)
 
 myMatrix <- buildmatrix(calcFFEMtestout$FullVars)
 }

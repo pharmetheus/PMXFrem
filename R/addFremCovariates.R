@@ -32,6 +32,9 @@
 #' @export
 #'
 #' @examples
+#' library(readr)
+#' library(dplyr)
+#' library(magrittr)
 #'
 #' dfFFEM <- read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",package="PMXFrem"),
 #' show_col_types = FALSE) %>% filter(BLQ!=1)

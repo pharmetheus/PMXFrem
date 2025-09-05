@@ -63,6 +63,9 @@
 #' @export
 #'
 #' @examples
+#' library(dplyr)
+#' library(magrittr)
+#' library(readr)
 #'
 #' data <- read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"), show_col_types = FALSE) %>%
 #'   filter(BLQ != 1)
@@ -154,7 +157,7 @@ createFFEMdata <- function(runno = NULL,
   ## Create a data set with all the original covariates + the frem-specific ones
   # Read the FFEM data set and rename the id column to ID (to simplify the coding below. The id column will get its original name in the new data file.)
   if (!is.data.frame(dataFile)) {
-    data <- fread(dataFile, h = T, data.table = FALSE, showProgress = FALSE) %>%
+    data <- fread(dataFile, h = TRUE, data.table = FALSE, showProgress = FALSE) %>%
       rename("ID" = all_of(idvar))
   } else { ## The dataFile was supplied as a data frame and not a name
     data <- dataFile %>%
@@ -179,12 +182,7 @@ createFFEMdata <- function(runno = NULL,
     }
     return(data)
   }
-  #
-  #   dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
-  #     mapFun(data=dataI[k,],cov=cov,orgCovs=orgCovs)
-  #   }
-  #
-  #
+
   if (cores > 1) {
     dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
       mapFun(data = dataI[k, ], cov = cov, orgCovs = orgCovs)

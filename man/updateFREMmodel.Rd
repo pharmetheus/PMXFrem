@@ -169,13 +169,13 @@ updateFREMmodel(
   numNonFREMThetas  = 7,
   numSkipOm         = 2,
   bWriteData        = TRUE,
-  quiet             = F,
+  quiet             = FALSE,
   bWriteFIX         = TRUE,
   sortFREMDataset  = c("ID", "TIME", "FREMTYPE"),
   cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE"))
 
 ## Only update inits
-updateFREM(
+updateFREMmodel(
   strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
   basenames_th      = c("CL","V","MAT","D1","FRELFOOD","MATFOOD"),
   basenames_om      = c("RUV","D1","CL","V","MAT"),
@@ -184,6 +184,6 @@ updateFREM(
   bWriteData        = FALSE,
   bWriteMod         = FALSE,
   bWriteFIX         = TRUE,
-  quiet             = F,
+  quiet             = FALSE,
   strUpdateType     = "NoData")
 }
