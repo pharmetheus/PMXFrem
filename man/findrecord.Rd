@@ -30,9 +30,9 @@ Find/replace a record in a NONMEM model file.
 modFile <- system.file("extData/SimNeb/run30.mod", package = "PMXFrem")
 
 ## Return the $PROBLEM record
-tmp <- findrecord(modFile, record = "\\\\$PROBLEM", quiet = T)
+tmp <- findrecord(modFile, record = "\\\\$PROBLEM", quiet = TRUE)
 
 ## Return the new model with $PROBLEM set to FFEM model
-tmp <- findrecord(modFile, record = "\\\\$PROBLEM", replace = "$PROBLEM FFEM model", quiet = T)
+tmp <- findrecord(modFile, record = "\\\\$PROBLEM", replace = "$PROBLEM FFEM model", quiet = TRUE)
 
 }

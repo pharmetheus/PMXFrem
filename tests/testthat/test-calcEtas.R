@@ -23,5 +23,6 @@ test_that("calEtas works", {
 
 
   expect_equal(class(ind_params),"data.frame")
-  expect_snapshot(stabilize(ind_params))
+  # Use the robust value snapshot instead of the text-based one
+  expect_snapshot_value(stabilize(ind_params), style = "serialize")
 })

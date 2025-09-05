@@ -69,15 +69,17 @@
 #' @export
 #'
 #' @examples
+#' library(dplyr)
+#' library(magrittr)
 #'
 #' extFile         <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
 #' dfExt           <- getExt(extFile = extFile)
-#' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = T)
+#' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE)
 #'
 #' ## Use fremETA to also compute the ETA prim
 #' phiFile         <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
-#' dfPhi           <- getPhi(phiPhile) %>% select(starts_with("ETA"))
-#' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = T,
+#' dfPhi           <- getPhi(phiFile) %>% select(starts_with("ETA"))
+#' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
 #'   etaFREM = as.numeric(dfPhi[1, ]))
 #'
 calcFFEM <- function(dfext,
@@ -86,7 +88,7 @@ calcFFEM <- function(dfext,
                      numFREMThetas = length(grep("THETA", names(dfext))) - numNonFREMThetas,
                      numSigmas     = length(grep("SIGMA", names(dfext))),
                      numParCov     = NULL,
-                     parNames      = paste("Par", 1:numParCov, sep = ""),
+                     parNames      = NULL, #paste("Par", 1:numParCov, sep = ""),
                      covNames      = paste("Cov", 1:numFREMThetas, sep = ""),
                      availCov      = covNames,
                      quiet         = FALSE,
@@ -94,9 +96,16 @@ calcFFEM <- function(dfext,
                      eqFile        = "",
                      omFile        = "",
                      ...) {
+
+
   # Calculate the number of parameters to include covariates on
   if (is.null(numParCov)) {
     numParCov <- calcNumParCov(dfext, numNonFREMThetas, numSkipOm)
+  }
+
+  # MODIFICATION 2: Add default logic for parNames inside the function
+  if (is.null(parNames)) {
+    parNames <- paste("Par", 1:numParCov, sep = "")
   }
 
   iNumFREMOM <- (numFREMThetas + numParCov) * (numFREMThetas + numParCov + 1) / 2
@@ -110,7 +119,16 @@ calcFFEM <- function(dfext,
 
   # Get the om-matrix
   OM                              <- matrix(0, nrow = num_om, ncol = num_om) # Define an empty matrix
-  OM[upper.tri(OM, diag = TRUE)]  <- om_matrix # Assign upper triangular + diag
+
+  # <<< START OF BUG FIX for replacement length warning >>>
+  # Ensure om_matrix has the correct number of elements to fill the OM matrix
+  # This respects the user-provided numParCov argument. Should generate the same results as the original line (below) for cases when numParCov > 1.
+  num_elements_needed <- sum(upper.tri(OM, diag = TRUE))
+  om_matrix_subset    <- om_matrix[1:num_elements_needed]
+  OM[upper.tri(OM, diag = TRUE)]  <- om_matrix_subset
+  # <<< END OF BUG FIX >>>
+
+  # OM[upper.tri(OM, diag = TRUE)]  <- om_matrix # Assign upper triangular + diag
   tOM                             <- t(OM) # Get a transposed matrix
   OM[lower.tri(OM, diag = FALSE)] <- tOM[lower.tri(tOM, diag = FALSE)] # Assign the lower triangular except diag
   OMFULL                          <- OM

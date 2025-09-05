@@ -3,7 +3,7 @@
 # library(PMXFrem)
 
 
-PMXRenv::library.versioned("PMXFrem","1.1.1")
+# PMXRenv::library.versioned("PMXFrem","1.1.1")
 
 modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
 fremRunno <- 31
@@ -41,9 +41,9 @@ functionListFFEMCovs<-function(basethetas,covthetas, dfrow, etas, ...) {
   MATCOVTIME<-1
   if (any(names(dfrow)=="FD") && dfrow$FD !=-99 && dfrow$FD == 0) MATCOVTIME<-1+basethetas[6]
 
-  
-  MAT   = basethetas[4]*MATCOVTIME*exp(covthetas[3]  + etas[5]) 
-  
+
+  MAT   = basethetas[4]*MATCOVTIME*exp(covthetas[3]  + etas[5])
+
   return(list(MAT,
               basethetas[2]*exp(covthetas[1] + etas[3]),
               basethetas[3]*exp(covthetas[2] + etas[4])))

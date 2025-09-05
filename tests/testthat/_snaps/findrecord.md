@@ -1,102 +1,69 @@
 # findrecord works
 
-    Code
-      stabilize(findrecord(basemodel, record = "\\$PROBLEM", replace = "$PROBLEM FFEM model",
-        quiet = T))
-    Output
-       [1] ";; 1. Based on: 25"                                                             
-       [2] ";; 2. Description:"                                                             
-       [3] ";;    New simulated data set"                                                   
-       [4] ";; 3. Label:"                                                                   
-       [5] ";;    SimVal base model"                                                        
-       [6] ";------------------------------------------------------------------------------"
-       [7] "$PROBLEM FFEM model"                                                            
-       [8] "$INPUT      NO ID STUDYID TAD TIME DAY AMT RATE ODV DV EVID BLQ DOSE"           
-       [9] "            FOOD FORM TYPE WT HT LBWT BSA SEX RACE AGE AST ALT BILI"            
-      [10] "            CRCL BMI NCI GENO2 ETHNIC SMOK RACEL NCIL"                          
-      [11] "$DATA      ../ProducedData/Dataset/DAT-2-MI-PMX-2-onlyTYPE2-new.csv IGNORE=@"   
-      [12] "            IGNORE(BLQ.EQN0.1)"                                                 
-      [13] "$SUBROUTINE ADVAN2 TRANS2"                                                      
-      [14] "$PK"                                                                            
-      [15] ";;; MATFOOD-DEFINITION START"                                                   
-      [16] "IF(FOOD.EQ0.1) MATFOOD = 1  ; Most common"                                      
-      [17] "IF(FOOD.EQ0) MATFOOD = ( 1 + THETA(6))"                                         
-      [18] ";;; MATFOOD-DEFINITION END"                                                     
-      [19] ""                                                                               
-      [20] ";;; MAT-RELATION START"                                                         
-      [21] "MATCOVTIME = MATFOOD"                                                           
-      [22] ";;; MAT-RELATION END"                                                           
-      [23] ""                                                                               
-      [24] ""                                                                               
-      [25] ";;; FRELFOOD-DEFINITION START"                                                  
-      [26] "IF(FOOD.EQ0.1) FRELFOOD = 1  ; Most common"                                     
-      [27] "IF(FOOD.EQ0) FRELFOOD = ( 1 + THETA(7))"                                        
-      [28] ";;; FRELFOOD-DEFINITION END"                                                    
-      [29] ""                                                                               
-      [30] ";;; FREL-RELATION START"                                                        
-      [31] "FRELCOVTIME = FRELFOOD"                                                         
-      [32] ";;; FREL-RELATION END"                                                          
-      [33] ""                                                                               
-      [34] "TVFREL  = THETA(1)"                                                             
-      [35] "TVCL    = THETA(2)"                                                             
-      [36] "TVV     = THETA(3)"                                                             
-      [37] "TVMAT   = THETA(4)"                                                             
-      [38] "TVD1    = THETA(5)"                                                             
-      [39] ""                                                                               
-      [40] ";MU_1  = LOG(TVRUV)"                                                            
-      [41] "MU_2  = TVD1"                                                                   
-      [42] "MU_3  = LOG(TVCL)"                                                              
-      [43] "MU_4  = LOG(TVV)"                                                               
-      [44] "MU_5  = LOG(TVMAT)"                                                             
-      [45] ""                                                                               
-      [46] "D1FR  = MU_2                   + ETA(2)"                                        
-      [47] "FREL  = TVFREL*FRELCOVTIME"                                                     
-      [48] "CL    = EXP(MU_3               + ETA(3))"                                       
-      [49] "V     = EXP(MU_4               + ETA(4))"                                       
-      [50] "MAT   = MATCOVTIME * EXP(MU_5  + ETA(5))"                                       
-      [51] "D1    = MAT*(1-D1FR)"                                                           
-      [52] ""                                                                               
-      [53] "F1    = FREL"                                                                   
-      [54] "KA    = 1 / (MAT-D1)"                                                           
-      [55] "S2    = V"                                                                      
-      [56] ""                                                                               
-      [57] "$ERROR"                                                                         
-      [58] "CP    = A(2)*1000 / V"                                                          
-      [59] "IPRED = LOG(CP + 1e-05)"                                                        
-      [60] "Y     = IPRED + EPS(1) * EXP(ETA(1))"                                           
-      [61] ""                                                                               
-      [62] "$THETA  1 FIX ; 1. TVFREL"                                                      
-      [63] "$THETA  (0,7.62228) ; 2. TVCL"                                                  
-      [64] "$THETA  (0,147.899) ; 3. TVV"                                                   
-      [65] "$THETA  (0,2.10108) ; 4. TVMAT"                                                 
-      [66] "$THETA  (0,0.68089) ; 5. D1"                                                    
-      [67] "$THETA  (-1,-0.0800943,3) ; 6. FRELFOOD1"                                       
-      [68] "$THETA  (-1,0.115625,3) ; 7. MATFOOD1"                                          
-      [69] "$OMEGA  0.116842  ; 1. IIV on RUV"                                              
-      [70] "$OMEGA  0.0001  FIX  ; 2. IIV on D1"                                            
-      [71] "$OMEGA  BLOCK(3)"                                                               
-      [72] " 0.488192  ; 3. IIV on CL"                                                      
-      [73] " 0.270746 0.655494  ; 4. IIV on V"                                              
-      [74] " -0.025678 0.0206116 0.157579  ; 5. IIV on MAT"                                 
-      [75] "$SIGMA  0.0321471  ;     1. RUV"                                                
-      [76] "$ESTIMATION METHOD=IMPMAP AUTO=1 RANMETHOD=3P INTER NOABORT PRINT=1"            
-      [77] "            NOCOV=1 ISAMPEND=100 NITER=50 ISAMPLE=300"                          
-      [78] "$ESTIMATION METHOD=IMPMAP INTER EONLY=1 NITER=50 ISAMPLE=10000 NOCOV=0"         
-      [79] ";            PHITYPE=1"                                                         
-      [80] ";$COVARIANCE PRINT=E MATRIX=S UNCONDITIONAL"                                    
-      [81] "$TABLE      NO ID STUDYID TAD TIME DAY AMT RATE ODV DV EVID BLQ DOSE"           
-      [82] "            FOOD FORM TYPE WT HT LBWT BSA SEX RACE AGE AST ALT BILI"            
-      [83] "            CRCL BMI NCI GENO2 ETHNIC SMOK RACE NCIL CPRED"                     
-      [84] "            CIPREDI CWRES CIWRES ETAS(1:LAST) NOPRINT ONEHEADER"                
-      [85] "            FILE=xptab30"                                                       
-      [86] ""                                                                               
+    WAoAAAACAAQEAgACAwAAAAAQAAAAVgAEAAkAAAASOzsgMS4gQmFzZWQgb246IDI1AAQACQAA
+    ABI7OyAyLiBEZXNjcmlwdGlvbjoABAAJAAAAHDs7ICAgIE5ldyBzaW11bGF0ZWQgZGF0YSBz
+    ZXQABAAJAAAADDs7IDMuIExhYmVsOgAEAAkAAAAXOzsgICAgU2ltVmFsIGJhc2UgbW9kZWwA
+    BAAJAAAATzstLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+    LS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0ABAAJAAAAEyRQUk9CTEVNIEZGRU0g
+    bW9kZWwABAAJAAAARCRJTlBVVCAgICAgIE5PIElEIFNUVURZSUQgVEFEIFRJTUUgREFZIEFN
+    VCBSQVRFIE9EViBEViBFVklEIEJMUSBET1NFAAQACQAAAEMgICAgICAgICAgICBGT09EIEZP
+    Uk0gVFlQRSBXVCBIVCBMQldUIEJTQSBTRVggUkFDRSBBR0UgQVNUIEFMVCBCSUxJAAQACQAA
+    ADUgICAgICAgICAgICBDUkNMIEJNSSBOQ0kgR0VOTzIgRVRITklDIFNNT0sgUkFDRUwgTkNJ
+    TAAEAAkAAABMJERBVEEgICAgICAuLi9Qcm9kdWNlZERhdGEvRGF0YXNldC9EQVQtMi1NSS1Q
+    TVgtMi1vbmx5VFlQRTItbmV3LmNzdiBJR05PUkU9QAAEAAkAAAAeICAgICAgICAgICAgSUdO
+    T1JFKEJMUS5FUU4wLjEpAAQACQAAABkkU1VCUk9VVElORSBBRFZBTjIgVFJBTlMyAAQACQAA
+    AAMkUEsABAAJAAAAHDs7OyBNQVRGT09ELURFRklOSVRJT04gU1RBUlQABAAJAAAAKUlGKEZP
+    T0QuRVEwLjEpIE1BVEZPT0QgPSAxICA7IE1vc3QgY29tbW9uAAQACQAAACZJRihGT09ELkVR
+    MCkgTUFURk9PRCA9ICggMSArIFRIRVRBKDYpKQAEAAkAAAAaOzs7IE1BVEZPT0QtREVGSU5J
+    VElPTiBFTkQABAAJAAAAAAAEAAkAAAAWOzs7IE1BVC1SRUxBVElPTiBTVEFSVAAEAAkAAAAU
+    TUFUQ09WVElNRSA9IE1BVEZPT0QABAAJAAAAFDs7OyBNQVQtUkVMQVRJT04gRU5EAAQACQAA
+    AAAABAAJAAAAAAAEAAkAAAAdOzs7IEZSRUxGT09ELURFRklOSVRJT04gU1RBUlQABAAJAAAA
+    KklGKEZPT0QuRVEwLjEpIEZSRUxGT09EID0gMSAgOyBNb3N0IGNvbW1vbgAEAAkAAAAnSUYo
+    Rk9PRC5FUTApIEZSRUxGT09EID0gKCAxICsgVEhFVEEoNykpAAQACQAAABs7OzsgRlJFTEZP
+    T0QtREVGSU5JVElPTiBFTkQABAAJAAAAAAAEAAkAAAAXOzs7IEZSRUwtUkVMQVRJT04gU1RB
+    UlQABAAJAAAAFkZSRUxDT1ZUSU1FID0gRlJFTEZPT0QABAAJAAAAFTs7OyBGUkVMLVJFTEFU
+    SU9OIEVORAAEAAkAAAAAAAQACQAAABJUVkZSRUwgID0gVEhFVEEoMSkABAAJAAAAElRWQ0wg
+    ICAgPSBUSEVUQSgyKQAEAAkAAAASVFZWICAgICA9IFRIRVRBKDMpAAQACQAAABJUVk1BVCAg
+    ID0gVEhFVEEoNCkABAAJAAAAElRWRDEgICAgPSBUSEVUQSg1KQAEAAkAAAAAAAQACQAAABM7
+    TVVfMSAgPSBMT0coVFZSVVYpAAQACQAAAAxNVV8yICA9IFRWRDEABAAJAAAAEU1VXzMgID0g
+    TE9HKFRWQ0wpAAQACQAAABBNVV80ICA9IExPRyhUVlYpAAQACQAAABJNVV81ICA9IExPRyhU
+    Vk1BVCkABAAJAAAAAAAEAAkAAAAnRDFGUiAgPSBNVV8yICAgICAgICAgICAgICAgICAgICsg
+    RVRBKDIpAAQACQAAABpGUkVMICA9IFRWRlJFTCpGUkVMQ09WVElNRQAEAAkAAAAoQ0wgICAg
+    PSBFWFAoTVVfMyAgICAgICAgICAgICAgICsgRVRBKDMpKQAEAAkAAAAoViAgICAgPSBFWFAo
+    TVVfNCAgICAgICAgICAgICAgICsgRVRBKDQpKQAEAAkAAAAoTUFUICAgPSBNQVRDT1ZUSU1F
+    ICogRVhQKE1VXzUgICsgRVRBKDUpKQAEAAkAAAAURDEgICAgPSBNQVQqKDEtRDFGUikABAAJ
+    AAAAAAAEAAkAAAAMRjEgICAgPSBGUkVMAAQACQAAABRLQSAgICA9IDEgLyAoTUFULUQxKQAE
+    AAkAAAAJUzIgICAgPSBWAAQACQAAAAAABAAJAAAABiRFUlJPUgAEAAkAAAAVQ1AgICAgPSBB
+    KDIpKjEwMDAgLyBWAAQACQAAABdJUFJFRCA9IExPRyhDUCArIDFlLTA1KQAEAAkAAAAkWSAg
+    ICAgPSBJUFJFRCArIEVQUygxKSAqIEVYUChFVEEoMSkpAAQACQAAAAAABAAJAAAAGSRUSEVU
+    QSAgMSBGSVggOyAxLiBUVkZSRUwABAAJAAAAHSRUSEVUQSAgKDAsNy42MjIyOCkgOyAyLiBU
+    VkNMAAQACQAAABwkVEhFVEEgICgwLDE0Ny44OTkpIDsgMy4gVFZWAAQACQAAAB4kVEhFVEEg
+    ICgwLDIuMTAxMDgpIDsgNC4gVFZNQVQABAAJAAAAGyRUSEVUQSAgKDAsMC42ODA4OSkgOyA1
+    LiBEMQAEAAkAAAAoJFRIRVRBICAoLTEsLTAuMDgwMDk0MywzKSA7IDYuIEZSRUxGT09EMQAE
+    AAkAAAAlJFRIRVRBICAoLTEsMC4xMTU2MjUsMykgOyA3LiBNQVRGT09EMQAEAAkAAAAhJE9N
+    RUdBICAwLjExNjg0MiAgOyAxLiBJSVYgb24gUlVWAAQACQAAACMkT01FR0EgIDAuMDAwMSAg
+    RklYICA7IDIuIElJViBvbiBEMQAEAAkAAAAQJE9NRUdBICBCTE9DSygzKQAEAAkAAAAZIDAu
+    NDg4MTkyICA7IDMuIElJViBvbiBDTAAEAAkAAAAhIDAuMjcwNzQ2IDAuNjU1NDk0ICA7IDQu
+    IElJViBvbiBWAAQACQAAAC4gLTAuMDI1Njc4IDAuMDIwNjExNiAwLjE1NzU3OSAgOyA1LiBJ
+    SVYgb24gTUFUAAQACQAAAB8kU0lHTUEgIDAuMDMyMTQ3MSAgOyAgICAgMS4gUlVWAAQACQAA
+    AEMkRVNUSU1BVElPTiBNRVRIT0Q9SU1QTUFQIEFVVE89MSBSQU5NRVRIT0Q9M1AgSU5URVIg
+    Tk9BQk9SVCBQUklOVD0xAAQACQAAADUgICAgICAgICAgICBOT0NPVj0xIElTQU1QRU5EPTEw
+    MCBOSVRFUj01MCBJU0FNUExFPTMwMAAEAAkAAABGJEVTVElNQVRJT04gTUVUSE9EPUlNUE1B
+    UCBJTlRFUiBFT05MWT0xIE5JVEVSPTUwIElTQU1QTEU9MTAwMDAgTk9DT1Y9MAAEAAkAAAAW
+    OyAgICAgICAgICAgIFBISVRZUEU9MQAEAAkAAAArOyRDT1ZBUklBTkNFIFBSSU5UPUUgTUFU
+    UklYPVMgVU5DT05ESVRJT05BTAAEAAkAAABEJFRBQkxFICAgICAgTk8gSUQgU1RVRFlJRCBU
+    QUQgVElNRSBEQVkgQU1UIFJBVEUgT0RWIERWIEVWSUQgQkxRIERPU0UABAAJAAAAQyAgICAg
+    ICAgICAgIEZPT0QgRk9STSBUWVBFIFdUIEhUIExCV1QgQlNBIFNFWCBSQUNFIEFHRSBBU1Qg
+    QUxUIEJJTEkABAAJAAAAOiAgICAgICAgICAgIENSQ0wgQk1JIE5DSSBHRU5PMiBFVEhOSUMg
+    U01PSyBSQUNFIE5DSUwgQ1BSRUQABAAJAAAAPyAgICAgICAgICAgIENJUFJFREkgQ1dSRVMg
+    Q0lXUkVTIEVUQVMoMTpMQVNUKSBOT1BSSU5UIE9ORUhFQURFUgAEAAkAAAAYICAgICAgICAg
+    ICAgRklMRT14cHRhYjMwAAQACQAAAAA=
 
 ---
 
-    Code
-      stabilize(findrecord(basemodel, record = "\\$INPUT", quiet = T))
-    Output
-      [1] "$INPUT      NO ID STUDYID TAD TIME DAY AMT RATE ODV DV EVID BLQ DOSE"
-      [2] "            FOOD FORM TYPE WT HT LBWT BSA SEX RACE AGE AST ALT BILI" 
-      [3] "            CRCL BMI NCI GENO2 ETHNIC SMOK RACEL NCIL"               
+    WAoAAAACAAQEAgACAwAAAAAQAAAAAwAEAAkAAABEJElOUFVUICAgICAgTk8gSUQgU1RVRFlJ
+    RCBUQUQgVElNRSBEQVkgQU1UIFJBVEUgT0RWIERWIEVWSUQgQkxRIERPU0UABAAJAAAAQyAg
+    ICAgICAgICAgIEZPT0QgRk9STSBUWVBFIFdUIEhUIExCV1QgQlNBIFNFWCBSQUNFIEFHRSBB
+    U1QgQUxUIEJJTEkABAAJAAAANSAgICAgICAgICAgIENSQ0wgQk1JIE5DSSBHRU5PMiBFVEhO
+    SUMgU01PSyBSQUNFTCBOQ0lM
 

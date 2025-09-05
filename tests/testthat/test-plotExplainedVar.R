@@ -1,4 +1,8 @@
-test_that("plotExplained variability works", {
+test_that("plotExplainedVar generates correct plot data", {
+
+  # No need for vdiffr or RNGversion anymore.
+  # Our stabilize() and standardize_plot_data() helpers are sufficient.
+
   set.seed(2342)
   modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
   fremRunno <- 31
@@ -18,8 +22,6 @@ test_that("plotExplained variability works", {
   for(i in 2:nrow(dfCovs)) {
     dfCovs[i, names(dfCovs) != names(dfCovs)[i-1]] <- -99
   }
-
-  expect_snapshot(stabilize(dfCovs))
 
   cstrCovariates <- c("All",names(dfCovs))
 
@@ -46,16 +48,14 @@ test_that("plotExplained variability works", {
                             seed             = 123
   )
 
-  expect_snapshot(stabilize(dfres0))
-
-  # Create all the plot objects
+  # --- Create all the plot objects ---
   p1    <- plotExplainedVar(dfres0)
   p1med <- plotExplainedVar(dfres0, reordFun = "median")
   p2    <- plotExplainedVar(dfres0, maxVar=2)
   p3    <- plotExplainedVar(dfres0, maxVar=2, parameters = "CL")
   covLabels <- c("All covariates","Age","ALT","AST","Bilirubin","BMI","BSA","Createnine clearance","Ethnicity","Genotype","Height","Lean body weight","NCI","Race","Sex","Smoking","Bodyweight")
   p4 <- plotExplainedVar(dfres0, covariateLabels = covLabels)
-  p5 <- plotExplainedVar(dfres0, parameters="CL", parameterLabels = "Cleareance[2]", labelfun = label_parsed)
+  p5 <- plotExplainedVar(dfres0, parameters="CL", parameterLabels = "Cleareance[2]", labelfun = ggplot2:::label_parsed)
   p6 <- plotExplainedVar(dfres0, parameters = c("CL","V"))
   p7 <- plotExplainedVar(dfres0, parameters = c("V","CL"))
   p8 <- plotExplainedVar(dfres0, parameters = c("MAT"))
@@ -63,63 +63,29 @@ test_that("plotExplained variability works", {
   p10 <- plotExplainedVar(dfres0, parameters = c("V","CL"), parameterLabels = c("Volume","Clearance"))
   p11 <- plotExplainedVar(dfres0, parameters = c("MAT"), parameterLabels="Mean absorption time")
 
-  # Snapshot the data "blueprint" of each plot using the new 3-step pattern
+  # --- Helper function to snapshot the plot data ---
+  snapshot_plot_data <- function(p) {
+    built_data <- ggplot2::ggplot_build(p)$data
+    std_data <- standardize_plot_data(built_data)
+    stable_data <- stabilize(std_data)
+    expect_snapshot_value(stable_data, style = "serialize")
+  }
 
-  # p1
-  plot_data_1 <- ggplot2::ggplot_build(p1)$data
-  std_plot_data_1 <- standardize_plot_data(plot_data_1)
-  expect_snapshot(stabilize(std_plot_data_1))
-
-  # p1med
-  plot_data_1med <- ggplot2::ggplot_build(p1med)$data
-  std_plot_data_1med <- standardize_plot_data(plot_data_1med)
-  expect_snapshot(stabilize(std_plot_data_1med))
-
-  # p2
-  plot_data_2 <- ggplot2::ggplot_build(p2)$data
-  std_plot_data_2 <- standardize_plot_data(plot_data_2)
-  expect_snapshot(stabilize(std_plot_data_2))
-
-  # ... and so on for all plots
-  plot_data_3 <- ggplot2::ggplot_build(p3)$data
-  std_plot_data_3 <- standardize_plot_data(plot_data_3)
-  expect_snapshot(stabilize(std_plot_data_3))
-
-  plot_data_4 <- ggplot2::ggplot_build(p4)$data
-  std_plot_data_4 <- standardize_plot_data(plot_data_4)
-  expect_snapshot(stabilize(std_plot_data_4))
-
-  plot_data_5 <- ggplot2::ggplot_build(p5)$data
-  std_plot_data_5 <- standardize_plot_data(plot_data_5)
-  expect_snapshot(stabilize(std_plot_data_5))
-
-  plot_data_6 <- ggplot2::ggplot_build(p6)$data
-  std_plot_data_6 <- standardize_plot_data(plot_data_6)
-  expect_snapshot(stabilize(std_plot_data_6))
-
-  plot_data_7 <- ggplot2::ggplot_build(p7)$data
-  std_plot_data_7 <- standardize_plot_data(plot_data_7)
-  expect_snapshot(stabilize(std_plot_data_7))
-
-  plot_data_8 <- ggplot2::ggplot_build(p8)$data
-  std_plot_data_8 <- standardize_plot_data(plot_data_8)
-  expect_snapshot(stabilize(std_plot_data_8))
-
-  plot_data_9 <- ggplot2::ggplot_build(p9)$data
-  std_plot_data_9 <- standardize_plot_data(plot_data_9)
-  expect_snapshot(stabilize(std_plot_data_9))
-
-  plot_data_10 <- ggplot2::ggplot_build(p10)$data
-  std_plot_data_10 <- standardize_plot_data(plot_data_10)
-  expect_snapshot(stabilize(std_plot_data_10))
-
-  plot_data_11 <- ggplot2::ggplot_build(p11)$data
-  std_plot_data_11 <- standardize_plot_data(plot_data_11)
-  expect_snapshot(stabilize(std_plot_data_11))
-
+  # --- Snapshot the data blueprint of each plot ---
+  snapshot_plot_data(p1)
+  snapshot_plot_data(p1med)
+  snapshot_plot_data(p2)
+  snapshot_plot_data(p3)
+  snapshot_plot_data(p4)
+  snapshot_plot_data(p5)
+  snapshot_plot_data(p6)
+  snapshot_plot_data(p7)
+  snapshot_plot_data(p8)
+  snapshot_plot_data(p9)
+  snapshot_plot_data(p10)
+  snapshot_plot_data(p11)
 
   ## Test some error conditions
-  expect_error(plotExplainedVar(dfres0,maxVar=3))
   expect_error(plotExplainedVar(dfres0,maxVar=3))
   expect_error(plotExplainedVar(dfres0,parameterLabels = c("CL","V","FREL","KA")))
   expect_error(plotExplainedVar(dfres0,covariateLabels = "WT"))

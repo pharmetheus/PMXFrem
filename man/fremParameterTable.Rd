@@ -162,6 +162,9 @@ parameter tables for inclusion in reports and paper. The examples section
 provides a simple example.
 }
 \examples{
+library(dplyr)
+library(magrittr)
+library(kableExtra)
 
 set.seed(123)
 runno            <- 31
@@ -189,7 +192,7 @@ tmp <- fremParameterTable(
 tmp$parameterTable \%>\%
     mutate(Estimate=as.character(signif(Estimate,3)))\%>\%
     kbl() \%>\%
-    kable_classic(full_width = F, html_font = "Cambria")
+    kable_classic(full_width = FALSE, html_font = "Cambria")
 }
 \seealso{
 \code{\link[PMXForest:getSamples]{PMXForest::getSamples()}} \code{\link[=calcFFEM]{calcFFEM()}}

@@ -1,7 +1,7 @@
 Package: PMXFrem
 Type: Package
 Title: Support functions for FREM analyses in NONMEM
-Version: 1.2.7
+Version: 1.2.8
 Authors@R: c(
     person("Niclas", "Jonsson", email = "niclas.jonsson@pharmetheus.com", role = c("aut", "cre")),
     person("Joakim", "Nyberg", email = "joakim.nyberg@pharmetheus.com", role = c("aut"))
@@ -13,16 +13,34 @@ Encoding: UTF-8
 LazyData: true
 Author: Niclas Jonsson [aut, cre],
   Joakim Nyberg [aut]
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Roxygen: list(markdown = TRUE)
-Depends: MASS, foreach, doParallel, tidyverse (>= 1.0.0), stringr, data.table, rlang, numDeriv,Hmisc,xpose4, tools
+Depends:
+    R (>= 3.5.0),
+Imports:
+    data.table,
+    doParallel,
+    dplyr,
+    ggplot2,
+    foreach,
+    Hmisc,
+    magrittr,
+    MASS,
+    rlang,
+    readr,
+    stringr,
+    tools,
+    withr,
+    xpose4,
+    numDeriv
 Suggests: 
-	PhRame,
-	PMXForest,
-  knitr,
-  rmarkdown,
-  testthat (>= 3.0.0),
-  R.rsp
+    PMXForest,
+    kableExtra,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0),
+    R.rsp,
+    vdiffr
 VignetteBuilder: R.rsp
 NeedsCompilation: no
 Config/testthat/edition: 3

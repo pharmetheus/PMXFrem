@@ -52,7 +52,7 @@ TABLE for each \code{$ESTIMATION} in the \code{NONMEM} model file.}
 \item{omegaNum}{The number of the \code{OMEGA}s to include in the plot. Default is NULL, which means that all \code{OMEGA}s should be included.}
 }
 \value{
-A list of ggplot objects, one for each of OFV, \code{THETA}s and code{OMEGA}s.
+A list of ggplot objects, one for each of an object of OFV, \code{THETA}s and code{OMEGA}s.
 }
 \description{
 Use to check for a stable convergence of NONMEM runs, typically for runs
@@ -61,4 +61,9 @@ implemented with EM algorithms.
 \details{
 Each of the parameters and OFV are plotted versus the iteration number.
 The value on the y-axis is normalised to the last iteration.
+}
+\examples{
+\dontrun{
+ traceplot(30,modDevDir=system.file("extdata","SimNeb/",package="PMXFrem"))
+}
 }

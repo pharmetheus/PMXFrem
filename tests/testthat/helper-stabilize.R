@@ -145,3 +145,33 @@ standardize_plot_data <- function(plot_data_list) {
     df
   })
 }
+
+# Add this to helper-stabilize.R
+
+#' Stabilize random temp file paths in model code snapshots
+#'
+#' Finds the $DATA line in a model file and replaces the random filepath
+#' with a consistent placeholder. It also stabilizes the rest of the object.
+#'
+#' @param result_list A list returned from updateFREMmodel, containing $data and $model.
+#' @return A stabilized list suitable for snapshotting.
+stabilize_model_paths <- function(result_list) {
+  # First, stabilize the data components recursively as usual
+  stable_list <- stabilize(result_list)
+
+  # Then, specifically fix the random path in the model code
+  model_code <- stable_list$model
+  if (!is.null(model_code)) {
+    data_line_index <- grep("^\\$DATA", model_code)
+    if (length(data_line_index) > 0) {
+      # Use gsub to replace the random path with a placeholder
+      stable_list$model[data_line_index] <- gsub(
+        pattern = "(\\$DATA\\s+).*( IGNORE=@)",
+        replacement = "\\1[placeholder_path]\\2",
+        x = model_code[data_line_index]
+      )
+    }
+  }
+
+  return(stable_list)
+}

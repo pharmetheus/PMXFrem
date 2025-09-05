@@ -9,7 +9,7 @@ plotExplainedVar(
   parameters = unique(dfres$PARAMETER),
   parameterLabels = NULL,
   covariateLabels = NULL,
-  labelfun = label_value,
+  labelfun = ggplot2:::label_value,
   fill_col = "lightgrey",
   x_scale = "free_x",
   maxVar = 1,
