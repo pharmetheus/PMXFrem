@@ -222,68 +222,32 @@ updateFREMmodel <- function(strFREMModel,
     }
     
     #### Removal of covariates
-    if (!is.null(cstrRemoveCov)) {
-      cOrgCovsToRemove <- c()
-      cCovNamesToRemove <- c()
-      
-      for (i in 1:length(cstrRemoveCov)) { # Go trough all covariates to remove
-        for (j in 1:length(covnames$covNames)) {
-          strCov      <- covnames$covNames[j]
-          strCovClean <- stringr::str_replace(strCov, "_.*", "") # Remove underscore (if any)
-          
-          if (cstrRemoveCov[i] == strCov) { # This is a continuous covariate or a categorical specified covariate, e.g. SITEID_7
-            if (cstrRemoveCov[i] %in% covnames$orgCovNames) {
-              printq(paste0("Found a continuous covariate to remove ", strCov, " with FREMTYPE=", j * iFremTypeIncrease), quiet = quiet)
-            } else {
-              printq(paste0("Found a categorical covariate to remove ", strCov, " with FREMTYPE=", j * iFremTypeIncrease), quiet = quiet)
-            }
-            cOrgCovsToRemove <- c(cOrgCovsToRemove, strCov)
-            cCovNamesToRemove <- c(cCovNamesToRemove, strCov)
-            
-          } else { # This is a categorical covariate
-            if (strCovClean == cstrRemoveCov[i]) {
-              iCategory         <- gsub(".+_([0-9]+)", "\\1", strCov) # Get the categorical covariate category
-              printq(paste0("Found a categorical covariate to remove ", strCovClean, " with category ", iCategory, " and FREMTYPE=", j * iFremTypeIncrease), quiet = quiet)
-              cOrgCovsToRemove  <- c(cOrgCovsToRemove, strCovClean)
-              cCovNamesToRemove <- c(cCovNamesToRemove, strCov)
-            }
-          }
-        }
-      }
-      
-      # Get the covariate index of the variables to remove
-      iCovariateIndexToRemove <- which(covnames$covNames %in% cCovNamesToRemove)
-      
-      # Removing rows from FREM dataset
-      printq(paste0("Removing all unwanted fremtypes from FREM dataset, in total ", nrow(dfFREM[(dfFREM[["FREMTYPE"]] %in% (iCovariateIndexToRemove * iFremTypeIncrease)), ]), " observations"), quiet = quiet)
-      dfFREM <- dfFREM[!(dfFREM[["FREMTYPE"]] %in% (iCovariateIndexToRemove * iFremTypeIncrease)), ] # Only keep the fremtypes that should not be removed
-      
-      # Recode all FREMTYPES in frem dataset
-      printq(paste0("Recoding all remaining FREMTYPEs in FREM dataset..."), quiet = quiet)
-      remainingCovs <- covnames$covNames[which(!(covnames$covNames %in% cCovNamesToRemove))]
-      iuniqueFREMTYPEs <- sort(unique(dfFREM[["FREMTYPE"]][dfFREM[["FREMTYPE"]] >= iFremTypeIncrease]))
-      
-      for (i in 1:length(iuniqueFREMTYPEs)) {
-        if (iuniqueFREMTYPEs[i] != i * iFremTypeIncrease) {
-          printq(paste0("Updating ", nrow(dfFREM[dfFREM[["FREMTYPE"]] == iuniqueFREMTYPEs[i], ]), " rows with FREMTYPE=", iuniqueFREMTYPEs[i], " (", remainingCovs[i], ") to FREMTYPE=", i * iFremTypeIncrease), quiet = quiet)
-          dfFREM[dfFREM[["FREMTYPE"]] == iuniqueFREMTYPEs[i], "FREMTYPE"] <- i * iFremTypeIncrease
-        }
-      }
-      
-      printq(paste0("Recoding FREMTYPES, done!"), quiet = quiet)
-      
-      # Update all TH and OM variables
-      THETA     <- THETA[-(iCovariateIndexToRemove + noBaseThetas)]
-      OM        <- OM[-(iCovariateIndexToRemove + numParCov + numSkipOm), -(iCovariateIndexToRemove + numParCov + numSkipOm)]
-      THETAFIX  <- THETAFIX[-(iCovariateIndexToRemove + noBaseThetas)]
-      iNumOM    <- iNumOM - length(iCovariateIndexToRemove)
-      iNumTHETA <- iNumTHETA - length(iCovariateIndexToRemove)
-      
-      # Update all covariate names
-      covnames$covNames    <- covnames$covNames[!(covnames$covNames %in% cCovNamesToRemove)]
-      covnames$orgCovNames <- covnames$orgCovNames[!(covnames$orgCovNames %in% unique(cOrgCovsToRemove))]
-      covnames$polyCatCovs <- covnames$polyCatCovs[covnames$polyCatCovs %in% covnames$covNames]
-    }
+    # Bundle the current state into a list
+    currentState <- list(
+      dfFREM = dfFREM,
+      covnames = covnames,
+      theta = THETA,
+      omegaMatrix = OM,
+      thetaFix = THETAFIX,
+      numOmega = iNumOM,
+      numTheta = iNumTHETA,
+      numNonFREMThetas = noBaseThetas,
+      numParCov = numParCov,
+      numSkipOm = numSkipOm,
+      iFremTypeIncrease = iFremTypeIncrease
+    )
+    
+    # Call the new function to handle removal logic
+    updatedState <- removeFremCovariates(currentState, cstrRemoveCov, quiet)
+    
+    # Unpack the results back into local variables for the rest of the function to use
+    dfFREM     <- updatedState$dfFREM
+    covnames   <- updatedState$covnames
+    THETA      <- updatedState$theta
+    OM         <- updatedState$omegaMatrix
+    THETAFIX   <- updatedState$thetaFix
+    iNumOM     <- updatedState$numOmega
+    iNumTHETA  <- updatedState$numTheta
     
     # ... The rest of the function remains identical to the original ...
     printq(paste0("Variables already in FREM model (n=", length(covnames$orgCovNames), "): ", paste0(covnames$orgCovNames, collapse = " ")), quiet = quiet)
