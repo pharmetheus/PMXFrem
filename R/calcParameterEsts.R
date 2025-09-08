@@ -16,7 +16,6 @@
 #'
 #' @return A vector of parameter estimates corresponding to `thetaNum`,
 #'   `omegaNum`and `sigmaNum`.
-#' @export
 #' @keywords internal
 #' @seealso [fremParameterTable()]
 #'

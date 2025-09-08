@@ -36,3 +36,4 @@ tmp <- findrecord(modFile, record = "\\\\$PROBLEM", quiet = TRUE)
 tmp <- findrecord(modFile, record = "\\\\$PROBLEM", replace = "$PROBLEM FFEM model", quiet = TRUE)
 
 }
+\keyword{internal}

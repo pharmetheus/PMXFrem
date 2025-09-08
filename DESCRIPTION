@@ -12,7 +12,9 @@ Description: Support functions for FREM analyses in NONMEM that will facilitate 
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.3.2
+Author: Niclas Jonsson [aut, cre],
+  Joakim Nyberg [aut]
+RoxygenNote: 7.2.1
 Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 3.5.0),
@@ -30,18 +32,16 @@ Imports:
     stringr,
     tools,
     withr,
-    numDeriv
+    xpose4,
+    numDeriv,
+    PMXForest
 Suggests: 
-    PMXForest,
     kableExtra,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
     R.rsp,
-    vdiffr,
-    GGally,
-    ggpubr,
-    pmxvpc
-VignetteBuilder: knitr
+    vdiffr
+VignetteBuilder: R.rsp, knitr
 NeedsCompilation: no
 Config/testthat/edition: 3
