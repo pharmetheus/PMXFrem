@@ -291,24 +291,13 @@ updateFREMmodel <- function(strFREMModel,
     
     ##
     
-    if (!is.null(sortFREMDataset)) {
-      if (is.null(cstrKeepCols)) {
-        dfFREM %>% dplyr::arrange(!!!rlang::syms(sortFREMDataset))
-      } else {
-        dfFREM <- dfFREM %>% dplyr::arrange(!!!rlang::syms(sortFREMDataset)) %>% dplyr::select(dplyr::one_of(cstrKeepCols))
-      }
-    } else {
-      if (is.null(cstrKeepCols)) {
-        dfFREM <- dfFREM %>% dplyr::arrange(ID, FREMTYPE)
-      } else {
-        dfFREM <- dfFREM %>% dplyr::arrange(ID, FREMTYPE) %>% dplyr::select(dplyr::one_of(cstrKeepCols))
-      }
-    }
-    if (bWriteData) {
-      write.csv(dfFREM, file = strNewFREMData, row.names = FALSE, quote = FALSE)
-      if (!("FREMTYPE" %in% names(dfFREM))) warning("No FREMTYPE available in dataset, add in cstrKeepCols and rerun updateFREM")
-    }
+    # This is the new line to INSERT
+    dfFREM <- finalizeFremData(dfFREM, sortFREMDataset, cstrKeepCols, bWriteData, strNewFREMData)
   }
+  
+  ###
+  
+  
   strNewCovNames <- c(covnames$covNames, addedList)
   con <- file(strFREMModel, open = "r")
   line <- readLines(con)
