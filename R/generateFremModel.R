@@ -27,23 +27,16 @@ generateFremModel <- function(final_df,
                               dDefaultCovValue,
                               strUpdateType) {
   
-  # Helper function to safely call findrecord and avoid overwriting with NULL
   safeFindRecord <- function(current_lines, record, replace) {
     result <- findrecord(current_lines, record = record, replace = replace, quiet = TRUE)
-    if (is.null(result)) {
-      # If record was not found, return the original lines unmodified
-      return(current_lines)
-    }
+    if (is.null(result)) { return(current_lines) }
     return(result)
   }
   
   strNewCovNames <- c(covnames$covNames, addedList)
-  
   line <- readLines(strFREMModel)
   
-  # Generate MU_/COV block
   strinput <- c()
-  # FIX: Add a condition to prevent the loop from running with a reverse sequence (e.g., 2:1)
   loop_start <- noBaseThetas + 1
   loop_end <- length(strNewCovNames) + noBaseThetas
   if (loop_end >= loop_start) {
@@ -54,14 +47,20 @@ generateFremModel <- function(final_df,
     }
   }
   
-  tmpl <- grep(pattern = "COV\\d+ = MU\\_\\d+", x = line)
-  if (length(tmpl) == 0 && length(strinput) > 0) warning("can't find MU/COV block to replace")
-  if (length(tmpl) > 0) {
-    # This manual replacement is brittle, but retained to match original behavior
-    line <- c(line[1:(min(tmpl) - 2)], strinput, line[(max(tmpl) + 1):length(line)])
+  mu_indices <- grep(pattern = "MU_\\d+ = THETA", x = line)
+  cov_indices <- grep(pattern = "COV\\d+ = MU_", x = line)
+  if (length(mu_indices) > 0 && length(cov_indices) > 0) {
+    start_line <- min(mu_indices)
+    end_line <- max(cov_indices)
+    line <- c(
+      if (start_line > 1) line[1:(start_line - 1)] else NULL,
+      strinput,
+      if (end_line < length(line)) line[(end_line + 1):length(line)] else NULL
+    )
+  } else if (length(strinput) > 0) {
+    warning("can't find MU/COV block to replace; new block not inserted")
   }
   
-  # Generate FREM code block
   iFremTypeIncrease <- 100
   fremTypes <- seq(from = iFremTypeIncrease, by = iFremTypeIncrease, length.out = length(strNewCovNames))
   strinput_frem <- c(";;;FREM CODE BEGIN COMPACT")
@@ -75,17 +74,19 @@ generateFremModel <- function(final_df,
     }
   }
   strinput_frem <- c(strinput_frem, ";;;FREM CODE END COMPACT")
-  # FIX: Use the safe wrapper for all findrecord calls
   line <- safeFindRecord(line, record = ";;;FREM CODE BEGIN COMPACT", replace = strinput_frem)
   
-  # Unpack model state
   THETA <- modelState$theta; OM <- modelState$omegaMatrix; THETAFIX <- modelState$thetaFix
   iNumTHETA <- modelState$numTheta; iNumOM <- modelState$numOmega
+  
+  # DEFINITIVE FIX: Handle the case where THETAFIX is NULL (no .ext file)
+  if (is.null(THETAFIX)) {
+    THETAFIX <- rep(0, iNumTHETA)
+  }
   
   if (is.null(basenames_th)) basenames_th <- paste0("BASE", 1:noBaseThetas)
   if (is.null(basenames_om)) basenames_om <- paste0("BASE", 1:(numSkipOm + numParCov))
   
-  # Update parameters for new covariates
   if (!is.null(addedList) & length(addedList) > 0) {
     if (is.null(OM)) stop("OM missing, must provide .ext file when adding covariates")
     OMNEW <- matrix(dDefaultCovValue, ncol(OM) + length(addedList), nrow(OM) + length(addedList))
@@ -109,7 +110,6 @@ generateFremModel <- function(final_df,
     }
   }
   
-  # Generate and replace $THETA
   strinput_theta <- c()
   if (iNumTHETA > 0) {
     for (i in 1:iNumTHETA) {
@@ -119,20 +119,15 @@ generateFremModel <- function(final_df,
   }
   line <- safeFindRecord(line, record = "\\$THETA", replace = strinput_theta)
   
-  # Generate and replace $OMEGA
   newommatrix <- buildmatrix(as.matrix(OM))
   if (length(newommatrix) > 0) {
     j <- length(newommatrix)
     for (i in length(om_comment):(1 + numSkipOm)) {
-      if (j > 0) {
-        newommatrix[j] <- paste0(newommatrix[j], " ", om_comment[i])
-        j <- j - 1
-      }
+      if (j > 0) { newommatrix[j] <- paste0(newommatrix[j], " ", om_comment[i]); j <- j - 1 }
     }
   }
   line <- safeFindRecord(line, record = "\\$OMEGA", replace = newommatrix)
   
-  # Replace $DATA and $INPUT
   if (strUpdateType != "NoData") {
     line <- safeFindRecord(line, record = "\\$DATA", replace = paste0("$DATA ", strNewFREMData, " IGNORE=@"))
     if (!is.null(final_df)) {
@@ -140,7 +135,6 @@ generateFremModel <- function(final_df,
     }
   }
   
-  # Write file if requested
   if (bWriteMod) {
     strNewModelFileName <- paste0(tools::file_path_sans_ext(strFREMModel), "_new.mod")
     writeLines(line, strNewModelFileName)

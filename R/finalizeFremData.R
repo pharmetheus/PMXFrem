@@ -5,6 +5,7 @@
 #'
 #' @param dfFREM The augmented FREM data frame.
 #' @param sortFREMDataset Character vector of columns to sort the final dataset by.
+#'   This argument is required and cannot be NULL.
 #' @param cstrKeepCols Character vector of column names to keep in the final dataset.
 #' @param bWriteData Logical; if TRUE, write the new data file.
 #' @param strNewFREMData The file path for the new FREM dataset to be written.
@@ -21,19 +22,12 @@ finalizeFremData <- function(dfFREM,
     return(NULL)
   }
   
-  # Apply final sorting and column selection
-  if (!is.null(sortFREMDataset)) {
-    if (is.null(cstrKeepCols)) {
-      dfFREM <- dfFREM %>% dplyr::arrange(!!!rlang::syms(sortFREMDataset))
-    } else {
-      dfFREM <- dfFREM %>% dplyr::arrange(!!!rlang::syms(sortFREMDataset)) %>% dplyr::select(dplyr::one_of(cstrKeepCols))
-    }
+  # Per your proposal, this function now assumes sortFREMDataset is always provided.
+  # The redundant if/else structure has been removed.
+  if (is.null(cstrKeepCols)) {
+    dfFREM <- dfFREM %>% dplyr::arrange(!!!rlang::syms(sortFREMDataset))
   } else {
-    if (is.null(cstrKeepCols)) {
-      dfFREM <- dfFREM %>% dplyr::arrange(ID, FREMTYPE)
-    } else {
-      dfFREM <- dfFREM %>% dplyr::arrange(ID, FREMTYPE) %>% dplyr::select(dplyr::one_of(cstrKeepCols))
-    }
+    dfFREM <- dfFREM %>% dplyr::arrange(!!!rlang::syms(sortFREMDataset)) %>% dplyr::select(dplyr::one_of(cstrKeepCols))
   }
   
   # Write file if requested

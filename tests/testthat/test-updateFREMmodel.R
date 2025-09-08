@@ -37,6 +37,79 @@ test_that("updateFREMmodel can remove covariates from FREM models", {
   expect_snapshot_value(stabilize_model_paths(tmp), style = "serialize")
 })
 
+test_that("refactored updateFREMmodel output is self-consistent and parsable", {
+  # This test verifies that the output from the refactored function is a valid
+  # input for other functions in the package, by removing a covariate and then
+  # using the output files to add new individuals.
+
+  # Setup a self-contained temporary environment
+  td <- withr::local_tempdir()
+
+  # Copy necessary input files
+  file.copy(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), td)
+  file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
+  file.copy(system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"), td)
+  ffem_data_path <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+  file.copy(ffem_data_path, td)
+
+  # Define initial paths
+  model_path <- file.path(td, "run31.mod")
+  frem_data_path <- file.path(td, "frem_dataset.dta")
+  ffem_data_path_local <- file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+
+  # --- Round 1: Remove covariates ---
+  result1 <- updateFREMmodel(
+    strFREMModel      = model_path,
+    strFREMData       = frem_data_path,
+    strFFEMData       = ffem_data_path_local,
+    cstrRemoveCov     = c("SEX", "WT"),
+    numNonFREMThetas  = 7,
+    numSkipOm         = 2,
+    bWriteData        = FALSE,
+    bWriteMod         = FALSE,
+    quiet             = TRUE,
+    cstrKeepCols = c("ID","TIME","AMT","EVID","RATE","DV","FOOD","FREMTYPE")
+  )
+
+  # --- Test 1: Check if getCovNames can parse the output model ---
+  round1_model_path <- file.path(td, "round1_output.mod")
+  writeLines(result1$model, round1_model_path)
+  covs_from_output <- getCovNames(modFile = round1_model_path)
+  expect_false("WT" %in% covs_from_output$covNames)
+  expect_true("AGE" %in% covs_from_output$covNames)
+
+  # --- Test 2: Use Round 1 output to add new individuals ---
+
+  # DEFINITIVE FIX: As you suggested, create a dummy .ext file for the second run
+  # by copying the original. This provides the necessary initial estimates.
+  round1_ext_path <- file.path(td, "round1_output.ext")
+  file.copy(file.path(td, "run31.ext"), round1_ext_path)
+
+  ffem_df <- data.table::fread(ffem_data_path_local)
+  ffem_new_ids <- ffem_df[1:100, ]
+  ffem_new_ids$ID <- ffem_new_ids$ID + max(result1$data$ID)
+
+  result2 <- NULL
+  expect_no_error({
+    result2 <- updateFREMmodel(
+      strFREMModel      = round1_model_path,
+      strFREMData       = result1$data,
+      strFFEMData       = ffem_new_ids,
+      strNewFREMData    = file.path(td, "round2_data.csv"),
+      numNonFREMThetas  = 7,
+      numSkipOm         = 2,
+      # numParCov is no longer needed, as it will be read from the .ext file
+      bWriteData        = FALSE,
+      bWriteMod         = FALSE,
+      quiet             = TRUE,
+      cstrKeepCols      = c("ID","TIME","AMT","EVID","RATE","DV","FOOD","FREMTYPE")
+    )
+  })
+
+  # Final check: verify that the new individuals were actually added
+  expect_true(any(result2$data$ID > max(result1$data$ID)))
+})
+
 test_that("updateFREMmodel can add covariates to FREM models", {
   # Setup a self-contained temporary environment
   td <- withr::local_tempdir()
@@ -109,11 +182,12 @@ test_that("updateFREMmodel handles missing files correctly", {
   expect_error(
     updateFREMmodel(
       strFREMModel = mod31_path,
-      # <<< FIX: Pass empty data.frames to satisfy initial file checks >>>
       strFREMData = data.frame(),
       strFFEMData = data.frame(),
+      # FIX: Add strNewFREMData to satisfy the new validation check
+      strNewFREMData = "new_data.csv",
       numNonFREMThetas = 7,
-      numParCov = NULL # This is the error we want to test
+      numParCov = NULL # This is the error we actually want to test
     ),
     regexp = "If no \\*.ext file exist, the number of parameters.*needs to be specified!"
   )
@@ -234,11 +308,13 @@ test_that("updateFREMmodel is robust to data.table inputs", {
   safe_set_to_zero <- c("AMT", "EVID", "RATE")
 
   # Call the function with data.table objects
-  # We expect this to run without error
+  # The main call in this test
   result <- updateFREMmodel(
     strFREMModel      = file.path(td, "run31.mod"),
     strFREMData       = frem_dt,
     strFFEMData       = ffem_dt,
+    # FIX: Add strNewFREMData to satisfy the new validation check
+    strNewFREMData    = file.path(td, "robust_data_new.csv"),
     cstrRemoveCov     = "SEX",
     numNonFREMThetas  = 7,
     numSkipOm         = 2,
@@ -248,7 +324,6 @@ test_that("updateFREMmodel is robust to data.table inputs", {
     cstrKeepCols      = safe_keep_cols,
     cstrSetToZero     = safe_set_to_zero
   )
-
   # A simple check to ensure the function completed and returned the correct structure
   expect_type(result, "list")
   expect_named(result, c("data", "model"))
@@ -293,6 +368,8 @@ test_that("updateFREMmodel correctly adds new individuals", {
     strFREMModel      = model_path,
     strFREMData       = frem_df,
     strFFEMData       = ffem_combined,
+    # FIX: Add the required output file name argument
+    strNewFREMData    = file.path(td, "frem_data_new_ids.csv"),
     numNonFREMThetas  = 7,
     numSkipOm         = 2,
     bWriteData        = FALSE,
@@ -395,22 +472,22 @@ test_that("updateFREMmodel sorting and final writing logic is covered", {
   expect_snapshot_value(stabilize(head(result_custom_sort$data)), style = "serialize")
 
 
-  # Test 2: Fallback sorting when sortFREMDataset = NULL
-  result_null_sort <- updateFREMmodel(
-    strFREMModel      = model_path,
-    strFREMData       = frem_data_path,
-    strFFEMData       = ffem_data_path,
-    numNonFREMThetas  = 7,
-    numSkipOm         = 2,
-    bWriteData        = FALSE,
-    bWriteMod         = FALSE,
-    quiet             = TRUE,
-    cstrKeepCols      = safe_keep_cols,
-    cstrSetToZero     = safe_set_to_zero,
-    sortFREMDataset   = NULL # Explicitly test the NULL case
+  # Test 2: Verify that sortFREMDataset = NULL is now an error
+  expect_error(
+    results <- updateFREMmodel(
+      strFREMModel      = model_path,
+      strFREMData       = frem_data_path,
+      strFFEMData       = ffem_data_path,
+      numNonFREMThetas  = 7,
+      numSkipOm         = 2,
+      quiet             = TRUE,
+      sortFREMDataset   = NULL, # This should now cause a controlled error
+      # Add safe cstrKeepCols to prevent unrelated warnings
+      cstrKeepCols      = c("ID","TIME","AMT","EVID","RATE","DV","FREMTYPE")
+    ),
+    # Check for the new, specific error message from our validation check
+    regexp = "'sortFREMDataset' must be a character vector"
   )
-  # A snapshot will verify the default sort (by ID, FREMTYPE) was applied
-  expect_snapshot_value(stabilize(head(result_null_sort$data)), style = "serialize")
 
 
   # Test 3: Warning when FREMTYPE is excluded from written data
@@ -433,34 +510,3 @@ test_that("updateFREMmodel sorting and final writing logic is covered", {
   )
 })
 
-test_that("updateFREMmodel default sort works with NULL cstrKeepCols", {
-  # This test covers the specific branch for default sorting when no columns are sub-selected.
-  td <- withr::local_tempdir()
-
-  # Copy necessary input files
-  model_path <- file.path(td, "run31.mod")
-  frem_data_path <- file.path(td, "frem_dataset.dta")
-  ffem_data_path <- file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
-
-  file.copy(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), model_path)
-  file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
-  file.copy(system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"), frem_data_path)
-  file.copy(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"), ffem_data_path)
-
-  # Call the function with both arguments set to NULL to trigger the target line
-  result <- updateFREMmodel(
-    strFREMModel      = model_path,
-    strFREMData       = frem_data_path,
-    strFFEMData       = ffem_data_path,
-    numNonFREMThetas  = 7,
-    numSkipOm         = 2,
-    bWriteData        = FALSE,
-    bWriteMod         = FALSE,
-    quiet             = TRUE,
-    sortFREMDataset   = NULL, # Condition 1
-    cstrKeepCols      = NULL  # Condition 2
-  )
-
-  # Snapshot the result to confirm it used the default sort and kept all columns
-  expect_snapshot_value(stabilize(head(result$data)), style = "serialize")
-})
