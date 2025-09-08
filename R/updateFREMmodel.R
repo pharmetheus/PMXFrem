@@ -249,65 +249,29 @@ updateFREMmodel <- function(strFREMModel,
     iNumOM     <- updatedState$numOmega
     iNumTHETA  <- updatedState$numTheta
     
-    # ... The rest of the function remains identical to the original ...
-    printq(paste0("Variables already in FREM model (n=", length(covnames$orgCovNames), "): ", paste0(covnames$orgCovNames, collapse = " ")), quiet = quiet)
-    if (!is.null(cstrContCovsToAdd)) printq(paste0("Continuous covariates that will be added to FREM (n=", length(cstrContCovsToAdd), "): ", paste0(cstrContCovsToAdd, collapse = " ")), quiet = quiet)
-    if (!is.null(cstrCatCovsToAdd)) printq(paste0("Categorical covariates that will be added to FREM (n=", length(cstrCatCovsToAdd), "): ", paste0(cstrCatCovsToAdd, collapse = " ")), quiet = quiet)
+    # Get the next fremtype to use. Handle case where dfFREM is empty after removals.
+    iFremType <- if(nrow(dfFREM) > 0) max(dfFREM$FREMTYPE) else 0
     
-    iFremType <- max(dfFREM$FREMTYPE) # Get the next fremtype to use
+    # Call the new function to prepare new covariates
+    prepResult <- prepareNewCovariates(
+      dfFFEM = dfFFEM,
+      cstrCatCovsToAdd = cstrCatCovsToAdd,
+      cstrContCovsToAdd = cstrContCovsToAdd,
+      cstrCovsToAddOrder = cstrCovsToAddOrder,
+      existingCovNames = covnames,
+      lastFremType = iFremType,
+      iFremTypeIncrease = iFremTypeIncrease,
+      strID = strID,
+      overrideExistingCheck = overrideExistingCheck,
+      quiet = quiet
+    )
     
+    # Unpack the results back into local variables
+    covList   <- prepResult$covList
+    addedList <- c(addedList, prepResult$addedList) # Append to existing addedList
+    dfFFEM    <- prepResult$dfFFEM
+    iFremType <- prepResult$lastFremType
     
-    #### Add all covariates together and sort them when adding
-    if (is.null(cstrCovsToAddOrder)) cstrCovsToAddOrder <- sort(c(cstrContCovsToAdd, cstrCatCovsToAdd))
-    
-    ### Make all new variables (covariates) and store them in a list
-    covList <- list()
-    for (strCov in cstrCovsToAddOrder) { # Generate values, mean/variance for each covariate
-      
-      if (strCov %in% cstrCatCovsToAdd && length(unique(dfFFEM[[strCov]][dfFFEM[[strCov]] != -99])) == 2) {
-        cstrContCovsToAdd <- c(strCov, cstrContCovsToAdd)
-        cstrCatCovsToAdd  <- cstrCatCovsToAdd[-which(cstrCatCovsToAdd == strCov)]
-        printq(paste0("Switching: ", strCov, ", from categorical to continuous since only 2 levels"), quiet = quiet)
-      }
-      
-      if (strCov %in% cstrContCovsToAdd) { # Add a continuous covariate to the fremdataset
-        if (!strCov %in% covnames$covNames || overrideExistingCheck == TRUE) {
-          tmp               <- dfFFEM[dfFFEM[[strCov]] != -99, ]
-          tmp               <- tmp[!duplicated(tmp[[strID]]), c(strID, strCov)]
-          iFremType         <- iFremType + iFremTypeIncrease
-          l                 <- list(Name = strCov, Mean = mean(tmp[[strCov]]), Var = var(tmp[[strCov]]), Fremtype = iFremType)
-          l[["Data"]]       <- tmp
-          covList[[strCov]] <- l
-          printq(paste0("Identifying new covariate: ", strCov, " with fremtype ", iFremType), quiet = quiet)
-          addedList         <- c(addedList, strCov)
-        } else {
-          printq(paste0("Skipping continuous covariate: ", strCov, ", already existing as fremtype"), quiet = quiet)
-        }
-      } else { ### Add a categorical covariate to the fremdataset
-        covValues <- sort(unique(dfFFEM[[strCov]][dfFFEM[[strCov]] != -99]))
-        for (j in 2:length(covValues)) {
-          strCov2 <- paste0(strCov, "_", covValues[j])
-          
-          if (!strCov2 %in% covnames$covNames || overrideExistingCheck == TRUE) {
-            
-            dfFFEM[[strCov2]] <- dfFFEM[[strCov]]
-            dfFFEM[[strCov2]][dfFFEM[[strCov]] != -99 & dfFFEM[[strCov]] == covValues[j]] <- 1
-            dfFFEM[[strCov2]][dfFFEM[[strCov]] != -99 & dfFFEM[[strCov]] != covValues[j]] <- 0
-            
-            tmp                <- dfFFEM[dfFFEM[[strCov2]] != -99, ] # Get all which are not missing
-            tmp                <- tmp[!duplicated(tmp[[strID]]), c(strID, strCov2)]
-            iFremType          <- iFremType + iFremTypeIncrease
-            l                  <- list(Name = strCov2, Mean = mean(tmp[[strCov2]]), Var = var(tmp[[strCov2]]), Fremtype = iFremType)
-            l[["Data"]]        <- tmp
-            covList[[strCov2]] <- l
-            printq(paste0("Identifying new covariate: ", strCov2, " with fremtype ", iFremType), quiet = quiet)
-            addedList          <- c(addedList, strCov2)
-          } else {
-            printq(paste0("Skipping category: ", strCov2, ", already existing as fremtype"), quiet = quiet)
-          }
-        }
-      }
-    }
     dataToAdd <- dfFFEM[!(dfFFEM[[strID]] %in% dfFREM[[strID]]), ]
     printq(paste0("Found ", nrow(dataToAdd[!duplicated(dataToAdd[[strID]]), ]), " individuals that should be added to the FREM dataset"), quiet = quiet)
     iFremtypeDV <- unique(dfFREM[["FREMTYPE"]][dfFREM[["FREMTYPE"]] < iFremTypeIncrease])
