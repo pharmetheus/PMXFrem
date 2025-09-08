@@ -12,7 +12,7 @@ test_that("updateFREMmodel can remove covariates from FREM models", {
   model_path <- file.path(td, "run31.mod")
   frem_data_path <- file.path(td, "frem_dataset.dta")
   ffem_data_path <- file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
-  new_data_path <- file.path(td, "frem_dataset_noSEX.csv")
+  new_data_path <- file.path(td, "frem_dataset_noSEXWT.csv")
   new_model_path <- file.path(td, "run31_new.mod")
 
   tmp <- updateFREMmodel(
@@ -50,6 +50,7 @@ test_that("updateFREMmodel can add covariates to FREM models", {
   # Define paths relative to the temporary directory
   model_path <- file.path(td, "run31_new.mod")
   frem_data_path <- file.path(td, "frem_dataset_noSEX.csv")
+  new_data_path <- file.path(td, "frem_dataset_withSEX.csv")
   ffem_data_path <- file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
 
   tmp <- updateFREMmodel(
@@ -60,18 +61,18 @@ test_that("updateFREMmodel can add covariates to FREM models", {
     cstrCatCovsToAdd  = "SEX",
     cstrContCovsToAdd = "WT",
     strID             = "ID",
-    strNewFREMData    = "frem_dataset_withSEX.csv",
+    strNewFREMData    = new_data_path,
     numNonFREMThetas  = 7,
     numSkipOm         = 2,
     numParCov         = 3,
-    bWriteData        = FALSE,
-    bWriteMod         = FALSE,
+    bWriteData        = TRUE,
+    bWriteMod         = TRUE,
     quiet             = TRUE,
     bWriteFIX         = TRUE,
-    sortFREMDataset  = c("ID","TAD","FREMTYPE"),
-    cstrKeepCols = c("ID","TAD","AMT","EVID","RATE","DV","FREMTYPE"))
+    sortFREMDataset  = c("ID","TIME","FREMTYPE"),
+    cstrKeepCols = c("ID","TIME","AMT","EVID","RATE","DV","FOOD","FREMTYPE"))
 
-  expect_snapshot_value(stabilize(tmp), style = "serialize")
+  expect_snapshot_value(stabilize_model_paths(tmp), style = "serialize")
 })
 
 test_that("updateFREMmodel can update initial estimates in FREM models", {
