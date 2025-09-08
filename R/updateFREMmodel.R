@@ -272,121 +272,25 @@ updateFREMmodel <- function(strFREMModel,
     dfFFEM    <- prepResult$dfFFEM
     iFremType <- prepResult$lastFremType
     
-    dataToAdd <- dfFFEM[!(dfFFEM[[strID]] %in% dfFREM[[strID]]), ]
-    printq(paste0("Found ", nrow(dataToAdd[!duplicated(dataToAdd[[strID]]), ]), " individuals that should be added to the FREM dataset"), quiet = quiet)
-    iFremtypeDV <- unique(dfFREM[["FREMTYPE"]][dfFREM[["FREMTYPE"]] < iFremTypeIncrease])
-    iNewFremtypeDV <- NULL
-    if (is.null(cstrDV)) {
-      warning("No DVs recognized; no DVs added for new individuals")
-      iFremtypeDV <- NULL
-    } else {
-      if (length(iFremtypeDV) > length(cstrDV)) {
-        warning(paste0("Found more DV Fremtypes than DV variables, only adding DVs: ", paste0(cstrDV, collapse = ", ")), " to new individuals")
-        iFremTypeDV <- 0:(length(cstrDV) - 1)
-      }
-      if (length(iFremtypeDV) < length(cstrDV)) {
-        printq(paste0("Found new DVs to add: ", paste0(cstrDV[(length(iFremtypeDV) + 1):length(cstrDV)], collapse = ", ")), quiet = quiet)
-        iNewFremtypeDV <- length(iFremtypeDV):(length(cstrDV) - 1)
-      }
-    }
-    dfAddList <- list()
-    if (length(iFremtypeDV) > 0) {
-      for (i in 1:length(iFremtypeDV)) {
-        strDV <- cstrDV[i]
-        dfDVData <- dataToAdd[dataToAdd[[strDV]] != -99, unique(c(names(dataToAdd)[names(dataToAdd) %in% names(dfFREM)], strDV)), ]
-        if (nrow(dfDVData) == 0) {
-          printq(paste0("No observations for ", strDV, " (fremtype=", iFremtypeDV[i], "); not adding any observations!"), quiet = quiet)
-        } else {
-          dfDVData$DV <- dfDVData[[strDV]]
-          if (!(strDV %in% names(dfFREM))) dfDVData[[strDV]] <- NULL
-          dfDVData$FREMTYPE <- iFremtypeDV[i]
-          if (length(names(dfDVData)) == length(names(dfFREM)) && all(sort(names(dfDVData)) == sort(names(dfFREM)))) {
-            dfDVData       <- dfDVData[, names(dfFREM)]
-            dfAddList[[i]] <- dfDVData
-            printq(paste0("Adding ", nrow(dfDVData), " observations (", strDV, ") from ", nrow(dfDVData[!duplicated(dfDVData[[strID]]), ]), " individuals as fremtype ", iFremtypeDV[i]), quiet = quiet)
-          } else {
-            strMissnames <- names(dfFREM)[!(names(dfFREM) %in% names(dfDVData))]
-            stop("Variables not found in FFEM dataset: ", paste0(strMissnames, collapse = ", "), "; please add column(s) and try again")
-          }
-        }
-      }
-      dfFREM <- rbind(dfFREM, as.data.frame(data.table::rbindlist(dfAddList)))
-    }
-    dfAddList <- list()
-    if (length(iNewFremtypeDV) > 0) {
-      for (i in 1:length(iNewFremtypeDV)) {
-        strDV <- cstrDV[length(iFremtypeDV) + i]
-        dfDVData <- dfFFEM[dfFFEM[[strDV]] != -99, unique(c(names(dfFFEM)[names(dfFFEM) %in% names(dfFREM)], strDV)), ]
-        if (nrow(dfDVData) == 0) {
-          printq(paste0("No observations for ", strDV, " (fremtype=", iNewFremtypeDV[i], "); not adding any observations!"), quiet = quiet)
-          warning(paste0("Note that it might be inconsistencies in DV fremtypes since fremtype ", iNewFremtypeDV[i], " is not present!"))
-        } else {
-          dfDVData$DV <- dfDVData[[strDV]]
-          if (!(strDV %in% names(dfFREM))) dfDVData[[strDV]] <- NULL
-          dfDVData$FREMTYPE <- iNewFremtypeDV[i]
-          if (length(names(dfDVData)) == length(names(dfFREM)) && all(sort(names(dfDVData)) == sort(names(dfFREM)))) {
-            dfDVData <- dfDVData[, names(dfFREM)]
-            dfAddList[[i]] <- dfDVData
-            printq(paste0("Adding ", nrow(dfDVData), " observations (", strDV, ") from ", nrow(dfDVData[!duplicated(dfDVData[[strID]]), ]), " individuals as fremtype ", iNewFremtypeDV[i]), quiet = quiet)
-          } else {
-            strMissnames <- names(dfFREM)[!(names(dfFREM) %in% names(dfDVData))]
-            stop("Variables not found in FFEM dataset: ", paste0(strMissnames, collapse = ", "), "; please add column(s) and try again")
-          }
-        }
-      }
-      dfFREM <- rbind(dfFREM, as.data.frame(data.table::rbindlist(dfAddList)))
-    }
-    dfAddList <- list()
-    if (nrow(dataToAdd) > 0) {
-      for (i in 1:length(covnames$covNames)) {
-        strCov <- covnames$covNames[i]
-        iFremtype <- iFremTypeIncrease * i
-        strCovClean <- stringr::str_replace(strCov, "_.*", "")
-        dfData <- dataToAdd[dataToAdd[[strCovClean]] != -99, unique(c(names(dataToAdd)[names(dataToAdd) %in% names(dfFREM)], strCovClean)), ]
-        if (nrow(dfData) == 0) {
-          printq(paste0("No observed covariate values for ", strCov, " (fremtype=", iFremtype, "); not adding any covariate values!"), quiet = quiet)
-        } else {
-          dfData <- dfData[!duplicated(dfData[[strID]]), ]
-          dfData$FREMTYPE <- iFremtype
-          if (strCov == strCovClean) {
-            dfData$DV      <- dfData[[strCovClean]]
-            dfData         <- dfData[, names(dfFREM)]
-            dfAddList[[i]] <- dfData
-            printq(paste0("Adding ", nrow(dfData), " continuous covariate values (", strCovClean, ") from ", nrow(dfData[!duplicated(dfData[[strID]]), ]), " individuals as fremtype ", iFremtype), quiet = quiet)
-          } else {
-            iCategory      <- gsub(".+_([0-9]+)", "\\1", strCov)
-            dfData$DV      <- ifelse(dfData[[strCovClean]] == iCategory, 1, 0)
-            dfData         <- dfData[, names(dfFREM)]
-            dfAddList[[i]] <- dfData
-            printq(paste0("Adding ", nrow(dfData), " categorical covariate values (", strCov, ") from ", nrow(dfData[!duplicated(dfData[[strID]]), ]), " individuals as fremtype ", iFremtype), quiet = quiet)
-          }
-        }
-      }
-      dfFREM <- rbind(dfFREM, as.data.frame(data.table::rbindlist(dfAddList)))
-    }
-    dfAddList <- list()
-    dfFREMOne <- dfFREM[!duplicated(dfFREM[[strID]]), ]
-    if (!is.null(addedList)) {
-      for (i in 1:length(addedList)) {
-        strcov               <- addedList[i]
-        l                    <- covList[[strcov]]
-        dftmp                <- dfFREMOne
-        dfnew                <- l[["Data"]]
-        dfnew$NEWVARIABLE    <- dfnew[[l[["Name"]]]]
-        dfnew[[l[["Name"]]]] <- NULL
-        dftmp                <- merge(dftmp, dfnew, by = strID, all.x = FALSE, all.y = FALSE)
-        dftmp$DV             <- dftmp$NEWVARIABLE
-        dftmp$FREMTYPE       <- l[["Fremtype"]]
-        dftmp$NEWVARIABLE    <- NULL
-        
-        # --- THIS IS THE CORRECTED LINE - REVERTED TO ORIGINAL ---
-        dftmp                <- dftmp %>% mutate_at(which(names(dftmp) %in% cstrSetToZero),function(x) return(0))
-        
-        dfAddList[[i]]       <- dftmp
-        printq(paste0("Adding ", nrow(dftmp), " covariate values (", l[["Name"]], ") from ", nrow(dftmp[!duplicated(dftmp[[strID]]), ]), " individuals as fremtype ", l[["Fremtype"]]), quiet = quiet)
-      }
-    }
-    dfFREM <- rbind(dfFREM, as.data.frame(data.table::rbindlist(dfAddList)))
+    
+    ####
+    
+    # Call the new function to handle all data augmentation
+    dfFREM <- augmentFremData(
+      dfFREM = dfFREM,
+      dfFFEM = dfFFEM,
+      covList = covList,
+      addedList = addedList,
+      covnames = covnames,
+      cstrDV = cstrDV,
+      strID = strID,
+      iFremTypeIncrease = iFremTypeIncrease,
+      cstrSetToZero = cstrSetToZero,
+      quiet = quiet
+    )
+    
+    ##
+    
     if (!is.null(sortFREMDataset)) {
       if (is.null(cstrKeepCols)) {
         dfFREM %>% dplyr::arrange(!!!rlang::syms(sortFREMDataset))
