@@ -41,6 +41,6 @@ Suggests:
     testthat (>= 3.0.0),
     R.rsp,
     vdiffr
-VignetteBuilder: R.rsp
+VignetteBuilder: R.rsp, knitr
 NeedsCompilation: no
 Config/testthat/edition: 3
