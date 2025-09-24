@@ -1,1 +1,0 @@
-/opt/psn/psn-4.9.0/bin/frem run8.mod -mu -no-rescale -dir=frem8.dir -no-imp_covariance -no-estimate_covariates -skip_omegas=1,2 -cov=SEX,RACEL,AGE,AST,BILI,CRCL,BMI,ALT,NCI,GENO -categorical=NCI,SEX,RACEL,GENO -nm_version=74_mpi -nodes=12
