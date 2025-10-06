@@ -154,3 +154,30 @@ test_that("createFFEMdata respects the availCov argument", {
     )
   )
 })
+
+
+# --- Test Group 5: Integration test for argument routing ---
+test_that("calcEtas correctly routes arguments to all internal functions", {
+  
+  # This test passes arguments via ... that are unique to different
+  # internal functions. The old code would fail with an "unused argument" error.
+  # 'availCov' is for createFFEMdata.
+  # 'modExt' is for getFileNames.
+  
+  # expect_no_error() confirms that the function runs without crashing.
+  expect_no_error(
+    etas_result <- calcEtas(
+      modName          = "run31",
+      modDevDir        = system.file("extdata/SimNeb/", package = "PMXFrem"),
+      numNonFREMThetas = 7,
+      numSkipOm        = 2,
+      dataFile         = test_data,
+      parNames         = c("CL", "V", "MAT"),
+      availCov         = "WT",  # Argument ONLY for createFFEMdata
+      modExt           = ".mod" # Argument ONLY for getFileNames
+    )
+  )
+  
+  # A secondary check to ensure it not only ran, but produced the expected output type.
+  expect_s3_class(etas_result, "data.frame")
+})

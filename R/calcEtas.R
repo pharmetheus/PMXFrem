@@ -71,41 +71,50 @@ calcEtas <- function(
     modDevDir        = NULL,
     FFEMData         = NULL,
     covmodel         = "linear",
-    # ---- NEW: Add parameters needed for internal createFFEMdata call ----
     dataFile         = NULL,
     parNames         = NULL,
-    quiet            = TRUE, # Default to TRUE for internal calls
-    ...
-) {
+    quiet            = TRUE,
+    ...) {
   
-  # ---- NEW: Conditional block to create FFEMData if not provided ----
+  # Capture all ... arguments into a list
+  dots <- list(...)
+  
+  # --- Argument filtering for getFileNames ---
+  # Arguments for getFileNames are its formal args + any from ... that match
+  getfiles_args_from_dots <- dots[names(dots) %in% names(formals(getFileNames))]
+  getfiles_args <- c(
+    list(runno = runno, modName = modName, modDevDir = modDevDir),
+    getfiles_args_from_dots
+  )
+  fileNames <- do.call(getFileNames, getfiles_args)
+  
+  # --- Conditional creation of FFEMData ---
   if (is.null(FFEMData)) {
-    # Validate that essential arguments are present
     if (is.null(dataFile) || is.null(parNames)) {
       stop("If `FFEMData` is NULL, you must provide `dataFile` and `parNames`.", call. = FALSE)
     }
-    
     message("`FFEMData` object not provided. Creating it internally...")
     
-    # Call createFFEMdata to generate the object
-    FFEMData <- createFFEMdata(
-      runno            = runno,
-      modName          = modName,
-      modDevDir        = modDevDir,
-      numNonFREMThetas = numNonFREMThetas,
-      numSkipOm        = numSkipOm,
-      dataFile         = dataFile,
-      parNames         = parNames,
-      newDataFile      = NULL, # Ensure it returns a data frame, not writes to disk
-      idvar            = idvar,
-      quiet            = quiet,
-      ...
+    # Arguments for createFFEMdata are its formal args + any from ... that match
+    ffem_args_from_dots <- dots[names(dots) %in% names(formals(createFFEMdata))]
+    ffem_args <- c(
+      list(
+        runno            = runno,
+        modName          = modName,
+        modDevDir        = modDevDir,
+        numNonFREMThetas = numNonFREMThetas,
+        numSkipOm        = numSkipOm,
+        dataFile         = dataFile,
+        parNames         = parNames,
+        newDataFile      = NULL,
+        idvar            = idvar,
+        quiet            = quiet
+      ),
+      ffem_args_from_dots
     )
+    FFEMData <- do.call(createFFEMdata, ffem_args)
   }
-  # ---- END OF NEW BLOCK ----
-  
-  ## Get the filenames and data to work with (This part remains the same)
-  fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir, ...)
+
   modFile   <- fileNames$mod
   extFile   <- fileNames$ext
   phiFile   <- fileNames$phi
@@ -113,13 +122,10 @@ calcEtas <- function(
   dfphi <- getPhi(phiFile)
   dfExt <- getExt(extFile)
   
-  # The rest of the function continues exactly as before,
-  # now guaranteed to have a valid FFEMData object.
   dfone <- FFEMData$newData[!duplicated(FFEMData$newData[[idvar]]), c(idvar, FFEMData$indCovEff)]
   
   if (nrow(dfphi) != nrow(dfone)) stop("Number of unique individuals in the dataset and phi file needs to be the same")
   
-  ## Compute eta_prim
   etafrem <- dfphi[, 3:(2 + numSkipOm + nrow(FFEMData$Omega))]
   etaprim <- etafrem
   for (i in 1:length(FFEMData$indCovEff)) {
@@ -127,24 +133,20 @@ calcEtas <- function(
   }
   names(etaprim) <- paste0(names(etaprim), "_PRIM")
   
-  ## Get the covariate thetas
   if (nrow(dfExt) > 1) dfExt <- dfExt[dfExt$ITERATION == -1000000000, ]
   
   numFREMThetas <- length(grep("THETA", names(dfExt))) - numNonFREMThetas
   df_thm        <- as.numeric(dfExt[, (numNonFREMThetas + 2):(numNonFREMThetas + 1 + numFREMThetas)])
   
-  ## Get the covariate ETAs
   covariates        <- dfphi[, (3 + numSkipOm + nrow(FFEMData$Omega)):((2 + numSkipOm + nrow(FFEMData$Omega)) + numFREMThetas)]
   names(covariates) <- getCovNames(modFile = modFile)$covNames
   
-  ## Compute covariates on the original scale if the covmodel is linear
   if (covmodel == "linear") {
     for (i in 1:length(df_thm)) {
       covariates[, i] <- covariates[, i] + df_thm[i]
     }
   }
   
-  ## Assign informative names
   retDf <- cbind(ID = dfphi[, 2], etaprim, etafrem, covariates)
   names(retDf) <- gsub("\\.", "", names(retDf))
   
