@@ -31,7 +31,6 @@ Imports:
     stringr,
     tools,
     withr,
-    xpose4,
     numDeriv
 Suggests: 
     PMXForest,
