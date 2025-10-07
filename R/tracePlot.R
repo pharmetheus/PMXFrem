@@ -20,9 +20,24 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#'  traceplot(30,modDevDir=system.file("extdata","SimNeb/",package="PMXFrem"))
+#' 
+#' model_dir <- system.file("extdata/SimNeb/", package = "PMXFrem")
+#'
+#' trace_plots <- traceplot(
+#'   runno = 31,
+#'   modDevDir = model_dir
+#' )
+#'
+#' names(trace_plots)
+#'
+#' if (interactive()) {
+#'   trace_plots$OFV
 #' }
+#'
+#' if (interactive()) {
+#'   trace_plots$Theta
+#' }
+#'
 traceplot <- function(runno        = NULL,
                       modName      = NULL,
                       modDevDir    = NULL,
