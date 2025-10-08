@@ -49,7 +49,11 @@ traceplot <- function(runno        = NULL,
                       includeTheta = TRUE,
                       includeOmega = TRUE,
                       thetaNum     = NULL,
-                      omegaNum     = NULL) {
+                      omegaNum     = NULL,
+                      includeShapedOFV = TRUE,
+                      pvalue = 0.05,
+                      df = 1,
+                      meanShapeLastIter=30) {
 
   if (is.null(extFileName)) {
     fileNames   <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)
@@ -78,6 +82,12 @@ traceplot <- function(runno        = NULL,
     for(i in 2:(ncol(myext)-1)) {
       if(sum(myext[,i])==0) myTrash <- c(myTrash,i)
     }
+  }
+  #Error checks for dOFV shape arguments
+  if (includeShapedOFV) {
+    if (pvalue<0 || pvalue>1) error("Chi-square p-value (pvalue) should be in the interval [0-1]")
+    if (df<0) error("Chi-square degreess of freedom should >0")
+    if (meanShapeLastIter<1) error("The number of last iterations used for the mean OFV calculations > 0")
   }
 
   # Select the parameters
@@ -114,12 +124,20 @@ traceplot <- function(runno        = NULL,
     ggplot2::geom_line(show.legend=FALSE) +
     ggplot2::facet_wrap(~Parameter)
 
-  p2 <- ggplot2::ggplot(subset(myextlong,Parameter=="OBJ" & ITERATION > startIter ),ggplot2::aes(ITERATION,Value,color=Parameter,group=Parameter)) +
-    ggplot2::geom_line(show.legend=FALSE) +
-    ggplot2::geom_point(show.legend=FALSE) +
-    ggplot2::ylab("OFV")+
-    ggplot2::ggtitle(main)
+  dfofv<-subset(myextlong,Parameter=="OBJ" & ITERATION > startIter )
+  p2 <- ggplot2::ggplot(dfofv,ggplot2::aes(ITERATION,Value,color=Parameter,group=Parameter))
+  if (includeShapedOFV==TRUE) {
+    meanobj<-mean(dfofv[max(1,nrow(dfofv)-meanShapeLastIter+1):nrow(dfofv),]$Value)
+    chisq<-qchisq(df = df,p=pvalue,lower.tail = FALSE)
+    p2<-p2+ggplot2::annotate("rect", xmin = -Inf, xmax = Inf, ymax=meanobj+chisq/2,ymin=meanobj-chisq/2,alpha=0.2,color="lightgrey") 
+  }
+    
+  p2<-p2+ggplot2::geom_line(show.legend=FALSE) +
+  ggplot2::geom_point(show.legend=FALSE) +
+  ggplot2::ylab("OFV")+
+  ggplot2::ggtitle(main)
 
+  
   retList <- list()
   if(includeOFV) retList[["OFV"]]     <- p2
   if(includeTheta) retList[["Theta"]] <- p1
