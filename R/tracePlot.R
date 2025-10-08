@@ -1,4 +1,4 @@
-#' Create traceplots of OFV, tehtas and omegas from a NONMEM run.
+#' Create traceplots of OFV, thetas and omegas from a NONMEM run.
 #'
 #' Use to check for a stable convergence of NONMEM runs, typically for runs
 #' implemented with EM algorithms.
@@ -6,23 +6,32 @@
 #' @inheritParams getFileNames
 #' @inheritParams getExt
 #' @param startIter The iteration to start the traceplot from. Default is 10.
-#' (The first iterations are typically not particularly informative.)
 #' @param main The title to use in the generated plots. Default is NULL.
 #' @param includeOFV Logical (default is \code{TRUE}). Should the traceplot for OFV be included?
 #' @param includeTheta Logical (default is \code{TRUE}). Should the traceplot for the \code{THETA}s be included?
 #' @param includeOmega Logical (default is \code{TRUE}). Should the traceplot for the \code{OMEGA}s be included?
 #' @param thetaNum The number of the \code{THETA}s to include in the plot. Default is NULL, which means that all \code{THETA}s should be included.
 #' @param omegaNum The number of the \code{OMEGA}s to include in the plot. Default is NULL, which means that all \code{OMEGA}s should be included.
+#' @param includeShapedOFV Logical (default is \code{TRUE}). If TRUE, adds a shaded
+#'   acceptance region to the OFV plot based on the chi-squared distribution to
+#'   help visualize convergence stability.
+#' @param pvalue The p-value (default is 0.05) for the chi-squared distribution
+#'   used to define the height of the shaded region. Must be between 0 and 1.
+#' @param df The degrees of freedom (default is 1) for the chi-squared distribution.
+#' @param meanShapeLastIter The number of final iterations (default is 30) used to
+#'   calculate the mean OFV, which centers the shaded region.
 #'
-#' @return A list of ggplot objects, one for each of an object of OFV, \code{THETA}s and code{OMEGA}s.
+#' @return A list of ggplot objects, one for each of an object of OFV, \code{THETA}s and \code{OMEGA}s.
 #' @details Each of the parameters and OFV are plotted versus the iteration number.
-#' The value on the y-axis is normalised to the last iteration.
+#' The value on the y-axis is normalised to the last iteration. The shaded region
+#' on the OFV plot represents the expected range of variability for the OFV at
+#' the end of a run.
 #' @export
 #'
 #' @examples
-#' 
 #' model_dir <- system.file("extdata/SimNeb/", package = "PMXFrem")
 #'
+#' # Generate plot with the default shaded OFV region
 #' trace_plots <- traceplot(
 #'   runno = 31,
 #'   modDevDir = model_dir
@@ -34,10 +43,16 @@
 #'   trace_plots$OFV
 #' }
 #'
-#' if (interactive()) {
-#'   trace_plots$Theta
-#' }
+#' # Generate plot without the shaded OFV region
+#' trace_plots_no_shape <- traceplot(
+#'   runno = 31,
+#'   modDevDir = model_dir,
+#'   includeShapedOFV = FALSE
+#' )
 #'
+#' if (interactive()) {
+#'   trace_plots_no_shape$OFV
+#' }
 traceplot <- function(runno        = NULL,
                       modName      = NULL,
                       modDevDir    = NULL,
@@ -85,9 +100,9 @@ traceplot <- function(runno        = NULL,
   }
   #Error checks for dOFV shape arguments
   if (includeShapedOFV) {
-    if (pvalue<0 || pvalue>1) error("Chi-square p-value (pvalue) should be in the interval [0-1]")
-    if (df<0) error("Chi-square degreess of freedom should >0")
-    if (meanShapeLastIter<1) error("The number of last iterations used for the mean OFV calculations > 0")
+    if (pvalue<0 || pvalue>1) stop("Chi-square p-value (pvalue) should be in the interval [0-1]")
+    if (df<0) stop("Chi-square degreess of freedom should >0")
+    if (meanShapeLastIter<1) stop("The number of last iterations used for the mean OFV calculations > 0")
   }
 
   # Select the parameters
