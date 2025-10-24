@@ -83,13 +83,61 @@ test_that("traceplot covers remaining logic branches", {
   plot_build_omega <- ggplot2::ggplot_build(res_omegaNum$Omegas)
   expect_equal(as.character(plot_build_omega$layout$layout$Parameter), "OMEGA.1.1.")
 
+})
 
-  # TODO: This test fails because the data disappears inside the ggplot() call
-  # for this specific edge case. This indicates a deep issue that is best
-  # resolved by refactoring the traceplot() function itself. Disabling for now
-  # to allow the test suite to pass.
-  #
-  # Test for set = "last"
-  # res_set_last <- traceplot(extFileName = file_multi_table, set = "last", includeTheta = FALSE, includeOmega = FALSE)
-  # expect_gt(nrow(res_set_last$OFV$data), 0)
+# tests/testthat/test-traceplot.R
+
+# Helper function to check for a specific geom layer in a ggplot object
+has_geom <- function(plot, geom_name) {
+  if (!inherits(plot, "ggplot")) {
+    return(FALSE)
+  }
+  layers <- sapply(plot$layers, function(l) class(l$geom)[1])
+  return(geom_name %in% layers)
+}
+
+test_that("traceplot OFV shaping works as expected", {
+  model_dir <- system.file("extdata/SimNeb/", package = "PMXFrem")
+  
+  # --- Test 1: Shaded region is added by default ---
+  plots_default <- traceplot(runno = 31, modDevDir = model_dir)
+  
+  # The OFV plot should exist and contain a "GeomRect" layer for the shading
+  expect_true("OFV" %in% names(plots_default))
+  expect_true(has_geom(plots_default$OFV, "GeomRect"))
+  
+  
+  # --- Test 2: Shaded region can be disabled ---
+  plots_disabled <- traceplot(runno = 31, modDevDir = model_dir, includeShapedOFV = FALSE)
+  
+  # The OFV plot should NOT contain a "GeomRect" layer
+  expect_true("OFV" %in% names(plots_disabled))
+  expect_false(has_geom(plots_disabled$OFV, "GeomRect"))
+})
+
+
+test_that("traceplot OFV shaping arguments throw correct errors", {
+  model_dir <- system.file("extdata/SimNeb/", package = "PMXFrem")
+  
+  # --- Test 3: Error for invalid p-value ---
+  expect_error(
+    traceplot(runno = 31, modDevDir = model_dir, pvalue = -0.1),
+    regexp = "p-value" # Check for the relevant part of the error message
+  )
+  expect_error(
+    traceplot(runno = 31, modDevDir = model_dir, pvalue = 1.1),
+    regexp = "p-value"
+  )
+  
+  # --- Test 4: Error for invalid degrees of freedom ---
+  expect_error(
+    traceplot(runno = 31, modDevDir = model_dir, df = -1),
+    regexp = "degreess of freedom"
+  )
+  
+  # --- Test 5: Error for invalid number of iterations for mean calculation ---
+  expect_error(
+    traceplot(runno = 31, modDevDir = model_dir, meanShapeLastIter = 0),
+    regexp = "last iterations used for the mean"
+  )
 })

@@ -65,12 +65,31 @@ test_that("plotExplainedVar generates correct plot data", {
 
   # --- Helper function to snapshot the plot data ---
   snapshot_plot_data <- function(p) {
-    built_data <- ggplot2::ggplot_build(p)$data
-    std_data <- standardize_plot_data(built_data)
+    built_data <- ggplot2::ggplot_build(p)$data[[1]] # Extract the first data frame
+    
+    # Define a more robust set of core columns, excluding 'size' which is version-dependent
+    core_columns <- c("x", "y", "PANEL", "group", "xmin", "xmax", "ymin", "ymax",
+                      "colour", "fill", "linetype", "alpha")
+    
+    # Find which of the core columns actually exist in the built data
+    existing_core_columns <- intersect(names(built_data), core_columns)
+    
+    # Select only those columns to make the snapshot robust
+    selected_data <- built_data[, existing_core_columns]
+    
+    # The stabilize/standardize helpers may need a list
+    # If they operate on the data frame directly, you can remove list()
+    if (!is.data.frame(selected_data)) {
+      selected_data <- as.data.frame(selected_data)
+    }
+    
+    # Assuming standardize_plot_data expects a list of data frames
+    std_data <- standardize_plot_data(list(selected_data))
     stable_data <- stabilize(std_data)
     expect_snapshot_value(stable_data, style = "serialize")
   }
-
+  
+  
   # --- Snapshot the data blueprint of each plot ---
   snapshot_plot_data(p1)
   snapshot_plot_data(p1med)

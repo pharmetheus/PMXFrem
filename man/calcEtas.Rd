@@ -2,18 +2,20 @@
 % Please edit documentation in R/calcEtas.R
 \name{calcEtas}
 \alias{calcEtas}
-\title{Compute ETA prims}
+\title{Calculate conditional ETAs (ETA prim)}
 \usage{
 calcEtas(
   runno = NULL,
-  modName = NULL,
-  FFEMData,
-  filterString = NULL,
   numNonFREMThetas,
+  modName = NULL,
   numSkipOm = 0,
   idvar = "ID",
   modDevDir = NULL,
+  FFEMData = NULL,
   covmodel = "linear",
+  dataFile = NULL,
+  parNames = NULL,
+  quiet = TRUE,
   ...
 )
 }
@@ -23,20 +25,13 @@ used to create NONMEM model and results file names  with the structure
 run#.mod and run#. NONMEM ext, phi and cov files will be assumed to be
 named run# followed by the appropriate suffix (where # is \code{runno}).}
 
-\item{modName}{The model name. Will be used together with \code{modExt}, \code{lstExt},
-ext, phi and cov to form the NONMEM file names, for example
-\code{modName}.mod for the model file.}
-
-\item{FFEMData}{An FFEMData object as obtained with the function
-\code{createFFEMData}.}
-
-\item{filterString}{A character string with a filter expression to subset the
-amended FFEM data set so that the number of rows matches the original data
-file. Useful if IGNORE statements were used in the original model file.}
-
 \item{numNonFREMThetas}{Number of thetas in the FREM model that are not FREM
 covariates. These need to come before the FREM covariate thetas in the FREM
 model file.}
+
+\item{modName}{The model name. Will be used together with \code{modExt}, \code{lstExt},
+ext, phi and cov to form the NONMEM file names, for example
+\code{modName}.mod for the model file.}
 
 \item{numSkipOm}{Number of diagonal omegas that should not be part of the
 FREM calculations. Such omegas has to come before the large FREM omega
@@ -47,45 +42,77 @@ block in the FREM model file.}
 \item{modDevDir}{The directory where the files reside. Default is the current
 directory, i.e. ".".}
 
-\item{covmodel}{A character string indicating if the covariate models were
-implemented linearly (additatively) in the frem model or not. Default is
-"linear"}
+\item{FFEMData}{An FFEMData object as obtained with the function \code{createFFEMdata}. If NULL,
+the object will be created internally, requiring \code{dataFile}, \code{parNames}, and other
+arguments for \code{createFFEMdata} to be provided.}
+
+\item{covmodel}{A character string indicating if the covariate models were implemented
+linearly (additatively) in the frem model or not. Default is "linear".}
+
+\item{dataFile}{The name of the data file used in the base model, i.e. the
+original data file, or a data.frame with the same data.}
+
+\item{parNames}{Names of the parameters. Only used in the STDOUT when \code{quiet =FALSE} or in \code{eqFile} if it is non-blank. Defaults to \code{Par} folowed by a
+number.}
+
+\item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
+STDOUT.}
+
+\item{...}{Additional arguments passed on to \code{createFFEMdata} when \code{FFEMData} is \code{NULL}.}
 }
 \value{
-A data frame with the same number of rows as subjects in the data
-file used in the base model, with columns ID, ETA1-(number of etas in the
-base model), ETA1-(number of etas in the base model)_PRIM and columns for
-the estimated covariate values (if \code{covmodel} is "linear") or covariate etas
-(see above).
+A \code{data.frame} with one row per subject, containing the individual parameter estimates.
+The data frame includes the following columns:
+\itemize{
+\item \strong{ID}: The subject identifier.
+\item \emph{\emph{ETA}_PRIM}*: One column for each parameter's conditional ETA (ETA_prim). This is the
+random effect adjusted for the individual's specific covariate effects.
+\item \strong{ETA}*: One column for each parameter's raw ETA as reported in the FREM model output.
+\item \strong{Covariate Columns}: Columns for each covariate, containing the individual covariate
+estimates. If \code{covmodel = "linear"}, these values are on the original covariate scale;
+otherwise, they are on the ETA scale.
+}
 }
 \description{
-Collects the ETAs (parameter and covariate) from a FREM model and computes
-the ETA_prims.
+Collects the ETAs (parameter and covariate) from a FREM model and
+computes the ETA_prims.
 }
 \details{
-The function collects the ETAs from the output of a FREM model, both
-for the parameters as well as the covariates. The corresponding ETA_prims
-for the parameter ETAs are computed by extracting the corresponding
-individual covariate coefficient provided in the createFFEMdata object,
-which is a mandatory argument.
-
-If argument \code{covmodel} is \code{linear} the covariate ETAs will be added to the
-estimates of the mean covariate effects from the FREM model to generate
-individual covariate values on the original covariate scale. If argument
-\code{covmodel} is not \code{linear} the covariate ETAs will be reported on the ETA
-scale. The names of the covariate ETAs will be set to \code{getCovNames(modFile = modFile)$covNames} regardless of the value of \code{covmodel}.
+The function collects the ETAs from the output of a FREM model, both for the
+parameters as well as the covariates. The corresponding ETA_prims for the parameter
+ETAs are computed by extracting the corresponding individual covariate coefficient
+provided in the \code{FFEMData} object.
 }
 \examples{
-\dontrun{
-ind_params <- calcEtas(
+
+# 1. Define the path to the model files included with the package
+model_dir <- system.file("extdata/SimNeb/", package = "PMXFrem")
+
+# 2. Load and prepare the dataset also included with the package
+data_path <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",
+                         package = "PMXFrem")
+
+my_data <- read.csv(data_path)
+
+# In this example dataset, BLQ=1 rows are excluded
+my_data <- my_data[my_data$BLQ != 1, ]
+
+# 3. Call calcEtas, providing the data directly
+# The function will create the FFEMData object internally.
+individual_etas <- calcEtas(
   modName          = "run31",
-  modDevDir        = ".",
-  numSkipOm        = 2,
+  modDevDir        = model_dir,
   numNonFREMThetas = 7,
-  FFEMData         = FFEMDataObject)
-}
+  numSkipOm        = 2,
+  dataFile         = my_data,
+  parNames         = c("CL", "V", "MAT")
+)
+
+# 4. Display the first few rows of the resulting data frame
+# The output contains subject IDs, ETAs, ETA_PRIMs, and covariate values.
+head(individual_etas)
+
 }
 \seealso{
-\code{\link[=createFFEMData]{createFFEMData()}} for information about creating the FFEMData
-object
+\code{\link[=createFFEMdata]{createFFEMdata()}} for information about creating the FFEMData object
 }
