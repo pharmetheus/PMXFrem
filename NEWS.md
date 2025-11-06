@@ -1,3 +1,8 @@
+# PMXFrem 1.2.10
+
+Defined the license to be GPL (>= 3)
+
+
 # PMXFrem 1.2.9
 
 * **`calcEtas()`**: Refactored for improved usability. The function can now optionally create the `FFEMdata` object internally when supplied with `dataFile`, `parNames`, etc., removing the need for a separate `createFFEMdata()` call. Also corrected internal argument handling to prevent `unused argument` errors when `...` is used (e.g., for `availCov`).
