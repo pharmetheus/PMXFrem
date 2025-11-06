@@ -1,14 +1,14 @@
 Package: PMXFrem
 Type: Package
 Title: Support functions for FREM analyses in NONMEM
-Version: 1.2.9
+Version: 1.2.10
 Authors@R: c(
     person("Niclas", "Jonsson", email = "niclas.jonsson@pharmetheus.com", role = c("aut", "cre")),
     person("Joakim", "Nyberg", email = "joakim.nyberg@pharmetheus.com", role = c("aut"))
   )
 Maintainer: Niclas Jonsson <niclas.jonsson@pharmetheus.com>
 Description: Support functions for FREM analyses in NONMEM that will facilitate pre- and post-processing.
-License: Propriety
+License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Author: Niclas Jonsson [aut, cre],
