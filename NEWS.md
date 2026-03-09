@@ -1,3 +1,7 @@
+# PMXFrem (development version)
+
+* Fixed a unit test failure.
+
 # PMXFrem 1.2.10
 
 Defined the license to be GPL (>= 3)
