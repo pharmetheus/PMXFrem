@@ -18,6 +18,10 @@ knitr::opts_chunk$set(
 ```{r setup}
 suppressPackageStartupMessages(library(PMXFrem))
 suppressPackageStartupMessages(library(pmxvpc))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(data.table))
+suppressPackageStartupMessages(library(magrittr))
+suppressPackageStartupMessages(library(dplyr))
 
 theme_set(ggplot2::theme_bw(base_size=20))
 ```

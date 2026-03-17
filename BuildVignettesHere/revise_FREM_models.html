@@ -369,7 +369,7 @@ FREM model and/or to update the initial estimates of the parameters.</p>
 </div>
 <div id="removing-a-covariate-from-a-frem-model" class="section level2">
 <h2>Removing a covariate from a FREM model</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">updateFREM</span>(</span>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">updateFREMmodel</span>(</span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  <span class="at">strFREMModel      =</span> <span class="fu">system.file</span>(<span class="st">&quot;extdata/SimNeb/run31.mod&quot;</span>, <span class="at">package =</span> <span class="st">&quot;PMXFrem&quot;</span>),</span>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>  <span class="at">strFREMData       =</span> <span class="fu">system.file</span>(<span class="st">&quot;extdata/SimNeb/frem_dataset.dta&quot;</span>, <span class="at">package =</span> <span class="st">&quot;PMXFrem&quot;</span>),</span>
 <span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>  <span class="at">strFFEMData       =</span> <span class="fu">system.file</span>(<span class="st">&quot;extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv&quot;</span>, <span class="at">package =</span> <span class="st">&quot;PMXFrem&quot;</span>),</span>
@@ -404,7 +404,7 @@ FREM model and/or to update the initial estimates of the parameters.</p>
 </div>
 <div id="update-initial-estimates" class="section level2">
 <h2>Update initial estimates</h2>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">updateFREM</span>(<span class="at">strFREMModel      =</span> <span class="fu">system.file</span>(<span class="st">&quot;extdata/SimNeb/run31.mod&quot;</span>, <span class="at">package =</span> <span class="st">&quot;PMXFrem&quot;</span>),</span>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">updateFREMmodel</span>(<span class="at">strFREMModel      =</span> <span class="fu">system.file</span>(<span class="st">&quot;extdata/SimNeb/run31.mod&quot;</span>, <span class="at">package =</span> <span class="st">&quot;PMXFrem&quot;</span>),</span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>           <span class="at">numNonFREMThetas  =</span> <span class="dv">7</span>,</span>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>           <span class="at">numSkipOm         =</span> <span class="dv">2</span>,</span>
 <span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>           <span class="at">bWriteData        =</span> <span class="cn">FALSE</span>,</span>

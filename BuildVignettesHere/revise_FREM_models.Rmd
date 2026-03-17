@@ -34,7 +34,7 @@ The `PMXFrem` function `updateFREM()` addresses these issues by being able to ad
 ## Removing a covariate from a FREM model
 
 ```{r}
-updateFREM(
+updateFREMmodel(
   strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
   strFREMData       = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
   strFFEMData       = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
@@ -56,7 +56,7 @@ updateFREM(
 ## Update initial estimates
 
 ```{r}
-updateFREM(strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+updateFREMmodel(strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
            numNonFREMThetas  = 7,
            numSkipOm         = 2,
            bWriteData        = FALSE,

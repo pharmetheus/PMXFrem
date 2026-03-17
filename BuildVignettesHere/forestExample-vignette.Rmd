@@ -34,6 +34,9 @@ Load the package and identify which NONMEM FREM run that is going to be used for
 suppressPackageStartupMessages(library(PMXFrem)) # Read in the FREMfunctions package
 suppressPackageStartupMessages(library(PMXForest)) #Read in the forest package for showing the covariate effects
 suppressPackageStartupMessages(library(ggplot2)) #Read in the ggplot2 package for plotting
+suppressPackageStartupMessages(library(data.table))
+suppressPackageStartupMessages(library(magrittr))
+suppressPackageStartupMessages(library(dplyr))
 ```
 
 ```{r echo=TRUE, warning=FALSE,message=FALSE}
@@ -142,12 +145,12 @@ functionListName <- c("CL","V1")
 
 The data for the forest plot can now be generated based on the pre-requisite information.
 ```{r, warning=FALSE}
-dfres <- PMXForest::getForestDFFREM(
+dfres <- PMXFrem::getForestDFFREM(
   dfCovs           = dfCovs,
   numNonFREMThetas = 7,
   numSkipOm        = 2,
   dfParameters     = dfParameters,
-  covNames         = covNames,
+  covNames         = covNames$covNames,
   functionList     = functionList,
   functionListName = functionListName,
   quiet            = TRUE)
@@ -180,11 +183,11 @@ PMXForest::forestPlot(
 
 
 ```{r, warning=FALSE}
-dfres3 <- PMXForest::getForestDFFREM(dfCovs           = dfCovs3,
+dfres3 <- PMXFrem::getForestDFFREM(dfCovs           = dfCovs3,
                                     numNonFREMThetas = 7,
                                     numSkipOm        = 2,
                                     dfParameters     = dfParameters,
-                                    covNames         = covNames,
+                                    covNames         = covNames$covNames,
                                     functionList     = functionList,
                                     functionListName = functionListName,
                                     quiet            = TRUE)

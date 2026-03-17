@@ -23,6 +23,10 @@ Load the package and identify which NONMEM FREM run that is going to be used for
 
 ```{r ,echo=FALSE}
 suppressPackageStartupMessages(library(PMXFrem)) 
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(magrittr))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(data.table))
 ```
 
 ```{r echo=TRUE, warning=FALSE,message=FALSE}

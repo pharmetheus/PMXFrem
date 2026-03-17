@@ -19,6 +19,9 @@ knitr::opts_chunk$set(
 suppressPackageStartupMessages(library(GGally))
 suppressPackageStartupMessages(library(ggpubr))
 suppressPackageStartupMessages(library(PMXFrem))
+suppressPackageStartupMessages(library(magrittr))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(data.table))
 
 theme_set(ggplot2::theme_bw(base_size=20))
 ```
@@ -52,8 +55,8 @@ xptabFFEM <- fread(paste0(modDevDir,"/xptabmax0",fremRun),data.table=FALSE,check
   arrange(ID,TAD)
 
 
-xptabFREM <- fread(paste0("/PMX/Projects/Pharmetheus/PMX-FREMcourse-RnD-1/Analysis/Model","/xptabFREMmax0",fremRun),data.table=FALSE,check.names = T) %>%
-  filter(BLQ==0,EVID==0,FREMTYPE==0) %>% 
+xptabFREM <- fread(paste0(modDevDir,"/xptab",fremRun),data.table=FALSE,check.names = T) %>%
+  filter(BLQ==0,EVID==0,FREMTYPE==0) %>%
     arrange(ID,TAD)
 
 
@@ -182,11 +185,10 @@ ggarrange(p1,p2,p3,p4,ncol=2,nrow=2)
 Similarly to the standar diagnostics variables (e.g. CWRES) ETAs will also have to be adjusted to reflect the impact of covariates, i.e. the "ETA prims" needs to be computed. This is done by the `calcEtas` function. This function requires an "FFEM data object" from the `createFFEMmodel` function as input.
 
 ```{r}
-
-data <- read_csv(dataFile,show_col_types = FALSE) %>%
+data <- fread(dataFile,data.table=FALSE,check.names = T) %>% 
     filter(BLQ!=1)
 
-  ## Check with specified parameter names
+## Check with specified parameter names
 FFEMdata <- createFFEMdata(runno            = fremRun,
                            modDevDir        = modDevDir,
                            parNames         = c("CL","V","MAT"),
