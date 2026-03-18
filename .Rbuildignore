@@ -3,3 +3,5 @@
 ^README\.Rmd$
 ^BuildVignettesHere$
 ^LICENSE\.md$
+^\.github$
+^Makefile$
