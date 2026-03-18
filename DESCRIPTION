@@ -42,6 +42,6 @@ Suggests:
     GGally,
     ggpubr,
     pmxvpc
-VignetteBuilder: R.rsp
+VignetteBuilder: knitr
 NeedsCompilation: no
 Config/testthat/edition: 3
