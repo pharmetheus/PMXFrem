@@ -1,3 +1,14 @@
+# PMXFrem (development version)
+
+## Breaking Changes
+* **API Lockdown:** Internal pipeline functions (e.g., `augmentFremData`, `prepareAndValidateData`, `generateFremModel`) have been removed from the public namespace. Scripts must now use top-level orchestrators like `createFREMmodel`.
+* **Strict Covariate Validation:** Dichotomous covariates coded as `1/2` will now throw a fatal validation error. Users must explicitly set `bRecodeDichotomous = TRUE` to auto-recode to `0/1`, or `allowNon01 = TRUE` for legacy PsN compatibility.
+* **Stable Dataset Sorting:** Output datasets are now sorted using a stable index (`ORIG_ROW_IDX`) and `FREMTYPE` to protect intra-subject sequences (e.g., `EVID=4` resets). Physical row orders will differ from legacy `PMXFrem` outputs.
+
+## New Features
+* Added `createFREMmodel()`, a robust 2-phase master wrapper for FREM generation.
+* Added `keepDoseOnlySubjects` toggle across the pipeline to allow retention of subjects without PK observations (defaults to `FALSE` for legacy compatibility).
+
 
 # PMXFrem 1.2.11
 

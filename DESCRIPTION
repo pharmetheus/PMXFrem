@@ -32,16 +32,15 @@ Imports:
     stringr,
     tools,
     withr,
-    xpose4,
-    numDeriv,
-    PMXForest
+    numDeriv
 Suggests: 
     kableExtra,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
     R.rsp,
-    vdiffr
+    vdiffr,
+    PMXForest
 VignetteBuilder: R.rsp, knitr
 NeedsCompilation: no
 Config/testthat/edition: 3

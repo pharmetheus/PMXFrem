@@ -161,7 +161,7 @@ getForestDFFREM <- function(dfCovs,
 
   ## Register to allow for paralell computing
   if (ncores > 1) registerDoParallel(cores = ncores)
-  numParCov <- PMXFrem::calcNumParCov(cbind(first = 0, dfParameters), numNonFREMThetas, numSkipOm)
+  numParCov <- calcNumParCov(cbind(first = 0, dfParameters), numNonFREMThetas, numSkipOm)
 
   ## Calculate the parameters
   internalCalc <- function(k) {
@@ -181,7 +181,7 @@ getForestDFFREM <- function(dfCovs,
 
         indi <- min(i, nrow(dfRefRow))
 
-        ffemObjRef <- PMXFrem::calcFFEM(
+        ffemObjRef <- calcFFEM(
           numSkipOm        = numSkipOm,
           numNonFREMThetas = numNonFREMThetas,
           dfext            = dfext,
@@ -192,7 +192,7 @@ getForestDFFREM <- function(dfCovs,
       }
 
       ## Calculate the ffemObj for each set of parameters
-      ffemObj <- PMXFrem::calcFFEM(
+      ffemObj <- calcFFEM(
         numSkipOm        = numSkipOm,
         numNonFREMThetas = numNonFREMThetas,
         dfext        = dfext,
