@@ -206,7 +206,17 @@ updateFREMmodel <- function(strFREMModel,
                             overrideExistingCheck = FALSE,
                             bRecodeDichotomous    = FALSE,
                             allowNon01            = FALSE,
-                            keepDoseOnlySubjects  = FALSE) {
+                            keepDoseOnlySubjects  = FALSE,
+                            cstrSortCols = NULL) {
+  
+  if (!is.null(cstrSortCols)) {
+    warning(
+      "The `cstrSortCols` argument is deprecated. ",
+      "PMXFrem v2 and above now automatically enforces stable, intra-subject dataset sorting. ",
+      "This argument is safely ignored.", 
+      call. = FALSE
+    )
+  }
   
   # --- 1. Initial Setup ---
   if (strUpdateType != "NoData") {
