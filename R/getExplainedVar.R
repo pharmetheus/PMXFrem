@@ -382,12 +382,12 @@ getExplainedVar <- function(
       myCov <- str_replace(cov, "_[0-9]*", "")
       myCovNum <- str_replace(cov, paste0(myCov, "_"), "")
       if (!myCov %in% names(data)) {
-        warning(paste0("Can't find ", myCov, " in the dataset, exiting!"))
+        stop(paste0("Can't find ", myCov, " in the dataset, exiting!"))
       }
       data[[cov]] <- ifelse(data[[myCov]] == myCovNum, 1, 0)
     }
 
-    dataI <- data[!duplicated(strID), ] # Get one row per subject and keep only covariates and ID
+    dataI <- data[!duplicated(data[[strID]]), ] # Get one row per subject and keep only covariates and ID
 
     ## Check that the number of etas is the same as the number of subjects in the data set
     if (type == 1 && (nrow(etas) != nrow(dataI))) stop("The number of etas should be the same as the number of subjects in the data set.")
@@ -437,7 +437,7 @@ getExplainedVar <- function(
         # Get the FREM covariates that is used in each row of dfCovs
         tmpcovs      <- getFREMCovNames(currentNames)
         dftmp        <- data.frame()
-        datatmp      <- dataI[k, covNames] # Get only covnames
+        datatmp      <- dataI[k, covNames,drop=FALSE] # Get only covnames
         avcov        <- names(datatmp)[which(datatmp != -99)] # Get the non-missing covariates only
 
         ####Is avcov really correct shouldn't it be based on the dfCovs covNames???
@@ -476,7 +476,7 @@ getExplainedVar <- function(
               val <- 0
               tmpval <- 0
               for (m in 1:numETASamples) { # For all ETA samples  , dataI versus dfCovs, think about it for FFEM covs
-                val <- functionList[[j]](basethetas = thetas, covthetas = rep(0, length(coveffectsAll)), dfrow = dataI[k, ], etas = etasamples[m, ], ...) ### CHECK THIS, coveffectsAll=0?
+                val <- functionList[[j]](basethetas = thetas, covthetas = rep(0, length(coveffectsAll)), dfrow = dataI[k, ], etas = etasamples[m, ], ...) 
 
                 if (m == 1) {
                   tmpval <- matrix(0, ncol = numETASamples, nrow = length(val))

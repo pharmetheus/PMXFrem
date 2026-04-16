@@ -232,3 +232,71 @@ test_that("getExplainedVar input checks and edge cases", {
   expect_gt(nrow(res_with_etas), 0)
 
 })
+
+# --- Setup Context for the Tests ---
+library(dplyr)
+modDevDir <- system.file("extdata/SimNeb", package="PMXFrem")
+fremRunno <- 31
+modFile   <- file.path(modDevDir, paste0("run", fremRunno, ".mod"))
+
+# Load full longitudinal dataset
+dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
+  filter(BLQ == 0)
+
+dfCovs <- setupdfCovs(modFile)
+
+# Minimal function to bypass complex math during logic testing
+dummyFunc <- list(function(basethetas, covthetas, dfrow, etas, ...) { 1 })
+
+
+# --- Test 1: Longitudinal Subsetting (The strID Fix) ---
+test_that("getExplainedVar correctly subsets longitudinal data to one row per ID", {
+  # The raw dfData has multiple rows per ID. 
+  # If the !duplicated("ID") bug is present, dataI becomes the full dataset, 
+  # triggering the eta length mismatch error. 
+  # With !duplicated(data[[strID]]), it correctly reduces to 1 row per ID.
+  
+  # We expect this to run completely without throwing the eta mismatch error
+  expect_error(
+    getExplainedVar(
+      type             = 1,
+      data             = dfData,
+      dfCovs           = dfCovs,
+      numNonFREMThetas = 7,
+      numSkipOm        = 2,
+      functionList     = dummyFunc,
+      functionListName = "TEST",
+      modDevDir        = modDevDir,
+      runno            = fremRunno,
+      quiet            = TRUE
+    ),
+    NA # NA means "Expect NO error to be thrown"
+  )
+})
+
+
+# --- Test 2: Missing Covariates (The Fake Exit Fix) ---
+test_that("getExplainedVar strictly stops if a model categorical covariate is missing", {
+  # Remove 'RACEL' which is a polychotomous categorical covariate in SimNeb.
+  # This directly triggers the loop over `fremCovs` that we patched.
+  dfData_missing <- dfData
+  dfData_missing$RACEL <- NULL
+  
+  expect_error(
+    getExplainedVar(
+      type             = 1,
+      data             = dfData_missing,
+      dfCovs           = dfCovs,
+      numNonFREMThetas = 7,
+      numSkipOm        = 2,
+      functionList     = dummyFunc,
+      functionListName = "TEST",
+      modDevDir        = modDevDir,
+      runno            = fremRunno,
+      quiet            = TRUE
+    ),
+    "Can't find RACEL in the dataset" # Verifies our exact stop() triggers
+  )
+})
+
+
