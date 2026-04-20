@@ -12,6 +12,8 @@
 #'
 #' @return A character vector containing the lines of the new minimal FREM model.
 #'
+#' @family FREM model management Internal
+#' @concept frem_model_management
 #' @keywords internal
 createMinimalFremModel <- function(baseModelInfo,
                                    initialCovariateInfo,

@@ -26,4 +26,15 @@ optionally writes it to a file. The stable sort preserves the original intra-sub
 data record sequence (protecting EVID=4 resets) while correctly grouping new
 FREMTYPE covariates immediately after the first baseline record.
 }
+\seealso{
+Other Data Assembly Internal: 
+\code{\link{addFREMcovariates}()},
+\code{\link{augmentFremData}()},
+\code{\link{filterDataFromModel}()},
+\code{\link{prepareAndValidateData}()},
+\code{\link{prepareNewCovariates}()},
+\code{\link{validateFremData}()}
+}
+\concept{Data Assembly Internal}
+\concept{data_assembly}
 \keyword{internal}

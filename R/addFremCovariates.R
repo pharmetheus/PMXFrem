@@ -31,14 +31,11 @@
 #' 
 #' @examples
 #' \donttest{
-#' library(readr)
-#' library(dplyr)
 #'
 #' # Load the base dataset
-#' dfFFEM <- read_csv(
-#'   system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package="PMXFrem"),
-#'   show_col_types = FALSE
-#' ) %>% filter(BLQ != 1)
+#' dfFFEM <- read.csv(
+#'   system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package="PMXFrem")) %>% 
+#'   filter(BLQ != 1)
 #' 
 #' modFile <- system.file("extdata/SimNeb/run31.mod", package="PMXFrem")
 #'
@@ -55,6 +52,8 @@
 #' dfFFEM_full <- addFREMcovariates(dfFFEM, covariates = "RACEL", includeReference = TRUE)
 #' }
 #' 
+#' @family Data Assembly Internal
+#' @concept data_assembly
 #' @keywords internal
 addFREMcovariates <- function(dfFFEM, modFile=NULL, covariates=NULL, iMiss = -99, includeReference = FALSE, imputeMissing = TRUE) {
   

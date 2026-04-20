@@ -45,6 +45,8 @@
 #' }
 #' 
 #' @seealso \code{\link{createFREMmodel}}, \code{\link{updateFREMmodel}}
+#' @family FREM model management Internal
+#' @concept frem_model_management
 #' @keywords internal
 createFREMmodel_phase1 <- function(runno                = NULL,
                                    modName              = NULL,

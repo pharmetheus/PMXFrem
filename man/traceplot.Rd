@@ -105,3 +105,13 @@ if (interactive()) {
   trace_plots_no_shape$OFV
 }
 }
+\seealso{
+Other Diagnostics & Plotting: 
+\code{\link{calcEtas}()},
+\code{\link{fremParameterTable}()},
+\code{\link{getExplainedVar}()},
+\code{\link{getForestDFFREM}()},
+\code{\link{plotExplainedVar}()}
+}
+\concept{Diagnostics & Plotting}
+\concept{diagnostics}

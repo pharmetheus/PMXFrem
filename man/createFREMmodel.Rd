@@ -97,7 +97,7 @@ the remaining covariates, safely manages \code{FREMTYPE} sequencing between phas
 cleans up all intermediate files.
 }
 \examples{
-\dontrun{
+
 # Setup paths using package extdata
 modDevDir    <- system.file("extdata", "SimNeb", package = "PMXFrem")
 modName      <- "run30"
@@ -125,11 +125,17 @@ generated_files <- createFREMmodel(
   numSkipOm          = 2,
   cstrKeepCols       = keep_cols,
   bRecodeDichotomous = TRUE,
-  quiet              = FALSE
+  quiet              = TRUE
 )
 
 # The generated files are available in the temporary directory
 print(generated_files$model)
 print(generated_files$data)
+
 }
+\seealso{
+Other FREM model management: 
+\code{\link{updateFREMmodel}()}
 }
+\concept{FREM model management}
+\concept{frem_model_management}

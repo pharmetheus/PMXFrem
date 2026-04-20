@@ -4,6 +4,8 @@
 #'
 #' @return A square numeric matrix.
 #'
+#' @family NONMEM Parsers Internal
+#' @concept nonmem_parsers
 #' @keywords internal
 parseMatrixBlockToMatrix <- function(block) {
   # --- 1. Clean each line individually ---

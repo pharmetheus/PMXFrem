@@ -1,0 +1,28 @@
+template:
+  bootstrap: 5
+
+reference:
+  - title: "FREM Model Management"
+    desc: "Primary functions for generating, updating and assembling FREM model files."
+    contents:
+      - has_concept("frem_model_management")
+
+  - title: "FFEM Conversion"
+    desc: "Functions for transforming FREM models into FFEM."
+    contents:
+      - has_concept("ffem_conversion")
+
+  - title: "Data Assembly & Validation"
+    desc: "Utilities for data integrity, covariate binarization, and dataset setup."
+    contents:
+      - has_concept("data_assembly")    
+      
+  - title: "Diagnostics & Plotting"
+    desc: "Functions for retrieving, summarizing, and visualizing model outputs."
+    contents:
+      - has_concept("diagnostics")
+
+  - title: "NONMEM File Parsers"
+    desc: "Low-level utilities for parsing NONMEM output files and metadata."
+    contents:
+      - has_concept("nonmem_parsers")

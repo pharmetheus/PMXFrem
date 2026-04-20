@@ -115,4 +115,13 @@ head(individual_etas)
 }
 \seealso{
 \code{\link[=createFFEMdata]{createFFEMdata()}} for information about creating the FFEMData object
+
+Other Diagnostics & Plotting: 
+\code{\link{fremParameterTable}()},
+\code{\link{getExplainedVar}()},
+\code{\link{getForestDFFREM}()},
+\code{\link{plotExplainedVar}()},
+\code{\link{traceplot}()}
 }
+\concept{Diagnostics & Plotting}
+\concept{diagnostics}

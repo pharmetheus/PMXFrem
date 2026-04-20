@@ -60,6 +60,8 @@
 #'            cstrCatCovs          = c("SEX","SMOK","NCIL"),
 #'            cstrContCovs         = c("WT","BMI","AGE"))
 #'
+#' @family Data Assembly
+#' @concept data_assembly
 createFREMData <- function(
     strFFEMData,
     strFREMDataFileName  = NULL,

@@ -1,3 +1,6 @@
+#' @family FREM model management Internal
+#' @concept frem_model_management
+#' @keywords internal
 createMockExt <- function(baseExtFile, mockExtFile, initialCovariateInfo, dummySigma = 1e-7) {
   
   # 1. Read data using PMXForest

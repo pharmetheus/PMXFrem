@@ -69,8 +69,6 @@
 #' @export
 #'
 #' @examples
-#' library(dplyr)
-#' library(magrittr)
 #'
 #' extFile         <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
 #' dfExt           <- getExt(extFile = extFile)
@@ -82,6 +80,8 @@
 #' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
 #'   etaFREM = as.numeric(dfPhi[1, ]))
 #'
+#' @family FFEM Conversion
+#' @concept ffem_conversion
 calcFFEM <- function(dfext,
                      numNonFREMThetas,
                      numSkipOm     = 0,

@@ -15,4 +15,13 @@ A square numeric matrix.
 \description{
 Parse a NONMEM OMEGA or SIGMA text block into a matrix
 }
+\seealso{
+Other NONMEM Parsers Internal: 
+\code{\link{buildmatrix}()},
+\code{\link{calcNumParCov}()},
+\code{\link{findrecord}()},
+\code{\link{parseBaseModel}()}
+}
+\concept{NONMEM Parsers Internal}
+\concept{nonmem_parsers}
 \keyword{internal}

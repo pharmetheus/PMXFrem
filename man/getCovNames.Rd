@@ -31,3 +31,11 @@ relies on the covariate names added by PsN in the FREM code.
 covList <- getCovNames(modFile = system.file("extData/SimNeb/run31.mod", package = "PMXFrem"))
 
 }
+\seealso{
+Other NONMEM Parsers: 
+\code{\link{getExt}()},
+\code{\link{getFileNames}()},
+\code{\link{getPhi}()}
+}
+\concept{NONMEM Parsers}
+\concept{nonmem_parsers}

@@ -29,4 +29,13 @@ A vector of character strings with the NONMEM representation of the matrix.
 Create the NONMEM model $OMEGA or $SIGMA code from a matrix with
 variance-covariance information.
 }
+\seealso{
+Other NONMEM Parsers Internal: 
+\code{\link{calcNumParCov}()},
+\code{\link{findrecord}()},
+\code{\link{parseBaseModel}()},
+\code{\link{parseMatrixBlockToMatrix}()}
+}
+\concept{NONMEM Parsers Internal}
+\concept{nonmem_parsers}
 \keyword{internal}

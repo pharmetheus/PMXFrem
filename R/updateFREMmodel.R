@@ -70,7 +70,7 @@
 #'   model file name will be 'stem'_new.mod).
 #'
 #'@examples
-#' \dontrun{
+#' 
 #' ## Example 1: Remove Covariates from a Model
 #' # This example removes "SEX" from the model and data set.
 #' td <- tempdir() # Create a temporary directory for output files
@@ -177,8 +177,10 @@
 #'   bRecodeDichotomous = TRUE,
 #'   quiet              = FALSE
 #' )
-#' }
+#' 
 #' @export
+#' @family FREM model management
+#' @concept frem_model_management
 updateFREMmodel <- function(strFREMModel,
                             strFREMData,
                             strFFEMData,
@@ -207,11 +209,11 @@ updateFREMmodel <- function(strFREMModel,
                             bRecodeDichotomous    = FALSE,
                             allowNon01            = FALSE,
                             keepDoseOnlySubjects  = FALSE,
-                            cstrSortCols = NULL) {
+                            sortFREMDataset = NULL) {
   
-  if (!is.null(cstrSortCols)) {
+  if (!is.null(sortFREMDataset)) {
     warning(
-      "The `cstrSortCols` argument is deprecated. ",
+      "The `sortFREMDataset` argument is deprecated. ",
       "PMXFrem v2 and above now automatically enforces stable, intra-subject dataset sorting. ",
       "This argument is safely ignored.", 
       call. = FALSE

@@ -232,3 +232,116 @@ test_that("getExplainedVar input checks and edge cases", {
   expect_gt(nrow(res_with_etas), 0)
 
 })
+
+# --- Setup Context for the Tests ---
+library(dplyr)
+modDevDir <- system.file("extdata/SimNeb", package="PMXFrem")
+fremRunno <- 31
+modFile   <- file.path(modDevDir, paste0("run", fremRunno, ".mod"))
+
+# Load full longitudinal dataset
+dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
+  filter(BLQ == 0)
+
+dfCovs <- setupdfCovs(modFile)
+
+# Minimal function to bypass complex math during logic testing
+dummyFunc <- list(function(basethetas, covthetas, dfrow, etas, ...) { 1 })
+
+
+# --- Test 1: Longitudinal Subsetting (The strID Fix) ---
+test_that("getExplainedVar correctly subsets longitudinal data to one row per ID", {
+  # The raw dfData has multiple rows per ID.
+  # If the !duplicated("ID") bug is present, dataI becomes the full dataset,
+  # triggering the eta length mismatch error.
+  # With !duplicated(data[[strID]]), it correctly reduces to 1 row per ID.
+
+  # We expect this to run completely without throwing the eta mismatch error
+  expect_error(
+    getExplainedVar(
+      type             = 1,
+      data             = dfData,
+      dfCovs           = dfCovs,
+      numNonFREMThetas = 7,
+      numSkipOm        = 2,
+      functionList     = dummyFunc,
+      functionListName = "TEST",
+      modDevDir        = modDevDir,
+      runno            = fremRunno,
+      quiet            = TRUE
+    ),
+    NA # NA means "Expect NO error to be thrown"
+  )
+})
+
+
+# --- Test 2: Missing Covariates (The Fake Exit Fix) ---
+test_that("getExplainedVar strictly stops if a model categorical covariate is missing", {
+  # Remove 'RACEL' which is a polychotomous categorical covariate in SimNeb.
+  # This directly triggers the loop over `fremCovs` that we patched.
+  dfData_missing <- dfData
+  dfData_missing$RACEL <- NULL
+
+  expect_error(
+    getExplainedVar(
+      type             = 1,
+      data             = dfData_missing,
+      dfCovs           = dfCovs,
+      numNonFREMThetas = 7,
+      numSkipOm        = 2,
+      functionList     = dummyFunc,
+      functionListName = "TEST",
+      modDevDir        = modDevDir,
+      runno            = fremRunno,
+      quiet            = TRUE
+    ),
+    "Can't find RACEL in the dataset" # Verifies our exact stop() triggers
+  )
+})
+
+test_that("getExplainedVar handles data.table inputs robustly without NSE scoping errors", {
+  
+  # Setup paths to our validated integration test data
+  modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
+  run_frem  <- 31
+  mod_path  <- file.path(modDevDir, "run31.mod")
+  
+  # Load the real dataset as a STRICT data.table to trigger the vulnerability
+  data_file <- system.file("extdata", "SimNeb", "DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+  mock_dt   <- data.table::fread(data_file, header = TRUE)
+  
+  # Filter out BLQ exactly as the walk-through does to maintain dimension alignment
+  mock_dt   <- mock_dt[mock_dt$BLQ == 0, ]
+  
+  # Setup valid covariates and functions
+  dfCovsEV  <- setupdfCovs(mod_path)
+  
+  funcList_var <- list(
+    function(basethetas, covthetas, dfrow, etas, ...) { 
+      basethetas[2] * exp(covthetas[1] + etas[3]) 
+    }
+  )
+  
+  # The function should now successfully cast the data.table to a base data.frame
+  # and process the entire variance calculation without throwing the 'j symbol' error.
+  expect_silent({
+    res <- getExplainedVar(
+      type             = 1,
+      data             = mock_dt,
+      dfCovs           = dfCovsEV,
+      cstrCovariates   = c("ALL", names(dfCovsEV)),
+      numNonFREMThetas = 7,
+      numSkipOm        = 2,
+      functionList     = funcList_var,
+      functionListName = "CL",
+      modDevDir        = modDevDir,
+      runno            = run_frem,
+      numETASamples    = 2, # Keep low for fast testing
+      quiet            = TRUE,
+      seed             = 123
+    )
+  })
+  
+  expect_s3_class(res, "data.frame")
+})
+

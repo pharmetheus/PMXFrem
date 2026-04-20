@@ -16,6 +16,8 @@
 #' @return A data frame containing the data after all applicable IGNORE/ACCEPT
 #'   conditions have been applied.
 #'
+#' @family Data Assembly Internal
+#' @concept data_assembly
 #' @keywords internal
 filterDataFromModel <- function(baseModelFile, wideData, quiet = FALSE) {
   

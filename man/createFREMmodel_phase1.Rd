@@ -98,5 +98,13 @@ and establishes the initial \code{FREMTYPE} sequencing.
 }
 \seealso{
 \code{\link{createFREMmodel}}, \code{\link{updateFREMmodel}}
+
+Other FREM model management Internal: 
+\code{\link{createMinimalFremModel}()},
+\code{\link{generateFremModel}()},
+\code{\link{initializeModelParameters}()},
+\code{\link{removeFremCovariates}()}
 }
+\concept{FREM model management Internal}
+\concept{frem_model_management}
 \keyword{internal}

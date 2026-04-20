@@ -42,4 +42,15 @@ that the column count matches and that all specified covariates are present
 in the $INPUT record. This function is robust to multi-line, abbreviated,
 and commented $INPUT records.
 }
+\seealso{
+Other Data Assembly Internal: 
+\code{\link{addFREMcovariates}()},
+\code{\link{augmentFremData}()},
+\code{\link{filterDataFromModel}()},
+\code{\link{finalizeFremData}()},
+\code{\link{prepareNewCovariates}()},
+\code{\link{validateFremData}()}
+}
+\concept{Data Assembly Internal}
+\concept{data_assembly}
 \keyword{internal}

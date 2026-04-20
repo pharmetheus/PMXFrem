@@ -25,6 +25,8 @@
 #' @param strUpdateType A character string specifying the update mode (e.g., "DataAndModel", "NoData").
 #'
 #' @return A character vector containing the lines of the newly generated FREM model file.
+#' @family FREM model management Internal
+#' @concept frem_model_management
 #' @keywords internal
 generateFremModel <- function(final_df,
                               modelState,

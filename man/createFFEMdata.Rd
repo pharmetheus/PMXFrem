@@ -135,11 +135,8 @@ the console.
 }
 
 \examples{
-library(dplyr)
-library(magrittr)
-library(readr)
 
-data <- read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"), show_col_types = FALSE) \%>\%
+data <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) \%>\%
   filter(BLQ != 1)
 
 ## Check with specified parameter names
@@ -156,4 +153,10 @@ ffemData <- createFFEMdata(
 }
 \seealso{
 \code{\link[=createFFEMmodel]{createFFEMmodel()}}
+
+Other FFEM Conversion: 
+\code{\link{calcFFEM}()},
+\code{\link{createFFEMmodel}()}
 }
+\concept{FFEM Conversion}
+\concept{ffem_conversion}

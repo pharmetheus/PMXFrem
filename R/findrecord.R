@@ -21,6 +21,8 @@
 #' ## Return the new model with $PROBLEM set to FFEM model
 #' tmp <- findrecord(modFile, record = "\\$PROBLEM", replace = "$PROBLEM FFEM model", quiet = TRUE)
 #'
+#' @family NONMEM Parsers Internal
+#' @concept nonmem_parsers
 #' @keywords internal
 findrecord <- function(input,
                        record  = "\\$OMEGA",

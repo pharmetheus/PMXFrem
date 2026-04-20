@@ -19,6 +19,8 @@
 #'   \item{numTheta}{The total number of THETAs.}
 #'   \item{numOmega}{The dimension of the OMEGA matrix (number of ETAs).}
 #'   \item{numParCov}{The number of parameters for covariates, either passed in or calculated.}
+#' @family FREM model management Internal
+#' @concept frem_model_management
 #' @keywords internal
 initializeModelParameters <- function(strFREMModel,
                                       numNonFREMThetas,

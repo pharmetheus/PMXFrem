@@ -27,4 +27,13 @@ It handles the removal of data from the FREM dataset, the re-numbering of
 remaining FREMTYPEs, and the adjustment of corresponding parameter vectors
 (THETA, THETAFIX) and the OMEGA matrix.
 }
+\seealso{
+Other FREM model management Internal: 
+\code{\link{createFREMmodel_phase1}()},
+\code{\link{createMinimalFremModel}()},
+\code{\link{generateFremModel}()},
+\code{\link{initializeModelParameters}()}
+}
+\concept{FREM model management Internal}
+\concept{frem_model_management}
 \keyword{internal}

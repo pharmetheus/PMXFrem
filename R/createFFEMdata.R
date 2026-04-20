@@ -63,11 +63,8 @@
 #' @export
 #'
 #' @examples
-#' library(dplyr)
-#' library(magrittr)
-#' library(readr)
 #'
-#' data <- read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"), show_col_types = FALSE) %>%
+#' data <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
 #'   filter(BLQ != 1)
 #'
 #' ## Check with specified parameter names
@@ -81,6 +78,8 @@
 #'   newDataFile      = NULL,
 #'   quiet            = TRUE)
 #'
+#' @family FFEM Conversion
+#' @concept ffem_conversion
 createFFEMdata <- function(runno = NULL,
                            numNonFREMThetas,
                            modName       = NULL,
@@ -174,27 +173,32 @@ createFFEMdata <- function(runno = NULL,
   ## Register to allow for parallel computing
   if (cores > 1) registerDoParallel(cores = cores)
 
-  mapFun <- function(data, cov, orgCovs) {
+  mapFun <- function(data, orgCovs) {
     for (cov in orgCovs) {
-      if (data[1, cov] == -99 & length(grepl(cov, names(data))) > 1) {
+      # Use exact list-extraction [[ ]] which is universally safe,
+      # and sum() to correctly count matching dummy columns.
+      if (data[[cov]][1] == -99 && sum(grepl(cov, names(data))) > 1) {
         data[1, grepl(cov, names(data))] <- -99
       }
     }
     return(data)
   }
-
+  
   if (cores > 1) {
     dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
-      mapFun(data = dataI[k, ], cov = cov, orgCovs = orgCovs)
+      # REMOVED: cov = cov
+      mapFun(data = dataI[k, ], orgCovs = orgCovs)
     }
-    dataI <- data.frame(rbindlist(dataI))
+    dataI <- data.frame(data.table::rbindlist(dataI))
   } else {
     dataI2 <- data.frame()
-    for (k in 1:nrow(dataI)) dataI2 <- rbind(dataI2, mapFun(data = dataI[k, ], cov = cov, orgCovs = orgCovs))
+    for (k in 1:nrow(dataI)) {
+      # REMOVED: cov = cov
+      dataI2 <- rbind(dataI2, mapFun(data = dataI[k, ], orgCovs = orgCovs))
+    }
     dataI <- dataI2
   }
-
-
+  
   dataI <- dataI[, c("ID", covNames)]
   dataMap <- dataI[]
   dataMap[, covNames] <- TRUE

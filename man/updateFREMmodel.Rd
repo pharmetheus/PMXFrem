@@ -32,7 +32,8 @@ updateFREMmodel(
   overrideExistingCheck = FALSE,
   bRecodeDichotomous = FALSE,
   allowNon01 = FALSE,
-  keepDoseOnlySubjects = FALSE
+  keepDoseOnlySubjects = FALSE,
+  sortFREMDataset = NULL
 )
 }
 \arguments{
@@ -155,7 +156,7 @@ model file name will be 'stem'_new.mod).
 }
 
 \examples{
-\dontrun{
+
 ## Example 1: Remove Covariates from a Model
 # This example removes "SEX" from the model and data set.
 td <- tempdir() # Create a temporary directory for output files
@@ -262,5 +263,11 @@ updateFREMmodel(
   bRecodeDichotomous = TRUE,
   quiet              = FALSE
 )
+
 }
+\seealso{
+Other FREM model management: 
+\code{\link{createFREMmodel}()}
 }
+\concept{FREM model management}
+\concept{frem_model_management}

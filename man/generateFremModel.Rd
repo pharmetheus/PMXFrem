@@ -69,4 +69,13 @@ and optionally writes the updated model to disk. It features smart comment
 extraction to preserve parameter labels and enforces positive-definite
 covariance matrices by replacing structural zeros.
 }
+\seealso{
+Other FREM model management Internal: 
+\code{\link{createFREMmodel_phase1}()},
+\code{\link{createMinimalFremModel}()},
+\code{\link{initializeModelParameters}()},
+\code{\link{removeFremCovariates}()}
+}
+\concept{FREM model management Internal}
+\concept{frem_model_management}
 \keyword{internal}

@@ -36,6 +36,8 @@
 #'   \item{dfFFEM}{The potentially modified dfFFEM data frame with new binarized columns.}
 #'   \item{lastFremType}{The updated last (highest) FREMTYPE value.}
 #'
+#' @family Data Assembly Internal
+#' @concept data_assembly
 #' @keywords internal
 prepareNewCovariates <- function(dfFFEM,
                                  cstrCatCovsToAdd,

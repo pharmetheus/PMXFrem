@@ -16,6 +16,8 @@
 #' @return An updated list object with the same structure as `currentState`,
 #'   reflecting the state after covariate removal.
 #'
+#' @family FREM model management Internal
+#' @concept frem_model_management
 #' @keywords internal
 removeFremCovariates <- function(currentState, cstrRemoveCov, quiet) {
   

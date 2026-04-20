@@ -13,6 +13,8 @@
 #'
 #' @return The final, processed data frame.
 #'
+#' @family Data Assembly Internal
+#' @concept data_assembly
 #' @keywords internal
 finalizeFremData <- function(dfFREM,
                              strID,

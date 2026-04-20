@@ -24,6 +24,8 @@
 #' phiFile <- system.file("extData/SimNeb/run30.phi", package = "PMXFrem")
 #' dfPhi <- getPhi(phiFile = phiFile)
 #'
+#' @family NONMEM Parsers
+#' @concept nonmem_parsers
 getPhi <- function(phiFile, set = NULL, warn=T) {
 
   tmp   <- scan(phiFile, what = "character", sep = "\n", quiet = TRUE)

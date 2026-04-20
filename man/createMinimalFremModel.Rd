@@ -34,4 +34,13 @@ A character vector containing the lines of the new minimal FREM model.
 Injects the necessary code for a single FREM covariate into a base NONMEM
 model to create a minimal, valid FREM model.
 }
+\seealso{
+Other FREM model management Internal: 
+\code{\link{createFREMmodel_phase1}()},
+\code{\link{generateFremModel}()},
+\code{\link{initializeModelParameters}()},
+\code{\link{removeFremCovariates}()}
+}
+\concept{FREM model management Internal}
+\concept{frem_model_management}
 \keyword{internal}

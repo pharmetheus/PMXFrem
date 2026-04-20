@@ -31,4 +31,15 @@ Compares the base records (FREMTYPE == 0) of the newly generated FREM dataset
 against the original filtered base dataset. It guarantees that no rows were
 dropped, no IDs were scrambled, and no structural PK/PD data was mutated.
 }
+\seealso{
+Other Data Assembly Internal: 
+\code{\link{addFREMcovariates}()},
+\code{\link{augmentFremData}()},
+\code{\link{filterDataFromModel}()},
+\code{\link{finalizeFremData}()},
+\code{\link{prepareAndValidateData}()},
+\code{\link{prepareNewCovariates}()}
+}
+\concept{Data Assembly Internal}
+\concept{data_assembly}
 \keyword{internal}

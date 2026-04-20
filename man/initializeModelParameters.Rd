@@ -32,4 +32,13 @@ Extracts initial model parameter information either from a NONMEM .ext file
 or by parsing a .mod file. This function serves as the first step in the
 model update process, gathering the necessary parameter vectors and matrices.
 }
+\seealso{
+Other FREM model management Internal: 
+\code{\link{createFREMmodel_phase1}()},
+\code{\link{createMinimalFremModel}()},
+\code{\link{generateFremModel}()},
+\code{\link{removeFremCovariates}()}
+}
+\concept{FREM model management Internal}
+\concept{frem_model_management}
 \keyword{internal}

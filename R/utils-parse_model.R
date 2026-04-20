@@ -2,6 +2,8 @@
 #'
 #' @return A list containing structural information.
 #'
+#' @family NONMEM Parsers Internal
+#' @concept nonmem_parsers
 #' @keywords internal
 parseBaseModel <- function(baseModelFile, numSkipOm, muInsertLineUser = NULL, fremBlockInsertLineUser = NULL) {
   

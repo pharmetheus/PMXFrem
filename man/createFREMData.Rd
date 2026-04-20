@@ -102,3 +102,9 @@ tmp10 <- createFREMData(
            cstrContCovs         = c("WT","BMI","AGE"))
 
 }
+\seealso{
+Other Data Assembly: 
+\code{\link{setupdfCovs}()}
+}
+\concept{Data Assembly}
+\concept{data_assembly}

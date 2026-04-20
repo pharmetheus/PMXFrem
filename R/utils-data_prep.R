@@ -21,6 +21,8 @@
 #'   \item{originalNames}{The original data header names from the data file.}
 #'   \item{inputNames}{The clean character vector of names parsed from the $INPUT record.}
 #'
+#' @family Data Assembly Internal
+#' @concept data_assembly
 #' @keywords internal
 prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quiet = FALSE, keepDoseOnlySubjects = FALSE, strID = "ID") {
   

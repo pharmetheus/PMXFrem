@@ -48,4 +48,15 @@ Adds new individuals, new dependent variables (DVs), and new covariate
 records to an existing FREM dataset. This function encapsulates the main
 data assembly logic of the FREM update process.
 }
+\seealso{
+Other Data Assembly Internal: 
+\code{\link{addFREMcovariates}()},
+\code{\link{filterDataFromModel}()},
+\code{\link{finalizeFremData}()},
+\code{\link{prepareAndValidateData}()},
+\code{\link{prepareNewCovariates}()},
+\code{\link{validateFremData}()}
+}
+\concept{Data Assembly Internal}
+\concept{data_assembly}
 \keyword{internal}

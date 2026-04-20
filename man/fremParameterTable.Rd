@@ -15,9 +15,14 @@ fremParameterTable(
   thetaLabels = paste0("THETA", thetaNum),
   omegaLabels = paste0("OMEGA", omegaNum),
   sigmaLabels = paste0("SIGMA", sigmaNum),
+  parNames = NULL,
+  covLabels = NULL,
   omegaSD = TRUE,
   sigmaSD = TRUE,
   includeRSE = FALSE,
+  uncertainty = c("RSE", "CI"),
+  ciLevel = 0.9,
+  sigDigs = 3,
   bsFile = NULL,
   n = 175,
   availCov = "all",
@@ -25,7 +30,9 @@ fremParameterTable(
   modName = NULL,
   modExt = ".mod",
   lstExt = ".lst",
-  quiet = FALSE
+  quiet = FALSE,
+  seed = NULL,
+  ...
 )
 }
 \arguments{
@@ -54,28 +61,32 @@ the number associated with the omega value in \code{parVector}. `}
 \item{sigmaNum}{The sigma numbers to include in the output. This refers to
 the number associated with the omega value in \code{parVector}. `}
 
-\item{thetaLabels}{A vector with labels for the THETAs. Should be as long as
-\code{thetaNum}.}
+\item{thetaLabels}{A character vector with labels for the THETAs. Should be exactly as long as \code{thetaNum}. Note: This is used strictly for the base parameter table, which may include non-FREM structural parameters.}
 
-\item{omegaLabels}{A vector with labels for the OMEGAs. Should be as long as
-\code{omegaNum}.}
+\item{omegaLabels}{A vector with labels for the OMEGAs. Should be as long as \code{omegaNum}.}
 
-\item{sigmaLabels}{A vector with labels for the SIGMAs Should be as long as
-\code{sigmaNum}.}
+\item{sigmaLabels}{A vector with labels for the SIGMAs Should be as long as \code{sigmaNum}.}
 
-\item{omegaSD}{Logical. If the omega prims should be reported on the SD scale
-(i.e. i.e. the square root of omega prim). Default is \code{TRUE}.}
+\item{parNames}{A character vector with labels for the structural parameters affected by covariates (which will become the rows in the coefficient table). Should be exactly as long as \code{numParCov}.
+If \code{NULL}, defaults to Par1, Par2, etc. Note: Do not confuse this with \code{thetaLabels}, as the number of structural ETAs (\code{numParCov}) often differs from the total \code{thetaNum}.}
 
-\item{sigmaSD}{Logical. If the sigmas should be reported on the SD scale
-(i.e. i.e. the square root of sigma). Default is \code{TRUE}.}
+\item{covLabels}{A character vector with labels for the covariates (columns in the coefficient table). Should match the length of \code{availCov}.}
 
-\item{includeRSE}{Logical. Should the output include relative standard errors
-(RSE). Default is \code{FALSE}. See Details.}
+\item{omegaSD}{Logical. If the omega prims should be reported on the SD scale (i.e. the square root of omega prim). Default is \code{TRUE}.}
 
-\item{bsFile}{The name of a PsNbootstrap or sir file raw_results file. To be
-used for RSE calculations based on bootstrap output. See Details.}
+\item{sigmaSD}{Logical. If the sigmas should be reported on the SD scale (i.e. the square root of sigma). Default is \code{TRUE}.}
 
-\item{n}{The number of samples to use in the RSE calculations. See Details.}
+\item{includeRSE}{Logical. Should the output include relative standard errors (RSE). Default is \code{FALSE}.}
+
+\item{uncertainty}{A character string specifying how uncertainty should be summarized. Either \code{"RSE"} (default) or \code{"CI"}.}
+
+\item{ciLevel}{A numeric value between 0 and 1 specifying the confidence interval level. Default is 0.90.}
+
+\item{sigDigs}{An integer specifying the number of significant digits to use for formatting output estimates and uncertainties. Default is 3.}
+
+\item{bsFile}{The name of a PsNbootstrap or sir file raw_results file. To be used for RSE calculations based on bootstrap output.}
+
+\item{n}{The number of samples to use in the RSE calculations.}
 
 \item{availCov}{Names of the covariates to use in the calculation of the FFEM
 model. Should be covariate names used in the FREM model.}
@@ -94,78 +105,28 @@ ext, phi and cov to form the NONMEM file names, for example
 
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
 STDOUT.}
+
+\item{...}{Additional arguments passed directly to \code{PMXForest::getSamples()} (e.g., \code{seed} for reproducibility).}
 }
 \value{
-A list of three components:
+A list of five components:
 \itemize{
-\item parameterTable: Is a data frame with information for the parameter table.
-\item Samples: A data frame with the parameter vector samples used to derive the RSE information (see Details).
-\item Condition: The condition number for variance-covariance matrix of the parameters in the parameter table.
+\item parameterTable: A data frame with information for the base parameter table.
+\item coefficientTable_long: A tidy, long-format data frame of the covariate coefficients (optimal for internal reporting APIs).
+\item coefficientTable_wide: A document-ready wide-format data frame of the covariate coefficients (Covariates x Parameters).
+\item Samples: A data frame with the parameter vector samples used to derive the RSE information.
+\item Condition: The condition number for the variance-covariance matrix of the parameters.
 }
 }
 \description{
 The data for a parameter estimates table for a FREM model is assembled,
 including the calculation of the appropriate omega prims given the covariates
-to take into account.
-}
-\details{
-A FREM model often generates a multitude of parameter estimates (one for each
-parameter and covariate combination) and it is typically not very informative
-to tabulate these estimates. Forest plots or explained variability plots are
-better at communicating the impact of the covariates. However, it is of
-interest to see what impact the covariates had on the parameters in the base
-model. The \code{fremParameterTable()} function facilitates this by assembling a
-data frame with the estimates of the base model THETAs, the omega prims and
-sigmas. There are options to not include all parameters in the output.
-
-The derivation of the omega prims is ultimately done by the \code{calcFFEM()}
-function. Since the omega prims are dependent on the covariates included in
-the calculations, the \code{availCov} argument allows the user to specify a subset
-of the available covariates. By default all covariates in the FREM model is
-used in the calculations.
-
-Relative standard errors (RSEs) can be included in the output by setting
-\code{includeRSE} to \code{TRUE}. Although NONMEM can provide standard errors for all
-parameters in the model, the standard errors of the omega prims require a
-numerical derivation, and the \code{fremParameterTable()} can do this bases on
-either a \code{.cov} from NONMEM or PsN bootstrap or sir raw_results file.
-
-In case \code{bsfile} is \code{NULL}when \code{includeRSE} is \code{TRUE} a
-.cov file that match the \code{runno} will be used as input.  \code{n} parameter vectors are sampled
-multivariately from the variance-covariance matrix. For each sample, the
-corresponding THETA, omega prim and sigma are derived (based on \code{thetaNum},
-\code{omegaNum} and \code{sigmaNum}). The RSEs are calculated as the ratio of standard
-deviation of the derived parameter to their mean.
-
-In case a .csv file is provided as input and \code{n}=NULL, the input is assumed
-to be a sir or bootstrap file. In case of a sir file, the RSEs will be
-derived using all samples in the .csv file. In case it is a bootstrap file,
-the RSEs will be derived using all samples with a nonzero value in the ofv
-column will be used.
-
-In case a .csv file is provided as input and n is not NULL, it is assumed
-that the raw results come from a boostrap analysis. A variance-covariance
-matrix will be created from the samples with a non-zero value in the ofv
-column and the RSEs will be derived based on \code{n} multivariately sampled
-parameter vectors from this variance-covariance matrix.
-
-The actual sampling is done by the \code{PMXForest::getSamples()} function.
-
-The \code{Condition} number that is included in the returned list when
-\code{includeRSE}is \code{TRUE}, is calculated from the \code{Samples} data frame also
-included in the returned list:
-
-\code{Condition <- max(eigen(cor(Samples))$values)/min(eigen(cor(Samples))$values)}
-
-The \code{parameterTable} data frame can be used to generate nice looking
-parameter tables for inclusion in reports and paper. The examples section
-provides a simple example.
+to take into account. It also computes the covariate coefficients (Individual
+Covariate Effects) mapping each covariate to each structural parameter.
 }
 \examples{
-library(dplyr)
-library(magrittr)
-library(kableExtra)
 
+if (requireNamespace("kableExtra", quietly = TRUE)) {
 set.seed(123)
 runno            <- 31
 modDevDir        <- system.file("extdata/SimNeb/",package = "PMXFrem")
@@ -183,6 +144,7 @@ tmp <- fremParameterTable(
       omegaLabels      = c("IIV on RUV","IIV on CL","IIV on V","IIV on MAT"),
       sigmaLabels      = c("RUV"),
       includeRSE       = TRUE,
+      uncertainty = "CI",
       numNonFREMThetas = numNonFREMThetas,
       numSkipOm        = numSkipOm,
       availCov         = "all",
@@ -194,6 +156,16 @@ tmp$parameterTable \%>\%
     kbl() \%>\%
     kable_classic(full_width = FALSE, html_font = "Cambria")
 }
+}
 \seealso{
 \code{\link[PMXForest:getSamples]{PMXForest::getSamples()}} \code{\link[=calcFFEM]{calcFFEM()}}
+
+Other Diagnostics & Plotting: 
+\code{\link{calcEtas}()},
+\code{\link{getExplainedVar}()},
+\code{\link{getForestDFFREM}()},
+\code{\link{plotExplainedVar}()},
+\code{\link{traceplot}()}
 }
+\concept{Diagnostics & Plotting}
+\concept{diagnostics}

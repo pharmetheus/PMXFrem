@@ -19,6 +19,8 @@
 #'
 #' @return The fully augmented `dfFREM` data frame.
 #'
+#' @family Data Assembly Internal
+#' @concept data_assembly
 #' @keywords internal
 augmentFremData <- function(dfFREM,
                             dfFFEM,

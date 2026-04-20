@@ -69,4 +69,15 @@ categorical variables, calculates initial estimates for the mean (THETA) and
 variance (OMEGA), assigns new FREMTYPEs, and creates binarized columns in the
 FFEM dataset for polytomous categorical covariates.
 }
+\seealso{
+Other Data Assembly Internal: 
+\code{\link{addFREMcovariates}()},
+\code{\link{augmentFremData}()},
+\code{\link{filterDataFromModel}()},
+\code{\link{finalizeFremData}()},
+\code{\link{prepareAndValidateData}()},
+\code{\link{validateFremData}()}
+}
+\concept{Data Assembly Internal}
+\concept{data_assembly}
 \keyword{internal}

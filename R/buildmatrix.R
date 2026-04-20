@@ -8,6 +8,8 @@
 #'   ignoring any block-diagonal structure.
 #'
 #' @return A vector of character strings with the NONMEM representation of the matrix.
+#' @family NONMEM Parsers Internal
+#' @concept nonmem_parsers
 #' @keywords internal
 buildmatrix <- function(matrix,
                         strName    = "$OMEGA",

@@ -12,6 +12,8 @@
 #'
 #' @return TRUE if validation passes. Throws a stop() error if validation fails.
 #' 
+#' @family Data Assembly Internal
+#' @concept data_assembly
 #' @keywords internal
 validateFremData <- function(originalData, fremData, cstrDV = "DV", strID = "ID", quiet = FALSE) {
   

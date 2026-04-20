@@ -45,7 +45,7 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' 
 #' # Setup paths using package extdata
 #' modDevDir    <- system.file("extdata", "SimNeb", package = "PMXFrem")
 #' modName      <- "run30"
@@ -73,13 +73,15 @@
 #'   numSkipOm          = 2,
 #'   cstrKeepCols       = keep_cols,
 #'   bRecodeDichotomous = TRUE,
-#'   quiet              = FALSE
+#'   quiet              = TRUE
 #' )
 #' 
 #' # The generated files are available in the temporary directory
 #' print(generated_files$model)
 #' print(generated_files$data)
-#' }
+#' 
+#' @family FREM model management
+#' @concept frem_model_management
 
 createFREMmodel <- function(runno                = NULL,
                             modName              = NULL,
