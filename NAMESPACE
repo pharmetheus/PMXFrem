@@ -2,6 +2,7 @@
 
 export(calcEtas)
 export(calcFFEM)
+export(calcFremShrinkage)
 export(createFFEMdata)
 export(createFFEMmodel)
 export(createFREMData)

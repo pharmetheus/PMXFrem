@@ -150,6 +150,7 @@ data frame will be computed.
 \seealso{
 Other Diagnostics & Plotting: 
 \code{\link{calcEtas}()},
+\code{\link{calcFremShrinkage}()},
 \code{\link{fremParameterTable}()},
 \code{\link{getExplainedVar}()},
 \code{\link{plotExplainedVar}()},

@@ -20,8 +20,8 @@ getExplainedVar(
  }),
   functionListName = "PAR1",
   numNonFREMThetas,
-  numFREMThetas = length(grep("THETA", names(dfext))) - numNonFREMThetas,
-  numSigmas = length(grep("SIGMA", names(dfext))),
+  numFREMThetas = NULL,
+  numSigmas = NULL,
   numParCov = NULL,
   parNames = NULL,
   numSkipOm = 0,
@@ -243,6 +243,7 @@ dfres12 <- getExplainedVar(type            = 0,
 \seealso{
 Other Diagnostics & Plotting: 
 \code{\link{calcEtas}()},
+\code{\link{calcFremShrinkage}()},
 \code{\link{fremParameterTable}()},
 \code{\link{getForestDFFREM}()},
 \code{\link{plotExplainedVar}()},

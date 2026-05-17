@@ -19,7 +19,12 @@
 #' @param covLabels A character vector with labels for the covariates (columns in the coefficient table). Should match the length of `availCov`.
 #' @param omegaSD Logical. If the omega prims should be reported on the SD scale (i.e. the square root of omega prim). Default is `TRUE`.
 #' @param sigmaSD Logical. If the sigmas should be reported on the SD scale (i.e. the square root of sigma). Default is `TRUE`.
-#' @param includeRSE Logical. Should the output include relative standard errors (RSE). Default is `FALSE`.
+#' @param includeRSE Logical. Should the output include relative standard errors (RSE). Default is \code{FALSE}.
+#' @param includeShrinkage Logical. If \code{TRUE}, calculates and includes shrinkages in the table using a specified FFEM model output. Defaults to \code{FALSE}.
+#' @param shrinkageType Character string specifying which type of shrinkage to report. Options are \code{"ETA_Var"}, \code{"ETA_SD"}, \code{"EBV_Var"}, or \code{"EBV_SD"}. Defaults to \code{"ETA_SD"} (the legacy NONMEM ETA SD shrinkage).
+#' @param rawShrinkage Logical. If \code{FALSE} (default), negative shrinkages are floored and reported as \code{1.0000e-10} to exactly mimic NONMEM's standard output. If \code{TRUE}, the raw (potentially negative) calculated shrinkages are reported.
+#' @param ffemModName A character string specifying the model name of the FFEM run (typically a MAX=0 run) to be used exclusively for shrinkage calculations. Required if \code{includeShrinkage} is \code{TRUE}.
+#' @param shkDigs An integer specifying the number of decimal places to use when formatting the shrinkage output. Default is 2.
 #' @param uncertainty A character string specifying how uncertainty should be summarized. Either \code{"RSE"} (default) or \code{"CI"}.
 #' @param ciLevel A numeric value between 0 and 1 specifying the confidence interval level. Default is 0.90.
 #' @param sigDigs An integer specifying the number of significant digits to use for formatting output estimates and uncertainties. Default is 3.
@@ -31,25 +36,29 @@
 #'
 #' * parameterTable: A data frame with information for the base parameter table.
 #' * coefficientTable_long: A tidy, long-format data frame of the covariate coefficients (optimal for internal reporting APIs).
-#' * coefficientTable_wide: A document-ready wide-format data frame of the covariate coefficients (Covariates x Parameters).
+#' * coefficientTable_wide: A document-ready wide-format data frame of the covariate coefficients (Covariates x Parameters). Estimates and uncertainties are separated into distinct columns.
 #' * Samples: A data frame with the parameter vector samples used to derive the RSE information.
 #' * Condition: The condition number for the variance-covariance matrix of the parameters.
 #' 
 #' @export
-#' @seealso [PMXForest::getSamples()] [calcFFEM()]
+#' @seealso [PMXForest::getSamples()] [calcFFEM()] [calcFremShrinkage()]
 #' 
 #' @examples 
 #' 
 #'if (requireNamespace("kableExtra", quietly = TRUE)) {
+#' library(kableExtra)
 #' set.seed(123)
 #' runno            <- 31
+#' modName          <- "run31"
+#' ffemModName      <- "run31max0"
 #' modDevDir        <- system.file("extdata/SimNeb/",package = "PMXFrem")
 #' numNonFREMThetas <- 7
 #' numSkipOm        <- 2
 #'
-#' ## Generate the raw outout
+#' ## Generate the raw output
 #' tmp <- fremParameterTable(
-#'       runno           = runno,
+#'       runno            = runno,
+#'       modName          = modName,
 #'       modDevDir        = modDevDir,
 #'       thetaNum         = 2:7,
 #'       omegaNum         = c(1,3,4,5),
@@ -57,16 +66,27 @@
 #'       thetaLabels      = c("CL (L/h)","V (L)","MAT (h)","D1 (h)","Food on Frel","Food on MAT"),
 #'       omegaLabels      = c("IIV on RUV","IIV on CL","IIV on V","IIV on MAT"),
 #'       sigmaLabels      = c("RUV"),
+#'       parNames         = c("CL", "V", "MAT"),
 #'       includeRSE       = TRUE,
-#'       uncertainty = "CI",
+#'       includeShrinkage = TRUE,
+#'       shrinkageType    = "ETA_SD",
+#'       rawShrinkage     = FALSE,
+#'       ffemModName      = ffemModName,
+#'       shkDigs          = 2,
+#'       uncertainty      = "CI",
 #'       numNonFREMThetas = numNonFREMThetas,
 #'       numSkipOm        = numSkipOm,
 #'       availCov         = "all",
 #'       quiet            = TRUE)
 #'
-#' ## Use kable_extra to generate a nice looking table
+#' ## Use kable_extra to generate a nice looking table of the main parameters
 #' tmp$parameterTable %>%
 #'     mutate(Estimate=as.character(signif(Estimate,3)))%>%
+#'     kbl() %>%
+#'     kable_classic(full_width = FALSE, html_font = "Cambria")
+#'     
+#' ## Use kable_extra to generate a nice looking table of the covariate coefficients
+#' tmp$coefficientTable_wide %>%
 #'     kbl() %>%
 #'     kable_classic(full_width = FALSE, html_font = "Cambria")
 #' }
@@ -88,6 +108,11 @@ fremParameterTable <- function(
     omegaSD       = TRUE,
     sigmaSD       = TRUE,
     includeRSE    = FALSE,
+    includeShrinkage = FALSE,
+    shrinkageType    = "ETA_SD",
+    rawShrinkage     = FALSE,
+    ffemModName      = NULL,
+    shkDigs          = 2,
     uncertainty   = c("RSE", "CI"),
     ciLevel       = 0.90,
     sigDigs       = 3,
@@ -198,7 +223,7 @@ fremParameterTable <- function(
     
     names(fremParRses) <- retList$parameterTable$Parameter
     
-    # Condition Number Logic (Robust)
+    # Condition Number Logic
     col_sds <- sapply(fremParRses, sd, na.rm = TRUE)
     fremParRses_for_cor <- fremParRses[, col_sds > 1e-9, drop = FALSE]
     if (ncol(fremParRses_for_cor) > 1) {
@@ -215,8 +240,6 @@ fremParameterTable <- function(
   }
   
   ## 5.5 SD Scale Transformations
-  # Apply the transformation to the base estimates, and to the samples if they exist,
-  # BEFORE Section 6 applies formatting and extracts the CIs/RSEs.
   if (omegaSD) {
     idx_om <- which(retList$parameterTable$Type == "OMEGA")
     retList$parameterTable$Estimate[idx_om] <- sqrt(retList$parameterTable$Estimate[idx_om])
@@ -231,70 +254,135 @@ fremParameterTable <- function(
     if (includeRSE) fremParRses[, idx_sig] <- sqrt(fremParRses[, idx_sig])
   }
   
-  # Update names and the final exported samples object to reflect the SD transformations
   if (includeRSE) {
     names(fremParRses) <- retList$parameterTable$Parameter
     retList$Samples <- fremParRses
   }
   
+  ## ------------------------------------------------------------------------
   ## 6. Build Coefficient Tables
-  # Dynamic formatting strings based on sigDigs (using %# to preserve trailing zeros)
+  ## ------------------------------------------------------------------------
   fmt_val     <- paste0("%#.", sigDigs, "g")
-  fmt_rse     <- paste0(fmt_val, " (", fmt_val, "%%)")
-  fmt_ci      <- paste0(fmt_val, " [", fmt_val, " - ", fmt_val, "]")
   fmt_base_ci <- paste0("[", fmt_val, " - ", fmt_val, "]")
   
-  # Initialize Long format (Tidy)
   coeff_long <- expand.grid(Parameter = par_names_display, Covariate = cov_names_display, stringsAsFactors = FALSE)
-  
-  # Apply signif to point estimates in numeric columns
-  coeff_long$Estimate <- signif(as.vector(point_coeff), sigDigs)
-  retList$parameterTable$Estimate <- signif(retList$parameterTable$Estimate, sigDigs)
+  coeff_long$Estimate <- as.vector(point_coeff)
   
   if (includeRSE) {
     if (uncertainty == "RSE") {
-      # Base Table RSE
       sampleMeans <- fremParRses %>% dplyr::summarise_all(mean)
       sampleSD    <- fremParRses %>% dplyr::summarise_all(sd)
       retList$parameterTable$`RSE (%)` <- signif(as.numeric(abs(100 * sampleSD / sampleMeans)), sigDigs)
       
-      # Coeff Table RSE
       coeff_mean <- apply(coeff_samples, c(1, 2), mean, na.rm = TRUE)
       coeff_sd   <- apply(coeff_samples, c(1, 2), sd, na.rm = TRUE)
       coeff_long$SD <- signif(as.vector(coeff_sd), sigDigs)
       coeff_long$`RSE (%)` <- signif(as.vector(abs(100 * coeff_sd / coeff_mean)), sigDigs)
       
-      # String Formatting
-      coeff_long$`Estimate_Formatted` <- sprintf(fmt_rse, coeff_long$Estimate, coeff_long$`RSE (%)`)
+      coeff_long$Estimate_String <- sprintf(fmt_val, signif(coeff_long$Estimate, sigDigs))
+      coeff_long$Uncertainty <- sprintf(paste0("(", fmt_val, "%%)"), coeff_long$`RSE (%)`)
+      unc_label <- "RSE"
       
     } else if (uncertainty == "CI") {
       alpha <- 1 - ciLevel
       
-      # Base Table CI
       ci_lower <- as.numeric(apply(fremParRses, 2, quantile, probs = alpha / 2, na.rm = TRUE))
       ci_upper <- as.numeric(apply(fremParRses, 2, quantile, probs = 1 - (alpha / 2), na.rm = TRUE))
       ci_col_name <- sprintf("%g%% CI", ciLevel * 100)
-      retList$parameterTable[[ci_col_name]] <- sprintf(fmt_base_ci, ci_lower, ci_upper)
+      retList$parameterTable[[ci_col_name]] <- sprintf(fmt_base_ci, signif(ci_lower, sigDigs), signif(ci_upper, sigDigs))
       
-      # Coeff Table CI
       coeff_long$CI_Lower <- signif(as.vector(apply(coeff_samples, c(1, 2), quantile, probs = alpha / 2, na.rm = TRUE)), sigDigs)
       coeff_long$CI_Upper <- signif(as.vector(apply(coeff_samples, c(1, 2), quantile, probs = 1 - (alpha / 2), na.rm = TRUE)), sigDigs)
       
-      # String Formatting
-      coeff_long$`Estimate_Formatted` <- sprintf(fmt_ci, coeff_long$Estimate, coeff_long$CI_Lower, coeff_long$CI_Upper)
+      coeff_long$Estimate_String <- sprintf(fmt_val, signif(coeff_long$Estimate, sigDigs))
+      coeff_long$Uncertainty <- sprintf(fmt_base_ci, coeff_long$CI_Lower, coeff_long$CI_Upper)
+      unc_label <- sprintf("%g%% CI", ciLevel * 100)
     }
+    
+    # Pivot into separated wide format
+    coeff_wide <- coeff_long %>%
+      dplyr::select(Covariate, Parameter, Estimate_String, Uncertainty) %>%
+      tidyr::pivot_wider(
+        names_from = Parameter, 
+        values_from = c(Estimate_String, Uncertainty),
+        names_glue = "{Parameter}_{.value}"
+      )
+    
+    # Sort columns cleanly: Covariate, Par1, Par1 Unc, Par2, Par2 Unc...
+    param_cols <- unlist(lapply(par_names_display, function(p) c(paste0(p, "_Estimate_String"), paste0(p, "_Uncertainty"))))
+    coeff_wide <- coeff_wide[, c("Covariate", intersect(param_cols, names(coeff_wide)))]
+    
+    # Rename for final output table
+    names(coeff_wide) <- gsub("_Estimate_String$", "", names(coeff_wide))
+    names(coeff_wide) <- gsub("_Uncertainty$", paste0(" ", unc_label), names(coeff_wide))
+    
   } else {
-    # Fast path (No uncertainty)
-    coeff_long$`Estimate_Formatted` <- sprintf(fmt_val, coeff_long$Estimate)
+    # No uncertainty generated
+    coeff_long$Estimate_String <- sprintf(fmt_val, signif(coeff_long$Estimate, sigDigs))
+    
+    coeff_wide <- coeff_long %>%
+      dplyr::select(Covariate, Parameter, Estimate_String) %>%
+      tidyr::pivot_wider(names_from = Parameter, values_from = Estimate_String)
   }
-  
-  # Wide format (Reporting)
-  coeff_wide <- coeff_long %>%
-    dplyr::select(Covariate, Parameter, Estimate_Formatted) %>%
-    tidyr::pivot_wider(names_from = Parameter, values_from = Estimate_Formatted)
   
   retList$coefficientTable_long <- coeff_long
   retList$coefficientTable_wide <- coeff_wide
+  
+  ## ------------------------------------------------------------------------
+  ## 7. Shrinkage Integration
+  ## ------------------------------------------------------------------------
+  if (includeShrinkage) {
+    if (is.null(ffemModName)) {
+      stop("ffemModName must be provided when includeShrinkage is TRUE.", call. = FALSE)
+    }
+    
+    shk_df <- calcFremShrinkage(
+      modName           = ffemModName, 
+      modDevDir         = modDevDir, 
+      dropUninformative = TRUE, 
+      quiet             = quiet
+    )
+    
+    if (!(shrinkageType %in% names(shk_df))) {
+      stop(sprintf("Invalid shrinkageType '%s'. Valid options are: %s", 
+                   shrinkageType, paste(names(shk_df)[-1], collapse = ", ")))
+    }
+    
+    if (!rawShrinkage) {
+      shk_df[[shrinkageType]][!is.na(shk_df[[shrinkageType]]) & shk_df[[shrinkageType]] < 0] <- 1.0000e-10
+    }
+    
+    # Format to user-specified decimals or scientific notation for the floor
+    shk_fmt <- paste0("%.", shkDigs, "f")
+    shk_formatted <- sapply(shk_df[[shrinkageType]], function(x) {
+      if (is.na(x)) return(NA_character_)
+      if (x == 1e-10) return("1.0000e-10")
+      return(sprintf(shk_fmt, x))
+    })
+    
+    # Map the structural ETA numbers back to the parameterTable's row labels
+    eta_names <- paste0("ETA", omegaNum)
+    idx_om <- which(retList$parameterTable$Type == "OMEGA")
+    
+    shk_map <- data.frame(
+      ETA_Name = eta_names,
+      Shrinkage = NA_character_,
+      stringsAsFactors = FALSE
+    )
+    
+    for (i in seq_along(shk_map$ETA_Name)) {
+      match_idx <- which(shk_df$Parameter == shk_map$ETA_Name[i])
+      if (length(match_idx) > 0) {
+        shk_map$Shrinkage[i] <- shk_formatted[match_idx]
+      }
+    }
+    
+    # Apply to main table
+    retList$parameterTable$`Shrinkage (%)` <- "-"
+    if(length(idx_om) == nrow(shk_map)) {
+      retList$parameterTable$`Shrinkage (%)`[idx_om] <- ifelse(is.na(shk_map$Shrinkage), "-", shk_map$Shrinkage)
+    }
+  }
   
   return(retList)
 }

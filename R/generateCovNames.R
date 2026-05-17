@@ -30,7 +30,7 @@
 #' 
 #' # --- Step 1: Generate the Template ---
 #' # Run this in your console to get the boilerplate:
-#' generateCovNames(dfCovs, print_template = TRUE)
+#' generateCovNames(dfCovs, print_template = T)
 #' 
 #' # --- Step 2: Fill and Apply ---
 #' # Paste the output, fill in the blanks, and pass to the function:

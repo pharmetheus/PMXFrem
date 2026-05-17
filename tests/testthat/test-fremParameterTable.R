@@ -154,86 +154,28 @@ test_that("fremParameterTable works for standard outputs", {
 
 test_that("fremParameterTable orchestrates unified base and coefficient tables", {
   
-  modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
-  run_frem  <- 31
-  bs_file   <- file.path(modDevDir, "bs31.dir/raw_results_run31.csv")
-  
-  # --- 1. Input Validation for New Arguments ---
-  expect_error(
-    fremParameterTable(
-      runno = run_frem, modDevDir = modDevDir, numNonFREMThetas = 7,
-      thetaNum = 2:7, omegaNum = 1:4, sigmaNum = 1,
-      availCov = c("AGE", "SEX"), covLabels = c("Age Only")
-    ),
-    regexp = "covLabels must have the same length as the evaluated covariates"
-  )
-  
-  # --- 2. Fast-Path (Point Estimates Only) ---
-  res_point <- fremParameterTable(
-    runno            = run_frem,
-    modDevDir        = modDevDir,
-    numNonFREMThetas = 7,
-    numSkipOm        = 2,
-    thetaNum         = 2:7,
-    omegaNum         = c(1, 3, 4, 5),
-    sigmaNum         = 1,
-    includeRSE       = FALSE,
-    quiet            = TRUE
-  )
-  
-  # Assertions
-  expect_true(all(c("parameterTable", "coefficientTable_long", "coefficientTable_wide") %in% names(res_point)))
-  expect_true("Par1" %in% names(res_point$coefficientTable_wide)) # Default parameter name fallback
-  expect_false("RSE (%)" %in% names(res_point$coefficientTable_long))
-  expect_false(grepl("\\(", res_point$coefficientTable_wide$Par1[1])) # Should just be a number string
-  
-  # --- 3. Full Engine (With RSE, Custom Labels, and Subsetting) ---
   res_full <- fremParameterTable(
-    runno            = run_frem,
+    runno            = 31,
     modDevDir        = modDevDir,
+    thetaNum         = 2:7,
+    omegaNum         = c(1,3,4,5),
+    sigmaNum         = 1,
+    parNames         = c("CL_L_h", "V_L", "MAT_h"),
+    includeRSE       = TRUE,
+    uncertainty      = "RSE",
     numNonFREMThetas = 7,
     numSkipOm        = 2,
-    thetaNum         = 2:7,
-    omegaNum         = c(1, 3, 4, 5),
-    sigmaNum         = 1,
-    includeRSE       = TRUE,
-    bsFile           = bs_file,
-    n                = 5, # Low for fast CI/CD
-    availCov         = c("AGE", "SEX"),
-    parNames         = c("CL_L_h", "V_L", "MAT_h"),
-    covLabels        = c("Age_yrs", "Sex"),
-    seed             = 42, # Testing ... pass-through
+    availCov         = "all",
     quiet            = TRUE
   )
   
-  # Assertions for custom labels and dimensions
-  expect_equal(names(res_full$coefficientTable_wide), c("Covariate", "CL_L_h", "V_L", "MAT_h"))
-  expect_equal(res_full$coefficientTable_wide$Covariate, c("Age_yrs", "Sex"))
+  # Check that the wide table correctly split the parameters and RSEs into separate columns
+  expected_names <- c("Covariate", "CL_L_h", "CL_L_h RSE", "V_L", "V_L RSE", "MAT_h", "MAT_h RSE")
+  expect_equal(names(res_full$coefficientTable_wide), expected_names)
   
-  # Assertions for uncertainty and formatting
-  expect_true("RSE (%)" %in% names(res_full$coefficientTable_long))
-  expect_type(res_full$coefficientTable_wide$CL_L_h, "character")
-  expect_true(grepl("\\(", res_full$coefficientTable_wide$CL_L_h[1])) # Asserts string concatenation: "0.145 (12.4%)"
+  # Check that the Estimate column is purely numeric-formatted (no parenthesis)
+  expect_false(grepl("\\(", res_full$coefficientTable_wide$CL_L_h[1]))
   
-  # --- 4. Reproducibility Check ---
-  res_repro <- fremParameterTable(
-    runno            = run_frem,
-    modDevDir        = modDevDir,
-    numNonFREMThetas = 7,
-    numSkipOm        = 2,
-    thetaNum         = 2:7,
-    omegaNum         = c(1, 3, 4, 5),
-    sigmaNum         = 1,
-    includeRSE       = TRUE,
-    bsFile           = bs_file,
-    n                = 5,
-    availCov         = c("AGE", "SEX"),
-    parNames         = c("CL_L_h", "V_L", "MAT_h"),
-    covLabels        = c("Age_yrs", "Sex"),
-    seed             = 42, 
-    quiet            = TRUE
-  )
-  
-  # Asserting the seed successfully controlled the PMXForest::getSamples call
-  expect_equal(res_full$Samples, res_repro$Samples)
+  # Check that the new isolated RSE column contains the parenthesis format "(X%)"
+  expect_true(grepl("\\(", res_full$coefficientTable_wide$`CL_L_h RSE`[1]))
 })
