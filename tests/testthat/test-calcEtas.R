@@ -181,3 +181,75 @@ test_that("calcEtas correctly routes arguments to all internal functions", {
   # A secondary check to ensure it not only ran, but produced the expected output type.
   expect_s3_class(etas_result, "data.frame")
 })
+
+# --- Test Group 6: Diagnostic Plotting Additions (EBEs and Missing Flags) ---
+test_that("calcEtas appends true EBEs from a specified FFEM model", {
+  
+  res <- calcEtas(
+    modName          = "run31",
+    modDevDir        = system.file("extdata/SimNeb/", package = "PMXFrem"),
+    numNonFREMThetas = 7,
+    numSkipOm        = 2,
+    dataFile         = test_data,
+    parNames         = c("CL", "V", "MAT"),
+    ffemModName      = "run31max0", # The FFEM model for EBEs
+    quiet            = TRUE
+  )
+  
+  expect_s3_class(res, "data.frame")
+  
+  # Check that EBE columns were successfully extracted and renamed
+  ebe_cols <- grep("^EBE_ETA", names(res), value = TRUE)
+  expect_true(length(ebe_cols) > 0)
+  expect_true(all(c("EBE_ETA3", "EBE_ETA4", "EBE_ETA5") %in% ebe_cols))
+})
+
+test_that("calcEtas appends missingness flags for covariates", {
+  
+  res <- calcEtas(
+    modName            = "run31",
+    modDevDir          = system.file("extdata/SimNeb/", package = "PMXFrem"),
+    numNonFREMThetas   = 7,
+    numSkipOm          = 2,
+    dataFile           = test_data,
+    parNames           = c("CL", "V", "MAT"),
+    appendMissingFlags = TRUE, # Trigger the missingness flags
+    quiet              = TRUE
+  )
+  
+  expect_s3_class(res, "data.frame")
+  
+  # Identify the appended missing columns
+  miss_cols <- grep("_MISSING$", names(res), value = TRUE)
+  expect_true(length(miss_cols) > 0)
+  
+  # Verify WT_MISSING is present
+  expect_true("WT_MISSING" %in% miss_cols)
+  
+  # Verify the column strictly contains binary indicators (0 or 1)
+  expect_true(all(res$WT_MISSING %in% c(0, 1)))
+})
+
+
+# --- Test Group 7: Guardrails for new features ---
+test_that("calcEtas throws a warning if the requested FFEM model does not exist", {
+  
+  # If the user provides a bad ffemModName, it should warn and gracefully continue
+  expect_warning(
+    res <- calcEtas(
+      modName          = "run31",
+      modDevDir        = system.file("extdata/SimNeb/", package = "PMXFrem"),
+      numNonFREMThetas = 7,
+      numSkipOm        = 2,
+      dataFile         = test_data,
+      parNames         = c("CL", "V", "MAT"),
+      ffemModName      = "ghost_model_that_does_not_exist",
+      quiet            = FALSE # Must be FALSE to catch the warning
+    ),
+    regexp = "Cannot find FFEM .phi file at.*Skipping FFEM EBEs"
+  )
+  
+  # It should still return the standard dataframe even if the EBEs failed to append
+  expect_s3_class(res, "data.frame")
+  expect_false(any(grepl("^EBE_", names(res))))
+})
