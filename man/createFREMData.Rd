@@ -14,10 +14,13 @@ createFREMData(
   cstrDV = "DV",
   cstrContCovs = NULL,
   cstrCatCovs = NULL,
-  bRecodeDichotomous = TRUE,
-  cSortCols = c("ID", "TIME", "FREMTYPE"),
-  cSortDirection = c(1, 1, -1),
-  cFremtypes = NULL
+  logtCovs = NULL,
+  bRecodeDichotomous = FALSE,
+  allowNon01 = FALSE,
+  cSortCols = c("ORIG_ROW_IDX", "FREMTYPE"),
+  cSortDirection = c(1, 1),
+  cFremtypes = NULL,
+  keepDoseOnlySubjects = FALSE
 )
 }
 \arguments{
@@ -48,23 +51,33 @@ Default=NULL, i.e. no continuous covariates will be added}
 \item{cstrCatCovs}{A vector of strings with categorical covariates to
 create. Default=NULL, i.e. no categorical covariates will be added}
 
-\item{bRecodeDichotomous}{Set to true if dichotomous covariates should be
-re-scaled to 1,0. E.g. if set to TRUE and SEX is coded as 1 or 2, a new
-variable SEXN_2 will be created with the values of 0 or 1. Only applicable
-if cstrCatCov is not zero and at least one of the cat covariates is
-dichotomous}
+\item{logtCovs}{A vector of strings with continuous covariates that should be
+log-transformed (natural log) before being added to the DV column.}
 
-\item{cSortCols}{The column names to sort by (must  be present in
-cstrKeepCols)}
+\item{bRecodeDichotomous}{Logical. If TRUE, dichotomous covariates (e.g., coded 1/2)
+will be automatically recoded to 0/1, and a new variable (e.g., SEX_1) will be
+created. If FALSE (the default), dichotomous covariates must be strictly coded
+as 0/1 in the input data; otherwise, a strict validation error will be thrown.}
 
-\item{cSortDirection}{The sort column order, ascending = 1, descending = -1,
-must be the same length as cSortCols}
+\item{allowNon01}{Logical. If TRUE, bypasses strict 0/1 validation and allows
+dichotomous covariates with non-standard coding (e.g., 1/2) to pass through
+untouched without being recoded. This provides 100\% compatibility with PsN
+legacy behavior. Defaults to FALSE.}
+
+\item{cSortCols}{A character vector of column names to sort the final dataset by.
+The special internally generated column \code{"ORIG_ROW_IDX"} can be used to
+preserve the original row order of the input dataset. Default is
+\code{c("ORIG_ROW_IDX", "FREMTYPE")}.}
+
+\item{cSortDirection}{A numeric vector specifying the sort order for each column in
+\code{cSortCols} (1 for ascending, -1 for descending). Default is \code{c(1, 1)}.}
 
 \item{cFremtypes}{A vector of FREMTYPE values that each DV and covariate
-should use. The order should be: DV variables, continuous covariates,
-categorical covariates. Default=NULL, i.e.FREMTYPE of DV1=0,
-DV2=1,..,CONT1=100, ..CONTN=N*100, CAT1=(N+1+NumLevels1)\emph{100,
-CATM=(N+M}NumLevelsM)*100}
+should use. Default=NULL.}
+
+\item{keepDoseOnlySubjects}{Logical. If \code{FALSE} (default), subjects without any valid PK observations (e.g.,
+only dosing records) are completely excluded from the generated dataset. If \code{TRUE},
+these subjects are retained and their covariates are included as observations.}
 }
 \value{
 A data.frame with the FREM data set.
@@ -78,19 +91,20 @@ set, they can be included in the DV column of the FREM data set with
 different FREMTYPES by specifying the names of the columns in the \code{cstrDV}
 argument.
 }
-\section{Side effetcs}{
-
-
-Will write a new FREM data set set to disc if strFREMDataFileName is not
-NULL.
-}
-
 \examples{
 strFFEMData <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",
-                            package = "PMXFrem")
+                           package = "PMXFrem")
 tmp10 <- createFREMData(
-          strFFEMData = strFFEMData,
-          cstrCatCovs = c("SEX","SMOK","NCIL"),
-          cstrContCovs = c("WT","BMI","AGE"))
+           strFFEMData          = strFFEMData,
+           cstrKeepCols         = c("ID", "TIME", "AMT", "EVID", "RATE"),
+           bRecodeDichotomous   = TRUE,
+           cstrCatCovs          = c("SEX","SMOK","NCIL"),
+           cstrContCovs         = c("WT","BMI","AGE"))
 
 }
+\seealso{
+Other Data Assembly: 
+\code{\link{setupdfCovs}()}
+}
+\concept{Data Assembly}
+\concept{data_assembly}

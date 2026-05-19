@@ -48,3 +48,11 @@ modDevDir can not be NULL.
 getFileNames(runno = 30, modDevDir = system.file("extData/SimNeb/", package = "PMXFrem"))
 
 }
+\seealso{
+Other NONMEM Parsers: 
+\code{\link{getCovNames}()},
+\code{\link{getExt}()},
+\code{\link{getPhi}()}
+}
+\concept{NONMEM Parsers}
+\concept{nonmem_parsers}

@@ -26,11 +26,10 @@ test_that("the correct columns are added", {
   expect_equal("SEX_1"   %in% names(newData),FALSE)
 
   ## Check content
-  expect_equal(length(unique(newData$RACEL_3)),2)
-  expect_equal(max(newData$RACEL_3),1)
-  expect_equal(min(newData$RACEL_3),0)
-
-
+  expect_equal(length(unique(newData$RACEL_3)), 2) # 0, 1, and -99
+  expect_equal(max(newData$RACEL_3), 1)
+  expect_equal(min(newData$RACEL_3), 0)
+  
   ## Check the case when covariates is not NULL
 
   # Test case 1: This call produces a warning and a data frame.
@@ -82,4 +81,27 @@ test_that("the correct columns are added", {
   expect_equal("RACEL_3" %in% names(newData),TRUE)
   expect_equal("RACEL_2" %in% names(newData),TRUE)
   expect_equal(nrow(data),nrow(newData))
+  
+  ## ------------------------------------------------------------------------
+  ## Check imputeMissing toggle for FREM vs FFEM data
+  ## ------------------------------------------------------------------------
+  
+  # Inject missing values into the first two rows of RACEL
+  data_missing <- data
+  data_missing$RACEL[1:2] <- -99
+  
+  # Test imputeMissing = FALSE (FREM behavior: preserves -99)
+  newData_frem <- addFREMcovariates(data_missing, covariates = c("RACEL"), 
+                                    iMiss = -99, imputeMissing = FALSE)
+  
+  expect_equal(newData_frem$RACEL_3[1:2], c(-99, -99))
+  expect_equal(newData_frem$RACEL_2[1:2], c(-99, -99))
+  
+  # Test imputeMissing = TRUE (FFEM behavior: imputes to 0, which is the default)
+  newData_ffem <- addFREMcovariates(data_missing, covariates = c("RACEL"), 
+                                    iMiss = -99, imputeMissing = TRUE)
+  
+  expect_equal(newData_ffem$RACEL_3[1:2], c(0, 0))
+  expect_equal(newData_ffem$RACEL_2[1:2], c(0, 0))
 })
+

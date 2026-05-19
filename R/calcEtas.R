@@ -62,6 +62,8 @@
 #' # The output contains subject IDs, ETAs, ETA_PRIMs, and covariate values.
 #' head(individual_etas)
 #'
+#' @family Diagnostics & Plotting
+#' @concept diagnostics
 calcEtas <- function(
     runno            = NULL,
     numNonFREMThetas,

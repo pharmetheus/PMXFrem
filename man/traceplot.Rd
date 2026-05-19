@@ -2,7 +2,7 @@
 % Please edit documentation in R/tracePlot.R
 \name{traceplot}
 \alias{traceplot}
-\title{Create traceplots of OFV, tehtas and omegas from a NONMEM run.}
+\title{Create traceplots of OFV, thetas and omegas from a NONMEM run.}
 \usage{
 traceplot(
   runno = NULL,
@@ -16,7 +16,11 @@ traceplot(
   includeTheta = TRUE,
   includeOmega = TRUE,
   thetaNum = NULL,
-  omegaNum = NULL
+  omegaNum = NULL,
+  includeShapedOFV = TRUE,
+  pvalue = 0.05,
+  df = 1,
+  meanShapeLastIter = 30
 )
 }
 \arguments{
@@ -36,8 +40,7 @@ directory, i.e. ".".}
 extracted from. Will use the last TABLE if set to \code{NULL}. There is one
 TABLE for each \code{$ESTIMATION} in the \code{NONMEM} model file.}
 
-\item{startIter}{The iteration to start the traceplot from. Default is 10.
-(The first iterations are typically not particularly informative.)}
+\item{startIter}{The iteration to start the traceplot from. Default is 10.}
 
 \item{main}{The title to use in the generated plots. Default is NULL.}
 
@@ -50,9 +53,21 @@ TABLE for each \code{$ESTIMATION} in the \code{NONMEM} model file.}
 \item{thetaNum}{The number of the \code{THETA}s to include in the plot. Default is NULL, which means that all \code{THETA}s should be included.}
 
 \item{omegaNum}{The number of the \code{OMEGA}s to include in the plot. Default is NULL, which means that all \code{OMEGA}s should be included.}
+
+\item{includeShapedOFV}{Logical (default is \code{TRUE}). If TRUE, adds a shaded
+acceptance region to the OFV plot based on the chi-squared distribution to
+help visualize convergence stability.}
+
+\item{pvalue}{The p-value (default is 0.05) for the chi-squared distribution
+used to define the height of the shaded region. Must be between 0 and 1.}
+
+\item{df}{The degrees of freedom (default is 1) for the chi-squared distribution.}
+
+\item{meanShapeLastIter}{The number of final iterations (default is 30) used to
+calculate the mean OFV, which centers the shaded region.}
 }
 \value{
-A list of ggplot objects, one for each of an object of OFV, \code{THETA}s and code{OMEGA}s.
+A list of ggplot objects, one for each of an object of OFV, \code{THETA}s and \code{OMEGA}s.
 }
 \description{
 Use to check for a stable convergence of NONMEM runs, typically for runs
@@ -60,10 +75,43 @@ implemented with EM algorithms.
 }
 \details{
 Each of the parameters and OFV are plotted versus the iteration number.
-The value on the y-axis is normalised to the last iteration.
+The value on the y-axis is normalised to the last iteration. The shaded region
+on the OFV plot represents the expected range of variability for the OFV at
+the end of a run.
 }
 \examples{
-\dontrun{
- traceplot(30,modDevDir=system.file("extdata","SimNeb/",package="PMXFrem"))
+model_dir <- system.file("extdata/SimNeb/", package = "PMXFrem")
+
+# Generate plot with the default shaded OFV region
+trace_plots <- traceplot(
+  runno = 31,
+  modDevDir = model_dir
+)
+
+names(trace_plots)
+
+if (interactive()) {
+  trace_plots$OFV
+}
+
+# Generate plot without the shaded OFV region
+trace_plots_no_shape <- traceplot(
+  runno = 31,
+  modDevDir = model_dir,
+  includeShapedOFV = FALSE
+)
+
+if (interactive()) {
+  trace_plots_no_shape$OFV
 }
 }
+\seealso{
+Other Diagnostics & Plotting: 
+\code{\link{calcEtas}()},
+\code{\link{fremParameterTable}()},
+\code{\link{getExplainedVar}()},
+\code{\link{getForestDFFREM}()},
+\code{\link{plotExplainedVar}()}
+}
+\concept{Diagnostics & Plotting}
+\concept{diagnostics}

@@ -52,5 +52,10 @@ covNames=covNames, availCov=availCov,quiet=quiet)
 }
 \seealso{
 \code{\link[=fremParameterTable]{fremParameterTable()}}
+
+Other Diagnostics & Plotting Internal: 
+\code{\link{generateCovNames}()}
 }
+\concept{Diagnostics & Plotting Internal}
+\concept{diagnostics}
 \keyword{internal}

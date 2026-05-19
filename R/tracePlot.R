@@ -53,6 +53,8 @@
 #' if (interactive()) {
 #'   trace_plots_no_shape$OFV
 #' }
+#' @family Diagnostics & Plotting
+#' @concept diagnostics
 traceplot <- function(runno        = NULL,
                       modName      = NULL,
                       modDevDir    = NULL,

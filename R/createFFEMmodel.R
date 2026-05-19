@@ -77,17 +77,29 @@
 #'@export
 #'
 #' @examples
-#' \dontrun{
-#' ffemMod <- createFFEMmodel(runno            = 31,
-#'                            modDevDir        = modDevDir,
-#'                            numNonFREMThetas = 7,
-#'                            numSkipOm        = 2,
-#'                            parNames         = c("CL","V","MAT"),
-#'                            dataFile         = "DAT-2-MI-PMX-2-onlyTYPE2-new.csv",
-#'                            newDataFile      = "testFileName.csv",
-#'                            quiet            = FALSE,
-#'                            baserunno        = 30)
-#' }
+#' 
+#' #Setup paths using package extdata
+#' modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+#' dataFile  <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+#'
+#' # Isolate outputs to a temporary directory
+#' td <- tempdir()
+#' out_data <- file.path(td, "testFileName.csv")
+#'
+#' ffemMod <- createFFEMmodel(
+#'   runno            = 31,
+#'   modDevDir        = modDevDir,
+#'   numNonFREMThetas = 7,
+#'   numSkipOm        = 2,
+#'   parNames         = c("CL","V","MAT"),
+#'   dataFile         = dataFile,
+#'   newDataFile      = out_data,
+#'   quiet            = TRUE,
+#'   baserunno        = 30
+#' )
+#' 
+#' @family FFEM Conversion
+#' @concept ffem_conversion
 createFFEMmodel <- function(
     runno         =NULL,
     numNonFREMThetas,

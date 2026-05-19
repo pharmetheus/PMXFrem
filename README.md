@@ -3,25 +3,44 @@
 
 # PMXFrem
 
-The goal of PMXFrem is to provide post processing support to FREM models
-built in NONMEM. In particular PMXFrem supports the conversion of FREM
-models to FFEM model for GOF diagnostics, VPC and results communication.
+The goal of `PMXFrem` is to provide comprehensive post-processing
+support for Full Random Effects Models (FREM) built in NONMEM. It
+facilitates the automated conversion of FREM models to Full Fixed
+Effects Models (FFEM), enabling standard project workflows including
+Goodness-of-Fit (GOF) diagnostics, Visual Predictive Checks (VPC), and
+forest-plot based results communication.
 
 ## Installation
 
-You can install the development version of PMXFrem from
-[GitHub](https://github.com/) with:
+### Nominal Instructions
+
+You can install the development version of `PMXFrem` from GitHub with:
 
 ``` r
 # install.packages("devtools")
 devtools::install_github("pharmetheus/PMXFrem")
 ```
 
-To get the latest stable release (including vignettes), please click the
-appropriate link on the right side of the page. Download the file with a
-name that starts with PMXFrem. Install PMXFrem with the
-`install.packages` command, e.g.:
+To install a stable release with compiled vignettes, download the latest
+source package (.tar.gz) from the Releases section and install locally:
 
 ``` r
-install.packages("path_to_release.tar.gz")
+install.packages("path_to_release/PMXFrem_vX.Y.Z.tar.gz", repos = NULL, type = "source")
 ```
+
+### Organizational Installation
+
+If your organizational SOPs require installation via an internal package
+manager (e.g., Posit Package Manager) or a localized server, please
+prioritize those methods over GitHub to ensure environment stability and
+reproducibility.
+
+## Documentation Roadmap
+
+To get started with `PMXFrem`, we recommend following this documentation
+sequence:
+
+1.  Quick Start: A 5-minute copy-pasteable example to verify your
+    installation and run a basic FREM-to-FFEM conversion.
+2.  The Walk-Through: A comprehensive tutorial demonstrating the full
+    workflow: from data assembly to forest plot generation.

@@ -107,9 +107,8 @@
 #' of the maximum variability (TOTCOVVAR). If NULL (default), all covariates inteh frem model will be used for the derivation of TOTCOVVAR.
 #'
 #' @examples
-#' library(dplyr)
-#' library(magrittr)
-#'
+#' 
+#' \donttest{
 #' modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
 #' fremRunno <- 31
 #' modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))
@@ -147,7 +146,7 @@
 #'                           seed             = 123
 #' )
 #'
-#' ## A fucntion that returns a vecotr of values
+#' ## A function that returns a vector of values
 #' vectorFunction <- function(basethetas,covthetas, dfrow, etas, ...) {
 #'   return(
 #'     c(basethetas[2]*exp(covthetas[1] + etas[3]),
@@ -169,6 +168,9 @@
 #'                           quiet            = TRUE,
 #'                           seed             = 123
 #' )
+#' }
+#' @family Diagnostics & Plotting
+#' @concept diagnostics
 
 
 getExplainedVar <- function(
@@ -186,8 +188,8 @@ getExplainedVar <- function(
     }),
     functionListName = "PAR1",
     numNonFREMThetas,
-    numFREMThetas    = length(grep("THETA", names(dfext))) - numNonFREMThetas,
-    numSigmas        = length(grep("SIGMA", names(dfext))),
+    numFREMThetas    = NULL,
+    numSigmas        = NULL,
     numParCov        = NULL,
     parNames         = NULL,
     numSkipOm        = 0,
@@ -203,6 +205,10 @@ getExplainedVar <- function(
 
   if (type > 0 && is.null(data)) stop("data can not be missing with type 1-3.")
 
+  if (type > 0 && !is.null(data)) {
+    data <- as.data.frame(data)
+  }
+  
   fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir, ...)
   modFile   <- fileNames$mod
   extFile   <- fileNames$ext
@@ -214,6 +220,14 @@ getExplainedVar <- function(
 
   if (nrow(dfext) > 1) dfext <- dfext[dfext$ITERATION == -1000000000, ]
   thetas <- as.numeric(dfext[2:(numNonFREMThetas + 1)])
+  
+  if (is.null(numFREMThetas)) {
+    numFREMThetas <- length(grep("THETA", names(dfext))) - numNonFREMThetas
+  }
+  
+  if (is.null(numSigmas)) {
+    numSigmas <- length(grep("SIGMA", names(dfext)))
+  }
 
   ## Check that cstrCovariates has the same length as the number of rows in dfCovs
   if (is.null(cstrCovariates)) {
@@ -253,7 +267,6 @@ getExplainedVar <- function(
     allCov <- availCov
   }
 
-
   if (type==2) {
     if (length(dfCovs)<=length(orgCovs)) {
       warning("Presence of FFEM covariates is indicated (trough type=2), make sure that all FFEM covariates are also available in dfCovs")
@@ -261,317 +274,27 @@ getExplainedVar <- function(
   }
 
 
-  # if (is.null(availCov)) availCov <- covNames
-
-  # Function to get FREM covariate names from FFEM covariates
-  getFREMCovNames <- function(currNames) {
-    covrow <- NULL
-    ffemCovs <- stringr::str_replace(fremCovs, "_[0-9]*", "")
-
-    for (cov in c(currNames, fremCovs)) {
-      myCov <- str_replace(cov, "_[0-9]*", "")
-      index <- which(cov == fremCovs)
-      # If a FREM binarized covariate
-      if (!is.null(index) && length(index) > 0) {
-        if (cov %in% currNames) covrow <- c(covrow, cov)
-      } else {
-        index <- which(myCov == ffemCovs)
-        # If not a FREM binarized covariate
-        if (is.null(index) || length(index) == 0) {
-          covrow <- c(covrow, cov)
-        } else {
-          covrow <- c(covrow, fremCovs[index])
-        }
-      }
-    }
-    return(unique(covrow))
-  }
-
-  # Delta rule based derivation of explained variability
+  ## Do the calculations
   if (type == 0) {
-    # Define delta_rule function
-    deltarule <- function(params, covmatrix, transform_fun, ...) {
-
-      # Calculate the derivatives by numeric differentiation with the numDeriv library
-      # library(numDeriv)
-      # Options to grad function, i.e. could be e.g. global settings
-      if (!exists("ma")) ma <- list(eps = 1e-4, d = 0.0001, zero.tol = sqrt(.Machine$double.eps / 7e-7), r = 4, v = 2, show.details = FALSE)
-
-      param_new <- transform_fun(params, ...) # Calculate the transformation
-      new_var <- rep(0,length(param_new)) # Initialize the variance of the transformed function
-      for (k in 1:length(param_new)) {
-       tf1<-function(params,...) transform_fun(params,...)[[k]] #Just take one output at a time from a multi return function
-       param_deriv <- grad(tf1, params, method = "Richardson", method.args = ma, ...)
-
-       for (i in 1:length(params)) {
-         for (j in 1:length(params)) {
-           new_var[k] <- new_var[k] + param_deriv[i] * param_deriv[j] * covmatrix[i, j]
-         }
-       }
-     }
-     return(c(param_new, new_var)) # Return a vector with the tranformed parameter value and the transformed parameter variance
-    }
-
-    # Define internal wrapper function to be used with propagation of variabilities
-    parf <- function(x, basethetas, covthetas, dfrow, myfunc, ...) {
-      return(unlist(myfunc(basethetas, covthetas, dfrow, x, ...)))
-    }
-
-    ffemObjAllNoCov <- calcFFEM(
-      numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas, dfext = dfext, covNames = covNames,
-      availCov = NULL, quiet = quiet, numParCov = numParCov, numSkipOm = numSkipOm
-    )
-
-    ffemObjAllCov <- calcFFEM(
-      numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas, dfext = dfext, covNames = covNames,
-      availCov = allCov, quiet = quiet, numParCov = numParCov, numSkipOm = numSkipOm
-    )
-
-    dfres <- data.frame()
-    m<-1 #Index for functionListName
-    for (j in 1:length(functionList)) {
-      TOTVAR <- deltarule(
-        params = rep(0, length(diag(ffemObjAllNoCov$FullVars))), covmatrix = ffemObjAllNoCov$FullVars, transform_fun = parf, basethetas = thetas,
-        covthetas = rep(0, length(parNames)), dfrow = dfCovs[1, ], myfunc = functionList[[j]], ...
-      )
-      TOTVAR <-TOTVAR[(length(TOTVAR)/2+1):length(TOTVAR)] #Get only the variance parameters
-      TOTCOVVAR <- deltarule(
-        params = rep(0, length(diag(ffemObjAllCov$FullVars))), covmatrix = ffemObjAllCov$FullVars, transform_fun = parf, basethetas = thetas,
-        covthetas = rep(0, length(parNames)), dfrow = dfCovs[1, ], myfunc = functionList[[j]], ...
-      )
-      TOTCOVVAR <-TOTCOVVAR[(length(TOTCOVVAR)/2+1):length(TOTCOVVAR)] #Get only the variance parameters
-
-      for (i in 1:nrow(dfCovs)) {
-        currentNames <- names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != -99]
-        tmpcovs <- getFREMCovNames(currentNames)
-        # Calculate the FFEM based on some know covariates based on the row in dfCovs which are non-missing
-        ffemObj <- calcFFEM(
-          numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas, dfext = dfext, covNames = covNames,
-          availCov = tmpcovs, quiet = quiet, numParCov = numParCov, numSkipOm = numSkipOm
-        )
-        COVVAR <- deltarule(
-          params = rep(0, length(diag(ffemObj$FullVars))), covmatrix = ffemObj$FullVars, transform_fun = parf, basethetas = thetas,
-          covthetas = rep(0, length(parNames)), dfrow = dfCovs[1, ], myfunc = functionList[[j]], ...
-        )
-        COVVAR <-COVVAR[(length(COVVAR)/2+1):length(COVVAR)] #Get only the variance parameters
-
-        dfres <- rbind(
-          dfres,
-          data.frame(
-            COVNUM    = i, COVNAME = cstrCovariates[i],
-            PARAMETER = functionListName[m:(m+length(TOTVAR)-1)],
-            TOTVAR    = TOTVAR,
-            TOTCOVVAR = TOTVAR - TOTCOVVAR,
-            COVVAR    = TOTVAR - COVVAR
-          )
-        )
-      }
-      m<-m+length(TOTVAR) #Update functionListName index
-    }
-    return(dfres[order(match(dfres$PARAMETER, functionListName)),]) #Sort according to functionListName
+    return(.calc_fo_variance(
+      dfCovs = dfCovs, functionList = functionList, functionListName = functionListName, cstrCovariates = cstrCovariates,
+      thetas = thetas, dfext = dfext, numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas,
+      numParCov = numParCov, numSkipOm = numSkipOm, parNames = parNames, covNames = covNames, allCov = allCov, 
+      fremCovs = fremCovs, quiet = quiet, ...
+    ))
   }
+  
+  if (type %in% c(1, 2, 3)) {
+    return(.calc_empirical_variance(
+      type = type, data = data, dfCovs = dfCovs, dfext = dfext, strID = strID, runno = runno, modName = modName, 
+      modDevDir = modDevDir, cstrCovariates = cstrCovariates, functionList = functionList, functionListName = functionListName, 
+      numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas, numParCov = numParCov, 
+      parNames = parNames, numSkipOm = numSkipOm, allCov = allCov, etas = etas, quiet = quiet, ncores = ncores, 
+      cstrPackages = cstrPackages, cstrExports = cstrExports, numETASamples = numETASamples, seed = seed, 
+      thetas = thetas, covNames = covNames, fremCovs = fremCovs, orgCovs = orgCovs, ...
+    ))
 
-
-  if (type == 1 || type == 2 || type == 3) { # Assuming explained variability based on data + ETA values (or sampled ETA values)
-
-    if (type == 2 || type == 3) { # Get the ETA samples from N(0,1) and then rescale to correct variance
-      ETAsamples <- matrix(rnorm((numParCov + numSkipOm) * numETASamples), nrow = (numParCov + numSkipOm), ncol = numETASamples)
-    }
-
-    for (cov in fremCovs) {
-      myCov <- str_replace(cov, "_[0-9]*", "")
-      myCovNum <- str_replace(cov, paste0(myCov, "_"), "")
-      if (!myCov %in% names(data)) {
-        stop(paste0("Can't find ", myCov, " in the dataset, exiting!"))
-      }
-      data[[cov]] <- ifelse(data[[myCov]] == myCovNum, 1, 0)
-    }
-
-    dataI <- data[!duplicated(data[[strID]]), ] # Get one row per subject and keep only covariates and ID
-
-    ## Check that the number of etas is the same as the number of subjects in the data set
-    if (type == 1 && (nrow(etas) != nrow(dataI))) stop("The number of etas should be the same as the number of subjects in the data set.")
-
-
-    ## Register to allow for parallel computing
-    if (ncores > 1) registerDoParallel(cores = ncores)
-
-    mapFun <- function(data, orgCovs) {
-      for (cov in orgCovs) {
-        if (data[1, cov] == -99 & length(grepl(cov, names(data))) > 1) {
-          data[1, grepl(cov, names(data))] <- -99
-        }
-      }
-      return(data)
-    }
-
-    if (ncores > 1) {
-      dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
-        mapFun(data = dataI[k, ], orgCovs = orgCovs)
-      }
-      dataI <- data.frame(rbindlist(dataI))
-    } else {
-      dataI2 <- data.frame()
-      for (k in 1:nrow(dataI)) dataI2 <- bind_rows(dataI2, mapFun(data = dataI[k, ], orgCovs = orgCovs))
-      dataI <- dataI2
-    }
-    dataI$jxrtp47 <- -99 # Just a dummy thing
-
-    #### Go through all dfCovs combinations to calculate the variability for each of them
-    dfrest <- data.frame()
-    for (i in 1:nrow(dfCovs)) {
-      currentNames <- names(dfCovs[i, ,drop=FALSE])[as.numeric(dfCovs[i, ]) != -99]
-
-      strCovsRow <- names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != -99] # Get the covariate that we should condition on
-
-      if (type == 3 || type == 2) { # Get the type of
-        ffemObjAllNoCov <- calcFFEM(
-          numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas, dfext = dfext, covNames = covNames,
-          availCov = NULL, quiet = quiet, numParCov = numParCov, numSkipOm = numSkipOm
-        )
-        Chol <- chol(ffemObjAllNoCov$FullVars) # Get the covariance matrix and then Cholesky decompose
-        etasamples <- t(ETAsamples) %*% Chol # Transform the ETA samples to N(0,COV) matrix
-      }
-
-      internalCalc <- function(k) { # The calculation function
-        # Get the FREM covariates that is used in each row of dfCovs
-        tmpcovs      <- getFREMCovNames(currentNames)
-        dftmp        <- data.frame()
-        datatmp      <- dataI[k, covNames,drop=FALSE] # Get only covnames
-        avcov        <- names(datatmp)[which(datatmp != -99)] # Get the non-missing covariates only
-
-        ####Is avcov really correct shouldn't it be based on the dfCovs covNames???
-
-        data47_jxrtp <- datatmp
-        coveffects   <- rep(0, length(parNames))
-
-        # Calculate the FFEM based on some know covariates based on the row in dfCovs which are non-missing
-        ffemObj <- calcFFEM(
-          numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas, dfext = dfext, covNames = covNames,
-          availCov = avcov[avcov %in% tmpcovs], quiet = quiet, numParCov = numParCov, numSkipOm = numSkipOm
-        )
-
-        for (j in 1:length(parNames)) {
-          ffem_expr <- stringr::str_replace_all(ffemObj$Expr[j], pattern = "data\\$", replacement = "data47_jxrtp$")
-          if (length(names(dfCovs[i, ,drop=F])[as.numeric(dfCovs[i, ,drop=F]) != -99]) != 0) coveffects[j] <- as.numeric(eval(parse(text = ffem_expr)))
-        }
-
-        if (i == 1) { # If first row in dfCovs, Calculate a FFEM for each individual to get the total covariate variability as well
-          ffemObjAll <- calcFFEM(
-            numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas, dfext = dfext, covNames = covNames,
-            availCov = avcov[avcov %in% allCov], quiet = quiet, numParCov = numParCov, numSkipOm = numSkipOm
-          )
-          coveffectsAll <- rep(0, length(parNames))
-
-          for (j in 1:length(parNames)) {
-            ffem_expr_all <- stringr::str_replace_all(ffemObjAll$Expr[j], pattern = "data\\$", replacement = "data47_jxrtp$")
-            if (length(avcov) != 0) {
-              coveffectsAll[j] <- as.numeric(eval(parse(text = ffem_expr_all)))
-            }
-          }
-          ## Call each parameters in the functionList to calculate, this is for covariate +
-          n <- 1
-          for (j in 1:length(functionList)) {
-            if (type == 2) {
-              val <- 0
-              tmpval <- 0
-              for (m in 1:numETASamples) { # For all ETA samples  , dataI versus dfCovs, think about it for FFEM covs
-                val <- functionList[[j]](basethetas = thetas, covthetas = rep(0, length(coveffectsAll)), dfrow = dataI[k, ], etas = etasamples[m, ], ...) 
-
-                if (m == 1) {
-                  tmpval <- matrix(0, ncol = numETASamples, nrow = length(val))
-                }
-                tmpval[, m] <- unlist(val)
-              }
-              for (m in 1:nrow(tmpval)) {
-                val[m] <- var(tmpval[m, ]) # Calculate var over all samples
-              }
-            }
-            if (type == 1) {
-              val <- functionList[[j]](basethetas = thetas, covthetas = rep(0, length(coveffectsAll)), dfrow = dataI[k, ], etas = as.numeric(etas[k, ]), ...)
-            }
-            if (type == 3 && k == 1) { # only for "one" individual
-              tmpval <- 0
-              val <- 0
-              for (m in 1:numETASamples) { # For all ETA samples
-                val <- functionList[[j]](basethetas = thetas, covthetas = rep(0, length(coveffectsAll)), dfrow = dataI[k, ], etas = etasamples[m, ], m, ...)
-                if (m == 1) {
-                  tmpval <- matrix(0, ncol = numETASamples, nrow = length(val))
-                }
-                tmpval[, m] <- unlist(val)
-              }
-              for (m in 1:nrow(tmpval)) {
-                val[m] <- var(tmpval[m, ]) # Calculate var over all samples
-              }
-            }
-            valeta0 <- functionList[[j]](basethetas = thetas, covthetas = coveffectsAll, dfrow = dataI[k, ], etas = rep(0, 3*length(thetas)), ...) # Will use a multiple of 3 to handle situations when there are more etas than thetas.
-            listcount <- length(valeta0)
-
-            for (l in 1:listcount) {
-              if (type != 3 || type == 3 && k == 1) {
-                dftmp <- dplyr::bind_rows(dftmp, data.frame(ITER = k, COVS = 0, NAME = as.character(functionListName[n]), VALUE = val[[l]]))
-              }
-              dftmp <- dplyr::bind_rows(dftmp, data.frame(ITER = k, COVS = -1, NAME = as.character(functionListName[n]), VALUE = valeta0[[l]]))
-              n <- n + 1
-            }
-          }
-        }
-
-        ## Call each parameters in the functionList to calculate
-        n <- 1
-        for (j in 1:length(functionList)) {
-          datatmp   <- dataI[k, c(tmpcovs, "jxrtp47")]
-          val       <- functionList[[j]](basethetas = thetas, covthetas = coveffects, dfrow = datatmp, etas = rep(0, 3*length(thetas)), ...) # Will use a multiple of 3 to handle situations when there are more etas than thetas.
-          listcount <- length(val)
-
-          for (l in 1:listcount) {
-            dftmp <- dplyr::bind_rows(dftmp, data.frame(ITER = k, COVS = i, NAME = as.character(functionListName[n]), VALUE = val[[l]]))
-            n     <- n + 1
-          }
-        }
-
-        return(dftmp)
-      }
-
-
-      if (ncores > 1) {
-        dftmp1 <- foreach (k = 1:nrow(dataI),
-          .packages = cstrPackages,
-          .export = cstrExports, .verbose = !quiet,
-          .combine = bind_rows) %dopar% {
-          internalCalc(k)
-        }
-      } else {
-        dftmp1 <- data.frame()
-        for (k in 1:nrow(dataI)) dftmp1 <- bind_rows(dftmp1, internalCalc(k))
-      }
-      dfrest <- dplyr::bind_rows(dfrest, dftmp1)
-    }
-  } # Type==1
-
-
-  dfres <- data.frame()
-  for (j in 1:length(functionListName)) {
-    if (type == 3) {
-      TOTVAR <- subset(dfrest, NAME == as.character(functionListName[j]) & COVS == 0)$VALUE # Get total variability, i.e. ITER == 0
-    } else {
-      if (type == 2) {
-        # Take mean of variances
-        TOTVAR <- mean(subset(dfrest, NAME == as.character(functionListName[j]) & COVS == 0)$VALUE) # Get total variability, i.e. ITER == 0
-      } else {
-        TOTVAR <- var(subset(dfrest, NAME == as.character(functionListName[j]) & COVS == 0)$VALUE) # Get total variability, i.e. ITER == 0
-      }
-    }
-    TOTCOVVAR <- var(subset(dfrest, NAME == as.character(functionListName[j]) & COVS == -1)$VALUE) # Get total covariate variability, i.e. ITER == -1
-
-    for (i in 1:nrow(dfCovs)) {
-      dfres <- rbind(dfres,
-        data.frame(COVNUM = i, COVNAME = cstrCovariates[i], PARAMETER = functionListName[j],
-          TOTVAR = TOTVAR,
-          TOTCOVVAR = TOTCOVVAR,
-          COVVAR = var(subset(dfrest, NAME == as.character(functionListName[j]) & COVS == i)$VALUE)))
-    }
   }
-  if (ncores > 1) stopImplicitCluster()
-  return(dfres)
+  
+  stop("Invalid 'type' specified. Must be 0, 1, 2, or 3.")
 }

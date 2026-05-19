@@ -28,6 +28,8 @@
 #' @examples
 #' getFileNames(runno = 30, modDevDir = system.file("extData/SimNeb/", package = "PMXFrem"))
 #'
+#' @family NONMEM Parsers
+#' @concept nonmem_parsers
 getFileNames <- function(runno     = NULL,
                          modName   = NULL,
                          modDevDir = ".",

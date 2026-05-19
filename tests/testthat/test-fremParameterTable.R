@@ -151,3 +151,31 @@ test_that("fremParameterTable works for standard outputs", {
     style = "serialize"
   )
 })
+
+test_that("fremParameterTable orchestrates unified base and coefficient tables", {
+  
+  res_full <- fremParameterTable(
+    runno            = 31,
+    modDevDir        = modDevDir,
+    thetaNum         = 2:7,
+    omegaNum         = c(1,3,4,5),
+    sigmaNum         = 1,
+    parNames         = c("CL_L_h", "V_L", "MAT_h"),
+    includeRSE       = TRUE,
+    uncertainty      = "RSE",
+    numNonFREMThetas = 7,
+    numSkipOm        = 2,
+    availCov         = "all",
+    quiet            = TRUE
+  )
+  
+  # Check that the wide table correctly split the parameters and RSEs into separate columns
+  expected_names <- c("Covariate", "CL_L_h", "CL_L_h RSE", "V_L", "V_L RSE", "MAT_h", "MAT_h RSE")
+  expect_equal(names(res_full$coefficientTable_wide), expected_names)
+  
+  # Check that the Estimate column is purely numeric-formatted (no parenthesis)
+  expect_false(grepl("\\(", res_full$coefficientTable_wide$CL_L_h[1]))
+  
+  # Check that the new isolated RSE column contains the parenthesis format "(X%)"
+  expect_true(grepl("\\(", res_full$coefficientTable_wide$`CL_L_h RSE`[1]))
+})

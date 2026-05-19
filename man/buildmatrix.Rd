@@ -5,31 +5,37 @@
 \title{Create the NONMEM model $OMEGA or $SIGMA code from a matrix with
 variance-covariance information.}
 \usage{
-buildmatrix(matrix, strName = "$OMEGA", assumesame = TRUE)
+buildmatrix(
+  matrix,
+  strName = "$OMEGA",
+  assumesame = TRUE,
+  forceSingleBlock = FALSE
+)
 }
 \arguments{
 \item{matrix}{The matrix to be converted.}
 
-\item{strName}{The name of the matrix, normally "$OMEGA" (default) or
-"$SIGMA".}
+\item{strName}{The name of the matrix, normally "$OMEGA" (default) or "$SIGMA".}
 
 \item{assumesame}{Assume equal block matrix should be marked as SAME.}
+
+\item{forceSingleBlock}{If TRUE, treats the entire matrix as a single block,
+ignoring any block-diagonal structure.}
 }
 \value{
-A vector of character strings with the NONMEM representation of the
-matrix.
+A vector of character strings with the NONMEM representation of the matrix.
 }
 \description{
-The NONMEM code corresponding to a numerical matrix of variance-covariance
-information will be created in a way that is suitable for insertion in a
-NONMEM model.
+Create the NONMEM model $OMEGA or $SIGMA code from a matrix with
+variance-covariance information.
 }
-\examples{
-numbasethetas   <- 7
-numskipom       <- 2
-fremmodelext    <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
-dfExt           <- getExt(extFile = fremmodelext)
-calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = numbasethetas, numSkipOm = numskipom, quiet = TRUE)
-
-myMatrix <- buildmatrix(calcFFEMtestout$FullVars)
+\seealso{
+Other NONMEM Parsers Internal: 
+\code{\link{calcNumParCov}()},
+\code{\link{findrecord}()},
+\code{\link{parseBaseModel}()},
+\code{\link{parseMatrixBlockToMatrix}()}
 }
+\concept{NONMEM Parsers Internal}
+\concept{nonmem_parsers}
+\keyword{internal}

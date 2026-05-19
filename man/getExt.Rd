@@ -35,3 +35,11 @@ dfExt <- getExt(extFile = extFile)
 subset(getExt(extFile = extFile), ITERATION == "-1000000000")
 
 }
+\seealso{
+Other NONMEM Parsers: 
+\code{\link{getCovNames}()},
+\code{\link{getFileNames}()},
+\code{\link{getPhi}()}
+}
+\concept{NONMEM Parsers}
+\concept{nonmem_parsers}

@@ -27,6 +27,8 @@
 #' ## Extract the final parameter estimates
 #' subset(getExt(extFile = extFile), ITERATION == "-1000000000")
 #'
+#' @family NONMEM Parsers
+#' @concept nonmem_parsers
 getExt <- function(extFile, set = NULL) {
 
   tmp   <- scan(extFile, what = "character", sep = "\n", quiet = TRUE)

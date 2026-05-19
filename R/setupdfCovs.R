@@ -16,36 +16,16 @@
 #'
 #' @examples
 #'
-#' \dontrun{
+#' modFile <- system.file("extdata", "SimNeb", "run31.mod",package = "PMXFrem")
+#' 
+#' # Use a covariates in the FREM model file
 #' setupdfCovs(modFile)
-#'
-#' #   AGE ALT AST BILI BMI BSA CRCL ETHNIC GENO2  HT LBWT NCIL RACEL SEX SMOK  WT
-#' # 1    1   1   1    1   1   1    1      1     1   1    1    1     1   1    1   1
-#' # 2    1 -99 -99  -99 -99 -99  -99    -99   -99 -99  -99  -99   -99 -99  -99 -99
-#' # 3  -99   1 -99  -99 -99 -99  -99    -99   -99 -99  -99  -99   -99 -99  -99 -99
-#' # 4  -99 -99   1  -99 -99 -99  -99    -99   -99 -99  -99  -99   -99 -99  -99 -99
-#' # 5  -99 -99 -99    1 -99 -99  -99    -99   -99 -99  -99  -99   -99 -99  -99 -99
-#' # 6  -99 -99 -99  -99   1 -99  -99    -99   -99 -99  -99  -99   -99 -99  -99 -99
-#' # 7  -99 -99 -99  -99 -99   1  -99    -99   -99 -99  -99  -99   -99 -99  -99 -99
-#' # 8  -99 -99 -99  -99 -99 -99    1    -99   -99 -99  -99  -99   -99 -99  -99 -99
-#' # 9  -99 -99 -99  -99 -99 -99  -99      1   -99 -99  -99  -99   -99 -99  -99 -99
-#' # 10 -99 -99 -99  -99 -99 -99  -99    -99     1 -99  -99  -99   -99 -99  -99 -99
-#' # 11 -99 -99 -99  -99 -99 -99  -99    -99   -99   1  -99  -99   -99 -99  -99 -99
-#' # 12 -99 -99 -99  -99 -99 -99  -99    -99   -99 -99    1  -99   -99 -99  -99 -99
-#' # 13 -99 -99 -99  -99 -99 -99  -99    -99   -99 -99  -99    1   -99 -99  -99 -99
-#' # 14 -99 -99 -99  -99 -99 -99  -99    -99   -99 -99  -99  -99     1 -99  -99 -99
-#' # 15 -99 -99 -99  -99 -99 -99  -99    -99   -99 -99  -99  -99   -99   1  -99 -99
-#' # 16 -99 -99 -99  -99 -99 -99  -99    -99   -99 -99  -99  -99   -99 -99    1 -99
-#' # 17 -99 -99 -99  -99 -99 -99  -99    -99   -99 -99  -99  -99   -99 -99  -99   1
-#'
+#' 
+#' # Use only a subset of the covariates in the FREM specification and add an additional covariate.
 #' setupdfCovs(modFile, fremCovs = c("AGE", "SEX"), additionalCovs = "FORM")
-#'
-#' # AGE SEX FORM
-#' # 1   1   1    1
-#' # 2   1 -99  -99
-#' # 3 -99   1  -99
-#' # 4 -99 -99    1
-#' }
+#' 
+#' @family Data Assembly
+#' @concept data_assembly
 setupdfCovs <- function(modFileName,
                         fremCovs       = getCovNames(modFile = modFileName)$orgCovNames,
                         additionalCovs = NULL) {

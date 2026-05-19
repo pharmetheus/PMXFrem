@@ -30,3 +30,13 @@ extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
 dfExt   <- getExt(extFile = extFile)
 n       <- calcNumParCov(dfExt, numNonFREMThetas = 7, numSkipOm = 2)
 }
+\seealso{
+Other NONMEM Parsers Internal: 
+\code{\link{buildmatrix}()},
+\code{\link{findrecord}()},
+\code{\link{parseBaseModel}()},
+\code{\link{parseMatrixBlockToMatrix}()}
+}
+\concept{NONMEM Parsers Internal}
+\concept{nonmem_parsers}
+\keyword{internal}

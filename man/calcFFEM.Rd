@@ -101,8 +101,6 @@ Only one set of ETA prims will be computed (for one individual). To compute
 the ETA prims for all subjects at the same ime, please use \code{\link[=calcEtas]{calcEtas()}}.
 }
 \examples{
-library(dplyr)
-library(magrittr)
 
 extFile         <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
 dfExt           <- getExt(extFile = extFile)
@@ -115,3 +113,10 @@ calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = 
   etaFREM = as.numeric(dfPhi[1, ]))
 
 }
+\seealso{
+Other FFEM Conversion: 
+\code{\link{createFFEMdata}()},
+\code{\link{createFFEMmodel}()}
+}
+\concept{FFEM Conversion}
+\concept{ffem_conversion}

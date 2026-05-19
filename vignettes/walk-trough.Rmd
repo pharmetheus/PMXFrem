@@ -1,0 +1,419 @@
+---
+title: "Walk-through: Key PMXFrem functionality"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Walk-through: Key PMXFrem functionality}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8,
+  fig.height = 6
+)
+```
+
+This Walk-Through builds upon the fundamentals introduced in the Quick-Start vignette. It is designed for pharmacometricians constructing robust, reproducible FREM workflows. Here, we move beyond the "happy path" to address real-world execution: customizing diagnostics for standard reporting, extracting and formatting parameter tables, and efficiently updating a converged FREM model—such as adding or dropping covariates—without needing to restart the underlying PsN workflow.
+
+## 1. Setup and Base Context
+
+We begin with a base estimation model and a converged FREM model. This FREM model file could have been generated using PsN's `frem` command or natively via the `PMXFrem::createFREMmodel()` function. 
+
+For this tutorial, we will use the built-in `SimNeb` simulated datasets, which also include pre-computed bootstrap results for the FREM model to facilitate uncertainty derivation.
+
+```{r setup, message=FALSE, warning=FALSE}
+library(PMXFrem)
+library(dplyr)
+library(ggplot2)
+
+# Define paths to example data and converged models
+modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
+mod_path  <- file.path(modDevDir, "run31.mod")
+ffemData  <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+
+# Define the path to the bootstrap raw results
+bs_file   <- file.path(modDevDir, "bs31.dir/raw_results_run31.csv")
+
+# Isolate outputs to a temporary directory to comply with CRAN policies
+td <- tempdir()
+
+# Common model attributes for SimNeb
+run_frem   <- 31
+run_base   <- 30
+n_non_frem <- 7
+n_skip_om  <- 2
+par_names  <- c("CL", "V", "MAT")
+```
+
+## 2. Conversion to FFEM
+
+While the FREM parameterization is statistically highly efficient for estimation, its structure is not natively compatible with standard post-processing tasks like Visual Predictive Checks (VPCs) or traditional Empirical Bayes Estimate (EBE) Goodness-of-Fit (GOF) plots. 
+
+To conduct these analyses, the FREM model must be converted into a Full Fixed Effects Model (FFEM). The `createFFEMmodel()` function handles this automatically by:
+1. Calculating the total impact of covariates for each individual (the Individual Covariate Coefficients, or ICCs).
+2. Appending these ICCs as new columns in the dataset.
+3. Modifying the NONMEM control stream to additively apply these ICCs directly to the structural ETAs.
+4. Setting `$ESTIMATION METHOD=1 INTER MAX=0`.
+
+The resulting files are immediately ready to be executed in NONMEM to generate predictions or simulations.
+
+```{r generate_ffem}
+# 1. Generate the FFEM artifacts
+ffemMod <- createFFEMmodel(
+  runno            = run_frem,
+  baserunno        = run_base,
+  modDevDir        = modDevDir,
+  dataFile         = ffemData,
+  parNames         = par_names,
+  numNonFREMThetas = n_non_frem,
+  numSkipOm        = n_skip_om,
+  newDataFile      = file.path(td, "vpcData31.csv"),
+  ffemModName      = file.path(td, "run31_ffem.mod"),
+  quiet            = TRUE
+)
+
+# 2. Inspect the new dataset for the added ICCs 
+# By default, PMXFrem appends "FREMCOV" to the parameter names.
+ffem_data_out <- read.csv(file.path(td, "vpcData31.csv")) %>% distinct(ID,.keep_all=T)
+head(ffem_data_out[, c("ID", "CLFREMCOV", "VFREMCOV", "MATFREMCOV")])
+
+# 3. Inspect the modified NONMEM control stream
+# The $INPUT record now expects the newly generated ICCs...
+cat(ffemMod[8:11], sep="\n") 
+
+# ...and the structural ETAs are now additively shifted by the ICCs in the code
+cat(ffemMod[49:51], sep="\n") 
+
+# ... with updated estimation settings
+cat(ffemMod[80], sep="\n") 
+```
+
+### 2.1 Subsetting Covariates for FFEM Conversion
+
+In some workflows, you may want to evaluate the predictive performance of a sub-model (e.g., generating a VPC that only accounts for the effects of `AGE` and `SEX`) without taking the time to re-estimate a completely new base model. 
+
+You can instruct `createFFEMmodel()` to restrict the FFEM conversion to a specific subset of the full FREM covariates using the `availCov` argument. The function dynamically recalculates the partial ICCs based on the estimated variance-covariance matrix.
+
+```{r generate_ffem_subset}
+# Generate an FFEM model considering only the 'AGE' covariate effect
+ffemMod_age <- createFFEMmodel(
+  runno            = run_frem,
+  baserunno        = run_base,
+  modDevDir        = modDevDir,
+  dataFile         = ffemData,
+  parNames         = par_names,
+  numNonFREMThetas = n_non_frem,
+  numSkipOm        = n_skip_om,
+  availCov         = c("AGE"), 
+  newDataFile      = file.path(td, "vpcData31_age.csv"),
+  ffemModName      = file.path(td, "run31_ffem_age.mod"),
+  quiet            = TRUE
+)
+
+# Inspect the dataset to verify the ICCs differ from the full model
+ffem_data_age <- read.csv(file.path(td, "vpcData31_age.csv")) %>% distinct(ID,.keep_all=T)
+head(ffem_data_age[, c("ID", "CLFREMCOV", "VFREMCOV", "MATFREMCOV")])
+```
+
+The ICCs are different now since the covariate coefficients adjust to the set of covariates included in the generation of the FFEM model. The ICCs for ID 19 are 0 since AGE is missing for this subject.
+
+## 3. ETA Plots (Conditional Empirical Bayes Estimates)
+
+Standard Empirical Bayes Estimates (EBEs, or $\eta$) extracted directly from a FREM model do not reflect the individualized impact of covariates. To evaluate structural misspecification or remaining parameter trends, we must compute conditionally adjusted ETAs ($\eta^\prime$).
+
+Because $\eta^\prime$ is mathematically derived from the covariates included in the FFEM conversion, its distribution depends entirely on which covariates are considered. We will demonstrate this by calculating $\eta^\prime$ twice: once adjusting *only* for `AGE`, and once adjusting for *all* covariates in the model.
+
+```{r calc_etas_compare, message=FALSE, warning=FALSE}
+# 1. Extract conditional ETAs adjusting for ALL covariates
+etaTabAll <- calcEtas(
+  runno            = run_frem,
+  modDevDir        = modDevDir,
+  dataFile         = read.csv(ffemData),
+  parNames         = par_names,
+  numNonFREMThetas = n_non_frem,
+  numSkipOm        = n_skip_om,
+  availCov         = "all",
+  quiet            = TRUE
+)
+
+# 2. Extract conditional ETAs adjusting for AGE only
+etaTabAge <- calcEtas(
+  runno            = run_frem,
+  modDevDir        = modDevDir,
+  dataFile         = read.csv(ffemData),
+  parNames         = par_names,
+  numNonFREMThetas = n_non_frem,
+  numSkipOm        = n_skip_om,
+  availCov         = "AGE",
+  quiet            = TRUE
+)
+```
+
+### 3.1 Comparing ETA Distributions
+
+First, let's examine how the overall variance shrinks as we account for covariates. The raw $\eta_3$ (representing variability on MAT) contains all covariate-induced variability. Adjusting for `AGE` alone reduces this variance slightly, but adjusting for the full multivariate FREM model shrinks the distribution to its true, unexplained residual variability.
+
+```{r plot_eta_histograms, fig.width=10, fig.height=4}
+# Combine data for faceted plotting
+hist_data <- bind_rows(
+  etaTabAll %>% select(ID, VALUE = ETA3) %>% mutate(Adjustment = "1. Raw ETA3"),
+  etaTabAge %>% select(ID, VALUE = ETA3_PRIM) %>% mutate(Adjustment = "2. ETA3_PRIM (AGE only)"),
+  etaTabAll %>% select(ID, VALUE = ETA3_PRIM) %>% mutate(Adjustment = "3. ETA3_PRIM (All Covs)")
+)
+
+ggplot(hist_data, aes(x = VALUE)) +
+  geom_histogram(bins = 30, fill = "darkgray", color = "black") +
+  facet_wrap(~Adjustment, scales = "fixed") +
+  theme_minimal() +
+  labs(x = "Empirical Bayes Estimate", y = "Count")
+```
+
+### 3.2 Multivariate vs. Univariable Trend Correction
+
+A univariable model (adjusting only for `AGE`) will be able to remove the trend for its own covariate, but will be less able to remove trends for other covariate, depending on how correlated they are. The full FFEM model accounts for all covariates and will therefore account for trends across covariates.
+
+To see this in action, let's plot the raw, unadjusted ETAs ($\eta$) alongside our two conditional ETAs ($\eta^\prime$) against both `AGE` and `WT`. 
+
+```{r plot_eta_scatter, fig.width=10, fig.height=8}
+# Combine data for scatter plots, mapping the appropriate ETA column to 'VALUE'
+scatter_data <- bind_rows(
+  etaTabAll %>% select(ID, AGE, WT, VALUE = ETA3) %>% mutate(Model = "1. Raw ETA"),
+  etaTabAge %>% select(ID, AGE, WT, VALUE = ETA3_PRIM) %>% mutate(Model = "2. AGE only"),
+  etaTabAll %>% select(ID, AGE, WT, VALUE = ETA3_PRIM) %>% mutate(Model = "3. All Covs")
+) %>%
+  mutate(Model = factor(Model, levels = c("1. Raw ETA", "2. AGE only", "3. All Covs")))
+
+# Plot against AGE
+p_age <- ggplot(scatter_data, aes(x = AGE, y = VALUE)) +
+  geom_point(alpha = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_smooth(method = "loess", se = FALSE, color = "blue") +
+  facet_wrap(~Model) +
+  theme_minimal() + 
+  labs(y = expression(eta[3]), title = "ETA vs. AGE")
+
+# Plot against WT
+p_wt <- ggplot(scatter_data, aes(x = WT, y = VALUE)) +
+  geom_point(alpha = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_smooth(method = "loess", se = FALSE, color = "red") +
+  facet_wrap(~Model) +
+  theme_minimal() + 
+  labs(y = expression(eta[3]), title = "ETA vs. WT")
+
+# Display plots (if the patchwork package is available, use p_age / p_wt)
+p_age
+p_wt
+```
+
+Notice the progression:
+
+1. **Raw ETA:** Residual trends exist for both `AGE` and `WT`.
+2. **AGE only:** The adjustment successfully flattens the trend against `AGE`, but residual trend remains when plotted against `WT` (since `WT` is not included in the FFEM model and `WT` and `AGE` are not particularly correlated).
+3. **All Covs:** The full FREM adjustment flattens the trend across both covariates.
+
+
+## 4. Parameter Estimates Table
+
+While visual diagnostics are crucial, CRO reporting standardly requires a tabulated summary of the base model structural parameters alongside the adjusted variance estimates ($\Omega^\prime$) and residual errors ($\Sigma$). The `fremParameterTable()` function computes these estimates and derives their relative standard errors (RSE) from bootstrap results.
+
+By supplying custom labels via the `thetaLabels`, `omegaLabels`, and `sigmaLabels` arguments, we can immediately map internal NONMEM parameter indices to human-readable names.
+
+```{r param_table, message=FALSE, warning=FALSE}
+bsFile <- file.path(modDevDir, "bs31.dir/raw_results_run31.csv")
+
+# 1. Generate the Parameter Table with Custom Labels
+parTableData <- fremParameterTable(
+  runno            = run_frem,
+  modDevDir        = modDevDir,
+  numNonFREMThetas = n_non_frem,
+  numSkipOm        = n_skip_om,
+  thetaNum         = 2:7,
+  omegaNum         = c(1, 3, 4, 5),
+  sigmaNum         = 1,
+  thetaLabels      = c("CL (L/h)", "V (L)", "MAT (h)", "D1 (h)", "Food on Frel", "Food on MAT"),
+  omegaLabels      = c("IIV on RUV", "IIV on CL", "IIV on V", "IIV on MAT"),
+  sigmaLabels      = c("Proportional RUV"),
+  includeRSE       = TRUE,
+  bsFile           = bsFile,
+  quiet            = TRUE
+)
+
+# Inspect the raw data frame output
+head(parTableData$parameterTable)
+```
+
+*Note: Just as we generated an `AGE`-only FFEM model in Section 2 using the `availCov` argument, `fremParameterTable()` also accepts `availCov`. Supplying `availCov = "AGE"` would generate a parameter table showing the partial reduction in $\Omega^\prime$ when adjusting for `AGE` alone. We leave this as an exercise for the user to explore.*
+
+### 4.1 Formatting for Reporting
+
+To elevate the raw data frame into a document-ready format, we can pass it directly into a table-formatting package. Here, we use `kableExtra`, which seamlessly handles HTML grouping for vignette and `pkgdown` compilation.
+
+```{r param_table_kable, message=FALSE, warning=FALSE}
+library(kableExtra)
+
+# 2. Format the table for CRO reporting, removing the redundant 'Type' column
+parTableData$parameterTable %>%
+  select(-Type) %>%
+  kbl(
+    col.names = c("Parameter", "Estimate", "RSE (%)"),
+    digits = 3,
+    align = c("l", "c", "c"),
+    caption = "<b>FREM Parameter Estimates</b><br>Conditional estimates based on all covariates",
+    escape = FALSE # Allows HTML in the caption
+  ) %>%
+  kable_classic(full_width = FALSE, html_font = "Arial") %>%
+  row_spec(0, bold = TRUE)
+```
+
+### 4.2 Covariate Coefficients Table
+
+In addition to the base model parameters, it is often of interest to have a tabulated summary of the covariate coefficients (the mathematical effects of each covariate on the structural parameters). 
+
+Because the coefficient matrix can become quite large ($Parameters \times Covariates$), `fremParameterTable()` automatically generates a document-ready, wide-format table (`coefficientTable_wide`). We can also dynamically switch the uncertainty metric to 90% Confidence Intervals and control the significant digits to conserve horizontal page space.
+
+```{r coeff_table_kable, message=FALSE, warning=FALSE}
+# 1. Generate the table data, requesting 95% CIs and 3 significant digits
+parTableDataCI <- fremParameterTable(
+  runno            = run_frem,
+  modDevDir        = modDevDir,
+  numNonFREMThetas = n_non_frem,
+  numSkipOm        = n_skip_om,
+  thetaNum         = 2:7,
+  omegaNum         = c(1, 3, 4, 5),
+  sigmaNum         = 1,
+  thetaLabels      = c("CL (L/h)", "V (L)", "MAT (h)", "D1 (h)", "Food on Frel", "Food on MAT"),
+  parNames         = c("CL", "V", "MAT"), # Explicitly label the structural parameters
+  includeRSE       = TRUE,
+  uncertainty      = "CI",          # Toggle to Confidence Intervals
+  ciLevel          = 0.90,          # 90% CI
+  sigDigs          = 3,             # Lock to 3 significant digits
+  bsFile           = bsFile,
+  seed             = 123,           # Ensure reproducibility
+  quiet            = TRUE
+)
+
+# 2. Extract the wide table and format with kableExtra
+parTableDataCI$coefficientTable_wide %>%
+  kbl(
+    align = c("l", rep("c", ncol(parTableDataCI$coefficientTable_wide) - 1)),
+    caption = "<b>Conditional Covariate Coefficients</b><br>Estimates [90% CI]",
+    escape = FALSE
+  ) %>%
+  kable_classic(full_width = FALSE, html_font = "Arial") %>%
+  row_spec(0, bold = TRUE) %>%
+  column_spec(1, bold = TRUE) # Bold the Covariate column for readability
+```
+
+## 5. Covariate Effects (Forest Plots)
+
+Forest plots are useful for visualizisation of the unconditional (univariable) impact of covariates from FREM models. Note that these unconditional effects are not the same as the conditional effects tabulated above. We generate the covariate data frame, dynamically apply (some) labels, and plot using the `PMXForest` package.
+
+```{r forest_plot, fig.width=10, fig.height=12, warning=FALSE}
+cov_names <- getCovNames(mod_path)
+data      <- data.table::fread(ffemData)
+
+# 1. Setup Covariate Statistics
+dfCovsForest <- PMXForest::createInputForestData(
+  PMXForest::getCovStats(data, cov_names$orgCovNames, probs = c(0.05, 0.9), missVal = -99),
+  iMiss = -99
+)
+
+# 2. Dynamically Format Labels (Mapping units and categorical text)
+unit_map <- c(AGE = "years")
+label_map <- c("SEX=1" = "Male", "SEX=2" = "Female")
+formatted_labels <- generateCovNames(dfCovsForest, unit_map, label_map)
+
+# 3. Define the structural parameter relationship
+paramFun <- function(basethetas, covthetas, dfrow, ...) {
+  basethetas[2] * exp(covthetas[1])
+}
+
+# 4. Pull Bootstrap Samples for Uncertainty
+extFile <- file.path(modDevDir, "run31.ext")
+samples <- PMXForest::getSamples(bsFile, extFile = extFile, n = 50)
+
+# 5. Generate and Plot Forest Data
+dfresFREM <- getForestDFFREM(
+  dfCovs           = dfCovsForest,
+  cdfCovsNames     = formatted_labels,
+  covNames         = cov_names$covNames,
+  functionList     = list(paramFun),
+  functionListName = "CL",
+  numNonFREMThetas = n_non_frem,
+  numSkipOm        = n_skip_om,
+  dfParameters     = samples,
+  quiet            = TRUE
+)
+
+PMXForest::forestPlot(dfresFREM, parameters = "CL")
+```
+
+*Note: This section covers the standard implementation. For the gory details on plot customization, overriding point functions, or complex grouping, please refer to the specialized vignette: **Deep-Dive: Advanced Forest Plots with PMXForest**.*
+
+
+## 6. Visualizing Explained Variability
+
+A unique capability of FREM is plotting the amount of observed variability explained by each covariate *without* needing to re-estimate models iteratively. We use `getExplainedVar()` to calculate these fractions and visualise them using `plotExplainedVar()`.
+
+```{r explained_var, fig.width=8, fig.height=6}
+# 1. Setup the covariate matrix
+dfCovsEV <- setupdfCovs(mod_path, fremCovs = cov_names$orgCovNames)
+
+# 2. Define function including ETAs
+funcList_var <- list(
+  function(basethetas, covthetas, dfrow, etas, ...) { 
+    basethetas[2] * exp(covthetas[1] + etas[3]) 
+  }
+)
+
+# 3. Calculate Explained Variability
+dfres_var <- getExplainedVar(
+  type             = 1, # EBE-based method
+  data             = data,
+  dfCovs           = dfCovsEV,
+  cstrCovariates   = c("ALL", cov_names$orgCovNames),
+  numNonFREMThetas = n_non_frem,
+  numSkipOm        = n_skip_om,
+  functionList     = funcList_var,
+  functionListName = "CL",
+  modDevDir        = modDevDir,
+  runno            = run_frem,
+  numETASamples    = 25, 
+  quiet            = TRUE,
+  seed             = 123
+)
+
+plotExplainedVar(dfres_var, parameters = "CL", maxVar = 1) + xlim(NA, 100)
+```
+
+
+## 7. Model Revision (Updating FREM)
+
+If you need to iteratively add or remove covariates, or simply update initial estimates from a previous run (in case PsN's `update_inits` tool doesn't work for a large FREM model), use the `updateFREMmodel()` function.
+
+The example below demonstrates a simple update of initial estimates natively from an `.ext` file. 
+
+```{r update_frem, eval=FALSE}
+# Example: Updating initial estimates without generating new data
+newFrem <- updateFREMmodel(
+  strFREMModel       = mod_path,
+  strUpdateType      = "NoData",
+  basenames_th       = c("CL", "V", "MAT", "D1", "FRELFOOD", "MATFOOD"),
+  basenames_om       = c("RUV", "D1", "CL", "V", "MAT"),
+  numNonFREMThetas   = n_non_frem,
+  numSkipOm          = n_skip_om,
+  bWriteData         = FALSE,
+  bWriteMod          = TRUE,
+  bWriteFIX          = TRUE,
+  quiet              = FALSE
+)
+
+# newFrem$model now contains the adjusted NONMEM control stream.
+```
+
+*Note: For a comprehensive guide on adding and removing new covariates and managing dataset alignment please refer to the specialized vignette: **Deep-Dive: Updating and Revising FREM Models**.*
+```

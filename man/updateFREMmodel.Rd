@@ -30,7 +30,10 @@ updateFREMmodel(
   cstrRemoveCov = NULL,
   covEpsNum = 2,
   overrideExistingCheck = FALSE,
-  sortFREMDataset = c(strID, "TIME", "FREMTYPE")
+  bRecodeDichotomous = FALSE,
+  allowNon01 = FALSE,
+  keepDoseOnlySubjects = FALSE,
+  sortFREMDataset = NULL
 )
 }
 \arguments{
@@ -127,7 +130,15 @@ covariates.}
 and covariates will be added even though they are present in $DATA of the
 modefile}
 
-\item{sortFREMDataset}{The columns to sort the new data set on.}
+\item{bRecodeDichotomous}{Logical. Should dichotomous covariates be automatically
+recoded to 0/1? Defaults to FALSE. If FALSE, inputs must be strictly 0/1.}
+
+\item{allowNon01}{Logical. If TRUE, allows non-0/1 dichotomous covariates (like 1/2)
+to pass through untouched for PsN compatibility. Defaults to FALSE.}
+
+\item{keepDoseOnlySubjects}{Logical. If \code{FALSE} (default), subjects without any valid PK observations (e.g.,
+only dosing records) are completely excluded from the generated dataset. If \code{TRUE},
+these subjects are retained and their covariates are included as observations.}
 }
 \value{
 An invisible list with components data and model, containing the new
@@ -135,17 +146,6 @@ data set (if any, else NULL) and updated model.
 }
 \description{
 Add or remove covariates and/or data to a FREM model and data set.
-}
-\details{
-Adding/removing covariates will always also update the initial estimates in
-the updated model file based on the final estimates from the original FREM
-model. It is also possible to only udpate the initial estimates.
-
-If the updated model and data file are to be written to disc, they will
-be saved in the same directory as the original model file.
-
-Note! When adding a binary covariate, it will be included in the updated data
-file as 0 or 1, regardless of original coding.
 }
 \section{Side effects}{
 
@@ -156,34 +156,118 @@ model file name will be 'stem'_new.mod).
 }
 
 \examples{
-## Remove SEX from the model and data set
+
+## Example 1: Remove Covariates from a Model
+# This example removes "SEX" from the model and data set.
+td <- tempdir() # Create a temporary directory for output files
+
 updateFREMmodel(
   strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
   strFREMData       = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
   strFFEMData       = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
   cstrRemoveCov     = c("SEX"),
-  cstrCatCovsToAdd  = NULL,
-  cstrContCovsToAdd = NULL,
-  strID             = "ID",
-  strNewFREMData    = "frem_dataset_noSEX.csv",
+  strNewFREMData    = file.path(td, "frem_dataset_noSEX.csv"),
   numNonFREMThetas  = 7,
   numSkipOm         = 2,
   bWriteData        = TRUE,
+  bWriteMod         = TRUE,
   quiet             = FALSE,
   bWriteFIX         = TRUE,
-  sortFREMDataset  = c("ID", "TIME", "FREMTYPE"),
-  cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE"))
+  cstrKeepCols      = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
+)
 
-## Only update inits
+## Example 2: Add Covariates to a Model
+# This example adds a new categorical covariate, "SITE", to the model.
+td <- tempdir()
+
+# First, create a temporary FFEM dataset that includes the new covariate
+ffem_df <- as.data.frame(data.table::fread(
+  system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+))
+ffem_df$SITE <- rep(c(101, 102, 103), length.out = nrow(ffem_df)) # Add 3-level SITE covariate
+
+# Define paths to original model and FREM data
+model_path <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
+frem_data_path <- system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem")
+
+# Copy the .ext file to the temp directory so the function can find it
+file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
+file.copy(model_path, td)
+model_in_td <- file.path(td, "run31.mod")
+
 updateFREMmodel(
-  strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
-  basenames_th      = c("CL","V","MAT","D1","FRELFOOD","MATFOOD"),
-  basenames_om      = c("RUV","D1","CL","V","MAT"),
+  strFREMModel      = model_in_td,
+  strFREMData       = frem_data_path,
+  strFFEMData       = ffem_df, # Use the modified data frame with SITE
+  strNewFREMData    = file.path(td, "frem_data_with_SITE.csv"),
+  cstrCatCovsToAdd  = "SITE",  # Add the new SITE covariate
   numNonFREMThetas  = 7,
   numSkipOm         = 2,
-  bWriteData        = FALSE,
-  bWriteMod         = FALSE,
-  bWriteFIX         = TRUE,
-  quiet             = FALSE,
-  strUpdateType     = "NoData")
+  bWriteData        = TRUE,
+  bWriteMod         = TRUE,
+  quiet             = FALSE
+)
+
+## Example 3: Add New Individuals to an Existing FREM Dataset
+td <- tempdir()
+
+# Load the original data as data frames
+frem_df <- as.data.frame(data.table::fread(
+  system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem")
+))
+ffem_df <- as.data.frame(data.table::fread(
+  system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+))
+
+# Simulate new individuals by taking 50 rows and giving them new IDs
+ffem_new_ids <- ffem_df[1:50, ]
+ffem_new_ids$ID <- ffem_new_ids$ID + max(frem_df$ID)
+
+# Use the original model
+model_path <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
+
+result <- updateFREMmodel(
+  strFREMModel      = model_path,
+  strFREMData       = frem_df,      # Pass original data as a data frame
+  strFFEMData       = ffem_new_ids, # Pass the new individuals' data
+  strNewFREMData    = file.path(td, "frem_data_with_new_ids.csv"),
+  numNonFREMThetas  = 7,
+  numSkipOm         = 2,
+  bWriteData        = TRUE,
+  bWriteMod         = FALSE, # Model structure doesn't change
+  quiet             = FALSE
+)
+
+# The returned data frame now contains the new IDs
+print(tail(result$data))
+
+## Example 4: Only Update Initial Estimates from an .ext file
+td <- tempdir()
+model_path <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
+
+# Copy model and ext file to a temporary directory
+file.copy(model_path, td)
+file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
+model_in_td <- file.path(td, "run31.mod")
+
+updateFREMmodel(
+  strFREMModel       = model_in_td,
+  strUpdateType      = "NoData",
+  basenames_th       = c("CL","V","MAT","D1","FRELFOOD","MATFOOD"),
+  basenames_om       = c("RUV","D1","CL","V","MAT"),
+  numNonFREMThetas   = 7,
+  numSkipOm          = 2,
+  bWriteData         = FALSE,
+  bWriteMod          = TRUE,
+  bWriteFIX          = TRUE,
+  bRecodeDichotomous = TRUE,
+  quiet              = FALSE
+)
+
 }
+\seealso{
+Other FREM model management: 
+\code{\link{createFREMmodel}()}
+}
+\concept{FREM model management}
+\concept{frem_model_management}

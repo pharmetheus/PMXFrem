@@ -113,20 +113,47 @@ Create a data frame with the input to the \code{forestPlot} function in the
 data frame will be computed.
 }
 \examples{
-\dontrun{
-dfresFREM <- getForestDFFREM(
-  dfCovs           = dfCovs,
-  cdfCovsNames     = covnames,
-  covNames         = getCovNames(modFile),
-  functionList     = list(paramFunction),
-  functionListName = functionListName,
-  numSkipOm        = numSkipOm,
-  numNonFREMThetas = numNonFREMThetas,
-  dfParameters     = dfSamplesCOV,
-  probs            = c(0.05, 0.95),
-  dfRefRow         = NULL,
-  quiet            = TRUE,
-  ncores           = 1,
-  cstrPackages     = c("PMXFrem", "dplyr"))
+\donttest{
+  # 1. Setup paths to model and bootstrap results
+  modDevDir <- system.file("extdata/SimNeb", package="PMXFrem")
+  modFile   <- file.path(modDevDir, "run31.mod")
+  extFile   <- file.path(modDevDir, "run31.ext")
+  bsFile    <- file.path(modDevDir, "bs31.dir/raw_results_run31.csv")
+  
+  # 2. Setup Covariates
+  dfCovs <- setupdfCovs(modFile, fremCovs = c("AGE", "SEX"))
+  
+  # 3. Define a simple parameter function
+  paramFunction <- function(basethetas, covthetas, dfrow, ...) {
+    return(basethetas[1] * exp(covthetas[1]))
+  }
+  
+  # 4. Use PMXForest to extract 25 samples from bootstrap results
+  set.seed(123)
+  samples <- PMXForest::getSamples(bsFile, extFile = extFile, n = 25)
+  
+  # 5. Generate Forest Plot Data
+  dfresFREM <- getForestDFFREM(
+    dfCovs           = dfCovs,
+    covNames         = getCovNames(modFile)$covNames,
+    functionList     = list(paramFunction),
+    functionListName = "CL",
+    numSkipOm        = 2,
+    numNonFREMThetas = 7,
+    dfParameters     = samples,
+    quiet            = TRUE
+  )
+  
+  print(head(dfresFREM))
 }
 }
+\seealso{
+Other Diagnostics & Plotting: 
+\code{\link{calcEtas}()},
+\code{\link{fremParameterTable}()},
+\code{\link{getExplainedVar}()},
+\code{\link{plotExplainedVar}()},
+\code{\link{traceplot}()}
+}
+\concept{Diagnostics & Plotting}
+\concept{diagnostics}

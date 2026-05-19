@@ -4,21 +4,32 @@
 \alias{addFREMcovariates}
 \title{Add FREM covariates to a FFEM data set}
 \usage{
-addFREMcovariates(dfFFEM, modFile = NULL, covariates = NULL, iMiss = -99)
+addFREMcovariates(
+  dfFFEM,
+  modFile = NULL,
+  covariates = NULL,
+  iMiss = -99,
+  includeReference = FALSE,
+  imputeMissing = TRUE
+)
 }
 \arguments{
-\item{dfFFEM}{Data frame with FFEM data}
+\item{dfFFEM}{A data.frame containing the FFEM data.}
 
-\item{modFile}{name of the FREM model file to extract polychotomous
-covariates from}
+\item{modFile}{Path to a FREM model file.}
 
-\item{covariates}{character vector of polychotomous covariates to add
-binarised columns for}
+\item{covariates}{A character vector of covariates to binarise.}
 
-\item{iMiss}{The missing value indicator. Default is -99.}
+\item{iMiss}{The integer/numeric value representing missing data (default: -99).}
+
+\item{includeReference}{Logical. If TRUE, creates a dummy column for the lowest
+reference level as well (default: FALSE).}
+
+\item{imputeMissing}{Logical. If TRUE (default), missing values are imputed to 0
+(the reference category). If FALSE, missing values are preserved as iMiss.}
 }
 \value{
-A data frame with columns appended.
+A data.frame with the new binarised covariate columns.
 }
 \description{
 Add binarised FREM covariates to a FFEM data set.
@@ -36,25 +47,42 @@ by "_#", where "#" is the level value of the covariate. For example, for a
 covariate NCIL with the values 0, 1 and 2 \code{addFREMcovariates()} will add
 columns NCIL_1 and NCIL_2 each with the values 0 and 1 for rows where the
 value of NCIL is not 1/2 and 1 when the in NCIL is 1 or 2, respectively. If
-an ID has a missing vaue of NCIL, then NCIL_1 and NCIL_2 will both be 0,
+an ID has a missing value of NCIL, then NCIL_1 and NCIL_2 will both be 0,
 effectively imputing the missing NCIL with the lowest level of the NCIL
 covariate.
-
-The covariate to add can come either from a frem model file or be specified
-with the argument \code{covariates}.
 }
 \examples{
-library(readr)
-library(dplyr)
-library(magrittr)
+\donttest{
 
-dfFFEM <- read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",package="PMXFrem"),
-show_col_types = FALSE) \%>\% filter(BLQ!=1)
-modFile <- system.file("extdata/SimNeb/run31.mod",package="PMXFrem")
+# Load the base dataset
+dfFFEM <- read.csv(
+  system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package="PMXFrem")) \%>\% 
+  filter(BLQ != 1)
 
-## Add covariates from a FREM model file
-dfFFEMnew <-addFREMcovariates(dfFFEM,modFile = modFile)
+modFile <- system.file("extdata/SimNeb/run31.mod", package="PMXFrem")
 
-## Add the covariates specified on the command line
-dfFFEMnew <-addFREMcovariates(dfFFEM,covariates ="RACEL")
+## Example 1: Add covariates automatically based on a FREM model file
+dfFFEM_mod <- addFREMcovariates(dfFFEM, modFile = modFile)
+
+## Example 2: Add specific polychotomous covariates (Default: Y-1 categories)
+# For RACEL (levels 1, 2, 3), this will generate RACEL_3 and RACEL_2.
+# The lowest valid level (1) is dropped as the reference category.
+dfFFEM_standard <- addFREMcovariates(dfFFEM, covariates = "RACEL")
+
+## Example 3: Add specific covariates AND include the reference category
+# This will generate RACEL_3, RACEL_2, AND RACEL_1.
+dfFFEM_full <- addFREMcovariates(dfFFEM, covariates = "RACEL", includeReference = TRUE)
 }
+
+}
+\seealso{
+Other Data Assembly Internal: 
+\code{\link{augmentFremData}()},
+\code{\link{filterDataFromModel}()},
+\code{\link{finalizeFremData}()},
+\code{\link{prepareAndValidateData}()},
+\code{\link{prepareNewCovariates}()},
+\code{\link{validateFremData}()}
+}
+\concept{Data Assembly Internal}
+\concept{data_assembly}

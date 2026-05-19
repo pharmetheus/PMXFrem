@@ -9,11 +9,12 @@
 Support functions for FREM analyses in NONMEM that will facilitate pre- and post-processing.
 }
 \author{
-\strong{Maintainer}: Niclas Jonsson \email{niclas.jonsson@pharmetheus.com}
+\strong{Maintainer}: Pharmetheus AB \email{info@pharmetheus.com} [copyright holder]
 
 Authors:
 \itemize{
-  \item Joakim Nyberg \email{joakim.nyberg@pharmetheus.com}
+  \item Niclas Jonsson
+  \item Joakim Nyberg
 }
 
 }

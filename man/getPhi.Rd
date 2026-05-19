@@ -34,3 +34,11 @@ phiFile <- system.file("extData/SimNeb/run30.phi", package = "PMXFrem")
 dfPhi <- getPhi(phiFile = phiFile)
 
 }
+\seealso{
+Other NONMEM Parsers: 
+\code{\link{getCovNames}()},
+\code{\link{getExt}()},
+\code{\link{getFileNames}()}
+}
+\concept{NONMEM Parsers}
+\concept{nonmem_parsers}

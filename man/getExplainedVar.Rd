@@ -20,8 +20,8 @@ getExplainedVar(
  }),
   functionListName = "PAR1",
   numNonFREMThetas,
-  numFREMThetas = length(grep("THETA", names(dfext))) - numNonFREMThetas,
-  numSigmas = length(grep("SIGMA", names(dfext))),
+  numFREMThetas = NULL,
+  numSigmas = NULL,
   numParCov = NULL,
   parNames = NULL,
   numSkipOm = 0,
@@ -177,9 +177,8 @@ The \code{availCov} argument specifies the covariates in the frem model that sho
 of the maximum variability (TOTCOVVAR). If NULL (default), all covariates inteh frem model will be used for the derivation of TOTCOVVAR.
 }
 \examples{
-library(dplyr)
-library(magrittr)
 
+\donttest{
 modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
 fremRunno <- 31
 modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))
@@ -217,7 +216,7 @@ dfres1 <- getExplainedVar(type             = 1,
                           seed             = 123
 )
 
-## A fucntion that returns a vecotr of values
+## A function that returns a vector of values
 vectorFunction <- function(basethetas,covthetas, dfrow, etas, ...) {
   return(
     c(basethetas[2]*exp(covthetas[1] + etas[3]),
@@ -240,3 +239,14 @@ dfres12 <- getExplainedVar(type            = 0,
                           seed             = 123
 )
 }
+}
+\seealso{
+Other Diagnostics & Plotting: 
+\code{\link{calcEtas}()},
+\code{\link{fremParameterTable}()},
+\code{\link{getForestDFFREM}()},
+\code{\link{plotExplainedVar}()},
+\code{\link{traceplot}()}
+}
+\concept{Diagnostics & Plotting}
+\concept{diagnostics}

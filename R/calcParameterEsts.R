@@ -16,8 +16,6 @@
 #'
 #' @return A vector of parameter estimates corresponding to `thetaNum`,
 #'   `omegaNum`and `sigmaNum`.
-#' @export
-#' @keywords internal
 #' @seealso [fremParameterTable()]
 #'
 #' @examples
@@ -25,6 +23,9 @@
 #'  fremParEsts <- calcParameterEsts(extRes,thetaNum,omegaNum,sigmaNum,numNonFREMThetas,numSkipOm,
 #' covNames=covNames, availCov=availCov,quiet=quiet)
 #' }
+#' @family Diagnostics & Plotting Internal
+#' @concept diagnostics
+#' @keywords internal
 calcParameterEsts <- function(parVector,thetaNum,omegaNum,sigmaNum,numNonFREMThetas,numSkipOm,...) {
 
   #Find the thetas
