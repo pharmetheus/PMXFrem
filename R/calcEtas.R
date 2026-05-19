@@ -206,13 +206,17 @@ calcEtas <- function(
   
   ## --- Append Missingness Flags if requested ---
   if (appendMissingFlags) {
-    orig_covs <- getCovNames(modFile = modFile)$covNames
+    # Get the exact covariate names used in the FREM model (e.g. WT, RACEL_2)
+    model_covs <- getCovNames(modFile = modFile)$covNames
     df_obs <- FFEMData$newData[!duplicated(FFEMData$newData[[idvar]]), ]
     
-    for (cov in orig_covs) {
-      if (cov %in% names(df_obs)) {
+    for (cov in model_covs) {
+      # Extract the parent covariate name (e.g., "RACEL_2" -> "RACEL", "WT" -> "WT")
+      parent_cov <- sub("_[0-9]+$", "", cov)
+      
+      if (parent_cov %in% names(df_obs)) {
         # Match strictly by ID to guarantee exact row alignment
-        matched_obs <- df_obs[[cov]][match(retDf$ID, df_obs[[idvar]])]
+        matched_obs <- df_obs[[parent_cov]][match(retDf$ID, df_obs[[idvar]])]
         
         # Flag as 1 if missing (-99 or NA), 0 otherwise
         retDf[[paste0(cov, "_MISSING")]] <- as.integer(is.na(matched_obs) | matched_obs == -99)
