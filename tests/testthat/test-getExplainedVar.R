@@ -255,7 +255,6 @@ test_that("getExplainedVar correctly subsets longitudinal data to one row per ID
   # If the !duplicated("ID") bug is present, dataI becomes the full dataset,
   # triggering the eta length mismatch error.
   # With !duplicated(data[[strID]]), it correctly reduces to 1 row per ID.
-
   # We expect this to run completely without throwing the eta mismatch error
   expect_error(
     getExplainedVar(
@@ -298,6 +297,7 @@ test_that("getExplainedVar strictly stops if a model categorical covariate is mi
     "Can't find RACEL in the dataset" # Verifies our exact stop() triggers
   )
 })
+
 
 test_that("getExplainedVar handles data.table inputs robustly without NSE scoping errors", {
   
@@ -344,4 +344,5 @@ test_that("getExplainedVar handles data.table inputs robustly without NSE scopin
   
   expect_s3_class(res, "data.frame")
 })
+
 

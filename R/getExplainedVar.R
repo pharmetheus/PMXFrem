@@ -293,6 +293,7 @@ getExplainedVar <- function(
       cstrPackages = cstrPackages, cstrExports = cstrExports, numETASamples = numETASamples, seed = seed, 
       thetas = thetas, covNames = covNames, fremCovs = fremCovs, orgCovs = orgCovs, ...
     ))
+
   }
   
   stop("Invalid 'type' specified. Must be 0, 1, 2, or 3.")
