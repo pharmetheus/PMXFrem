@@ -54,7 +54,7 @@
 #' 
 #' @family Data Assembly Internal
 #' @concept data_assembly
-#' @keywords internal
+#' @export
 addFREMcovariates <- function(dfFFEM, modFile=NULL, covariates=NULL, iMiss = -99, includeReference = FALSE, imputeMissing = TRUE) {
   
   if(!is.data.frame(dfFFEM)) stop("dfFFEM has to be a data.frame")

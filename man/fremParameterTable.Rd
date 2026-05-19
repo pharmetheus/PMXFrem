@@ -20,6 +20,11 @@ fremParameterTable(
   omegaSD = TRUE,
   sigmaSD = TRUE,
   includeRSE = FALSE,
+  includeShrinkage = FALSE,
+  shrinkageType = "ETA_SD",
+  rawShrinkage = FALSE,
+  ffemModName = NULL,
+  shkDigs = 2,
   uncertainty = c("RSE", "CI"),
   ciLevel = 0.9,
   sigDigs = 3,
@@ -78,6 +83,16 @@ If \code{NULL}, defaults to Par1, Par2, etc. Note: Do not confuse this with \cod
 
 \item{includeRSE}{Logical. Should the output include relative standard errors (RSE). Default is \code{FALSE}.}
 
+\item{includeShrinkage}{Logical. If \code{TRUE}, calculates and includes shrinkages in the table using a specified FFEM model output. Defaults to \code{FALSE}.}
+
+\item{shrinkageType}{Character string specifying which type of shrinkage to report. Options are \code{"ETA_Var"}, \code{"ETA_SD"}, \code{"EBV_Var"}, or \code{"EBV_SD"}. Defaults to \code{"ETA_SD"} (the legacy NONMEM ETA SD shrinkage).}
+
+\item{rawShrinkage}{Logical. If \code{FALSE} (default), negative shrinkages are floored and reported as \code{1.0000e-10} to exactly mimic NONMEM's standard output. If \code{TRUE}, the raw (potentially negative) calculated shrinkages are reported.}
+
+\item{ffemModName}{A character string specifying the model name of the FFEM run (typically a MAX=0 run) to be used exclusively for shrinkage calculations. Required if \code{includeShrinkage} is \code{TRUE}.}
+
+\item{shkDigs}{An integer specifying the number of decimal places to use when formatting the shrinkage output. Default is 2.}
+
 \item{uncertainty}{A character string specifying how uncertainty should be summarized. Either \code{"RSE"} (default) or \code{"CI"}.}
 
 \item{ciLevel}{A numeric value between 0 and 1 specifying the confidence interval level. Default is 0.90.}
@@ -113,7 +128,7 @@ A list of five components:
 \itemize{
 \item parameterTable: A data frame with information for the base parameter table.
 \item coefficientTable_long: A tidy, long-format data frame of the covariate coefficients (optimal for internal reporting APIs).
-\item coefficientTable_wide: A document-ready wide-format data frame of the covariate coefficients (Covariates x Parameters).
+\item coefficientTable_wide: A document-ready wide-format data frame of the covariate coefficients (Covariates x Parameters). Estimates and uncertainties are separated into distinct columns.
 \item Samples: A data frame with the parameter vector samples used to derive the RSE information.
 \item Condition: The condition number for the variance-covariance matrix of the parameters.
 }
@@ -127,15 +142,19 @@ Covariate Effects) mapping each covariate to each structural parameter.
 \examples{
 
 if (requireNamespace("kableExtra", quietly = TRUE)) {
+library(kableExtra)
 set.seed(123)
 runno            <- 31
+modName          <- "run31"
+ffemModName      <- "run31max0"
 modDevDir        <- system.file("extdata/SimNeb/",package = "PMXFrem")
 numNonFREMThetas <- 7
 numSkipOm        <- 2
 
-## Generate the raw outout
+## Generate the raw output
 tmp <- fremParameterTable(
-      runno           = runno,
+      runno            = runno,
+      modName          = modName,
       modDevDir        = modDevDir,
       thetaNum         = 2:7,
       omegaNum         = c(1,3,4,5),
@@ -143,26 +162,36 @@ tmp <- fremParameterTable(
       thetaLabels      = c("CL (L/h)","V (L)","MAT (h)","D1 (h)","Food on Frel","Food on MAT"),
       omegaLabels      = c("IIV on RUV","IIV on CL","IIV on V","IIV on MAT"),
       sigmaLabels      = c("RUV"),
+      parNames         = c("CL", "V", "MAT"),
       includeRSE       = TRUE,
-      uncertainty = "CI",
+      includeShrinkage = TRUE,
+      shrinkageType    = "ETA_SD",
+      rawShrinkage     = FALSE,
+      ffemModName      = ffemModName,
+      shkDigs          = 2,
+      uncertainty      = "CI",
       numNonFREMThetas = numNonFREMThetas,
       numSkipOm        = numSkipOm,
       availCov         = "all",
       quiet            = TRUE)
 
-## Use kable_extra to generate a nice looking table
+## Use kable_extra to generate a nice looking table of the main parameters
 tmp$parameterTable \%>\%
     mutate(Estimate=as.character(signif(Estimate,3)))\%>\%
+    kbl() \%>\%
+    kable_classic(full_width = FALSE, html_font = "Cambria")
+    
+## Use kable_extra to generate a nice looking table of the covariate coefficients
+tmp$coefficientTable_wide \%>\%
     kbl() \%>\%
     kable_classic(full_width = FALSE, html_font = "Cambria")
 }
 }
 \seealso{
-\code{\link[PMXForest:getSamples]{PMXForest::getSamples()}} \code{\link[=calcFFEM]{calcFFEM()}}
+\code{\link[PMXForest:getSamples]{PMXForest::getSamples()}} \code{\link[=calcFFEM]{calcFFEM()}} \code{\link[=calcFremShrinkage]{calcFremShrinkage()}}
 
 Other Diagnostics & Plotting: 
 \code{\link{calcEtas}()},
-\code{\link{calcFremShrinkage}()},
 \code{\link{getExplainedVar}()},
 \code{\link{getForestDFFREM}()},
 \code{\link{plotExplainedVar}()},

@@ -243,7 +243,6 @@ dfres12 <- getExplainedVar(type            = 0,
 \seealso{
 Other Diagnostics & Plotting: 
 \code{\link{calcEtas}()},
-\code{\link{calcFremShrinkage}()},
 \code{\link{fremParameterTable}()},
 \code{\link{getForestDFFREM}()},
 \code{\link{plotExplainedVar}()},

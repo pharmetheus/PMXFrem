@@ -7,7 +7,6 @@
 * **Covariate Coefficient Tables:** Added `coefficientTable_long` (API-ready) and `coefficientTable_wide` (document-ready) outputs.
 * **Dynamic Uncertainty Formatting:** Added `uncertainty` (`"RSE"` or `"CI"`), `ciLevel`, and `sigDigs` arguments to `fremParameterTable()` with trailing zero preservation (`%#`).
 * **Covariate Label Generator:** Added `generateCovNames()` for dynamic/interactive Forest Plot label generation.
-* **Native Shrinkage Engine:** Added `calcFremShrinkage()`, which calculates empirical shrinkage directly from FFEM `MAXEVAL=0` runs (using `.phi` and `.ext` files). It exactly replicates NONMEM's internal mathematics (e.g., population variance denominators, deriving EBV SD from EBV Var) and outputs intuitive metrics (`ETA_Var`, `ETA_SD`, `EBV_Var`, `EBV_SD`) instead of legacy integer types.
 * **Integrated Shrinkage Reporting:** `fremParameterTable()` now natively reports parameter shrinkages via the `includeShrinkage = TRUE` and `ffemModName` arguments. Users can control the reported metric (`shrinkageType`), decimal precision (`shkDigs`), and choose to report raw mathematical values or NONMEM-style floored values (`rawShrinkage`).
 * **New Vignettes:** Added Tier 1 (`quick-start.Rmd`) and Tier 2 (`walk-through.Rmd`) workflows.
 

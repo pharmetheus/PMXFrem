@@ -117,7 +117,6 @@ head(individual_etas)
 \code{\link[=createFFEMdata]{createFFEMdata()}} for information about creating the FFEMData object
 
 Other Diagnostics & Plotting: 
-\code{\link{calcFremShrinkage}()},
 \code{\link{fremParameterTable}()},
 \code{\link{getExplainedVar}()},
 \code{\link{getForestDFFREM}()},

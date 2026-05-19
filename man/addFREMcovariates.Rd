@@ -86,4 +86,3 @@ Other Data Assembly Internal:
 }
 \concept{Data Assembly Internal}
 \concept{data_assembly}
-\keyword{internal}

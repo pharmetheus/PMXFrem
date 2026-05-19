@@ -2,125 +2,47 @@
 % Please edit documentation in R/calcFremShrinkage.R
 \name{calcFremShrinkage}
 \alias{calcFremShrinkage}
-\title{Calculate Empirical Shrinkage for a FREM Model}
+\title{Calculate Empirical Shrinkage for an FFEM Model}
 \usage{
 calcFremShrinkage(
   runno = NULL,
+  modName = NULL,
   modDevDir = NULL,
-  numNonFREMThetas,
-  numSkipOm = 0,
-  FFEMData = NULL,
-  dataFile = NULL,
-  parNames = NULL,
-  type = c("normal", "prim", "phi", "nonmem"),
-  phiFile = NULL,
-  shkFile = NULL,
-  dropDummyEps = TRUE,
-  quiet = TRUE,
-  ...
+  dropUninformative = TRUE,
+  quiet = TRUE
 )
 }
 \arguments{
-\item{runno}{The run number. Must be provided if \code{modName} is NULL. Will be
-used to create NONMEM model and results file names  with the structure
-run#.mod and run#. NONMEM ext, phi and cov files will be assumed to be
-named run# followed by the appropriate suffix (where # is \code{runno}).}
+\item{runno}{A numeric or character representing the run number of the FFEM model.}
 
-\item{modDevDir}{The directory where the files reside. Default is the current
-directory, i.e. ".".}
+\item{modName}{A character string representing the model name. If \code{NULL},
+inferred from \code{runno}.}
 
-\item{numNonFREMThetas}{Number of thetas in the FREM model that are not FREM
-covariates. These need to come before the FREM covariate thetas in the FREM
-model file.}
+\item{modDevDir}{A character string representing the directory containing the model files.}
 
-\item{numSkipOm}{Number of diagonal omegas that should not be part of the
-FREM calculations. Such omegas has to come before the large FREM omega
-block in the FREM model file.}
+\item{dropUninformative}{Logical. If \code{TRUE} (default), subjects with completely
+uninformative ETAs (where all ETAs are exactly 0) are dropped from the shrinkage
+calculation, mirroring NONMEM's internal handling of missing PK data.}
 
-\item{FFEMData}{An FFEMData object as obtained with the function \code{createFFEMdata}. If NULL,
-the object will be created internally, requiring \code{dataFile}, \code{parNames}, and other
-arguments for \code{createFFEMdata} to be provided.}
-
-\item{dataFile}{The name of the data file used in the base model, i.e. the
-original data file, or a data.frame with the same data.}
-
-\item{parNames}{Names of the parameters. Only used in the STDOUT when \code{quiet =FALSE} or in \code{eqFile} if it is non-blank. Defaults to \code{Par} folowed by a
-number.}
-
-\item{type}{A character string specifying the shrinkage type. Either \code{"normal"},
-\code{"prim"}, \code{"phi"}, or \code{"nonmem"}. Defaults to \code{"normal"}.}
-
-\item{phiFile}{A character string specifying the path to the .phi file.
-Strictly required if \code{type = "phi"}.}
-
-\item{shkFile}{A character string specifying the path to the .shk file.
-If \code{NULL}, it will be inferred from the model name.}
-
-\item{dropDummyEps}{Logical. If \code{TRUE} (default), the last EPS shrinkage is
-dropped, as it is typically a meaningless dummy epsilon used by FREM for covariates.
-If the model contains only 1 epsilon, it will throw a warning and will not drop it.}
-
-\item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
-STDOUT.}
-
-\item{...}{Additional arguments passed on to \code{createFFEMdata} when \code{FFEMData} is \code{NULL}.}
+\item{quiet}{Logical. If \code{FALSE}, messages about dropped subjects will be printed.}
 }
 \value{
-A named numeric vector of shrinkages (in percentage) for the base structural
-parameters (OMEGAs) and residual errors (SIGMAs).
-Values are rounded to 4 decimal places to prevent scientific notation artifacts.
+A data frame containing four types of shrinkage (in percentage) for each ETA:
+\itemize{
+\item \code{Parameter}: The name of the structural ETA.
+\item \code{ETA_Var}: ETA Variance Shrinkage (NONMEM Type 8)
+\item \code{ETA_SD}: ETA Standard Deviation Shrinkage (NONMEM Type 4)
+\item \code{EBV_Var}: EBV Variance Shrinkage based on ETC (NONMEM Type 9)
+\item \code{EBV_SD}: EBV Standard Deviation Shrinkage based on ETC (NONMEM Type 6)
+}
 }
 \description{
-Computes the empirical shrinkage of Empirical Bayes Estimates (EBEs) and Epsilon
-shrinkages. The \code{type} argument allows the user to choose between four methods
-for the OMEGA shrinkages:
-\itemize{
-\item \code{"normal"}: Raw FREM ETAs vs unadjusted prior variances (calculated in R).
-\item \code{"prim"}: Conditional ETAs (algebraic approximation) vs adjusted covariate variances.
-\item \code{"phi"}: True Bayesian FFEM ETAs (from a MAXEVAL=0 .phi file) vs adjusted covariate variances.
-\item \code{"nonmem"}: Parses the true SD-scale shrinkage directly from the NONMEM .shk file.
-}
+Computes the empirical shrinkage of Empirical Bayes Estimates (EBEs) directly from
+a MAXEVAL=0 (or MAXEVAL>0) FFEM run. This function entirely replaces the need for
+the NONMEM .shk file, allowing diagnostics to be generated natively from the .phi
+and .ext files without requiring an estimation step.
 
-Note: Epsilon (EPS) shrinkages are always extracted directly from the .shk file
-regardless of the chosen \code{type}, as they are invariant to the FREM-to-FFEM conversion.
-All methods return only the structural (non-covariate) ETAs to ensure consistent vector lengths.
+It accurately replicates NONMEM's internal shrinkage mathematics, including the
+use of population variance (dividing by N rather than N-1) and the exact derivation
+of EBV SD shrinkage from EBV Variance shrinkage.
 }
-\examples{
-\donttest{
-# 1. Define paths to the model and dataset included with the package
-model_dir <- system.file("extdata/SimNeb", package = "PMXFrem")
-data_path <- file.path(model_dir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
-phi_path <- file.path(model_dir, "run31max0.phi")
-
-# 2. Load and filter the dataset
-my_data <- read.csv(data_path)
-my_data <- my_data[my_data$BLQ != 1, ]
-
-# 3. Extract the ground-truth NONMEM shrinkage directly from the .shk file
-shrinkages_nonmem <- calcFremShrinkage(
-  runno            = 31,
-  modDevDir        = model_dir,
-  numNonFREMThetas = 7,
-  numSkipOm        = 2,
-  dataFile         = my_data,
-  parNames         = c("CL", "V", "MAT"),
-  type             = "nonmem",
-  phiFile          = phi_path,
-  quiet            = TRUE
-)
-
-print(shrinkages_nonmem)
-}
-
-}
-\seealso{
-Other Diagnostics & Plotting: 
-\code{\link{calcEtas}()},
-\code{\link{fremParameterTable}()},
-\code{\link{getExplainedVar}()},
-\code{\link{getForestDFFREM}()},
-\code{\link{plotExplainedVar}()},
-\code{\link{traceplot}()}
-}
-\concept{Diagnostics & Plotting}
-\concept{diagnostics}
