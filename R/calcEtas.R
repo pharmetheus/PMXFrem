@@ -1,7 +1,10 @@
+### FILE: calcEtas.R ###
+
 #' Calculate conditional ETAs (ETA prim)
 #'
 #' @description Collects the ETAs (parameter and covariate) from a FREM model and
-#'   computes the ETA_prims.
+#'   computes the ETA_prims. Optionally appends the true Empirical Bayes Estimates 
+#'   (EBVs) from a specified FFEM run for diagnostic plotting.
 #'
 #' @inheritParams createFFEMdata
 #' @param FFEMData An FFEMData object as obtained with the function `createFFEMdata`. If NULL,
@@ -9,12 +12,16 @@
 #'   arguments for `createFFEMdata` to be provided.
 #' @param covmodel A character string indicating if the covariate models were implemented
 #'   linearly (additatively) in the frem model or not. Default is "linear".
+#' @param ffemModName A character string specifying the model name of the FFEM run 
+#'   (typically a MAXEVAL=0 run). If provided, the true posterior EBVs will be extracted 
+#'   from its .phi file and appended to the output data frame. Default is `NULL`.
 #' @param ... Additional arguments passed on to `createFFEMdata` when `FFEMData` is `NULL`.
 #'
 #' @details The function collects the ETAs from the output of a FREM model, both for the
 #'   parameters as well as the covariates. The corresponding ETA_prims for the parameter
 #'   ETAs are computed by extracting the corresponding individual covariate coefficient
-#'   provided in the `FFEMData` object.
+#'   provided in the `FFEMData` object. If `ffemModName` is specified, the true structural 
+#'   EBVs are extracted from the FFEM model and merged by `ID`.
 #'
 #' @seealso [createFFEMdata()] for information about creating the FFEMData object
 #'
@@ -29,6 +36,7 @@
 #'   \item **Covariate Columns**: Columns for each covariate, containing the individual covariate
 #'   estimates. If `covmodel = "linear"`, these values are on the original covariate scale;
 #'   otherwise, they are on the ETA scale.
+#'   \item **EBV_ETA***: (If `ffemModName` is provided) The true Empirical Bayes Estimate from the FFEM model.
 #' }
 #'
 #' @export
@@ -49,17 +57,19 @@
 #'
 #' # 3. Call calcEtas, providing the data directly
 #' # The function will create the FFEMData object internally.
+#' # We also specify ffemModName to extract true posterior EBVs for plotting.
 #' individual_etas <- calcEtas(
 #'   modName          = "run31",
 #'   modDevDir        = model_dir,
 #'   numNonFREMThetas = 7,
 #'   numSkipOm        = 2,
 #'   dataFile         = my_data,
-#'   parNames         = c("CL", "V", "MAT")
+#'   parNames         = c("CL", "V", "MAT"),
+#'   ffemModName      = "run31max0"
 #' )
 #'
 #' # 4. Display the first few rows of the resulting data frame
-#' # The output contains subject IDs, ETAs, ETA_PRIMs, and covariate values.
+#' # The output contains subject IDs, ETAs, ETA_PRIMs, EBVs, and covariate values.
 #' head(individual_etas)
 #'
 #' @family Diagnostics & Plotting
@@ -76,6 +86,7 @@ calcEtas <- function(
     dataFile         = NULL,
     parNames         = NULL,
     quiet            = TRUE,
+    ffemModName      = NULL,
     ...) {
   
   # Capture all ... arguments into a list
@@ -95,7 +106,7 @@ calcEtas <- function(
     if (is.null(dataFile) || is.null(parNames)) {
       stop("If `FFEMData` is NULL, you must provide `dataFile` and `parNames`.", call. = FALSE)
     }
-    message("`FFEMData` object not provided. Creating it internally...")
+    if (!quiet) message("`FFEMData` object not provided. Creating it internally...")
     
     # Arguments for createFFEMdata are its formal args + any from ... that match
     ffem_args_from_dots <- dots[names(dots) %in% names(formals(createFFEMdata))]
@@ -116,7 +127,7 @@ calcEtas <- function(
     )
     FFEMData <- do.call(createFFEMdata, ffem_args)
   }
-
+  
   modFile   <- fileNames$mod
   extFile   <- fileNames$ext
   phiFile   <- fileNames$phi
@@ -151,6 +162,48 @@ calcEtas <- function(
   
   retDf <- cbind(ID = dfphi[, 2], etaprim, etafrem, covariates)
   names(retDf) <- gsub("\\.", "", names(retDf))
+  
+  ## --- Append FFEM EBVs if requested ---
+  if (!is.null(ffemModName)) {
+    ffem_files <- getFileNames(modName = ffemModName, modDevDir = modDevDir)
+    ffem_phi_file <- paste0(tools::file_path_sans_ext(ffem_files$mod), ".phi")
+    
+    if (!file.exists(ffem_phi_file)) {
+      if (!quiet) warning(sprintf("Cannot find FFEM .phi file at '%s'. Skipping FFEM EBVs.", ffem_phi_file), call. = FALSE)
+    } else {
+      df_ffem_phi <- getPhi(ffem_phi_file)
+      
+      # We only want the structural ETAs that exist in the base model
+      target_etas <- names(etafrem) 
+      target_etas_clean <- gsub("\\.", "", target_etas)
+      
+      missing_etas <- setdiff(target_etas, names(df_ffem_phi))
+      if (length(missing_etas) > 0) {
+        if (!quiet) warning("Some structural ETAs from the base model are missing in the FFEM phi file. Skipping EBV merge.", call. = FALSE)
+      } else {
+        # Securely locate the ID column in the FFEM phi file
+        phi_id_col <- grep("^\\s*ID\\s*$", names(df_ffem_phi), ignore.case = TRUE, value = TRUE)
+        if (length(phi_id_col) == 0) phi_id_col <- names(df_ffem_phi)[2] 
+        
+        df_ebv <- df_ffem_phi[, c(phi_id_col[1], target_etas), drop = FALSE]
+        
+        # --- LENGTH VERIFICATION CHECK ---
+        if (nrow(df_ebv) != nrow(retDf)) {
+          stop(sprintf(
+            "Subject count mismatch: The base FREM model has %d subjects, but the FFEM model '%s' has %d subjects. Cannot safely merge EBVs.", 
+            nrow(retDf), ffemModName, nrow(df_ebv)
+          ), call. = FALSE)
+        }
+        
+        # Standardize ID column name and rename ETAs to EBVs for clarity
+        names(df_ebv)[1] <- "ID"
+        names(df_ebv)[-1] <- paste0("EBV_", target_etas_clean)
+        
+        # Merge seamlessly
+        retDf <- merge(retDf, df_ebv, by = "ID", all.x = TRUE)
+      }
+    }
+  }
   
   return(retDf)
 }
