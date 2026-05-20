@@ -194,6 +194,8 @@ Other Diagnostics & Plotting:
 \code{\link{calcEtas}()},
 \code{\link{getExplainedVar}()},
 \code{\link{getForestDFFREM}()},
+\code{\link{plotCovDist}()},
+\code{\link{plotEtasCov}()},
 \code{\link{plotExplainedVar}()},
 \code{\link{traceplot}()}
 }

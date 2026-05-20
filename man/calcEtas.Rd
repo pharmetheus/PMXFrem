@@ -16,6 +16,8 @@ calcEtas(
   dataFile = NULL,
   parNames = NULL,
   quiet = TRUE,
+  ffemModName = NULL,
+  appendMissingFlags = TRUE,
   ...
 )
 }
@@ -58,6 +60,14 @@ number.}
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
 STDOUT.}
 
+\item{ffemModName}{A character string specifying the model name of the FFEM run
+(typically a MAXEVAL=0 run). If provided, the true posterior EBEs will be extracted
+from its .phi file and appended to the output data frame. Default is \code{NULL}.}
+
+\item{appendMissingFlags}{Logical. If \code{TRUE}, evaluates the original dataset for missing
+covariate values (coded as -99 or NA) and appends a binary indicator column for each predicted
+covariate with the suffix \code{_MISSING} (1 = Missing, 0 = Not Missing). Default is \code{FALSE}.}
+
 \item{...}{Additional arguments passed on to \code{createFFEMdata} when \code{FFEMData} is \code{NULL}.}
 }
 \value{
@@ -71,17 +81,21 @@ random effect adjusted for the individual's specific covariate effects.
 \item \strong{Covariate Columns}: Columns for each covariate, containing the individual covariate
 estimates. If \code{covmodel = "linear"}, these values are on the original covariate scale;
 otherwise, they are on the ETA scale.
+\item \strong{EBE_ETA}*: (If \code{ffemModName} is provided) The true Empirical Bayes Estimate from the FFEM model.
+\item *\strong{_MISSING}: (If \code{appendMissingFlags} is \code{TRUE}) A binary indicator of missingness in the original dataset.
 }
 }
 \description{
 Collects the ETAs (parameter and covariate) from a FREM model and
-computes the ETA_prims.
+computes the ETA_prims. Optionally appends the true Empirical Bayes Estimates
+(EBEs) from a specified FFEM run for diagnostic plotting.
 }
 \details{
 The function collects the ETAs from the output of a FREM model, both for the
 parameters as well as the covariates. The corresponding ETA_prims for the parameter
 ETAs are computed by extracting the corresponding individual covariate coefficient
-provided in the \code{FFEMData} object.
+provided in the \code{FFEMData} object. If \code{ffemModName} is specified, the true structural
+EBEs are extracted from the FFEM model and merged by \code{ID}.
 }
 \examples{
 
@@ -99,17 +113,20 @@ my_data <- my_data[my_data$BLQ != 1, ]
 
 # 3. Call calcEtas, providing the data directly
 # The function will create the FFEMData object internally.
+# We also specify ffemModName to extract true posterior EBEs for plotting.
 individual_etas <- calcEtas(
-  modName          = "run31",
-  modDevDir        = model_dir,
-  numNonFREMThetas = 7,
-  numSkipOm        = 2,
-  dataFile         = my_data,
-  parNames         = c("CL", "V", "MAT")
+  modName            = "run31",
+  modDevDir          = model_dir,
+  numNonFREMThetas   = 7,
+  numSkipOm          = 2,
+  dataFile           = my_data,
+  parNames           = c("CL", "V", "MAT"),
+  ffemModName        = "run31max0",
+  appendMissingFlags = TRUE
 )
 
 # 4. Display the first few rows of the resulting data frame
-# The output contains subject IDs, ETAs, ETA_PRIMs, and covariate values.
+# The output contains subject IDs, ETAs, ETA_PRIMs, EBEs, and missingness flags.
 head(individual_etas)
 
 }
@@ -120,6 +137,8 @@ Other Diagnostics & Plotting:
 \code{\link{fremParameterTable}()},
 \code{\link{getExplainedVar}()},
 \code{\link{getForestDFFREM}()},
+\code{\link{plotCovDist}()},
+\code{\link{plotEtasCov}()},
 \code{\link{plotExplainedVar}()},
 \code{\link{traceplot}()}
 }
