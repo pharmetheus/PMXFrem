@@ -36,6 +36,7 @@
 * **Deprecations:** Deprecated `cstrSortCols` in `updateFREMmodel()` (sorting is now native to PMXFrem v2).
 * **CRAN Compliance:** Refactored examples to use base R (`read.csv`) and `tempdir()`.
 * **Roxygen:** Injected extensive `@family` and `@concept` tags across all functions for `pkgdown` organization.
+* **Documentation:** Added a new vignette (`walkthrough-createFREMmodel.Rmd`) demonstrating the end-to-end process of building a Full Random Effects Model and dataset from scratch using `createFREMmodel()`.
 
 # PMXFrem 1.2.12
 
