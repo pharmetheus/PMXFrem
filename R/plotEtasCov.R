@@ -3,9 +3,9 @@
 #' Plot FREM ETAs and ETA_prims against a specified covariate
 #'
 #' @description 
-#' Generates a diagnostic scatter plot with a smoothing line, comparing the base 
-#' FREM ETAs and ETA_prims against a specified covariate. The plot is faceted by 
-#' the ETA type (columns) and the calculation method (Prim vs. FREM, rows). 
+#' Generates a diagnostic scatter plot with a smoothing line, comparing selected 
+#' ETA estimates (FREM ETA, ETA_prim, and/or FFEM EBE) against a specified covariate. 
+#' The plot is faceted by the ETA type (columns) and the calculation method (rows). 
 #' It automatically colors points based on whether the covariate was missing in 
 #' the original clinical dataset.
 #'
@@ -16,6 +16,15 @@
 #' @param etaNames A character vector of structural ETAs to include in the plot 
 #'   (e.g., \code{c("ETA3", "ETA4")}). If \code{NULL} (default), all columns matching 
 #'   the regex \code{"^ETA[0-9]+$"} will be automatically detected and plotted.
+#' @param etaTypes A character vector specifying which types of ETAs to plot. 
+#'   Allowed values are \code{"FREM"}, \code{"Prim"}, and \code{"EBE"}. Defaults to 
+#'   \code{c("FREM", "Prim")}. The order specified here determines the top-to-bottom 
+#'   row order in the plotted facets.
+#' @param etaLabels A character vector of custom labels for the ETA columns. Must be 
+#'   the same length as \code{etaNames}. If \code{NULL} (default), \code{etaNames} are used.
+#' @param typeLabels A named character vector specifying custom labels for the ETA 
+#'   calculation types (the facet rows). Defaults to \code{c("FREM" = "FREM ETA", 
+#'   "Prim" = "ETA Prim", "EBE" = "FFEM EBE")}.
 #' @param xlab Character string for the x-axis title. Defaults to \code{covName}.
 #' @param ylab Character string for the y-axis title. Defaults to \code{"Value"}.
 #' @param colorNonMissing Character string (hex code or color name) for non-missing 
@@ -42,15 +51,11 @@
 #' library(PMXFrem)
 #' library(ggplot2)
 #' 
-#' # 1. Define the path to the model files included with the package
 #' model_dir <- system.file("extdata/SimNeb/", package = "PMXFrem")
-#' 
-#' # 2. Load and prepare the dataset also included with the package
 #' data_path <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 #' my_data <- read.csv(data_path)
-#' my_data <- my_data[my_data$BLQ != 1, ] # Exclude BLQ rows
+#' my_data <- my_data[my_data$BLQ != 1, ] 
 #' 
-#' # 3. Generate the individual ETAs and missingness flags
 #' ind_params <- calcEtas(
 #'   modName            = "run31",
 #'   modDevDir          = model_dir,
@@ -62,23 +67,16 @@
 #'   appendMissingFlags = TRUE
 #' )
 #' 
-#' # 4. Plot the ETAs vs Weight (WT)
-#' # By default, it will auto-detect all ETAs and the WT_MISSING flag
-#' p1 <- plotEtasCov(df = ind_params, covName = "WT")
-#' print(p1)
-#' 
-#' # 5. Customized plot restricting to specific ETAs with a linear trend line
-#' p2 <- plotEtasCov(
+#' # Plot with custom labels for publication
+#' p3 <- plotEtasCov(
 #'   df = ind_params, 
 #'   covName = "WT", 
 #'   etaNames = c("ETA3", "ETA4"),
-#'   xlab = "Weight (kg)", 
-#'   ylab = "Empirical Bayes Estimate",
-#'   smoothMethod = "lm", 
-#'   smoothColor = "blue",
-#'   smoothLinetype = "dashed"
+#'   etaTypes = c("EBE", "FREM"),
+#'   etaLabels = c("Clearance", "Volume"),
+#'   typeLabels = c("EBE" = "FFEM EBE", "FREM" = "FREM EBE")
 #' )
-#' print(p2)
+#' print(p3)
 #' }
 #' 
 #' @family Diagnostics & Plotting
@@ -87,6 +85,9 @@ plotEtasCov <- function(
     df,
     covName,
     etaNames         = NULL,
+    etaTypes         = c("FREM", "Prim"),
+    etaLabels        = NULL,
+    typeLabels       = c("FREM" = "FREM ETA", "Prim" = "ETA Prim", "EBE" = "FFEM EBE"),
     xlab             = covName,
     ylab             = "Value",
     colorNonMissing  = "#005B65",
@@ -101,6 +102,12 @@ plotEtasCov <- function(
     smoothSe         = FALSE,
     ...
 ) {
+  
+  # Ensure valid inputs and preserve the user's requested order
+  etaTypes <- match.arg(etaTypes, choices = c("FREM", "Prim", "EBE"), several.ok = TRUE)
+  
+  # Map user shorthand to full plot labels based on the provided typeLabels argument
+  ordered_levels <- unname(typeLabels[etaTypes])
   
   # --- 1. Input Validation ---
   if (!inherits(df, "data.frame")) {
@@ -123,11 +130,11 @@ plotEtasCov <- function(
     }
   }
   
-  # Check for corresponding ETA_PRIM columns
-  prim_names <- paste0(etaNames, "_PRIM")
-  missing_prims <- setdiff(prim_names, names(df))
-  if (length(missing_prims) > 0) {
-    stop("Missing corresponding PRIM columns for the requested ETAs: ", paste(missing_prims, collapse = ", "), call. = FALSE)
+  # Validate etaLabels length
+  if (is.null(etaLabels)) {
+    etaLabels <- etaNames
+  } else if (length(etaLabels) != length(etaNames)) {
+    stop("`etaLabels` must have the exact same length as `etaNames`.", call. = FALSE)
   }
   
   # Check for Missingness Flag
@@ -138,30 +145,60 @@ plotEtasCov <- function(
   }
   
   # --- 2. Data Wrangling ---
-  # Extract Base FREM ETAs
-  df_frem <- df %>%
-    dplyr::select(dplyr::all_of(etaNames), dplyr::all_of(covName), dplyr::all_of(miss_col)) %>%
-    tidyr::pivot_longer(cols = dplyr::all_of(etaNames), names_to = "ETA", values_to = "values") %>%
-    dplyr::mutate(Type = "FREM")
+  plot_data_list <- list()
   
-  # Extract ETA_PRIMs and rename to match base ETAs for clean vertical faceting
-  df_prim <- df %>%
-    dplyr::select(dplyr::all_of(prim_names), dplyr::all_of(covName), dplyr::all_of(miss_col)) %>%
-    dplyr::rename_with(~ etaNames, dplyr::all_of(prim_names)) %>%
-    tidyr::pivot_longer(cols = dplyr::all_of(etaNames), names_to = "ETA", values_to = "values") %>%
-    dplyr::mutate(Type = "Prim")
+  # Process FREM ETAs
+  if ("FREM" %in% etaTypes) {
+    plot_data_list[["FREM"]] <- df %>%
+      dplyr::select(dplyr::all_of(etaNames), dplyr::all_of(covName), dplyr::all_of(miss_col)) %>%
+      tidyr::pivot_longer(cols = dplyr::all_of(etaNames), names_to = "ETA", values_to = "values") %>%
+      dplyr::mutate(Type = unname(typeLabels["FREM"]))
+  }
   
-  # Combine and convert missing flag to an explicit factor
-  plot_df <- dplyr::bind_rows(df_prim, df_frem) %>%
+  # Process ETA Prims
+  if ("Prim" %in% etaTypes) {
+    prim_names <- paste0(etaNames, "_PRIM")
+    missing_prims <- setdiff(prim_names, names(df))
+    if (length(missing_prims) > 0) {
+      stop("Missing corresponding PRIM columns for the requested ETAs: ", paste(missing_prims, collapse = ", "), call. = FALSE)
+    }
+    
+    plot_data_list[["Prim"]] <- df %>%
+      dplyr::select(dplyr::all_of(prim_names), dplyr::all_of(covName), dplyr::all_of(miss_col)) %>%
+      dplyr::rename_with(~ etaNames, dplyr::all_of(prim_names)) %>%
+      tidyr::pivot_longer(cols = dplyr::all_of(etaNames), names_to = "ETA", values_to = "values") %>%
+      dplyr::mutate(Type = unname(typeLabels["Prim"]))
+  }
+  
+  # Process FFEM EBEs
+  if ("EBE" %in% etaTypes) {
+    ebe_names <- paste0("EBE_", etaNames)
+    missing_ebes <- setdiff(ebe_names, names(df))
+    if (length(missing_ebes) > 0) {
+      stop(sprintf("Requested 'EBE' plotting type, but the following columns are missing: %s. Ensure you specified 'ffemModName' when running calcEtas().", paste(missing_ebes, collapse = ", ")), call. = FALSE)
+    }
+    
+    plot_data_list[["EBE"]] <- df %>%
+      dplyr::select(dplyr::all_of(ebe_names), dplyr::all_of(covName), dplyr::all_of(miss_col)) %>%
+      dplyr::rename_with(~ etaNames, dplyr::all_of(ebe_names)) %>%
+      tidyr::pivot_longer(cols = dplyr::all_of(etaNames), names_to = "ETA", values_to = "values") %>%
+      dplyr::mutate(Type = unname(typeLabels["EBE"]))
+  }
+  
+  # Combine and format factors
+  plot_df <- dplyr::bind_rows(plot_data_list) %>%
     dplyr::mutate(
       Missingness = factor(
         ifelse(.data[[miss_col]] == 1, "Missing", "Non-missing"),
         levels = c("Non-missing", "Missing")
-      )
+      ),
+      # Dynamically set levels based on the user's etaTypes order
+      Type = factor(.data$Type, levels = ordered_levels),
+      # Map the exact facet columns using the user's custom etaLabels
+      ETA = factor(.data$ETA, levels = etaNames, labels = etaLabels)
     )
   
   # --- 3. Plotting ---
-  # Named vector to guarantee colors assign correctly even if one level is missing
   color_mapping <- stats::setNames(
     c(colorNonMissing, colorMissing), 
     c("Non-missing", "Missing")
@@ -171,7 +208,7 @@ plotEtasCov <- function(
     ggplot2::geom_point(ggplot2::aes(color = .data$Missingness), 
                         shape = pointShape, size = pointSize, alpha = pointAlpha) +
     ggplot2::geom_smooth(method = smoothMethod, color = smoothColor, 
-                         linetype = smoothLinetype, linewidth = smoothSize, 
+                         linetype = smoothLinetype, size = smoothSize, 
                          se = smoothSe, ...) +
     ggplot2::scale_color_manual(values = color_mapping) +
     ggplot2::facet_grid(Type ~ ETA) +

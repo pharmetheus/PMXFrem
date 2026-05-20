@@ -92,7 +92,7 @@ calcEtas <- function(
     parNames           = NULL,
     quiet              = TRUE,
     ffemModName        = NULL,
-    appendMissingFlags = FALSE,
+    appendMissingFlags = TRUE,
     ...) {
   
   # Capture all ... arguments into a list

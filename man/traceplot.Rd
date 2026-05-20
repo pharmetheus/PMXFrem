@@ -111,6 +111,8 @@ Other Diagnostics & Plotting:
 \code{\link{fremParameterTable}()},
 \code{\link{getExplainedVar}()},
 \code{\link{getForestDFFREM}()},
+\code{\link{plotCovDist}()},
+\code{\link{plotEtasCov}()},
 \code{\link{plotExplainedVar}()}
 }
 \concept{Diagnostics & Plotting}

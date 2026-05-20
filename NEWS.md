@@ -8,6 +8,7 @@
 * **Dynamic Uncertainty Formatting:** Added `uncertainty` (`"RSE"` or `"CI"`), `ciLevel`, and `sigDigs` arguments to `fremParameterTable()` with trailing zero preservation (`%#`).
 * **Covariate Label Generator:** Added `generateCovNames()` for dynamic/interactive Forest Plot label generation.
 * **Integrated Shrinkage Reporting:** `fremParameterTable()` now natively reports parameter shrinkages via the `includeShrinkage = TRUE` and `ffemModName` arguments. Users can control the reported metric (`shrinkageType`), decimal precision (`shkDigs`), and choose to report raw mathematical values or NONMEM-style floored values (`rawShrinkage`).
+* **New Features:** Added diagnostic plotting functions `plotEtasCov()` and `plotCovDist()`. `plotEtasCov()` creates faceted scatter plots to compare FREM ETAs, ETA_PRIMs, and FFEM EBEs against covariates. `plotCovDist()` generates distribution plots for estimated covariates. Both automatically visualize and group data based on original covariate missingness.
 * **New Vignettes:** Added Tier 1 (`quick-start.Rmd`) and Tier 2 (`walk-through.Rmd`) workflows.
 
 ## 🚀 Architecture & Performance
