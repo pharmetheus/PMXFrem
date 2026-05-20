@@ -1,0 +1,123 @@
+---
+title: "Walkthrough: Creating FREM Models with createFREMmodel"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Walkthrough: Creating FREM Models with createFREMmodel}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+### **Introduction**
+
+The Full Random Effects Model (FREM) methodology requires a specific restructuring of both the NONMEM control stream and the underlying dataset. Continuous and categorical covariates must be converted into dummy "observations" so their variability and correlation can be estimated alongside the structural parameters via a unified covariance matrix.
+
+The `createFREMmodel()` function is the core engine of the `PMXFrem` package. It automates this complex transformation, taking a standard base model and its dataset and returning a fully configured FREM model ready for execution in NONMEM.
+
+### **How createFREMmodel Works Under the Hood**
+Rather than trying to inject every covariate simultaneously, `createFREMmodel()` uses a robust iterative strategy. First, it bootstraps a "minimal" FREM model using only the first covariate listed in your `covariates` argument. It completely rewrites the `$INPUT`, `$DATA`, `$PK`, and `$ERROR` blocks to support the FREM architecture for this single covariate. Then, it iterates through the remaining covariates, utilizing `updateFREMmodel()` in the background to safely and seamlessly fold each subsequent covariate into the expanding OMEGA block and dataset. 
+
+### **1. Setup and Paths**
+
+First, load the package and define the paths to your base model and original clinical dataset. 
+
+*Note: By default, `createFREMmodel` writes the final files to the `modDevDir` directory. It has built-in overwrite protection and will throw an error if files with your `finalModName` already exist. For this vignette, we will generate a unique temporary directory to safely store the output.*
+
+```{r setup}
+library(PMXFrem)
+
+# Define paths to the example files included in the package
+model_dir <- system.file("extdata", "SimNeb", package = "PMXFrem")
+data_path <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+
+# Create a GUARANTEED unique temporary directory for this specific run
+td <- tempfile(pattern = "frem_vignette_")
+dir.create(td)
+```
+
+### **2. Designing the FREM Model**
+
+We need to decide which covariates to include and how they should be handled. In FREM, continuous covariates can be modeled as-is or log-transformed, while categorical covariates must be identified so they can be binarized into dummy variables.
+
+We will also explicitly define `keep_cols` to ensure that critical variables from our base dataset carry over correctly to the new FREM dataset rows.
+
+```{r define_covariates}
+# Define the complete list of covariates to include
+frem_covariates <- c("AGE", "WT", "SEX", "RACEL")
+
+# Identify categorical and log-transformed covariates
+categorical_covs <- c("RACEL", "SEX")
+log_transform_covs <- c("WT")
+
+# Define which structural columns must be kept in the new FREM dataset rows
+keep_cols <- c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV")
+```
+
+### **3. Generating the Model**
+
+We pass our specifications into `createFREMmodel()`. We use the `run30` base model, which has `7` structural THETAs (`numNonFREMThetas`) and `2` specific OMEGAs that we want to skip correlating with the covariates (`numSkipOm`).
+
+**Handling Dichotomous Covariates (`bRecodeDichotomous`):**
+Notice that we set `bRecodeDichotomous = TRUE`. In many standard datasets, dichotomous variables are coded as `1` and `2` (e.g., Males = 1, Females = 2). If left as-is, the intercept of the FREM covariate effect becomes harder to interpret. When this argument is `TRUE`, the function automatically detects 2-level categorical covariates and recodes them to `0` and `1`. This cleanly establishes the `0` level as the reference baseline. 
+
+```{r execute_create, warning=FALSE, message=FALSE}
+# Execute the creation of the FREM model and dataset
+generated_files <- createFREMmodel(
+  modName            = "run30",
+  modDevDir          = model_dir,
+  ffemDataFile       = data_path,
+  outputDir          = td,
+  finalModName       = "run30_FREM",
+  
+  # Covariate Instructions
+  covariates         = frem_covariates,
+  catCovs            = categorical_covs,
+  logtCovs           = log_transform_covs,
+  
+  # Structural Architecture
+  numNonFREMThetas   = 7,
+  numSkipOm          = 2,
+  
+  # Dataset formatting
+  cstrKeepCols       = keep_cols,
+  bRecodeDichotomous = TRUE,
+  quiet              = TRUE
+)
+```
+
+### **4. Understanding the Output**
+
+`createFREMmodel()` has now generated the newly expanded `.mod` and `.csv` files. Let's inspect them directly from the disk.
+
+#### **The Generated Dataset**
+The original dataset has been vertically expanded. For every subject, new rows (`EVID = 2`) have been appended containing the standardized covariate values in the `DV` column, mapped via the new `FREMTYPE` compartment column. Because we used `bRecodeDichotomous = TRUE`, you will see `SEX` represented as a clean `0` or `1` dummy variable.
+
+```{r show_data}
+# Read the generated dataset
+frem_data <- read.csv(generated_files$data)
+
+# Display the first 15 rows to show the structural PK data followed by the new FREM dummy rows
+head(frem_data, n = 15)
+```
+
+#### **The Final Model Control Stream**
+The control stream is vastly different. The `$PK` block now handles the structural `ETA`s alongside the covariate means, and the `$ERROR` block dynamically routes the dummy observations (via `FREMTYPE`) to their respective equations. Finally, a massive `$OMEGA BLOCK` is appended to estimate the covariances.
+
+```{r show_model, comment=''}
+# Read the generated NONMEM control stream and print it in its entirety
+frem_mod <- readLines(generated_files$model)
+cat(frem_mod, sep = "\n")
+```
+
+You can now submit `run30_FREM.mod` directly to NONMEM for execution! 
+
+```{r cleanup, include=FALSE}
+# Clean up the temporary directory after the vignette finishes
+unlink(td, recursive = TRUE)
+```

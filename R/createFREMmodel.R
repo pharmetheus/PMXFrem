@@ -52,11 +52,11 @@
 #' ffemDataFile <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 #' 
 #' 
-#' # Use a temporary directory for the output to comply with CRAN policies
-#' outputDir <- tempdir()
+#' td <- tempfile(pattern = "frem_example_")
+#' dir.create(td)
 #' 
 #' # Define covariates and keep columns
-#' covariates <- c("WT","SEX","RACEL")
+#' covariates <- c("AGE","WT","SEX","RACEL")
 #' catCovs    <- c("RACEL","SEX")
 #' keep_cols  <- c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV")
 #' 
@@ -66,8 +66,9 @@
 #'   modDevDir          = modDevDir,
 #'   ffemDataFile       = ffemDataFile,
 #'   covariates         = covariates,
+#'   logtCovs           = "WT",
 #'   catCovs            = catCovs,         
-#'   outputDir          = outputDir,
+#'   outputDir          = td,
 #'   finalModName       = "frem_final",
 #'   numNonFREMThetas   = 7,
 #'   numSkipOm          = 2,
@@ -79,6 +80,9 @@
 #' # The generated files are available in the temporary directory
 #' print(generated_files$model)
 #' print(generated_files$data)
+#' 
+#' #Clean up the temporary directory
+#' unlink(td, recursive = TRUE)
 #' 
 #' @family FREM model management
 #' @concept frem_model_management
@@ -107,8 +111,19 @@ createFREMmodel <- function(runno                = NULL,
                             keepDoseOnlySubjects = FALSE,
                             ...) {
   
+  # Default to modDevDir if outputDir isn't specified
   if (is.null(outputDir)) {
     outputDir <- if (!is.null(modDevDir)) modDevDir else getwd()
+  }
+  
+  finalModelPath <- file.path(outputDir, paste0(finalModName, ".mod"))
+  finalDataPath  <- file.path(outputDir, paste0(finalModName, "_data.csv"))
+  
+  # --- Overwrite Protection ---
+  if (file.exists(finalModelPath) || file.exists(finalDataPath)) {
+    stop(sprintf("Protection Error: The output files '%s' or '%s' already exist in the target directory (%s). Please use a different `finalModName`, specify a new `outputDir`, or manually remove the existing files.", 
+                 basename(finalModelPath), basename(finalDataPath), outputDir), 
+         call. = FALSE)
   }
   
   if (length(covariates) == 0) stop("At least one covariate must be provided.")
