@@ -46,3 +46,16 @@ It accurately replicates NONMEM's internal shrinkage mathematics, including the
 use of population variance (dividing by N rather than N-1) and the exact derivation
 of EBV SD shrinkage from EBV Variance shrinkage.
 }
+\seealso{
+Other Diagnostics & Plotting: 
+\code{\link{calcEtas}()},
+\code{\link{fremParameterTable}()},
+\code{\link{getExplainedVar}()},
+\code{\link{getForestDFFREM}()},
+\code{\link{plotCovDist}()},
+\code{\link{plotEtasCov}()},
+\code{\link{plotExplainedVar}()},
+\code{\link{traceplot}()}
+}
+\concept{Diagnostics & Plotting}
+\concept{diagnostics}
