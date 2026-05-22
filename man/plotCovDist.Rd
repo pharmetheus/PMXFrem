@@ -75,7 +75,6 @@ Note: In FREM, all estimated covariates are continuous. Therefore, covariates
 that were originally binary/categorical will be plotted on a continuous scale.
 }
 \examples{
-\dontrun{
 library(PMXFrem)
 library(ggplot2)
 
@@ -109,7 +108,6 @@ p2 <- plotCovDist(
   ncol = 2
 )
 print(p2)
-}
 
 }
 \seealso{

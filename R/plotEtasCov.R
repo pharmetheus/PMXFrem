@@ -47,7 +47,6 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
 #' library(PMXFrem)
 #' library(ggplot2)
 #' 
@@ -77,7 +76,6 @@
 #'   typeLabels = c("EBE" = "FFEM EBE", "FREM" = "FREM EBE")
 #' )
 #' print(p3)
-#' }
 #' 
 #' @family Diagnostics & Plotting
 #' @concept diagnostics
