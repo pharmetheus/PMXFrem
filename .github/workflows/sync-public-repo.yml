@@ -20,6 +20,7 @@ concurrency:
 jobs:
 
   sync-git:
+    if: endsWith(github.repository, '-private')
     runs-on: ubuntu-slim
 
     outputs:
@@ -82,6 +83,7 @@ jobs:
           git push --mirror
 
   sync-releases:
+    if: endsWith(github.repository, '-private')
     needs:
       - sync-git
     runs-on: ubuntu-slim
