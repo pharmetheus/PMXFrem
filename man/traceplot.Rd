@@ -90,9 +90,9 @@ trace_plots <- traceplot(
 
 names(trace_plots)
 
-if (interactive()) {
-  trace_plots$OFV
-}
+trace_plots$OFV
+trace_plots$Theta
+trace_plots$Omegas
 
 # Generate plot without the shaded OFV region
 trace_plots_no_shape <- traceplot(
@@ -101,9 +101,7 @@ trace_plots_no_shape <- traceplot(
   includeShapedOFV = FALSE
 )
 
-if (interactive()) {
   trace_plots_no_shape$OFV
-}
 }
 \seealso{
 Other Diagnostics & Plotting: 

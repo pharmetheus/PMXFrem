@@ -90,7 +90,6 @@ It automatically colors points based on whether the covariate was missing in
 the original clinical dataset.
 }
 \examples{
-\dontrun{
 library(PMXFrem)
 library(ggplot2)
 
@@ -120,7 +119,6 @@ p3 <- plotEtasCov(
   typeLabels = c("EBE" = "FFEM EBE", "FREM" = "FREM EBE")
 )
 print(p3)
-}
 
 }
 \seealso{

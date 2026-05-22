@@ -42,7 +42,6 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
 #' library(PMXFrem)
 #' library(ggplot2)
 #' 
@@ -76,7 +75,6 @@
 #'   ncol = 2
 #' )
 #' print(p2)
-#' }
 #' 
 #' @family Diagnostics & Plotting
 #' @concept diagnostics
