@@ -192,6 +192,7 @@ tmp$coefficientTable_wide \%>\%
 
 Other Diagnostics & Plotting: 
 \code{\link{calcEtas}()},
+\code{\link{calcFremShrinkage}()},
 \code{\link{getExplainedVar}()},
 \code{\link{getForestDFFREM}()},
 \code{\link{plotCovDist}()},

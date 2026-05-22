@@ -104,11 +104,11 @@ modName      <- "run30"
 ffemDataFile <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 
 
-# Use a temporary directory for the output to comply with CRAN policies
-outputDir <- tempdir()
+td <- tempfile(pattern = "frem_example_")
+dir.create(td)
 
 # Define covariates and keep columns
-covariates <- c("WT","SEX","RACEL")
+covariates <- c("AGE","WT","SEX","RACEL")
 catCovs    <- c("RACEL","SEX")
 keep_cols  <- c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV")
 
@@ -118,8 +118,9 @@ generated_files <- createFREMmodel(
   modDevDir          = modDevDir,
   ffemDataFile       = ffemDataFile,
   covariates         = covariates,
+  logtCovs           = "WT",
   catCovs            = catCovs,         
-  outputDir          = outputDir,
+  outputDir          = td,
   finalModName       = "frem_final",
   numNonFREMThetas   = 7,
   numSkipOm          = 2,
@@ -131,6 +132,9 @@ generated_files <- createFREMmodel(
 # The generated files are available in the temporary directory
 print(generated_files$model)
 print(generated_files$data)
+
+#Clean up the temporary directory
+unlink(td, recursive = TRUE)
 
 }
 \seealso{

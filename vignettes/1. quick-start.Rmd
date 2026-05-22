@@ -1,5 +1,5 @@
 ---
-title: "Quick Start: 5-Minute FREM Workflow"
+title: "Quick Start"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Quick Start: 5-Minute FREM Workflow}
@@ -20,6 +20,7 @@ This vignette provides a copy-pasteable example of the core **PMXFrem** workflow
 
 ## 1. Load Package and Setup Paths
 We use the example files provided within the package's `extdata` directory.
+
 
 ```{r setup}
 library(PMXFrem)
