@@ -1,8 +1,9 @@
 ---
-title: "4. Deep Dive: Explained Variability"
+title: "3. Deep Dive: Forest Plots"
+
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{4. Deep Dive: Explained Variability}
+  %\VignetteIndexEntry{3. Deep Dive: Forest Plots}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,7 +12,7 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 10,
+  fig.width = 12,
   fig.height = 8,
   warning = FALSE,
   message = FALSE
@@ -19,183 +20,156 @@ knitr::opts_chunk$set(
 ```
 
 ## Introduction
-This vignette explains how to use the `PMXFrem` package to visualize the degree to which covariates manage to explain variability in the parameters of interest. 
 
-The workflow is divided into five logical steps:
+This vignette explains how to use the `PMXFrem` and `PMXForest` packages to create a Forest plot based on a FREM run, incorporating its associated uncertainty. 
 
-1. **Pre-requisite Setup:** Loading models and datasets.
-2. **Covariate Scenarios:** Defining the specific covariate combinations to isolate.
-3. **Parameter Function Definition:** Writing the structural equations to evaluate.
-4. **Computing Explained Variability:** Deriving the variance metrics using specific integration methods.
-5. **Visualization:** Rendering the explained variability bar plots.
+The uncertainty may stem from a NONMEM covariance step (a `.cov` file), a PsN bootstrap/SIR run (a `raw_results` file), or a custom data frame of parameter vectors. 
 
-## 1. Setting up the Pre-requisite
+The workflow is divided into four stages:
 
-Load the package and identify which NONMEM FREM run is going to be used.
+1. **Pre-requisite Setup:** Loading models, estimates, and parameter samples.
+2. **Covariate Scenarios:** Defining the specific covariate combinations to visualize.
+3. **Data Generation:** Computing the relative parameter changes and their confidence intervals.
+4. **Visualization:** Rendering the Forest plot with programmatic, robust labeling.
+
+---
+
+## 1. Pre-requisite Setup
+
+First, we load the required packages and extract the base file paths, parameter estimates, and covariate names from our converged FREM model.
 
 ```{r setup}
-library(PMXFrem) 
+library(PMXFrem)
+library(PMXForest)
 library(ggplot2)
 library(dplyr)
 library(data.table)
 
 # Enforce a clean global theme
-set.seed(865765)
 theme_set(theme_bw(base_size = 14))
+set.seed(865765) 
 
-# Specify the name of the FREM run and collect file paths
+# Identify the FREM run and collect file paths
 runname <- "run31"
 modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
 fremFiles <- getFileNames(modName = runname, modDevDir = modDevDir)
 
-numNonFREMThetas <- 7
-numSkipOm        <- 2
-
-dfData <- fread(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package="PMXFrem"), data.table = FALSE) %>% 
-  distinct(ID, .keep_all = TRUE)
+# Extract final parameter estimates and annotated covariate names
+dfExt <- subset(getExt(extFile = fremFiles$ext), ITERATION == "-1000000000") 
+covNames <- getCovNames(modFile = fremFiles$mod)                             
 ```
 
-## 2. Defining the Covariate Scenarios
+Next, we extract the uncertainty distribution. In this example, we draw 175 multivariate normal samples using the variance-covariance matrix from the NONMEM `.cov` file. 
 
-We use the package's internal `setupdfCovs()` function to dynamically construct the covariate isolation matrix. Because `FOOD` is a time-varying categorical covariate in the base dataset, we manually append it as an `additionalCov` and lock its scenario state to `1` (Fed).
+```{r get_samples}
+# Get 175 samples from the .cov file
+dfParameters <- getSamples(fremFiles$cov, extFile = fremFiles$ext, n = 175)
 
-```{r cov_setup}
-# Robustly generate the covariate matrix
-dfCovs <- setupdfCovs(
-  modFileName = fremFiles$mod, 
-  additionalCovs = c("FOOD")
+# Enforce the first row as the final deterministic estimates
+dfParameters[1, ] <- dfExt[1, -1]
+```
+
+### The Parameter Function
+We must define a list of functions specifying how the parameters are calculated. Because we are plotting the *typical* parameter value for a given covariate, these functions only utilize the fixed effects. 
+
+Note that the functional form for the covariate-parameter relationships depends on the parameter functional form (usually log-normal):
+$$CL = \theta_{CL} \cdot \exp(\eta_{CL})$$
+
+As well as the covariate form in the FREM model (usually normal):
+$$COV = \theta_{COV} + \eta_{COV}$$
+
+```{r define_functions}
+# The parameter function list for log-normal parameters
+functionList <- list(
+  function(basethetas, covthetas, ...) { return(basethetas[1] * exp(covthetas[1])) }, 
+  function(basethetas, covthetas, ...) { return(basethetas[2] * exp(covthetas[2])) }
 )
 
-# Lock the time-varying covariate state
-dfCovs$FOOD <- 1
-
-# Define the exact names corresponding to the rows in dfCovs
-cstrCovariates <- c("All", names(dfCovs))
+functionListName <- c("CL", "V1")
 ```
 
-## 3. Defining the Parameter Function
+---
 
-We must supply a function that mimics the structural relationships in the FFEM model. This function is conceptually identical to the one used for Forest plots, with one essential difference: it **must** include the `etas[]` argument to allow the package to integrate over the structural variance.
+## 2. Defining Covariate Scenarios
 
-**Handling Missing Covariates:** You must build defensive fallback logic for missing covariates (e.g., `dfrow$FOOD != -99`) *only* for covariates outside the FREM part of the model (FFEM covariates). `PMXFrem` automatically handles missing data imputation for the covariates included in the FREM covariance matrix. However, because the `dfCovs` matrix intentionally injects `-99` to isolate covariate effects, your function will encounter missing data for FFEM covariates like `FOOD` and must know how to revert to the baseline fixed effect.
+We need to define the specific covariate combinations (univariable or multivariable) to plot. A value of `-99` or `NA` indicates that the covariate is at the reference (population typical) value. 
 
-```{r define_function}
-paramFunctionExpVar <- function(basethetas, covthetas, dfrow, etas, ...) {
+While you can build this matrix manually, `PMXForest::getCovStats()` is the recommended approach. It automatically scans your clinical dataset and calculates the 5th and 95th percentiles (or your chosen quantiles) for continuous covariates, and identifies categorical levels.
 
-  # Defensive fallback logic for isolating FFEM covariate effects
-  FRELFOOD <- 1
-  if (any(names(dfrow) == "FOOD") && dfrow$FOOD != -99 && dfrow$FOOD == 0) {
-    FRELFOOD <- (1 + basethetas[7])
-  }
+```{r define_scenarios}
+# Load clinical data
+data <- fread(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package="PMXFrem"))
 
-  MATFOOD <- 1
-  if (any(names(dfrow) == "FOOD") && dfrow$FOOD != -99 && dfrow$FOOD == 0) {
-    MATFOOD <- (1 + basethetas[6])
-  }
+# Generate covariate matrix dynamically using the 5th and 90th percentiles
+dfCovs <- createInputForestData(
+  getCovStats(data, covNames$orgCovNames, probs = c(0.05, 0.90), missVal = -99),
+  iMiss = -99
+)
 
-  TVFREL <- basethetas[1]
-  TVCL   <- basethetas[2]
-  TVV    <- basethetas[3]
-  TVMAT  <- basethetas[4]
-  TVD1   <- basethetas[5]
-
-  MU_2 <- TVD1
-  MU_3 <- log(TVFREL)
-  MU_4 <- log(TVCL)
-  MU_5 <- log(TVV)
-  MU_6 <- log(TVMAT)
-
-  D1FR  <- MU_2 + etas[2]
-  FREL  <- FRELFOOD * exp(MU_3)
-  CL    <- exp(MU_4 + covthetas[1] + etas[3])
-  V     <- exp(MU_5 + covthetas[2] + etas[4])
-  MAT   <- MATFOOD * exp(MU_6 + covthetas[3] + etas[5])
-
-  D1   <- MAT * (1 - TVD1)
-  KA   <- 1 / (MAT - D1)
-
-  # Compute AUC after an 80 mg dose
-  AUC <- 80 / (CL / FREL)
-
-  return(list(CL, FREL, AUC, V, MAT))
-}
-
-functionListName <- c("CL", "Frel", "AUC", "V", "MAT")
+head(dfCovs, 5)
 ```
 
-## 4. Computing Explained Variability
+---
 
-The `getExplainedVar()` function computes the total and explained variability. The variability can be related to the total variability in the parameter ($TOTVAR$) or the total covariate variability in the parameter ($TOTCOVVAR$).
+## 3. Generate Forest Plot Data
 
-The `dfres` output contains three main metrics:
+With our scenarios defined, we pass everything to `getForestDFFREM()`. This function computes the relative parameter changes across all bootstrapped/sampled parameter vectors to construct the confidence intervals.
 
-* $TOTVAR$: The total variance, calculated using the Delta method (Type 0), EBEs (Type 1), or $\eta$ samples (Type 2, 3).
-* $TOTCOVVAR$: Calculated using all covariates with $\eta=0$, across all observed covariate values.
-* $COVVAR$: Calculated with one (or a combination) of covariates, setting $\eta=0$.
-
-### Calculation Methods (`type`)
-The methodology is dictated by the `type` argument, and each has distinct mathematical properties:
-
-* **Type 0 (Delta Method):** Based on omega calculations. It is fast and guarantees that the explained variability of all covariates will sum to exactly 100%.
-* **Type 1 (EBEs):** Uses Empirical Bayes Estimates. It is subject to $\eta$ shrinkage but acknowledges individual information richness.
-* **Type 2 ($\eta$ Samples):** Uses $\eta$ samples and integrates over observed FFEM covariates. Useful if the model contains non-FREM covariates.
-* **Type 3 ($\eta$ Samples Optimized):** Similar to Type 2 but does not acknowledge FFEM covariates, making it significantly faster.
-
-*Note: With Types 1, 2, and 3, it is theoretically possible for a single covariate to explain more than all covariates combined (i.e., > 100%) due to parameter correlations and structural non-linearities.*
-
-```{r compute_var}
-dfres <- getExplainedVar(
-  type             = 2,
-  data             = dfData,
+```{r compute_forest}
+dfres <- getForestDFFREM(
   dfCovs           = dfCovs,
-  numNonFREMThetas = numNonFREMThetas,
-  numSkipOm        = numSkipOm,
-  functionList     = list(paramFunctionExpVar),
+  numNonFREMThetas = 7,
+  numSkipOm        = 2,
+  dfParameters     = dfParameters,
+  covNames         = covNames$covNames,
+  functionList     = functionList,
   functionListName = functionListName,
-  cstrCovariates   = cstrCovariates,
-  modDevDir        = modDevDir,
-  modName          = runname,
-  ncores           = 1,         # Required sequential execution for CRAN
-  numETASamples    = 100,
-  quiet            = TRUE,
-  seed             = 123
+  quiet            = TRUE
 )
 ```
 
-## 5. Visualization
+---
 
-We plot the results using `plotExplainedVar()`. To ensure reproducibility and prevent silent misalignment, we map our labels using a programmatic dictionary.
+## 4. Visualization & Labeling
 
-```{r plot_var}
-# 1. Define robust label mappings
-label_map <- c(
-  "All" = "All Covariates", "AGE" = "Age", "ALT" = "ALT", "AST" = "AST", 
-  "BILI" = "Bilirubin", "BMI" = "BMI", "BSA" = "BSA", "CRCL" = "Creatinine Clearance", 
-  "ETHN" = "Ethnicity", "GENO2" = "Genotype", "HT" = "Height", "LBM" = "Lean Body Mass", 
-  "NCIL" = "NCI Grade", "RACEL" = "Race", "SEX" = "Sex", "SMOK" = "Smoking Status", 
-  "WT" = "Weight", "FOOD" = "Food Status"
+Hardcoding dozens of row labels is dangerous and non-reproducible. Instead, we use `PMXFrem::generateCovNames()`. This utility function parses the `dfCovs` scenarios and applies user-defined unit mappings and categorical translations dynamically.
+
+```{r plot_forest, fig.height=14, fig.width=16, out.width="100%"}
+# 1. Define translation maps
+unit_map <- c(
+  AGE = "years", WT = "kg", BMI = "kg/m2", BSA = "m2", 
+  CRCL = "mL/min", BILI = "mg/dL", AST = "IU", ALT = "IU", 
+  HT = "cm", LBM = "kg"
 )
 
-# 2. Safely translate cstrCovariates into clean labels
-mapped_labels <- unname(sapply(cstrCovariates, function(x) {
-  ifelse(x %in% names(label_map), label_map[[x]], x)
-}))
+label_map <- c(
+  "SEX=0" = "Male", "SEX=1" = "Female", 
+  "RACEL=1" = "Caucasian", "RACEL=2" = "Black", "RACEL=3" = "Other", "RACEL=4" = "Hispanic",
+  "SMOK=0" = "Non-smoking", "SMOK=1" = "Smoking", 
+  "NCIL=0" = "NCI Grade 0", "NCIL=1" = "NCI Grade 1", "NCIL=2" = "NCI Grade 2", 
+  "GENO2=0" = "Poor Metabolizer", "GENO2=1" = "Extensive Metabolizer"
+)
 
-# 3. Plot Total Explained Variability (maxVar = 1)
-# Visualizes the fraction: 100 * (COVVAR / TOTVAR)
-plotExplainedVar(
-  dfres, 
-  parameters = "AUC", 
-  maxVar = 1, 
-  covariateLabels = mapped_labels
-) + labs(title = "Explained Part of Total Variability (AUC)")
+# 2. Generate row labels
+formatted_row_labels <- generateCovNames(dfCovs, unit_map = unit_map, label_map = label_map)
 
-# 4. Plot Proportion of Explainable Variability (maxVar = 2)
-# Visualizes the fraction: 100 * (COVVAR / TOTCOVVAR)
-plotExplainedVar(
-  dfres, 
-  parameters = "AUC", 
-  maxVar = 2, 
-  covariateLabels = mapped_labels
-) + labs(title = "Explained Part of Explainable Variability (AUC)")
+# 3. Apply labels to the dataset
+dfres_formatted <- dfres %>% 
+  mutate(COVNAME = factor(rep(formatted_row_labels, each = length(unique(PARAMETER))), 
+                          levels = formatted_row_labels))
+
+# 4. Define group headers (y-axis facets)
+group_headers <- c(
+  "Age", "ALT", "AST", "Total Bilirubin", "BMI", "BSA", 
+  "Creatinine Clearance", "Ethnicity", "Genotype", "Height", 
+  "Lean Body Weight", "NCI", "Race", "Sex", "Smoking Status", "Weight"
+)
+
+# 5. Render Plot
+forestPlot(
+  dfres_formatted,
+  groupNameLabels = group_headers,
+  tabTextSize = 14,
+  strip_right_size = 11
+)
 ```

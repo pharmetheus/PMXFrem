@@ -1,0 +1,188 @@
+---
+title: "3. Deep Dive: Modifying FREM Models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{3. Deep Dive: Modifying FREM Models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## Introduction
+
+The Full Random Effects Model (FREM) relies on a highly interdependent architecture between the NONMEM control stream and the underlying dataset. Manually editing these files to add or remove covariates can be time-consuming and introduces a risk for human error into the pharmacometric workflow.
+
+The `PMXFrem` package provides the `updateFREMmodel()` function to programmatically manage these complex structural updates. 
+
+This deep dive demonstrates four primary capabilities:
+
+* Removing covariates from an existing model.
+* Adding new covariates to a model.
+* Appending new individuals to an existing FREM dataset.
+* Updating a model's initial parameter estimates directly from a converged `.ext` file.
+
+## 1. Pre-requisite Setup
+
+First, we load the package. To ensure system reproducibility, we map all base files from the package's `extdata` directory and explicitly route all generated artifacts into a secure temporary directory (`tempdir()`).
+
+```{r setup}
+library(PMXFrem)
+library(dplyr)
+library(data.table)
+
+# Isolate all generated outputs
+td <- tempdir()
+
+# Define paths to validated example files
+frem_model_path <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
+frem_ext_path   <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+frem_data_path  <- system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem")
+ffem_data_path  <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+
+# Copy base model and ext files into the temporary directory for safe manipulation
+file.copy(frem_model_path, td)
+file.copy(frem_ext_path, td)
+model_in_td <- file.path(td, "run31.mod")
+```
+
+---
+
+## 2. Use Case 1: Removing Covariates
+
+You may sometimes need to remove covariates from an existing model. Here, we remove `WT`, `SEX`, and `AGE` from `run31.mod`.
+
+The function requires the base model's structural configuration: `numNonFREMThetas` (the number of structural fixed effects) and `numSkipOm` (the number of standard variances, such as IIV or RUV, that precede the FREM `$OMEGA BLOCK`).
+
+```{r remove_covariates}
+result_remove <- updateFREMmodel(
+  strFREMModel      = model_in_td,
+  strFREMData       = frem_data_path,
+  strFFEMData       = ffem_data_path,
+  cstrRemoveCov     = c("SEX", "WT", "AGE"),
+  strNewFREMData    = file.path(td, "frem_data_simplified.csv"),
+  numNonFREMThetas  = 7,
+  numSkipOm         = 2,
+  bWriteData        = TRUE,   # Generate the updated dataset
+  bWriteMod         = TRUE,   # Generate the updated control stream
+  quiet             = TRUE,
+  cstrKeepCols      = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
+)
+
+new_model_path_remove <- file.path(td, "run31_new.mod")
+print(paste("Simplified model successfully written to:", new_model_path_remove))
+```
+
+**Architectural Operations:**
+
+* The algorithm drops dataset rows associated with the removed covariates and dynamically re-indexes the remaining `FREMTYPE` identifiers to prevent gaps in the NONMEM `$ERROR` block.
+* The covariance matrix (`$OMEGA`) and typical values (`$THETA`) are systematically adjusted.
+
+---
+
+## 3. Use Case 2: Adding Covariates
+
+Next, we take the simplified model generated above and insert a new covariate (`AGE`) back into the architecture. We explicitly set `bRecodeDichotomous = TRUE` as a standard practice to ensure any 2-level categorical covariates are safely zero-indexed.
+
+```{r add_covariates}
+# Utilize the newly generated model and dataset as our baseline
+model_to_add_to <- new_model_path_remove
+data_to_add_to  <- file.path(td, "frem_data_simplified.csv")
+
+# The function requires the corresponding .ext file for the input model
+file.copy(file.path(td, "run31.ext"), file.path(td, "run31_new.ext"))
+
+result_add <- updateFREMmodel(
+  strFREMModel       = model_to_add_to,
+  strFREMData        = data_to_add_to,
+  strFFEMData        = ffem_data_path,
+  cstrContCovsToAdd  = "AGE", 
+  strNewFREMData     = file.path(td, "frem_data_with_age.csv"),
+  numNonFREMThetas   = 7,
+  numSkipOm          = 2,
+  bWriteData         = TRUE,
+  bWriteMod          = TRUE,
+  bRecodeDichotomous = TRUE, # Safely zero-indexes 2-level categorical factors
+  quiet              = TRUE,
+  cstrKeepCols       = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
+)
+
+print(paste("Expanded model successfully written to:", file.path(td, "run31_new_new.mod")))
+```
+
+**Architectural Operations:**
+
+* The base clinical data (`strFFEMData`) is scanned to extract the new covariate's mean and variance, which seed the new `$THETA` and `$OMEGA` parameters.
+* Dummy observation rows (`EVID=2`) are appended to the dataset for the new covariate under a newly assigned `FREMTYPE`.
+
+---
+
+## 4. Use Case 3: Adding New Individuals
+
+An advantage of the FREM architecture is the ability to process new subjects through a converged model without altering the matrix structure. Here, we simulate 10 new individuals and fold them into the dataset.
+
+```{r add_individuals}
+# 1. Load the pristine FREM and FFEM datasets
+frem_df <- fread(frem_data_path, data.table = FALSE) %>% select(-ODV)
+ffem_df <- fread(ffem_data_path, data.table = FALSE)
+
+# 2. Simulate 10 new individuals by shifting IDs
+ffem_new_ids <- ffem_df[ffem_df$ID <= 10, ] 
+ffem_new_ids$ID <- ffem_new_ids$ID + max(frem_df$ID)
+
+# 3. Append the individuals to the dataset
+result_new_ids <- updateFREMmodel(
+  strFREMModel      = model_in_td,
+  strFREMData       = frem_df,        # Pass dataset directly via memory
+  strFFEMData       = ffem_new_ids,   # Include the new IDs
+  strNewFREMData    = file.path(td, "frem_data_appended.csv"),
+  numNonFREMThetas  = 7,
+  numSkipOm         = 2,
+  bWriteData        = TRUE, 
+  bWriteMod         = FALSE,          # The NONMEM model logic does not change
+  quiet             = TRUE,
+  cstrKeepCols      = c("ID", "TIME", "AMT", "DV", "EVID", "RATE", "FREMTYPE"),
+  cstrSetToZero     = c("AMT", "EVID", "RATE")
+)
+
+print(paste("Original Max ID:", max(frem_df$ID), "| New Max ID:", max(result_new_ids$data$ID)))
+```
+
+**Architectural Operations:**
+
+* The algorithm expands the dataset horizontally, mapping the structural and covariate dummy rows for the new IDs while keeping the control stream untouched (`bWriteMod = FALSE`).
+
+---
+
+## 5. Use Case 4: Updating Initial Estimates
+
+Due to the size of typical FREM models, it is not feasible to update initial estimates manually. The PsN tool `update_inits` can be used for this, or you can use `updateFREMmodel` to do it by specifying a "NoData" update.
+
+```{r update_inits}
+result_inits <- updateFREMmodel(
+  strFREMModel       = model_in_td,
+  strUpdateType      = "NoData",     # Skip dataset processing entirely
+  basenames_th       = c("CL", "V", "MAT", "D1", "FRELFOOD", "MATFOOD"),
+  basenames_om       = c("RUV", "D1", "CL", "V", "MAT"),
+  numNonFREMThetas   = 7,
+  numSkipOm          = 2,
+  bWriteData         = FALSE,
+  bWriteMod          = TRUE,
+  bWriteFIX          = TRUE,         # Explicitly carry over FIX flags
+  quiet              = TRUE
+)
+
+print("Control stream initial estimates successfully updated from the .ext file.")
+```
+
+**Architectural Operations:**
+
+* `updateFREMmodel()` parses the `-1000000000` iteration row from the provided `.ext` file.
+* The `$THETA`, `$OMEGA`, and `$SIGMA` blocks in the `.mod` file are surgically replaced, and user-defined `basenames` are appended as clean comments for maximum readability.
