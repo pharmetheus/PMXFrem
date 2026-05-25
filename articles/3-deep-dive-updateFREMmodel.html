@@ -45,7 +45,7 @@
     <a class="dropdown-item" href="../articles/2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
     <a class="dropdown-item" href="../articles/3-deep-dive-createFREMmodel.html">3. Deep Dive: Creating FREM Models</a>
     <a class="dropdown-item" href="../articles/3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
-    <a class="dropdown-item" href="../articles/3-deep-dive-explained-variability-plots.html">3. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/3-deep-dive-explained-variability-plots.html">4. Deep Dive: Explained Variability</a>
     <a class="dropdown-item" href="../articles/3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
     <a class="dropdown-item" href="../articles/3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
@@ -137,7 +137,7 @@
 <span></span>
 <span><span class="va">new_model_path_remove</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"run31_new.mod"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Simplified model successfully written to:"</span>, <span class="va">new_model_path_remove</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "Simplified model successfully written to: /tmp/RtmpD51pqQ/run31_new.mod"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "Simplified model successfully written to: /tmp/RtmpTqcAAW/run31_new.mod"</span></span></code></pre></div>
 <p><strong>Architectural Operations:</strong></p>
 <ul>
 <li>The algorithm drops dataset rows associated with the removed covariates and dynamically re-indexes the remaining <code>FREMTYPE</code> identifiers to prevent gaps in the NONMEM <code>$ERROR</code> block.</li>
@@ -174,7 +174,7 @@
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Expanded model successfully written to:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"run31_new_new.mod"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "Expanded model successfully written to: /tmp/RtmpD51pqQ/run31_new_new.mod"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "Expanded model successfully written to: /tmp/RtmpTqcAAW/run31_new_new.mod"</span></span></code></pre></div>
 <p><strong>Architectural Operations:</strong></p>
 <ul>
 <li>The base clinical data (<code>strFFEMData</code>) is scanned to extract the new covariate’s mean and variance, which seed the new <code>$THETA</code> and <code>$OMEGA</code> parameters.</li>

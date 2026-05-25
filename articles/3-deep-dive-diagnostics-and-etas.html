@@ -45,7 +45,7 @@
     <a class="dropdown-item" href="../articles/2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
     <a class="dropdown-item" href="../articles/3-deep-dive-createFREMmodel.html">3. Deep Dive: Creating FREM Models</a>
     <a class="dropdown-item" href="../articles/3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
-    <a class="dropdown-item" href="../articles/3-deep-dive-explained-variability-plots.html">3. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/3-deep-dive-explained-variability-plots.html">4. Deep Dive: Explained Variability</a>
     <a class="dropdown-item" href="../articles/3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
     <a class="dropdown-item" href="../articles/3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
@@ -76,6 +76,10 @@
 
     
     
+<div class="section level2">
+<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+</h2>
+<p>Just like with any other model, it is important to check that FREM models satisfy basic diagnostic tests, for example, goodness-of-fit (GOF) plots of DV versus PRED and CWRES versus TIME. Unlike standard models, some variables of interest are not directly available from the FREM model itself but must be derived based on an FFEM version of the model.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">PMXFrem</span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggobi.github.io/ggally/" class="external-link">GGally</a></span><span class="op">)</span></span>
@@ -83,42 +87,19 @@
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme_get.html" class="external-link">theme_set</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">14</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<div class="section level2">
-<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
-</h2>
-<p>Just like with any other model it is important to check that FREM models satisfy basic diagnostic tests, for example goodness-of-fit (GOF) plots of DV versus PRED and CWRES versus TIME. Unlike standard models, some of variables of interest are not directly available from the FREM model itself but will have to be derived based on an FFEM version of the model.</p>
-</div>
-<div class="section level2">
-<h2 id="create-the-ffem-model">Create the FFEM model<a class="anchor" aria-label="anchor" href="#create-the-ffem-model"></a>
-</h2>
-<p>Create the FFEM model for the set of covariates to include in the model to be evaluated. To do this, we use the <code>createFFEMdata</code> function, which maps the individual covariate effects.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">modDevDir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb"</span>, package<span class="op">=</span><span class="st">"PMXFrem"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme_get.html" class="external-link">theme_set</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">14</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Setup Paths</span></span>
+<span><span class="va">modDevDir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb"</span>, package<span class="op">=</span><span class="st">"PMXFrem"</span><span class="op">)</span></span>
 <span><span class="va">dataFile</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package<span class="op">=</span><span class="st">"PMXFrem"</span><span class="op">)</span></span>
 <span><span class="va">fremRun</span>   <span class="op">&lt;-</span> <span class="fl">31</span></span>
-<span><span class="va">baseRun</span>   <span class="op">&lt;-</span> <span class="fl">30</span></span>
-<span><span class="va">fremFiles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getFileNames.html">getFileNames</a></span><span class="op">(</span><span class="va">fremRun</span>, modDevDir <span class="op">=</span> <span class="va">modDevDir</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fread.html" class="external-link">fread</a></span><span class="op">(</span><span class="va">dataFile</span>, data.table <span class="op">=</span> <span class="cn">FALSE</span>, check.names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">BLQ</span> <span class="op">!=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">FFEMdata</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/createFFEMdata.html">createFFEMdata</a></span><span class="op">(</span></span>
-<span>  runno            <span class="op">=</span> <span class="va">fremRun</span>,</span>
-<span>  modDevDir        <span class="op">=</span> <span class="va">modDevDir</span>,</span>
-<span>  parNames         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL"</span>, <span class="st">"V"</span>, <span class="st">"MAT"</span><span class="op">)</span>,</span>
-<span>  numNonFREMThetas <span class="op">=</span> <span class="fl">7</span>,</span>
-<span>  numSkipOm        <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>  dataFile         <span class="op">=</span> <span class="va">data</span>,</span>
-<span>  newDataFile      <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  quiet            <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">baseRun</span>   <span class="op">&lt;-</span> <span class="fl">30</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="comparison-of-standard-diagnostics-input-from-base-frem-and-ffem-model">Comparison of standard diagnostics input from Base, FREM and FFEM model<a class="anchor" aria-label="anchor" href="#comparison-of-standard-diagnostics-input-from-base-frem-and-ffem-model"></a>
+<h2 id="comparison-of-diagnostics-base-frem-and-ffem">1. Comparison of Diagnostics: Base, FREM, and FFEM<a class="anchor" aria-label="anchor" href="#comparison-of-diagnostics-base-frem-and-ffem"></a>
 </h2>
 <p>To understand why we generate an FFEM model for diagnostics, we extract the structural predictions and residuals from the Base, FREM, and FFEM models and compare them side-by-side.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">xptabBase</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fread.html" class="external-link">fread</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">modDevDir</span>, <span class="st">"/xptabmax0"</span>, <span class="va">baseRun</span><span class="op">)</span>, data.table <span class="op">=</span> <span class="cn">FALSE</span>, check.names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">BLQ</span> <span class="op">==</span> <span class="fl">0</span>, <span class="va">EVID</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">ID</span>, <span class="va">TAD</span><span class="op">)</span></span>
 <span></span>
@@ -135,10 +116,10 @@
 <div class="section level3">
 <h3 id="pred">PRED<a class="anchor" aria-label="anchor" href="#pred"></a>
 </h3>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggobi.github.io/ggally/reference/ggpairs.html" class="external-link">ggpairs</a></span><span class="op">(</span><span class="va">predData</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"PRED"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="3-deep-dive-diagnostics-and-etas_files/figure-html/plot_pred-1.png" width="960"></p>
-<p>The PREDs are the same between Base and FREM since the THETAs are the same and no covariates affect the typical individual parameters. FFEM is different from the others due to the explicit implementation of the covariates.</p>
+<p>The PREDs are the same between Base and FREM since the structural <span class="math inline">\(\theta\)</span> parameters are the same and no covariates affect the typical individual parameters. FFEM is different from the others due to the inclusion of deterministic covariates.</p>
 <p><span class="math display">\[
 \begin{aligned} 
 \mathrm{PRED}_{Base} &amp;= f(\theta_{base},\eta_i=0) \\
@@ -150,7 +131,7 @@
 <div class="section level3">
 <h3 id="ipred">IPRED<a class="anchor" aria-label="anchor" href="#ipred"></a>
 </h3>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggobi.github.io/ggally/reference/ggpairs.html" class="external-link">ggpairs</a></span><span class="op">(</span><span class="va">ipredData</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"IPRED"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="3-deep-dive-diagnostics-and-etas_files/figure-html/plot_ipred-1.png" width="960"></p>
 <p>The IPREDs are different between Base and FREM due to <span class="math inline">\(\eta\)</span> being estimated with different <span class="math inline">\(\Omega\)</span> matrices. It is different for the FFEM model due to the fixed covariates and the <span class="math inline">\(\Omega_{prim}\)</span>.</p>
@@ -162,13 +143,15 @@
 \end{aligned}
 \]</span></p>
 <p>where <span class="math inline">\(\eta\)</span> is estimated by:</p>
-<p><span class="math display">\[\eta_i = \operatorname*{arg\,max}_\eta l_i + \log({pdf(\eta_i;\Omega)})\]</span></p>
+<p><span class="math display">\[
+\eta_i = \operatorname*{arg\,max}_\eta l_i + \log({pdf(\eta_i;\Omega)})
+\]</span></p>
 <p>where <span class="math inline">\(l_i\)</span> is the individual likelihood and <span class="math inline">\(pdf\)</span> is the probability density function of a normal distribution with variance <span class="math inline">\(\Omega\)</span>.</p>
 </div>
 <div class="section level3">
 <h3 id="cwres">CWRES<a class="anchor" aria-label="anchor" href="#cwres"></a>
 </h3>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggobi.github.io/ggally/reference/ggpairs.html" class="external-link">ggpairs</a></span><span class="op">(</span><span class="va">cwresData</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"CWRES"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="3-deep-dive-diagnostics-and-etas_files/figure-html/plot_cwres-1.png" width="960"></p>
 <p>The CWRES are not the same. This is due to differences in population variance as well as IPRED, <span class="math inline">\(\eta\)</span>, and <span class="math inline">\(\Omega\)</span>.</p>
@@ -183,7 +166,7 @@ Var[y_i] &amp;= \frac{\delta \mathrm{IPRED}_i}{\delta \eta_i}\Omega\frac{\delta 
 <div class="section level3">
 <h3 id="iwres">IWRES<a class="anchor" aria-label="anchor" href="#iwres"></a>
 </h3>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggobi.github.io/ggally/reference/ggpairs.html" class="external-link">ggpairs</a></span><span class="op">(</span><span class="va">iwresData</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"IWRES"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="3-deep-dive-diagnostics-and-etas_files/figure-html/plot_iwres-1.png" width="960"></p>
 <p>The IWRES are not the same, mainly due to differences in IPRED but also the residual error model if it depends on IPRED.</p>
@@ -196,10 +179,10 @@ R_i &amp;= diag \left( \frac{\delta res}{\delta \varepsilon_i} \Sigma \frac{\del
 </div>
 </div>
 <div class="section level2">
-<h2 id="creating-basic-gof-plots">Creating Basic GOF Plots<a class="anchor" aria-label="anchor" href="#creating-basic-gof-plots"></a>
+<h2 id="creating-basic-gof-plots">2. Creating Basic GOF Plots<a class="anchor" aria-label="anchor" href="#creating-basic-gof-plots"></a>
 </h2>
-<p>Because the FFEM provides the correct conditional metrics, we use its output to evaluate the structural fit.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<p>Because the FFEM provides the correct conditional metrics, we use its output (<code>xptabmax031</code>) to evaluate the structural fit. We filter out observations with missing <code>WRES</code> and <code>BLQ</code> values.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## DV vs PRED</span></span>
 <span><span class="va">p1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">xptabFFEM</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">CPRED</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">DV</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>color<span class="op">=</span><span class="st">"#005B65"</span>, alpha <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span> <span class="op">+</span></span>
@@ -231,39 +214,31 @@ R_i &amp;= diag \left( \frac{\delta res}{\delta \varepsilon_i} \Sigma \frac{\del
 <p><img src="3-deep-dive-diagnostics-and-etas_files/figure-html/gof_plots-1.png" width="960"></p>
 </div>
 <div class="section level2">
-<h2 id="creating-eta-diagnostics">Creating ETA Diagnostics<a class="anchor" aria-label="anchor" href="#creating-eta-diagnostics"></a>
+<h2 id="creating-eta-diagnostics">3. Creating ETA Diagnostics<a class="anchor" aria-label="anchor" href="#creating-eta-diagnostics"></a>
 </h2>
-<p>Similarly to the standard diagnostics variables, ETAs must also be adjusted to reflect the impact of covariates (i.e., <span class="math inline">\(\eta_{prim}\)</span>). <code>PMXFrem</code> manages this extraction via <code><a href="../reference/calcEtas.html">calcEtas()</a></code>. We can simultaneously extract the true Empirical Bayes Estimates (EBEs) from the FFEM model to prove covariate absorption.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Calculate ETAs, ETA Prims, and EBEs</span></span>
+<p>Similarly to the standard diagnostic variables, ETAs must also be adjusted to reflect the impact of covariates (i.e., <span class="math inline">\(\eta_{prim}\)</span>). <code>PMXFrem</code> manages this extraction via <code><a href="../reference/calcEtas.html">calcEtas()</a></code>. By specifying the <code>ffemModName</code>, we can simultaneously extract the true Empirical Bayes Estimates (EBEs) from the FFEM model to visualize covariate absorption. We set <code>appendMissingFlags = TRUE</code> so we can later evaluate how the model handles missing covariates.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Load clinical data</span></span>
+<span><span class="va">clin_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">dataFile</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">BLQ</span> <span class="op">!=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Calculate ETAs, ETA Prims, and EBEs</span></span>
 <span><span class="va">ind_params</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calcEtas.html">calcEtas</a></span><span class="op">(</span></span>
 <span>  runno              <span class="op">=</span> <span class="va">fremRun</span>,</span>
 <span>  modDevDir          <span class="op">=</span> <span class="va">modDevDir</span>,</span>
 <span>  numSkipOm          <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  numNonFREMThetas   <span class="op">=</span> <span class="fl">7</span>,</span>
-<span>  FFEMData           <span class="op">=</span> <span class="va">FFEMdata</span>,</span>
+<span>  dataFile           <span class="op">=</span> <span class="va">clin_data</span>,</span>
+<span>  parNames           <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL"</span>, <span class="st">"V"</span>, <span class="st">"MAT"</span><span class="op">)</span>,</span>
 <span>  ffemModName        <span class="op">=</span> <span class="st">"run31max0"</span>,</span>
 <span>  appendMissingFlags <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <div class="section level3">
-<h3 id="evaluating-missingness-via-covariate-distributions">Evaluating Missingness via Covariate Distributions<a class="anchor" aria-label="anchor" href="#evaluating-missingness-via-covariate-distributions"></a>
+<h3 id="evaluating-eta---covariate-correlation">3.1 Evaluating ETA - Covariate correlation<a class="anchor" aria-label="anchor" href="#evaluating-eta---covariate-correlation"></a>
 </h3>
-<p>Because FREM estimates covariates continuously, it is crucial to evaluate the marginal distribution of the imputed covariates. The <code><a href="../reference/plotCovDist.html">plotCovDist()</a></code> package function maps these estimates, grouped by their original missingness status.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plotCovDist.html">plotCovDist</a></span><span class="op">(</span></span>
-<span>  df       <span class="op">=</span> <span class="va">ind_params</span>, </span>
-<span>  covNames <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WT"</span>, <span class="st">"AGE"</span><span class="op">)</span>, </span>
-<span>  plotType <span class="op">=</span> <span class="st">"histogram"</span>,</span>
-<span>  scales   <span class="op">=</span> <span class="st">"free_x"</span>,</span>
-<span>  ncol     <span class="op">=</span> <span class="fl">2</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<p><img src="3-deep-dive-diagnostics-and-etas_files/figure-html/cov_dist-1.png" width="960"></p>
-</div>
-<div class="section level3">
-<h3 id="evaluating-covariate-absorption">Evaluating Covariate Absorption<a class="anchor" aria-label="anchor" href="#evaluating-covariate-absorption"></a>
-</h3>
-<p>Plotting the raw <code>FREM ETA</code> versus a covariate will show a strong correlation. However, the <code>ETA_PRIM</code> (and its counterpart, the <code>FFEM EBE</code>) should be completely flat, proving the FREM covariance matrix successfully captured the covariate effect. We visualize this using the <code><a href="../reference/plotEtasCov.html">plotEtasCov()</a></code> function.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<p>Plotting the raw <code>FREM ETA</code> versus a covariate will show a strong correlation. However, the <code>ETA_PRIM</code> (and its counterpart, the <code>FFEM EBE</code>) should be completely flat, indicating that the FREM covariance matrix successfully captured the covariate effect. We visualize this using the <code><a href="../reference/plotEtasCov.html">plotEtasCov()</a></code> function.</p>
+<p>By default, this function plots only the observed covariates, giving a clear view of the underlying relationship.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plotEtasCov.html">plotEtasCov</a></span><span class="op">(</span></span>
 <span>  df         <span class="op">=</span> <span class="va">ind_params</span>, </span>
 <span>  covName    <span class="op">=</span> <span class="st">"WT"</span>, </span>
@@ -272,7 +247,39 @@ R_i &amp;= diag \left( \frac{\delta res}{\delta \varepsilon_i} \Sigma \frac{\del
 <span>  etaLabels  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Clearance (CL)"</span>, <span class="st">"Volume (V)"</span><span class="op">)</span>,</span>
 <span>  typeLabels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"EBE"</span> <span class="op">=</span> <span class="st">"FFEM EBE"</span>, <span class="st">"Prim"</span> <span class="op">=</span> <span class="st">"ETA Prim"</span>, <span class="st">"FREM"</span> <span class="op">=</span> <span class="st">"FREM ETA"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><img src="3-deep-dive-diagnostics-and-etas_files/figure-html/eta_vs_cov-1.png" width="960"></p>
+<p><img src="3-deep-dive-diagnostics-and-etas_files/figure-html/eta_vs_cov_observed-1.png" width="960"></p>
+</div>
+<div class="section level3">
+<h3 id="visualizing-the-handling-of-missing-data">3.2 Visualizing the Handling of Missing Data<a class="anchor" aria-label="anchor" href="#visualizing-the-handling-of-missing-data"></a>
+</h3>
+<p>FREM handles missing data by integrating it out of the likelihood. We can visualize the resulting estimates for individuals with missing baseline covariates by enabling the <code>showMissing</code> argument. A separate smoothing line can optionally be fitted through these points to evaluate where the model places these individuals relative to the observed cohort.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plotEtasCov.html">plotEtasCov</a></span><span class="op">(</span></span>
+<span>  df                    <span class="op">=</span> <span class="va">ind_params</span>, </span>
+<span>  covName               <span class="op">=</span> <span class="st">"WT"</span>, </span>
+<span>  etaNames              <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ETA3"</span>, <span class="st">"ETA4"</span><span class="op">)</span>,</span>
+<span>  etaTypes              <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FREM"</span>, <span class="st">"EBE"</span><span class="op">)</span>,</span>
+<span>  etaLabels             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Clearance (CL)"</span>, <span class="st">"Volume (V)"</span><span class="op">)</span>,</span>
+<span>  typeLabels            <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"EBE"</span> <span class="op">=</span> <span class="st">"FFEM EBE"</span>, <span class="st">"FREM"</span> <span class="op">=</span> <span class="st">"FREM ETA"</span><span class="op">)</span>,</span>
+<span>  showMissing           <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  smoothMissing         <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  smoothMissingLinetype <span class="op">=</span> <span class="st">"dashed"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="3-deep-dive-diagnostics-and-etas_files/figure-html/eta_vs_cov_missing-1.png" width="960"></p>
+</div>
+<div class="section level3">
+<h3 id="marginal-distributions-of-missing-covariates">3.3 Marginal Distributions of Missing Covariates<a class="anchor" aria-label="anchor" href="#marginal-distributions-of-missing-covariates"></a>
+</h3>
+<p>Finally, the marginal distributions of the estimated covariates can be visualized using histograms. The <code><a href="../reference/plotCovDist.html">plotCovDist()</a></code> function maps these estimates, grouped by their original missingness status.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plotCovDist.html">plotCovDist</a></span><span class="op">(</span></span>
+<span>  df       <span class="op">=</span> <span class="va">ind_params</span>, </span>
+<span>  covNames <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WT"</span>, <span class="st">"AGE"</span><span class="op">)</span>, </span>
+<span>  plotType <span class="op">=</span> <span class="st">"histogram"</span>,</span>
+<span>  scales   <span class="op">=</span> <span class="st">"free_x"</span>,</span>
+<span>  ncol     <span class="op">=</span> <span class="fl">2</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="3-deep-dive-diagnostics-and-etas_files/figure-html/cov_dist-1.png" width="960"></p>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
