@@ -1,8 +1,8 @@
 ---
-title: "Walkthrough: Creating FREM Models with createFREMmodel"
+title: "3. Deep Dive: Creating FREM Models"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Walkthrough: Creating FREM Models with createFREMmodel}
+  %\VignetteIndexEntry{3. Deep Dive: Creating FREM Models}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -27,18 +27,17 @@ Rather than trying to inject every covariate simultaneously, `createFREMmodel()`
 
 First, load the package and define the paths to your base model and original clinical dataset. 
 
-*Note: By default, `createFREMmodel` writes the final files to the `modDevDir` directory. It has built-in overwrite protection and will throw an error if files with your `finalModName` already exist. For this vignette, we will generate a unique temporary directory to safely store the output.*
+*Note: By default, `createFREMmodel` writes the final files to the `modDevDir` directory. It has built-in overwrite protection and will throw an error if files with your `fremModName` already exist. For this vignette, we will generate a unique temporary directory to safely store the output.*
 
 ```{r setup}
 library(PMXFrem)
 
-# Define paths to the example files included in the package
-model_dir <- system.file("extdata", "SimNeb", package = "PMXFrem")
-data_path <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+# Define paths to example data and converged models
+modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
+ffemDataFile <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 
-# Create a GUARANTEED unique temporary directory for this specific run
-td <- tempfile(pattern = "frem_vignette_")
-dir.create(td)
+# Create a temporary directory for all generated outputs
+td <- tempdir()
 ```
 
 ### **2. Designing the FREM Model**
@@ -70,10 +69,10 @@ Notice that we set `bRecodeDichotomous = TRUE`. In many standard datasets, dicho
 # Execute the creation of the FREM model and dataset
 generated_files <- createFREMmodel(
   modName            = "run30",
-  modDevDir          = model_dir,
-  ffemDataFile       = data_path,
+  modDevDir          = modDevDir,
+  ffemDataFile       = ffemDataFile,
   outputDir          = td,
-  finalModName       = "run30_FREM",
+  fremModName       = "run30_FREM",
   
   # Covariate Instructions
   covariates         = frem_covariates,

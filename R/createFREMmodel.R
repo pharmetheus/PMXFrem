@@ -15,7 +15,7 @@
 #'   The first element is processed during Phase 1 (bootstrapping), and the remainder during Phase 2.
 #' @param numNonFREMThetas Numeric. The number of THETAs in the base model that are not part of the FREM structure.
 #' @param outputDir Character. Directory where the final model and data files will be saved. Defaults to `modDevDir` or current working directory.
-#' @param finalModName Character. The base name for the generated final model and data files (e.g., `"frem_model"`).
+#' @param fremModName Character. The base name for the generated final model and data files (e.g., `"frem_model"`).
 #' @param keepMinimalModel Logical. Should the intermediate minimal model files (Phase 1 output) be preserved? Defaults to `FALSE`.
 #' @param catCovs Character vector. Names of the covariates in `covariates` that should be treated as categorical.
 #' @param logtCovs Character vector. Names of continuous covariates in `covariates` that should be log-transformed (natural log).
@@ -69,7 +69,7 @@
 #'   logtCovs           = "WT",
 #'   catCovs            = catCovs,         
 #'   outputDir          = td,
-#'   finalModName       = "frem_final",
+#'   fremModName       = "frem_final",
 #'   numNonFREMThetas   = 7,
 #'   numSkipOm          = 2,
 #'   cstrKeepCols       = keep_cols,
@@ -94,7 +94,7 @@ createFREMmodel <- function(runno                = NULL,
                             covariates,
                             numNonFREMThetas,
                             outputDir            = NULL,
-                            finalModName         = "frem_model",
+                            fremModName         = "frem_model",
                             keepMinimalModel     = FALSE,
                             catCovs              = NULL,
                             logtCovs             = NULL,
@@ -116,19 +116,19 @@ createFREMmodel <- function(runno                = NULL,
     outputDir <- if (!is.null(modDevDir)) modDevDir else getwd()
   }
   
-  finalModelPath <- file.path(outputDir, paste0(finalModName, ".mod"))
-  finalDataPath  <- file.path(outputDir, paste0(finalModName, "_data.csv"))
+  finalModelPath <- file.path(outputDir, paste0(fremModName, ".mod"))
+  finalDataPath  <- file.path(outputDir, paste0(fremModName, "_data.csv"))
   
   # --- Overwrite Protection ---
   if (file.exists(finalModelPath) || file.exists(finalDataPath)) {
-    stop(sprintf("Protection Error: The output files '%s' or '%s' already exist in the target directory (%s). Please use a different `finalModName`, specify a new `outputDir`, or manually remove the existing files.", 
+    stop(sprintf("Protection Error: The output files '%s' or '%s' already exist in the target directory (%s). Please use a different `fremModName`, specify a new `outputDir`, or manually remove the existing files.", 
                  basename(finalModelPath), basename(finalDataPath), outputDir), 
          call. = FALSE)
   }
   
   if (length(covariates) == 0) stop("At least one covariate must be provided.")
   
-  minModName <- paste0(finalModName, "_minimal")
+  minModName <- paste0(fremModName, "_minimal")
   
   # --- 1. Phase 1: Bootstrap the Minimal Model ---
   if (!quiet) message("\nStarting Phase 1: Bootstrapping minimal model...")
@@ -157,8 +157,8 @@ createFREMmodel <- function(runno                = NULL,
     ... 
   )
   
-  finalModelPath <- file.path(outputDir, paste0(finalModName, ".mod"))
-  finalDataPath  <- file.path(outputDir, paste0(finalModName, "_data.csv"))
+  finalModelPath <- file.path(outputDir, paste0(fremModName, ".mod"))
+  finalDataPath  <- file.path(outputDir, paste0(fremModName, "_data.csv"))
   
   # --- 2. Phase 2: Add Remaining Covariates (if any) ---
   if (length(covariates) > 1) {
