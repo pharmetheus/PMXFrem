@@ -32,15 +32,13 @@ cleans up all intermediate files."><!-- mathjax --><script src="https://cdnjs.cl
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/create_FFEM_model.html">Create an FFEM model from a FREM models</a>
+    <a class="dropdown-item" href="../articles/1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/create_FREM_model.html">Walkthrough: Creating FREM Models with createFREMmodel</a>
     <a class="dropdown-item" href="../articles/explained_variability.html">Calculate explained variability from a FREM model</a>
     <a class="dropdown-item" href="../articles/forestExample-vignette.html">Create a Forest plot for a FREM model</a>
-    <a class="dropdown-item" href="../articles/quick-start.html">Quick Start: 5-Minute FREM Workflow</a>
-    <a class="dropdown-item" href="../articles/revise_FREM_models.html">Revise an existing FREM model</a>
     <a class="dropdown-item" href="../articles/standard_diagnostics.html">Generate standard diagnostics for a FREM model</a>
     <a class="dropdown-item" href="../articles/using-updateFREMmodel.html">Modifying FREM Models with updateFREMmodel</a>
-    <a class="dropdown-item" href="../articles/vpc_for_a_FREM_model.html">Create VPCs for a FREM model</a>
-    <a class="dropdown-item" href="../articles/walk-trough.html">Walk-through: Key PMXFrem functionality</a>
   </div>
 </li>
 <li class="nav-item">
@@ -219,11 +217,11 @@ these subjects are retained and their covariates are included as observations.</
 <span class="r-in"><span><span class="va">ffemDataFile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Use a temporary directory for the output to comply with CRAN policies</span></span></span>
-<span class="r-in"><span><span class="va">outputDir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">td</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>pattern <span class="op">=</span> <span class="st">"frem_example_"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">td</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Define covariates and keep columns</span></span></span>
-<span class="r-in"><span><span class="va">covariates</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WT"</span>,<span class="st">"SEX"</span>,<span class="st">"RACEL"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">covariates</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AGE"</span>,<span class="st">"WT"</span>,<span class="st">"SEX"</span>,<span class="st">"RACEL"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">catCovs</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"RACEL"</span>,<span class="st">"SEX"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">keep_cols</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ID"</span>, <span class="st">"TIME"</span>, <span class="st">"AMT"</span>, <span class="st">"EVID"</span>, <span class="st">"RATE"</span>, <span class="st">"FOOD"</span>, <span class="st">"DV"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
@@ -233,8 +231,9 @@ these subjects are retained and their covariates are included as observations.</
 <span class="r-in"><span>  modDevDir          <span class="op">=</span> <span class="va">modDevDir</span>,</span></span>
 <span class="r-in"><span>  ffemDataFile       <span class="op">=</span> <span class="va">ffemDataFile</span>,</span></span>
 <span class="r-in"><span>  covariates         <span class="op">=</span> <span class="va">covariates</span>,</span></span>
+<span class="r-in"><span>  logtCovs           <span class="op">=</span> <span class="st">"WT"</span>,</span></span>
 <span class="r-in"><span>  catCovs            <span class="op">=</span> <span class="va">catCovs</span>,         </span></span>
-<span class="r-in"><span>  outputDir          <span class="op">=</span> <span class="va">outputDir</span>,</span></span>
+<span class="r-in"><span>  outputDir          <span class="op">=</span> <span class="va">td</span>,</span></span>
 <span class="r-in"><span>  finalModName       <span class="op">=</span> <span class="st">"frem_final"</span>,</span></span>
 <span class="r-in"><span>  numNonFREMThetas   <span class="op">=</span> <span class="fl">7</span>,</span></span>
 <span class="r-in"><span>  numSkipOm          <span class="op">=</span> <span class="fl">2</span>,</span></span>
@@ -245,9 +244,12 @@ these subjects are retained and their covariates are included as observations.</
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># The generated files are available in the temporary directory</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">generated_files</span><span class="op">$</span><span class="va">model</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpbgJh1u/frem_final.mod"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpDGHTEE/frem_example_ac3a35f3b9fa/frem_final.mod"</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">generated_files</span><span class="op">$</span><span class="va">data</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpbgJh1u/frem_final_data.csv"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpDGHTEE/frem_example_ac3a35f3b9fa/frem_final_data.csv"</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co">#Clean up the temporary directory</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">td</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

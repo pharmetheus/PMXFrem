@@ -26,15 +26,13 @@ implemented with EM algorithms."><!-- mathjax --><script src="https://cdnjs.clou
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/create_FFEM_model.html">Create an FFEM model from a FREM models</a>
+    <a class="dropdown-item" href="../articles/1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/create_FREM_model.html">Walkthrough: Creating FREM Models with createFREMmodel</a>
     <a class="dropdown-item" href="../articles/explained_variability.html">Calculate explained variability from a FREM model</a>
     <a class="dropdown-item" href="../articles/forestExample-vignette.html">Create a Forest plot for a FREM model</a>
-    <a class="dropdown-item" href="../articles/quick-start.html">Quick Start: 5-Minute FREM Workflow</a>
-    <a class="dropdown-item" href="../articles/revise_FREM_models.html">Revise an existing FREM model</a>
     <a class="dropdown-item" href="../articles/standard_diagnostics.html">Generate standard diagnostics for a FREM model</a>
     <a class="dropdown-item" href="../articles/using-updateFREMmodel.html">Modifying FREM Models with updateFREMmodel</a>
-    <a class="dropdown-item" href="../articles/vpc_for_a_FREM_model.html">Create VPCs for a FREM model</a>
-    <a class="dropdown-item" href="../articles/walk-trough.html">Walk-through: Key PMXFrem functionality</a>
   </div>
 </li>
 <li class="nav-item">
@@ -173,9 +171,12 @@ the end of a run.</p>
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p>Other Diagnostics &amp; Plotting: 
 <code><a href="calcEtas.html">calcEtas</a>()</code>,
+<code><a href="calcFremShrinkage.html">calcFremShrinkage</a>()</code>,
 <code><a href="fremParameterTable.html">fremParameterTable</a>()</code>,
 <code><a href="getExplainedVar.html">getExplainedVar</a>()</code>,
 <code><a href="getForestDFFREM.html">getForestDFFREM</a>()</code>,
+<code><a href="plotCovDist.html">plotCovDist</a>()</code>,
+<code><a href="plotEtasCov.html">plotEtasCov</a>()</code>,
 <code><a href="plotExplainedVar.html">plotExplainedVar</a>()</code></p></div>
     </div>
 
@@ -192,9 +193,12 @@ the end of a run.</p>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">trace_plots</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "OFV"    "Theta"  "Omegas"</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span>  <span class="va">trace_plots</span><span class="op">$</span><span class="va">OFV</span></span></span>
-<span class="r-in"><span><span class="op">}</span></span></span>
+<span class="r-in"><span><span class="va">trace_plots</span><span class="op">$</span><span class="va">OFV</span></span></span>
+<span class="r-plt img"><img src="traceplot-1.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span><span class="va">trace_plots</span><span class="op">$</span><span class="va">Theta</span></span></span>
+<span class="r-plt img"><img src="traceplot-2.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span><span class="va">trace_plots</span><span class="op">$</span><span class="va">Omegas</span></span></span>
+<span class="r-plt img"><img src="traceplot-3.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Generate plot without the shaded OFV region</span></span></span>
 <span class="r-in"><span><span class="va">trace_plots_no_shape</span> <span class="op">&lt;-</span> <span class="fu">traceplot</span><span class="op">(</span></span></span>
@@ -203,9 +207,8 @@ the end of a run.</p>
 <span class="r-in"><span>  includeShapedOFV <span class="op">=</span> <span class="cn">FALSE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="va">trace_plots_no_shape</span><span class="op">$</span><span class="va">OFV</span></span></span>
-<span class="r-in"><span><span class="op">}</span></span></span>
+<span class="r-plt img"><img src="traceplot-4.png" alt="" width="700" height="433"></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>

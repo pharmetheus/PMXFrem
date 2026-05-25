@@ -2,14 +2,12 @@ pandoc: 2.0.6
 pkgdown: 2.0.6
 pkgdown_sha: ~
 articles:
-  create_FFEM_model: create_FFEM_model.html
+  1-quick-start: 1-quick-start.html
+  2-walkthrough-frem-workflow: 2-walkthrough-frem-workflow.html
+  create_FREM_model: create_FREM_model.html
   explained_variability: explained_variability.html
   forestExample-vignette: forestExample-vignette.html
-  quick-start: quick-start.html
-  revise_FREM_models: revise_FREM_models.html
   standard_diagnostics: standard_diagnostics.html
   using-updateFREMmodel: using-updateFREMmodel.html
-  vpc_for_a_FREM_model: vpc_for_a_FREM_model.html
-  walk-trough: walk-trough.html
-last_built: 2026-04-24T07:34Z
+last_built: 2026-05-25T11:07Z
 

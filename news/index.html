@@ -24,15 +24,13 @@
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/create_FFEM_model.html">Create an FFEM model from a FREM models</a>
+    <a class="dropdown-item" href="../articles/1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/create_FREM_model.html">Walkthrough: Creating FREM Models with createFREMmodel</a>
     <a class="dropdown-item" href="../articles/explained_variability.html">Calculate explained variability from a FREM model</a>
     <a class="dropdown-item" href="../articles/forestExample-vignette.html">Create a Forest plot for a FREM model</a>
-    <a class="dropdown-item" href="../articles/quick-start.html">Quick Start: 5-Minute FREM Workflow</a>
-    <a class="dropdown-item" href="../articles/revise_FREM_models.html">Revise an existing FREM model</a>
     <a class="dropdown-item" href="../articles/standard_diagnostics.html">Generate standard diagnostics for a FREM model</a>
     <a class="dropdown-item" href="../articles/using-updateFREMmodel.html">Modifying FREM Models with updateFREMmodel</a>
-    <a class="dropdown-item" href="../articles/vpc_for_a_FREM_model.html">Create VPCs for a FREM model</a>
-    <a class="dropdown-item" href="../articles/walk-trough.html">Walk-through: Key PMXFrem functionality</a>
   </div>
 </li>
 <li class="active nav-item">
@@ -67,6 +65,10 @@
 <strong>Dynamic Uncertainty Formatting:</strong> Added <code>uncertainty</code> (<code>"RSE"</code> or <code>"CI"</code>), <code>ciLevel</code>, and <code>sigDigs</code> arguments to <code><a href="../reference/fremParameterTable.html">fremParameterTable()</a></code> with trailing zero preservation (<code>%#</code>).</li>
 <li>
 <strong>Covariate Label Generator:</strong> Added <code><a href="../reference/generateCovNames.html">generateCovNames()</a></code> for dynamic/interactive Forest Plot label generation.</li>
+<li>
+<strong>Integrated Shrinkage Reporting:</strong> <code><a href="../reference/fremParameterTable.html">fremParameterTable()</a></code> now natively reports parameter shrinkages via the <code>includeShrinkage = TRUE</code> and <code>ffemModName</code> arguments. Users can control the reported metric (<code>shrinkageType</code>), decimal precision (<code>shkDigs</code>), and choose to report raw mathematical values or NONMEM-style floored values (<code>rawShrinkage</code>).</li>
+<li>
+<strong>New Features:</strong> Added diagnostic plotting functions <code><a href="../reference/plotEtasCov.html">plotEtasCov()</a></code> and <code><a href="../reference/plotCovDist.html">plotCovDist()</a></code>. <code><a href="../reference/plotEtasCov.html">plotEtasCov()</a></code> creates faceted scatter plots to compare FREM ETAs, ETA_PRIMs, and FFEM EBEs against covariates. <code><a href="../reference/plotCovDist.html">plotCovDist()</a></code> generates distribution plots for estimated covariates. Both automatically visualize and group data based on original covariate missingness.</li>
 <li>
 <strong>New Vignettes:</strong> Added Tier 1 (<code>quick-start.Rmd</code>) and Tier 2 (<code>walk-through.Rmd</code>) workflows.</li>
 </ul></div>
@@ -117,6 +119,8 @@
 <strong>CRAN Compliance:</strong> Refactored examples to use base R (<code>read.csv</code>) and <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code>.</li>
 <li>
 <strong>Roxygen:</strong> Injected extensive <code>@family</code> and <code>@concept</code> tags across all functions for <code>pkgdown</code> organization.</li>
+<li>
+<strong>Documentation:</strong> Added a new vignette (<code>walkthrough-createFREMmodel.Rmd</code>) demonstrating the end-to-end process of building a Full Random Effects Model and dataset from scratch using <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code>.</li>
 </ul></div>
 </div>
     <div class="section level2">

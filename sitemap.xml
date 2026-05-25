@@ -7,7 +7,13 @@
     <loc>/LICENSE.html</loc>
   </url>
   <url>
-    <loc>/articles/create_FFEM_model.html</loc>
+    <loc>/articles/1-quick-start.html</loc>
+  </url>
+  <url>
+    <loc>/articles/2-walkthrough-frem-workflow.html</loc>
+  </url>
+  <url>
+    <loc>/articles/create_FREM_model.html</loc>
   </url>
   <url>
     <loc>/articles/explained_variability.html</loc>
@@ -19,22 +25,10 @@
     <loc>/articles/index.html</loc>
   </url>
   <url>
-    <loc>/articles/quick-start.html</loc>
-  </url>
-  <url>
-    <loc>/articles/revise_FREM_models.html</loc>
-  </url>
-  <url>
     <loc>/articles/standard_diagnostics.html</loc>
   </url>
   <url>
     <loc>/articles/using-updateFREMmodel.html</loc>
-  </url>
-  <url>
-    <loc>/articles/vpc_for_a_FREM_model.html</loc>
-  </url>
-  <url>
-    <loc>/articles/walk-trough.html</loc>
   </url>
   <url>
     <loc>/authors.html</loc>
@@ -62,6 +56,9 @@
   </url>
   <url>
     <loc>/reference/calcFFEM.html</loc>
+  </url>
+  <url>
+    <loc>/reference/calcFremShrinkage.html</loc>
   </url>
   <url>
     <loc>/reference/calcNumParCov.html</loc>
@@ -134,6 +131,12 @@
   </url>
   <url>
     <loc>/reference/parseMatrixBlockToMatrix.html</loc>
+  </url>
+  <url>
+    <loc>/reference/plotCovDist.html</loc>
+  </url>
+  <url>
+    <loc>/reference/plotEtasCov.html</loc>
   </url>
   <url>
     <loc>/reference/plotExplainedVar.html</loc>

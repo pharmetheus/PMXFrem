@@ -26,15 +26,13 @@ of subjects with covariates"><!-- mathjax --><script src="https://cdnjs.cloudfla
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/create_FFEM_model.html">Create an FFEM model from a FREM models</a>
+    <a class="dropdown-item" href="../articles/1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/create_FREM_model.html">Walkthrough: Creating FREM Models with createFREMmodel</a>
     <a class="dropdown-item" href="../articles/explained_variability.html">Calculate explained variability from a FREM model</a>
     <a class="dropdown-item" href="../articles/forestExample-vignette.html">Create a Forest plot for a FREM model</a>
-    <a class="dropdown-item" href="../articles/quick-start.html">Quick Start: 5-Minute FREM Workflow</a>
-    <a class="dropdown-item" href="../articles/revise_FREM_models.html">Revise an existing FREM model</a>
     <a class="dropdown-item" href="../articles/standard_diagnostics.html">Generate standard diagnostics for a FREM model</a>
     <a class="dropdown-item" href="../articles/using-updateFREMmodel.html">Modifying FREM Models with updateFREMmodel</a>
-    <a class="dropdown-item" href="../articles/vpc_for_a_FREM_model.html">Create VPCs for a FREM model</a>
-    <a class="dropdown-item" href="../articles/walk-trough.html">Walk-through: Key PMXFrem functionality</a>
   </div>
 </li>
 <li class="nav-item">
@@ -78,8 +76,8 @@ of subjects with covariates</p>
 <span> <span class="op">}</span><span class="op">)</span>,</span>
 <span>  functionListName <span class="op">=</span> <span class="st">"PAR1"</span>,</span>
 <span>  <span class="va">numNonFREMThetas</span>,</span>
-<span>  numFREMThetas <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"THETA"</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">dfext</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> <span class="va">numNonFREMThetas</span>,</span>
-<span>  numSigmas <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"SIGMA"</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">dfext</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  numFREMThetas <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  numSigmas <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  numParCov <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  parNames <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  numSkipOm <span class="op">=</span> <span class="fl">0</span>,</span>
@@ -279,8 +277,11 @@ of the maximum variability (TOTCOVVAR). If NULL (default), all covariates inteh 
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p>Other Diagnostics &amp; Plotting: 
 <code><a href="calcEtas.html">calcEtas</a>()</code>,
+<code><a href="calcFremShrinkage.html">calcFremShrinkage</a>()</code>,
 <code><a href="fremParameterTable.html">fremParameterTable</a>()</code>,
 <code><a href="getForestDFFREM.html">getForestDFFREM</a>()</code>,
+<code><a href="plotCovDist.html">plotCovDist</a>()</code>,
+<code><a href="plotEtasCov.html">plotEtasCov</a>()</code>,
 <code><a href="plotExplainedVar.html">plotExplainedVar</a>()</code>,
 <code><a href="traceplot.html">traceplot</a>()</code></p></div>
     </div>
@@ -295,10 +296,10 @@ of the maximum variability (TOTCOVVAR). If NULL (default), all covariates inteh 
 <span class="r-in"><span><span class="va">covNames</span>  <span class="op">&lt;-</span> <span class="fu"><a href="getCovNames.html">getCovNames</a></span><span class="op">(</span>modFile <span class="op">=</span> <span class="va">modFile</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">## Set up dfCovs</span></span></span>
-<span class="r-in"><span><span class="va">dfData</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span><span class="op">)</span> <span class="op">%&gt;%</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/stats/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">BLQ</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span> <span class="op">%&gt;%</span></span></span>
+<span class="r-in"><span><span class="va">dfData</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/stats/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">BLQ</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
 <span class="r-in"><span>  <span class="fu">distinct</span><span class="op">(</span><span class="va">ID</span>,.keep_all <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",     package = "PMXFrem")) %&gt;% filter(BLQ == 0) %&gt;% distinct(ID,     .keep_all = TRUE):</span> could not find function "%&gt;%"</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in distinct(., ID, .keep_all = TRUE):</span> could not find function "distinct"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">dfCovs</span> <span class="op">&lt;-</span> <span class="fu"><a href="setupdfCovs.html">setupdfCovs</a></span><span class="op">(</span><span class="va">modFile</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>

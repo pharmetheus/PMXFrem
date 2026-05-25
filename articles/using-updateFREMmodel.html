@@ -41,15 +41,13 @@
 <li class="active nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/create_FFEM_model.html">Create an FFEM model from a FREM models</a>
+    <a class="dropdown-item" href="../articles/1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/create_FREM_model.html">Walkthrough: Creating FREM Models with createFREMmodel</a>
     <a class="dropdown-item" href="../articles/explained_variability.html">Calculate explained variability from a FREM model</a>
     <a class="dropdown-item" href="../articles/forestExample-vignette.html">Create a Forest plot for a FREM model</a>
-    <a class="dropdown-item" href="../articles/quick-start.html">Quick Start: 5-Minute FREM Workflow</a>
-    <a class="dropdown-item" href="../articles/revise_FREM_models.html">Revise an existing FREM model</a>
     <a class="dropdown-item" href="../articles/standard_diagnostics.html">Generate standard diagnostics for a FREM model</a>
     <a class="dropdown-item" href="../articles/using-updateFREMmodel.html">Modifying FREM Models with updateFREMmodel</a>
-    <a class="dropdown-item" href="../articles/vpc_for_a_FREM_model.html">Create VPCs for a FREM model</a>
-    <a class="dropdown-item" href="../articles/walk-trough.html">Walk-through: Key PMXFrem functionality</a>
   </div>
 </li>
 <li class="nav-item">
@@ -181,7 +179,7 @@
 <span><span class="co"># The new model file will be at:</span></span>
 <span><span class="va">new_model_path_remove</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"run31_new.mod"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"New model file created at:"</span>, <span class="va">new_model_path_remove</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "New model file created at: /tmp/Rtmp0qoxNw/run31_new.mod"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "New model file created at: /tmp/RtmpkDhly5/run31_new.mod"</span></span></code></pre></div>
 <p><strong>What happened?</strong></p>
 <ul>
 <li>updateFREMmodel read the input model and data files.<br>
@@ -232,7 +230,7 @@
 <span><span class="co">#&gt; Data integrity validation passed: The FREM dataset perfectly mirrors the base dataset.</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"A new model was created at:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"run31_new_new.mod"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "A new model was created at: /tmp/Rtmp0qoxNw/run31_new_new.mod"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "A new model was created at: /tmp/RtmpkDhly5/run31_new_new.mod"</span></span></code></pre></div>
 <p><strong>What happened?</strong></p>
 <ul>
 <li>The prepareNewCovariates helper was called to analyze the AGE column in the strFFEMData file. It calculated the mean and variance to use as initial estimates for the new $THETA and $OMEGA entries, and assigned a new FREMTYPE.<br>

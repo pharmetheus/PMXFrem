@@ -30,15 +30,13 @@ Covariate Effects) mapping each covariate to each structural parameter."><!-- ma
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/create_FFEM_model.html">Create an FFEM model from a FREM models</a>
+    <a class="dropdown-item" href="../articles/1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/create_FREM_model.html">Walkthrough: Creating FREM Models with createFREMmodel</a>
     <a class="dropdown-item" href="../articles/explained_variability.html">Calculate explained variability from a FREM model</a>
     <a class="dropdown-item" href="../articles/forestExample-vignette.html">Create a Forest plot for a FREM model</a>
-    <a class="dropdown-item" href="../articles/quick-start.html">Quick Start: 5-Minute FREM Workflow</a>
-    <a class="dropdown-item" href="../articles/revise_FREM_models.html">Revise an existing FREM model</a>
     <a class="dropdown-item" href="../articles/standard_diagnostics.html">Generate standard diagnostics for a FREM model</a>
     <a class="dropdown-item" href="../articles/using-updateFREMmodel.html">Modifying FREM Models with updateFREMmodel</a>
-    <a class="dropdown-item" href="../articles/vpc_for_a_FREM_model.html">Create VPCs for a FREM model</a>
-    <a class="dropdown-item" href="../articles/walk-trough.html">Walk-through: Key PMXFrem functionality</a>
   </div>
 </li>
 <li class="nav-item">
@@ -84,6 +82,11 @@ Covariate Effects) mapping each covariate to each structural parameter.</p>
 <span>  omegaSD <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  sigmaSD <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  includeRSE <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  includeShrinkage <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  shrinkageType <span class="op">=</span> <span class="st">"ETA_SD"</span>,</span>
+<span>  rawShrinkage <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  ffemModName <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  shkDigs <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  uncertainty <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"RSE"</span>, <span class="st">"CI"</span><span class="op">)</span>,</span>
 <span>  ciLevel <span class="op">=</span> <span class="fl">0.9</span>,</span>
 <span>  sigDigs <span class="op">=</span> <span class="fl">3</span>,</span>
@@ -174,6 +177,26 @@ If <code>NULL</code>, defaults to Par1, Par2, etc. Note: Do not confuse this wit
 <dd><p>Logical. Should the output include relative standard errors (RSE). Default is <code>FALSE</code>.</p></dd>
 
 
+<dt>includeShrinkage</dt>
+<dd><p>Logical. If <code>TRUE</code>, calculates and includes shrinkages in the table using a specified FFEM model output. Defaults to <code>FALSE</code>.</p></dd>
+
+
+<dt>shrinkageType</dt>
+<dd><p>Character string specifying which type of shrinkage to report. Options are <code>"ETA_Var"</code>, <code>"ETA_SD"</code>, <code>"EBV_Var"</code>, or <code>"EBV_SD"</code>. Defaults to <code>"ETA_SD"</code> (the legacy NONMEM ETA SD shrinkage).</p></dd>
+
+
+<dt>rawShrinkage</dt>
+<dd><p>Logical. If <code>FALSE</code> (default), negative shrinkages are floored and reported as <code>1.0000e-10</code> to exactly mimic NONMEM's standard output. If <code>TRUE</code>, the raw (potentially negative) calculated shrinkages are reported.</p></dd>
+
+
+<dt>ffemModName</dt>
+<dd><p>A character string specifying the model name of the FFEM run (typically a MAX=0 run) to be used exclusively for shrinkage calculations. Required if <code>includeShrinkage</code> is <code>TRUE</code>.</p></dd>
+
+
+<dt>shkDigs</dt>
+<dd><p>An integer specifying the number of decimal places to use when formatting the shrinkage output. Default is 2.</p></dd>
+
+
 <dt>uncertainty</dt>
 <dd><p>A character string specifying how uncertainty should be summarized. Either <code>"RSE"</code> (default) or <code>"CI"</code>.</p></dd>
 
@@ -234,17 +257,20 @@ STDOUT.</p></dd>
 
 <p>A list of five components:</p><ul><li><p>parameterTable: A data frame with information for the base parameter table.</p></li>
 <li><p>coefficientTable_long: A tidy, long-format data frame of the covariate coefficients (optimal for internal reporting APIs).</p></li>
-<li><p>coefficientTable_wide: A document-ready wide-format data frame of the covariate coefficients (Covariates x Parameters).</p></li>
+<li><p>coefficientTable_wide: A document-ready wide-format data frame of the covariate coefficients (Covariates x Parameters). Estimates and uncertainties are separated into distinct columns.</p></li>
 <li><p>Samples: A data frame with the parameter vector samples used to derive the RSE information.</p></li>
 <li><p>Condition: The condition number for the variance-covariance matrix of the parameters.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="https://rdrr.io/pkg/PMXForest/man/getSamples.html" class="external-link">PMXForest::getSamples()</a></code> <code><a href="calcFFEM.html">calcFFEM()</a></code></p>
+    <div class="dont-index"><p><code><a href="https://rdrr.io/pkg/PMXForest/man/getSamples.html" class="external-link">PMXForest::getSamples()</a></code> <code><a href="calcFFEM.html">calcFFEM()</a></code> <code><a href="calcFremShrinkage.html">calcFremShrinkage()</a></code></p>
 <p>Other Diagnostics &amp; Plotting: 
 <code><a href="calcEtas.html">calcEtas</a>()</code>,
+<code><a href="calcFremShrinkage.html">calcFremShrinkage</a>()</code>,
 <code><a href="getExplainedVar.html">getExplainedVar</a>()</code>,
 <code><a href="getForestDFFREM.html">getForestDFFREM</a>()</code>,
+<code><a href="plotCovDist.html">plotCovDist</a>()</code>,
+<code><a href="plotEtasCov.html">plotEtasCov</a>()</code>,
 <code><a href="plotExplainedVar.html">plotExplainedVar</a>()</code>,
 <code><a href="traceplot.html">traceplot</a>()</code></p></div>
     </div>
@@ -253,15 +279,19 @@ STDOUT.</p></dd>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"kableExtra"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://haozhu233.github.io/kableExtra/" class="external-link">kableExtra</a></span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">runno</span>            <span class="op">&lt;-</span> <span class="fl">31</span></span></span>
+<span class="r-in"><span><span class="va">modName</span>          <span class="op">&lt;-</span> <span class="st">"run31"</span></span></span>
+<span class="r-in"><span><span class="va">ffemModName</span>      <span class="op">&lt;-</span> <span class="st">"run31max0"</span></span></span>
 <span class="r-in"><span><span class="va">modDevDir</span>        <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/"</span>,package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">numNonFREMThetas</span> <span class="op">&lt;-</span> <span class="fl">7</span></span></span>
 <span class="r-in"><span><span class="va">numSkipOm</span>        <span class="op">&lt;-</span> <span class="fl">2</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co">## Generate the raw outout</span></span></span>
+<span class="r-in"><span><span class="co">## Generate the raw output</span></span></span>
 <span class="r-in"><span><span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu">fremParameterTable</span><span class="op">(</span></span></span>
-<span class="r-in"><span>      runno           <span class="op">=</span> <span class="va">runno</span>,</span></span>
+<span class="r-in"><span>      runno            <span class="op">=</span> <span class="va">runno</span>,</span></span>
+<span class="r-in"><span>      modName          <span class="op">=</span> <span class="va">modName</span>,</span></span>
 <span class="r-in"><span>      modDevDir        <span class="op">=</span> <span class="va">modDevDir</span>,</span></span>
 <span class="r-in"><span>      thetaNum         <span class="op">=</span> <span class="fl">2</span><span class="op">:</span><span class="fl">7</span>,</span></span>
 <span class="r-in"><span>      omegaNum         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">3</span>,<span class="fl">4</span>,<span class="fl">5</span><span class="op">)</span>,</span></span>
@@ -269,20 +299,31 @@ STDOUT.</p></dd>
 <span class="r-in"><span>      thetaLabels      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL (L/h)"</span>,<span class="st">"V (L)"</span>,<span class="st">"MAT (h)"</span>,<span class="st">"D1 (h)"</span>,<span class="st">"Food on Frel"</span>,<span class="st">"Food on MAT"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>      omegaLabels      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"IIV on RUV"</span>,<span class="st">"IIV on CL"</span>,<span class="st">"IIV on V"</span>,<span class="st">"IIV on MAT"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>      sigmaLabels      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"RUV"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>      parNames         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL"</span>, <span class="st">"V"</span>, <span class="st">"MAT"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>      includeRSE       <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>      uncertainty <span class="op">=</span> <span class="st">"CI"</span>,</span></span>
+<span class="r-in"><span>      includeShrinkage <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>      shrinkageType    <span class="op">=</span> <span class="st">"ETA_SD"</span>,</span></span>
+<span class="r-in"><span>      rawShrinkage     <span class="op">=</span> <span class="cn">FALSE</span>,</span></span>
+<span class="r-in"><span>      ffemModName      <span class="op">=</span> <span class="va">ffemModName</span>,</span></span>
+<span class="r-in"><span>      shkDigs          <span class="op">=</span> <span class="fl">2</span>,</span></span>
+<span class="r-in"><span>      uncertainty      <span class="op">=</span> <span class="st">"CI"</span>,</span></span>
 <span class="r-in"><span>      numNonFREMThetas <span class="op">=</span> <span class="va">numNonFREMThetas</span>,</span></span>
 <span class="r-in"><span>      numSkipOm        <span class="op">=</span> <span class="va">numSkipOm</span>,</span></span>
 <span class="r-in"><span>      availCov         <span class="op">=</span> <span class="st">"all"</span>,</span></span>
 <span class="r-in"><span>      quiet            <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co">## Use kable_extra to generate a nice looking table</span></span></span>
-<span class="r-in"><span><span class="va">tmp</span><span class="op">$</span><span class="va">parameterTable</span> <span class="op">%&gt;%</span></span></span>
-<span class="r-in"><span>    <span class="fu">mutate</span><span class="op">(</span>Estimate<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="va">Estimate</span>,<span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">%&gt;%</span></span></span>
-<span class="r-in"><span>    <span class="fu">kbl</span><span class="op">(</span><span class="op">)</span> <span class="op">%&gt;%</span></span></span>
-<span class="r-in"><span>    <span class="fu">kable_classic</span><span class="op">(</span>full_width <span class="op">=</span> <span class="cn">FALSE</span>, html_font <span class="op">=</span> <span class="st">"Cambria"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co">## Use kable_extra to generate a nice looking table of the main parameters</span></span></span>
+<span class="r-in"><span><span class="va">tmp</span><span class="op">$</span><span class="va">parameterTable</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span>    <span class="fu">mutate</span><span class="op">(</span>Estimate<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="va">Estimate</span>,<span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/pkg/kableExtra/man/kbl.html" class="external-link">kbl</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/pkg/kableExtra/man/kable_classic.html" class="external-link">kable_classic</a></span><span class="op">(</span>full_width <span class="op">=</span> <span class="cn">FALSE</span>, html_font <span class="op">=</span> <span class="st">"Cambria"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    </span></span>
+<span class="r-in"><span><span class="co">## Use kable_extra to generate a nice looking table of the covariate coefficients</span></span></span>
+<span class="r-in"><span><span class="va">tmp</span><span class="op">$</span><span class="va">coefficientTable_wide</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/pkg/kableExtra/man/kbl.html" class="external-link">kbl</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/pkg/kableExtra/man/kable_classic.html" class="external-link">kable_classic</a></span><span class="op">(</span>full_width <span class="op">=</span> <span class="cn">FALSE</span>, html_font <span class="op">=</span> <span class="st">"Cambria"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in tmp$parameterTable %&gt;% mutate(Estimate = as.character(signif(Estimate,     3))) %&gt;% kbl() %&gt;% kable_classic(full_width = FALSE, html_font = "Cambria"):</span> could not find function "%&gt;%"</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in mutate(., Estimate = as.character(signif(Estimate, 3))):</span> could not find function "mutate"</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
