@@ -13,22 +13,22 @@
     <loc>/articles/2-walkthrough-frem-workflow.html</loc>
   </url>
   <url>
-    <loc>/articles/create_FREM_model.html</loc>
+    <loc>/articles/3-deep-dive-createFREMmodel.html</loc>
   </url>
   <url>
-    <loc>/articles/explained_variability.html</loc>
+    <loc>/articles/3-deep-dive-diagnostics-and-etas.html</loc>
   </url>
   <url>
-    <loc>/articles/forestExample-vignette.html</loc>
+    <loc>/articles/3-deep-dive-explained-variability-plots.html</loc>
+  </url>
+  <url>
+    <loc>/articles/3-deep-dive-forest-plots.html</loc>
+  </url>
+  <url>
+    <loc>/articles/3-deep-dive-updateFREMmodel.html</loc>
   </url>
   <url>
     <loc>/articles/index.html</loc>
-  </url>
-  <url>
-    <loc>/articles/standard_diagnostics.html</loc>
-  </url>
-  <url>
-    <loc>/articles/using-updateFREMmodel.html</loc>
   </url>
   <url>
     <loc>/authors.html</loc>

@@ -4,10 +4,10 @@ pkgdown_sha: ~
 articles:
   1-quick-start: 1-quick-start.html
   2-walkthrough-frem-workflow: 2-walkthrough-frem-workflow.html
-  create_FREM_model: create_FREM_model.html
-  explained_variability: explained_variability.html
-  forestExample-vignette: forestExample-vignette.html
-  standard_diagnostics: standard_diagnostics.html
-  using-updateFREMmodel: using-updateFREMmodel.html
-last_built: 2026-05-25T11:07Z
+  3-deep-dive-createFREMmodel: 3-deep-dive-createFREMmodel.html
+  3-deep-dive-diagnostics-and-etas: 3-deep-dive-diagnostics-and-etas.html
+  3-deep-dive-explained-variability-plots: 3-deep-dive-explained-variability-plots.html
+  3-deep-dive-forest-plots: 3-deep-dive-forest-plots.html
+  3-deep-dive-updateFREMmodel: 3-deep-dive-updateFREMmodel.html
+last_built: 2026-05-25T14:13Z
 
