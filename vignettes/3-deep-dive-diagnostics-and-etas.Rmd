@@ -1,0 +1,223 @@
+---
+title: "3. Deep Dive: Standard diagnostics and ETAs"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{3. Deep Dive: Generate standard diagnostics for a FREM model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 10,
+  fig.height = 6,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+```{r setup}
+library(PMXFrem)
+library(GGally)
+library(ggplot2)
+library(dplyr)
+library(data.table)
+
+theme_set(theme_bw(base_size = 14))
+```
+
+## Introduction
+
+Just like with any other model it is important to check that FREM models satisfy basic diagnostic tests, for example goodness-of-fit (GOF) plots of DV versus PRED and CWRES versus TIME. Unlike standard models, some of variables of interest are not directly available from the FREM model itself but will have to be derived based on an FFEM version of the model. 
+
+## Create the FFEM model
+
+Create the FFEM model for the set of covariates to include in the model to be evaluated. To do this, we use the `createFFEMdata` function, which maps the individual covariate effects.
+
+```{r create_ffem}
+modDevDir <- system.file("extdata/SimNeb", package="PMXFrem")
+dataFile  <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package="PMXFrem")
+fremRun   <- 31
+baseRun   <- 30
+fremFiles <- getFileNames(fremRun, modDevDir = modDevDir)
+
+data <- fread(dataFile, data.table = FALSE, check.names = TRUE) %>% 
+  filter(BLQ != 1)
+
+FFEMdata <- createFFEMdata(
+  runno            = fremRun,
+  modDevDir        = modDevDir,
+  parNames         = c("CL", "V", "MAT"),
+  numNonFREMThetas = 7,
+  numSkipOm        = 2,
+  dataFile         = data,
+  newDataFile      = NULL,
+  quiet            = TRUE
+)
+```
+
+## Comparison of standard diagnostics input from Base, FREM and FFEM model
+
+To understand why we generate an FFEM model for diagnostics, we extract the structural predictions and residuals from the Base, FREM, and FFEM models and compare them side-by-side.
+
+```{r compare_data}
+xptabBase <- fread(paste0(modDevDir, "/xptabmax0", baseRun), data.table = FALSE, check.names = TRUE) %>%
+  filter(BLQ == 0, EVID == 0) %>% arrange(ID, TAD)
+
+xptabFFEM <- fread(paste0(modDevDir, "/xptabmax0", fremRun), data.table = FALSE, check.names = TRUE) %>%
+  filter(BLQ == 0, EVID == 0) %>% arrange(ID, TAD)
+
+xptabFREM <- fread(paste0(modDevDir, "/xptab", fremRun), data.table = FALSE, check.names = TRUE) %>%
+  filter(BLQ == 0, EVID == 0, FREMTYPE == 0) %>% arrange(ID, TAD)
+
+cwresData <- bind_cols(Base = xptabBase$CWRES, FREM = xptabFREM$CWRES, FFEM = xptabFFEM$CWRES) 
+iwresData <- bind_cols(Base = xptabBase$CIWRES, FREM = xptabFREM$CIWRES, FFEM = xptabFFEM$CIWRES)
+predData  <- bind_cols(Base = xptabBase$CPRED, FREM = xptabFREM$CPRED, FFEM = xptabFFEM$CPRED)
+ipredData <- bind_cols(Base = xptabBase$CIPREDI, FREM = xptabFREM$CIPREDI, FFEM = xptabFFEM$CIPREDI)
+```
+
+### PRED
+```{r plot_pred}
+ggpairs(predData) + ggtitle("PRED")
+```
+
+The PREDs are the same between Base and FREM since the THETAs are the same and no covariates affect the typical individual parameters. FFEM is different from the others due to the explicit implementation of the covariates.
+
+$$
+\begin{aligned} 
+\mathrm{PRED}_{Base} &= f(\theta_{base},\eta_i=0) \\
+\mathrm{PRED}_{FREM} &= f(\theta_{base},\eta_i=0)\\
+\mathrm{PRED}_{FFEM} &= f(\theta_{base},\theta_{cov},X_{cov},\eta_i=0)
+\end{aligned}
+$$
+
+### IPRED
+```{r plot_ipred}
+ggpairs(ipredData) + ggtitle("IPRED")
+```
+
+The IPREDs are different between Base and FREM due to $\eta$ being estimated with different $\Omega$ matrices. It is different for the FFEM model due to the fixed covariates and the $\Omega_{prim}$.
+
+$$
+\begin{aligned} 
+\mathrm{IPRED}_{Base} &= f(\theta_{base},\eta_i=\eta_{base}) \\
+\mathrm{IPRED}_{FREM} &= f(\theta_{base},\eta_i=\eta_{FREM})\\
+\mathrm{IPRED}_{FFEM} &= f(\theta_{base},\theta_{cov},X_{cov},\eta_i=\eta_{prim})
+\end{aligned}
+$$
+
+where $\eta$ is estimated by:
+
+$$\eta_i = \operatorname*{arg\,max}_\eta l_i + \log({pdf(\eta_i;\Omega)})$$
+
+where $l_i$ is the individual likelihood and $pdf$ is the probability density function of a normal distribution with variance $\Omega$.
+
+### CWRES
+```{r plot_cwres}
+ggpairs(cwresData) + ggtitle("CWRES")
+```
+
+The CWRES are not the same. This is due to differences in population variance as well as IPRED, $\eta$, and $\Omega$.
+
+$$
+\begin{aligned}
+\mathrm{CWRES}_i &= \frac{y_i - E[y_i]}{Var[y_i]^2}\\
+E[y_i] &= \mathrm{IPRED}_i - \eta_i\frac{ \delta \mathrm{IPRED}_i^T}{\delta\eta_i}\\
+Var[y_i] &= \frac{\delta \mathrm{IPRED}_i}{\delta \eta_i}\Omega\frac{\delta \mathrm{IPRED}_i^T}{\delta \eta_i} + \Sigma
+\end{aligned}
+$$
+
+### IWRES
+```{r plot_iwres}
+ggpairs(iwresData) + ggtitle("IWRES")
+```
+
+The IWRES are not the same, mainly due to differences in IPRED but also the residual error model if it depends on IPRED.
+
+$$
+\begin{aligned}
+\mathrm{IWRES}_i &= \frac{y_i - \mathrm{IPRED}_i}{R_i^2}\\
+R_i &= diag \left( \frac{\delta res}{\delta \varepsilon_i} \Sigma \frac{\delta res^T}{\delta \varepsilon_i} \right)
+\end{aligned}
+$$
+
+## Creating Basic GOF Plots
+
+Because the FFEM provides the correct conditional metrics, we use its output to evaluate the structural fit. 
+
+```{r gof_plots, fig.height=8}
+## DV vs PRED
+p1 <- ggplot(xptabFFEM, aes(exp(CPRED), exp(DV))) +
+  geom_point(color="#005B65", alpha = 0.6) +
+  geom_abline(slope = 1, intercept = 0, size=1, linetype="dashed") +
+  geom_smooth(se = FALSE, color="#E1A178", method="loess") +
+  xlab("Population Predictions") + ylab("Observations")
+
+## DV vs IPRED
+p2 <- ggplot(xptabFFEM, aes(exp(CIPREDI), exp(DV))) +
+  geom_point(color="#005B65", alpha = 0.6) +
+  geom_abline(slope = 1, intercept = 0, size=1, linetype="dashed") +
+  geom_smooth(se = FALSE, color="#E1A178", method="loess") +
+  xlab("Individual Predictions") + ylab("Observations")
+
+## abs(IWRES) vs IPRED
+p3 <- ggplot(xptabFFEM, aes(abs(CIWRES), exp(CIPREDI))) +
+  geom_point(color="#005B65", alpha = 0.6) +
+  geom_smooth(se = FALSE, color="#E1A178", method="loess") +
+  xlab("Individual Predictions") + ylab("Absolute IWRES")
+
+## CWRES vs PRED
+p4 <- ggplot(xptabFFEM, aes(exp(CPRED), CWRES)) +
+  geom_point(color="#005B65", alpha = 0.6) +
+  geom_abline(slope = 0, intercept = 0, size=1, linetype="dashed") +
+  geom_smooth(se = FALSE, color="#E1A178", method="loess") +
+  xlab("Population Predictions") + ylab("Conditional Weighted Residuals")
+
+gridExtra::grid.arrange(p1, p2, p3, p4, ncol=2, nrow=2)
+```
+
+## Creating ETA Diagnostics
+
+Similarly to the standard diagnostics variables, ETAs must also be adjusted to reflect the impact of covariates (i.e., $\eta_{prim}$). `PMXFrem` manages this extraction via `calcEtas()`. We can simultaneously extract the true Empirical Bayes Estimates (EBEs) from the FFEM model to prove covariate absorption.
+
+```{r calc_etas}
+# Calculate ETAs, ETA Prims, and EBEs
+ind_params <- calcEtas(
+  runno              = fremRun,
+  modDevDir          = modDevDir,
+  numSkipOm          = 2,
+  numNonFREMThetas   = 7,
+  FFEMData           = FFEMdata,
+  ffemModName        = "run31max0",
+  appendMissingFlags = TRUE
+)
+```
+
+### Evaluating Missingness via Covariate Distributions
+Because FREM estimates covariates continuously, it is crucial to evaluate the marginal distribution of the imputed covariates. The `plotCovDist()` package function maps these estimates, grouped by their original missingness status.
+
+```{r cov_dist, fig.height=5}
+plotCovDist(
+  df       = ind_params, 
+  covNames = c("WT", "AGE"), 
+  plotType = "histogram",
+  scales   = "free_x",
+  ncol     = 2
+)
+```
+
+### Evaluating Covariate Absorption
+Plotting the raw `FREM ETA` versus a covariate will show a strong correlation. However, the `ETA_PRIM` (and its counterpart, the `FFEM EBE`) should be completely flat, proving the FREM covariance matrix successfully captured the covariate effect. We visualize this using the `plotEtasCov()` function.
+
+```{r eta_vs_cov, fig.height=8}
+plotEtasCov(
+  df         = ind_params, 
+  covName    = "WT", 
+  etaNames   = c("ETA3", "ETA4"),
+  etaTypes   = c("FREM", "Prim", "EBE"),
+  etaLabels  = c("Clearance (CL)", "Volume (V)"),
+  typeLabels = c("EBE" = "FFEM EBE", "Prim" = "ETA Prim", "FREM" = "FREM ETA")
+)
+```
