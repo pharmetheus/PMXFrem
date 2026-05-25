@@ -30,6 +30,8 @@
 #'   \item \code{EBV_SD}: EBV Standard Deviation Shrinkage based on ETC (NONMEM Type 6)
 #' }
 #' @export
+#' @family Diagnostics & Plotting
+#' @concept diagnostics
 calcFremShrinkage <- function(runno = NULL, modName = NULL, modDevDir = NULL, 
                               dropUninformative = TRUE, quiet = TRUE) {
   

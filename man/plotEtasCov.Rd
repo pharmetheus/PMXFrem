@@ -8,6 +8,9 @@ plotEtasCov(
   df,
   covName,
   etaNames = NULL,
+  etaTypes = c("FREM", "Prim"),
+  etaLabels = NULL,
+  typeLabels = c(FREM = "FREM ETA", Prim = "ETA Prim", EBE = "FFEM EBE"),
   xlab = covName,
   ylab = "Value",
   colorNonMissing = "#005B65",
@@ -33,6 +36,18 @@ plot on the x-axis (e.g., \code{"WT"}).}
 \item{etaNames}{A character vector of structural ETAs to include in the plot
 (e.g., \code{c("ETA3", "ETA4")}). If \code{NULL} (default), all columns matching
 the regex \code{"^ETA[0-9]+$"} will be automatically detected and plotted.}
+
+\item{etaTypes}{A character vector specifying which types of ETAs to plot.
+Allowed values are \code{"FREM"}, \code{"Prim"}, and \code{"EBE"}. Defaults to
+\code{c("FREM", "Prim")}. The order specified here determines the top-to-bottom
+row order in the plotted facets.}
+
+\item{etaLabels}{A character vector of custom labels for the ETA columns. Must be
+the same length as \code{etaNames}. If \code{NULL} (default), \code{etaNames} are used.}
+
+\item{typeLabels}{A named character vector specifying custom labels for the ETA
+calculation types (the facet rows). Defaults to \code{c("FREM" = "FREM ETA", 
+  "Prim" = "ETA Prim", "EBE" = "FFEM EBE")}.}
 
 \item{xlab}{Character string for the x-axis title. Defaults to \code{covName}.}
 
@@ -68,26 +83,21 @@ Defaults to \code{"#E1A178"} (peach).}
 A \code{ggplot} object.
 }
 \description{
-Generates a diagnostic scatter plot with a smoothing line, comparing the base
-FREM ETAs and ETA_prims against a specified covariate. The plot is faceted by
-the ETA type (columns) and the calculation method (Prim vs. FREM, rows).
+Generates a diagnostic scatter plot with a smoothing line, comparing selected
+ETA estimates (FREM ETA, ETA_prim, and/or FFEM EBE) against a specified covariate.
+The plot is faceted by the ETA type (columns) and the calculation method (rows).
 It automatically colors points based on whether the covariate was missing in
 the original clinical dataset.
 }
 \examples{
-\dontrun{
 library(PMXFrem)
 library(ggplot2)
 
-# 1. Define the path to the model files included with the package
 model_dir <- system.file("extdata/SimNeb/", package = "PMXFrem")
-
-# 2. Load and prepare the dataset also included with the package
 data_path <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 my_data <- read.csv(data_path)
-my_data <- my_data[my_data$BLQ != 1, ] # Exclude BLQ rows
+my_data <- my_data[my_data$BLQ != 1, ] 
 
-# 3. Generate the individual ETAs and missingness flags
 ind_params <- calcEtas(
   modName            = "run31",
   modDevDir          = model_dir,
@@ -99,29 +109,22 @@ ind_params <- calcEtas(
   appendMissingFlags = TRUE
 )
 
-# 4. Plot the ETAs vs Weight (WT)
-# By default, it will auto-detect all ETAs and the WT_MISSING flag
-p1 <- plotEtasCov(df = ind_params, covName = "WT")
-print(p1)
-
-# 5. Customized plot restricting to specific ETAs with a linear trend line
-p2 <- plotEtasCov(
+# Plot with custom labels for publication
+p3 <- plotEtasCov(
   df = ind_params, 
   covName = "WT", 
   etaNames = c("ETA3", "ETA4"),
-  xlab = "Weight (kg)", 
-  ylab = "Empirical Bayes Estimate",
-  smoothMethod = "lm", 
-  smoothColor = "blue",
-  smoothLinetype = "dashed"
+  etaTypes = c("EBE", "FREM"),
+  etaLabels = c("Clearance", "Volume"),
+  typeLabels = c("EBE" = "FFEM EBE", "FREM" = "FREM EBE")
 )
-print(p2)
-}
+print(p3)
 
 }
 \seealso{
 Other Diagnostics & Plotting: 
 \code{\link{calcEtas}()},
+\code{\link{calcFremShrinkage}()},
 \code{\link{fremParameterTable}()},
 \code{\link{getExplainedVar}()},
 \code{\link{getForestDFFREM}()},

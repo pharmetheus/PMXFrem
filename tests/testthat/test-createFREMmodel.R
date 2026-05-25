@@ -24,7 +24,7 @@ test_that("createFREMmodel works for a single covariate (Phase 1 only)", {
     cstrKeepCols    = c("ID", "TIME", "AMT", "EVID", "RATE","FOOD","DAY","BLQ"),
     numSkipOm        = 2,
     outputDir        = outDir,
-    finalModName     = "test_single",
+    fremModName     = "test_single",
     quiet            = TRUE
   )
   
@@ -59,7 +59,7 @@ test_that("createFREMmodel orchestrates Phase 1 & 2 for multiple covariates", {
     cstrKeepCols    = c("ID", "TIME", "AMT", "EVID", "RATE","FOOD","DAY","BLQ"),
     numSkipOm        = 2,
     outputDir        = outDir,
-    finalModName     = "test_multi",
+    fremModName     = "test_multi",
     quiet            = TRUE
   )
   
@@ -97,7 +97,7 @@ test_that("createFREMmodel respects keepMinimalModel = TRUE", {
     cstrKeepCols    = c("ID", "TIME", "AMT", "EVID", "RATE","FOOD","DAY","BLQ"),
     numSkipOm        = 2,
     outputDir        = outDir,
-    finalModName     = "test_keep",
+    fremModName     = "test_keep",
     keepMinimalModel = TRUE, # Override default cleanup
     quiet            = TRUE
   )
@@ -168,7 +168,7 @@ test_that("createFREMmodel strictly enforces $DATA IGNORE statements across all 
     numSkipOm        = 0,
     cstrKeepCols     = c("ID", "TIME", "AMT", "DV", "BLQ"),
     outputDir        = out_dir,
-    finalModName     = "test_ignore_final",
+    fremModName     = "test_ignore_final",
     bRecodeDichotomous = TRUE,
     quiet            = TRUE
   )
