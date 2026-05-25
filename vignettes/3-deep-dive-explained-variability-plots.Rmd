@@ -1,5 +1,6 @@
 ---
-title: "3. Deep Dive: Explained Variability"
+title: "4. Deep Dive: Explained Variability"
+author: "PMXFrem Development Team"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{4. Deep Dive: Explained Variability}
@@ -57,7 +58,13 @@ dfData <- fread(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", p
 
 ## 2. Defining the Covariate Scenarios
 
-We use the package's internal `setupdfCovs()` function to dynamically construct the covariate isolation matrix. Because `FOOD` is a time-varying categorical covariate in the base dataset, we manually append it as an `additionalCov` and lock its scenario state to `1` (Fed).
+We use the package's internal `setupdfCovs()` function to dynamically construct the covariate isolation matrix. 
+
+**Important Conceptual Note:** There is a fundamental difference in how the `dfCovs` matrix is utilized here compared to Forest plots. In a Forest plot, `dfCovs` dictates the exact numerical covariate values to visualize (e.g., `WT = 115`). For explained variability, `dfCovs` acts purely as an indicator matrix **for the FREM covariates**. For these covariates, the actual numerical value assigned does not impact the calculation; setting it to anything other than the missing covariate indicator (typically `-99`) simply flags *which* covariates should be actively evaluated for that specific scenario row.
+
+**However, this indicator system only applies to FREM covariates.** For FFEM covariates (covariates outside the FREM matrix, such as `FOOD`), the parameter function will still evaluate the *actual numerical value* provided in `dfCovs`. 
+
+Because `FOOD` is a time-varying categorical FFEM covariate that our parameter function evaluates manually, we append it as an `additionalCov` and set its state to `1` (Fed) so our function logic executes correctly.
 
 ```{r cov_setup}
 # Robustly generate the covariate matrix
@@ -66,7 +73,7 @@ dfCovs <- setupdfCovs(
   additionalCovs = c("FOOD")
 )
 
-# Lock the time-varying covariate state
+# Lock the time-varying FFEM covariate state
 dfCovs$FOOD <- 1
 
 # Define the exact names corresponding to the rows in dfCovs
@@ -75,14 +82,14 @@ cstrCovariates <- c("All", names(dfCovs))
 
 ## 3. Defining the Parameter Function
 
-We must supply a function that mimics the structural relationships in the FFEM model. This function is conceptually identical to the one used for Forest plots, with one critical addition: it must handle the `etas` argument to allow the package to integrate over the structural variance.
+We must supply a function that mimics the structural relationships in the FFEM model. This function is conceptually identical to the one used for Forest plots, with one essential difference: it **must** include the `etas[]` argument to allow the package to integrate over the structural variance.
 
-**CRITICAL WARNING:** Crucially, even if your original dataset has zero missing values, you must build defensive fallback logic for missing covariates (e.g., `dfrow$FOOD != -99`). Why? Because the `dfCovs` matrix intentionally injects `-99` into rows to mathematically isolate specific covariate effects during the variance calculation.
+**Handling Missing Covariates:** You must build defensive fallback logic for missing covariates (e.g., `dfrow$FOOD != -99`) *only* for covariates outside the FREM part of the model (FFEM covariates). `PMXFrem` automatically handles missing data for the covariates included in the FREM covariance matrix. However, because the `dfCovs` matrix intentionally assigns `-99` to isolate covariate effects, your function will encounter missing data for FFEM covariates like `FOOD` and must know how to revert to the baseline fixed effect.
 
 ```{r define_function}
 paramFunctionExpVar <- function(basethetas, covthetas, dfrow, etas, ...) {
 
-  # Defensive fallback logic for isolating covariate effects
+  # Defensive fallback logic for isolating FFEM covariate effects
   FRELFOOD <- 1
   if (any(names(dfrow) == "FOOD") && dfrow$FOOD != -99 && dfrow$FOOD == 0) {
     FRELFOOD <- (1 + basethetas[7])
@@ -125,21 +132,23 @@ functionListName <- c("CL", "Frel", "AUC", "V", "MAT")
 
 ## 4. Computing Explained Variability
 
-The `getExplainedVar()` function computes the total and explained variability. [cite_start]The variability can be related to the total variability in the parameter ($TOTVAR$) or the total covariate variability in the parameter ($TOTCOVVAR$)[cite: 1341, 1342, 1343].
+The `getExplainedVar()` function computes the total and explained variability. The variability can be related to the total variability in the parameter ($TOTVAR$) or the total covariate variability in the parameter ($TOTCOVVAR$).
 
-The `dfres` output contains three critical metrics:
-* [cite_start]$TOTVAR$: The total variance, calculated using the Delta method (Type 0), EBEs (Type 1), or $\eta$ samples (Type 2, 3)[cite: 1346, 1347, 1348, 1349].
-* [cite_start]$TOTCOVVAR$: Calculated using all covariates with $\eta=0$, across all observed covariate values[cite: 1358, 1359, 1360].
-* [cite_start]$COVVAR$: Calculated with one (or a combination) of covariates, setting $\eta=0$[cite: 1374, 1375].
+The `dfres` output contains three main metrics:
+
+* $TOTVAR$: The total variance, calculated using the Delta method (Type 0), EBEs (Type 1), or $\eta$ samples (Type 2, 3).
+* $TOTCOVVAR$: Calculated using all covariates with $\eta=0$, across all observed covariate values.
+* $COVVAR$: Calculated with one (or a combination) of covariates, setting $\eta=0$.
 
 ### Calculation Methods (`type`)
-[cite_start]The methodology is dictated by the `type` argument, and each has distinct mathematical properties[cite: 1397]:
-* **Type 0 (Delta Method):** Based on omega calculations. [cite_start]It is fast and guarantees that the explained variability of all covariates will sum to exactly 100%[cite: 1398].
-* **Type 1 (EBEs):** Uses Empirical Bayes Estimates. [cite_start]It is subject to $\eta$ shrinkage but acknowledges individual information richness[cite: 1399].
-* **Type 2 ($\eta$ Samples):** Uses $\eta$ samples and integrates over observed FFEM covariates. [cite_start]Useful if the model contains non-FREM covariates[cite: 1400].
-* [cite_start]**Type 3 ($\eta$ Samples Optimized):** Similar to Type 2 but does not acknowledge FFEM covariates, making it significantly faster[cite: 1401].
+The methodology is dictated by the `type` argument, and each has distinct mathematical properties:
 
-[cite_start]*Note: With Types 1, 2, and 3, it is theoretically possible for a single covariate to explain more than all covariates combined (i.e., > 100%) due to parameter correlations and structural non-linearities[cite: 1402].*
+* **Type 0 (Delta Method):** Based on omega calculations. It is fast and guarantees that the explained variability of all covariates will sum to exactly 100%.
+* **Type 1 (EBEs):** Uses Empirical Bayes Estimates. It is subject to $\eta$ shrinkage but acknowledges individual information richness.
+* **Type 2 ($\eta$ Samples):** Uses $\eta$ samples and integrates over observed FFEM covariates. Useful if the model contains non-FREM covariates.
+* **Type 3 ($\eta$ Samples Optimized):** Similar to Type 2 but does not acknowledge FFEM covariates, making it significantly faster.
+
+*Note: With Types 1, 2, and 3, it is theoretically possible for a single covariate to explain more than all covariates combined (i.e., > 100%) due to parameter correlations and structural non-linearities.*
 
 ```{r compute_var}
 dfres <- getExplainedVar(
@@ -153,7 +162,7 @@ dfres <- getExplainedVar(
   cstrCovariates   = cstrCovariates,
   modDevDir        = modDevDir,
   modName          = runname,
-  ncores           = 1,         # Required sequential execution for CRAN
+  ncores           = 1,
   numETASamples    = 100,
   quiet            = TRUE,
   seed             = 123
