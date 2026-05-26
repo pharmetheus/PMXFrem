@@ -150,25 +150,26 @@ label_map <- c(
   "GENO2=0" = "Poor Metabolizer", "GENO2=1" = "Extensive Metabolizer"
 )
 
-# 2. Generate and map robust row labels directly to the results
+group_map <- c(
+  "AGE" = "Age", "ALT" = "ALT", "AST" = "AST", "BILI" = "Total Bilirubin", 
+  "BMI" = "BMI", "BSA" = "BSA", "CRCL" = "Creatinine Clearance", 
+  "ETHN" = "Ethnicity", "GENO2" = "Genotype", "HT" = "Height", 
+  "LBM" = "Lean Body Weight", "NCIL" = "NCI", "RACEL" = "Race", 
+  "SEX" = "Sex", "SMOK" = "Smoking Status", "WT" = "Weight"
+)
+
+# 2. Programmatically generate and map robust labels and groups directly to the results
 dfres_formatted <- generateCovNames(
   dfCovs, 
   dfres = dfres, 
   unit_map = unit_map, 
-  label_map = label_map
+  label_map = label_map,
+  group_map = group_map
 )
 
-# 3. Define group headers (y-axis facets)
-group_headers <- c(
-  "Age", "ALT", "AST", "Total Bilirubin", "BMI", "BSA", 
-  "Creatinine Clearance", "Ethnicity", "Genotype", "Height", 
-  "Lean Body Weight", "NCI", "Race", "Sex", "Smoking Status", "Weight"
-)
-
-# 4. Render Plot
-forestPlot(
+# 3. Render Plot
+PMXForest::forestPlot(
   dfres_formatted,
-  groupNameLabels = group_headers,
   tabTextSize = 14,
   strip_right_size = 11
 )
