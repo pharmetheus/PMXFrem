@@ -8,6 +8,7 @@ on:
   workflow_run:
     workflows:
       - "CD"
+      - "pkgdown"
     types:
       - "completed"
   release:
@@ -23,7 +24,13 @@ concurrency:
 jobs:
 
   sync-git:
-    if: endsWith(github.repository, '-private')
+    if: >
+      endsWith(github.repository, '-private') && 
+      (
+        github.event_name != 'workflow_run' || 
+        github.event.workflow_run.name == 'CD' || 
+        (github.event.workflow_run.name == 'pkgdown' && github.event.workflow_run.head_branch == 'main')
+      )
     runs-on: ubuntu-slim
 
     outputs:
@@ -86,7 +93,13 @@ jobs:
           git push --mirror
 
   trigger-pages-build:
-    if: endsWith(github.repository, '-private')
+    if: >
+      endsWith(github.repository, '-private') && 
+      (
+        github.event_name != 'workflow_run' || 
+        github.event.workflow_run.name == 'CD' || 
+        (github.event.workflow_run.name == 'pkgdown' && github.event.workflow_run.head_branch == 'main')
+      )
     needs:
       - sync-git
     runs-on: ubuntu-slim
@@ -125,7 +138,13 @@ jobs:
             }
 
   sync-releases:
-    if: endsWith(github.repository, '-private')
+    if: >
+      endsWith(github.repository, '-private') && 
+      (
+        github.event_name != 'workflow_run' || 
+        github.event.workflow_run.name == 'CD' || 
+        (github.event.workflow_run.name == 'pkgdown' && github.event.workflow_run.head_branch == 'main')
+      )
     needs:
       - sync-git
     runs-on: ubuntu-slim
