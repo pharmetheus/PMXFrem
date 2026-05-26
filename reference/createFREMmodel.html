@@ -77,7 +77,7 @@ cleans up all intermediate files.</p>
 <span>  <span class="va">covariates</span>,</span>
 <span>  <span class="va">numNonFREMThetas</span>,</span>
 <span>  outputDir <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  finalModName <span class="op">=</span> <span class="st">"frem_model"</span>,</span>
+<span>  fremModName <span class="op">=</span> <span class="st">"frem_model"</span>,</span>
 <span>  keepMinimalModel <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  catCovs <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  logtCovs <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -127,7 +127,7 @@ The first element is processed during Phase 1 (bootstrapping), and the remainder
 <dd><p>Character. Directory where the final model and data files will be saved. Defaults to <code>modDevDir</code> or current working directory.</p></dd>
 
 
-<dt>finalModName</dt>
+<dt>fremModName</dt>
 <dd><p>Character. The base name for the generated final model and data files (e.g., <code>"frem_model"</code>).</p></dd>
 
 
@@ -234,20 +234,19 @@ these subjects are retained and their covariates are included as observations.</
 <span class="r-in"><span>  logtCovs           <span class="op">=</span> <span class="st">"WT"</span>,</span></span>
 <span class="r-in"><span>  catCovs            <span class="op">=</span> <span class="va">catCovs</span>,         </span></span>
 <span class="r-in"><span>  outputDir          <span class="op">=</span> <span class="va">td</span>,</span></span>
-<span class="r-in"><span>  finalModName       <span class="op">=</span> <span class="st">"frem_final"</span>,</span></span>
+<span class="r-in"><span>  fremModName       <span class="op">=</span> <span class="st">"frem_final"</span>,</span></span>
 <span class="r-in"><span>  numNonFREMThetas   <span class="op">=</span> <span class="fl">7</span>,</span></span>
 <span class="r-in"><span>  numSkipOm          <span class="op">=</span> <span class="fl">2</span>,</span></span>
 <span class="r-in"><span>  cstrKeepCols       <span class="op">=</span> <span class="va">keep_cols</span>,</span></span>
 <span class="r-in"><span>  bRecodeDichotomous <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
 <span class="r-in"><span>  quiet              <span class="op">=</span> <span class="cn">TRUE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in createFREMData(strFFEMData = wideData, strFREMDataFileName = minimalDataPath,     strID = IDvar, cstrKeepCols = cstrKeepCols, cstrContCovs = if (!is_cat) firstCovariateName else NULL,     cstrCatCovs = if (is_cat) firstCovariateName else NULL, logtCovs = logtCovs,     bRecodeDichotomous = bRecodeDichotomous, allowNon01 = allowNon01,     keepDoseOnlySubjects = keepDoseOnlySubjects, quiet = quiet,     ...):</span> unused argument (finalModName = "frem_final")</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># The generated files are available in the temporary directory</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">generated_files</span><span class="op">$</span><span class="va">model</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in print(generated_files$model):</span> object 'generated_files' not found</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpoIw7Yh/frem_example_bcc495bf0ee91/frem_final.mod"</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">generated_files</span><span class="op">$</span><span class="va">data</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in print(generated_files$data):</span> object 'generated_files' not found</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpoIw7Yh/frem_example_bcc495bf0ee91/frem_final_data.csv"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#Clean up the temporary directory</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">td</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
