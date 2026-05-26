@@ -2,6 +2,9 @@ name: Sync Public repo
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
   workflow_run:
     workflows:
       - "CD"
