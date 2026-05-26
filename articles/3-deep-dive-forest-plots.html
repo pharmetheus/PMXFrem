@@ -208,22 +208,22 @@
 <span>  <span class="st">"GENO2=0"</span> <span class="op">=</span> <span class="st">"Poor Metabolizer"</span>, <span class="st">"GENO2=1"</span> <span class="op">=</span> <span class="st">"Extensive Metabolizer"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 2. Generate row labels</span></span>
-<span><span class="va">formatted_row_labels</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generateCovNames.html">generateCovNames</a></span><span class="op">(</span><span class="va">dfCovs</span>, unit_map <span class="op">=</span> <span class="va">unit_map</span>, label_map <span class="op">=</span> <span class="va">label_map</span><span class="op">)</span></span>
+<span><span class="co"># 2. Generate and map robust row labels directly to the results</span></span>
+<span><span class="va">dfres_formatted</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generateCovNames.html">generateCovNames</a></span><span class="op">(</span></span>
+<span>  <span class="va">dfCovs</span>, </span>
+<span>  dfres <span class="op">=</span> <span class="va">dfres</span>, </span>
+<span>  unit_map <span class="op">=</span> <span class="va">unit_map</span>, </span>
+<span>  label_map <span class="op">=</span> <span class="va">label_map</span></span>
+<span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 3. Apply labels to the dataset</span></span>
-<span><span class="va">dfres_formatted</span> <span class="op">&lt;-</span> <span class="va">dfres</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>COVNAME <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="va">formatted_row_labels</span>, each <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">PARAMETER</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, </span>
-<span>                          levels <span class="op">=</span> <span class="va">formatted_row_labels</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 4. Define group headers (y-axis facets)</span></span>
+<span><span class="co"># 3. Define group headers (y-axis facets)</span></span>
 <span><span class="va">group_headers</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>  <span class="st">"Age"</span>, <span class="st">"ALT"</span>, <span class="st">"AST"</span>, <span class="st">"Total Bilirubin"</span>, <span class="st">"BMI"</span>, <span class="st">"BSA"</span>, </span>
 <span>  <span class="st">"Creatinine Clearance"</span>, <span class="st">"Ethnicity"</span>, <span class="st">"Genotype"</span>, <span class="st">"Height"</span>, </span>
 <span>  <span class="st">"Lean Body Weight"</span>, <span class="st">"NCI"</span>, <span class="st">"Race"</span>, <span class="st">"Sex"</span>, <span class="st">"Smoking Status"</span>, <span class="st">"Weight"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 5. Render Plot</span></span>
+<span><span class="co"># 4. Render Plot</span></span>
 <span><span class="fu"><a href="https://rdrr.io/pkg/PMXForest/man/forestPlot.html" class="external-link">forestPlot</a></span><span class="op">(</span></span>
 <span>  <span class="va">dfres_formatted</span>,</span>
 <span>  groupNameLabels <span class="op">=</span> <span class="va">group_headers</span>,</span>
