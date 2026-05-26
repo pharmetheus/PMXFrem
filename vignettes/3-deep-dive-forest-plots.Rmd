@@ -150,22 +150,22 @@ label_map <- c(
   "GENO2=0" = "Poor Metabolizer", "GENO2=1" = "Extensive Metabolizer"
 )
 
-# 2. Generate row labels
-formatted_row_labels <- generateCovNames(dfCovs, unit_map = unit_map, label_map = label_map)
+# 2. Generate and map robust row labels directly to the results
+dfres_formatted <- generateCovNames(
+  dfCovs, 
+  dfres = dfres, 
+  unit_map = unit_map, 
+  label_map = label_map
+)
 
-# 3. Apply labels to the dataset
-dfres_formatted <- dfres %>% 
-  mutate(COVNAME = factor(rep(formatted_row_labels, each = length(unique(PARAMETER))), 
-                          levels = formatted_row_labels))
-
-# 4. Define group headers (y-axis facets)
+# 3. Define group headers (y-axis facets)
 group_headers <- c(
   "Age", "ALT", "AST", "Total Bilirubin", "BMI", "BSA", 
   "Creatinine Clearance", "Ethnicity", "Genotype", "Height", 
   "Lean Body Weight", "NCI", "Race", "Sex", "Smoking Status", "Weight"
 )
 
-# 5. Render Plot
+# 4. Render Plot
 forestPlot(
   dfres_formatted,
   groupNameLabels = group_headers,
