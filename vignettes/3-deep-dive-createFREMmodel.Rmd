@@ -115,8 +115,3 @@ cat(frem_mod, sep = "\n")
 ```
 
 You can now submit `run30_FREM.mod` directly to NONMEM for execution! 
-
-```{r cleanup, include=FALSE}
-# Clean up the temporary directory after the vignette finishes
-unlink(td, recursive = TRUE)
-```

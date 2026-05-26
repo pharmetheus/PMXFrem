@@ -12,7 +12,7 @@ createFREMmodel(
   covariates,
   numNonFREMThetas,
   outputDir = NULL,
-  finalModName = "frem_model",
+  fremModName = "frem_model",
   keepMinimalModel = FALSE,
   catCovs = NULL,
   logtCovs = NULL,
@@ -46,7 +46,7 @@ The first element is processed during Phase 1 (bootstrapping), and the remainder
 
 \item{outputDir}{Character. Directory where the final model and data files will be saved. Defaults to \code{modDevDir} or current working directory.}
 
-\item{finalModName}{Character. The base name for the generated final model and data files (e.g., \code{"frem_model"}).}
+\item{fremModName}{Character. The base name for the generated final model and data files (e.g., \code{"frem_model"}).}
 
 \item{keepMinimalModel}{Logical. Should the intermediate minimal model files (Phase 1 output) be preserved? Defaults to \code{FALSE}.}
 
@@ -121,7 +121,7 @@ generated_files <- createFREMmodel(
   logtCovs           = "WT",
   catCovs            = catCovs,         
   outputDir          = td,
-  finalModName       = "frem_final",
+  fremModName       = "frem_final",
   numNonFREMThetas   = 7,
   numSkipOm          = 2,
   cstrKeepCols       = keep_cols,
