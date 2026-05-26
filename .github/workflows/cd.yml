@@ -2,6 +2,8 @@ name: CD
 
 on:
   push:
+    branches:
+      - test-uqqasha
     tags:
       - 'v*'
 
@@ -104,121 +106,121 @@ jobs:
             sessionInfo.txt
           retention-days: 60
 
-  publish:
-    if: endsWith(github.repository, '-private')
-    runs-on: self-hosted
-    needs:
-      - build
+  # publish:
+  #   if: endsWith(github.repository, '-private')
+  #   runs-on: self-hosted
+  #   needs:
+  #     - build
 
-    permissions:
-      contents: write
-      actions: read
+  #   permissions:
+  #     contents: write
+  #     actions: read
 
-    environment: "development"
+  #   environment: "development"
 
-    env:
-      TARGET_BRANCH: ${{ github.event.repository.default_branch }}
+  #   env:
+  #     TARGET_BRANCH: ${{ github.event.repository.default_branch }}
 
-    steps:
-      - name: Add path for R and rspm
-        run: |
-          echo "/opt/R/4.2.2/bin" >> "$GITHUB_PATH"
-          echo "/usr/local/bin" >> "$GITHUB_PATH"
+  #   steps:
+  #     - name: Add path for R and rspm
+  #       run: |
+  #         echo "/opt/R/4.2.2/bin" >> "$GITHUB_PATH"
+  #         echo "/usr/local/bin" >> "$GITHUB_PATH"
 
-      - name: Checkout repositories
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
+  #     - name: Checkout repositories
+  #       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Ensure tag commit is on main
-        run: |
-          git fetch origin "$TARGET_BRANCH" --prune
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" "origin/$TARGET_BRANCH"; then
-            echo "❌ Tag commit is not reachable from origin/$TARGET_BRANCH"
-            exit 1
-          fi
-          echo "✅ Tag commit is on $TARGET_BRANCH"
+  #     - name: Ensure tag commit is on main
+  #       run: |
+  #         git fetch origin "$TARGET_BRANCH" --prune
+  #         if ! git merge-base --is-ancestor "$GITHUB_SHA" "origin/$TARGET_BRANCH"; then
+  #           echo "❌ Tag commit is not reachable from origin/$TARGET_BRANCH"
+  #           exit 1
+  #         fi
+  #         echo "✅ Tag commit is on $TARGET_BRANCH"
 
-      - name: Extract version from tag
-        shell: bash
-        run: |
-          set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
+  #     - name: Extract version from tag
+  #       shell: bash
+  #       run: |
+  #         set -euo pipefail
+  #         TAG="${GITHUB_REF_NAME}"
 
-          if [[ ! "$TAG" =~ ^v([0-9]+([.][0-9]+)*)$ ]]; then
-            echo "❌ Unsupported tag format: $TAG"
-            exit 1
-          fi
+  #         if [[ ! "$TAG" =~ ^v([0-9]+([.][0-9]+)*)$ ]]; then
+  #           echo "❌ Unsupported tag format: $TAG"
+  #           exit 1
+  #         fi
 
-          VER="${BASH_REMATCH[1]}"
-          PKG_NAME=$(Rscript -e 'cat(read.dcf("DESCRIPTION")[1,"Package"])')
-          echo "PKG_NAME=$PKG_NAME" >> "$GITHUB_ENV"
-          echo "PKG_VER=$VER" >> "$GITHUB_ENV"
-          echo "ENV=development" >> "$GITHUB_ENV"
-          echo "✅ Parsed version: $VER"
+  #         VER="${BASH_REMATCH[1]}"
+  #         PKG_NAME=$(Rscript -e 'cat(read.dcf("DESCRIPTION")[1,"Package"])')
+  #         echo "PKG_NAME=$PKG_NAME" >> "$GITHUB_ENV"
+  #         echo "PKG_VER=$VER" >> "$GITHUB_ENV"
+  #         echo "ENV=development" >> "$GITHUB_ENV"
+  #         echo "✅ Parsed version: $VER"
 
-      - name: Compare version from tag and DESCRIPTION
-        id: ver
-        shell: bash
-        run: |
-          TAG_VER="$PKG_VER"
-          DESC_VER=$(Rscript -e 'cat(read.dcf("DESCRIPTION")[1,"Version"])')
+  #     - name: Compare version from tag and DESCRIPTION
+  #       id: ver
+  #       shell: bash
+  #       run: |
+  #         TAG_VER="$PKG_VER"
+  #         DESC_VER=$(Rscript -e 'cat(read.dcf("DESCRIPTION")[1,"Version"])')
 
-          if [ "$TAG_VER" != "$DESC_VER" ]; then
-            echo "❌ Version mismatch: tag=$TAG_VER vs DESCRIPTION=$DESC_VER"
-            exit 1
-          fi
-          echo "✅ Version match: $TAG_VER"
+  #         if [ "$TAG_VER" != "$DESC_VER" ]; then
+  #           echo "❌ Version mismatch: tag=$TAG_VER vs DESCRIPTION=$DESC_VER"
+  #           exit 1
+  #         fi
+  #         echo "✅ Version match: $TAG_VER"
 
-      - name: Download build artifact for this commit
-        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
-        id: download-artifact
-        with:
-          artifact-ids: ${{ needs.build.outputs.build-artifact }}
-          path: dist
+  #     - name: Download build artifact for this commit
+  #       uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+  #       id: download-artifact
+  #       with:
+  #         artifact-ids: ${{ needs.build.outputs.build-artifact }}
+  #         path: dist
 
-      - name: Verify checksum & locate tarball
-        shell: bash
-        env:
-          DOWNLOAD_PATH: ${{ steps.download-artifact.outputs.download-path }}
-        run: |
-          cd "$DOWNLOAD_PATH"
-          if ! sha256sum -c SHA256SUMS; then
-            echo "❌ Checksum verification failed"
-            exit 1
-          fi
-          PKG=$(ls -t *.tar.gz | head -n1)
-          echo "PKG=$PKG" >> "$GITHUB_ENV"
-          echo "✅ Using tarball: $PKG"
+  #     - name: Verify checksum & locate tarball
+  #       shell: bash
+  #       env:
+  #         DOWNLOAD_PATH: ${{ steps.download-artifact.outputs.download-path }}
+  #       run: |
+  #         cd "$DOWNLOAD_PATH"
+  #         if ! sha256sum -c SHA256SUMS; then
+  #           echo "❌ Checksum verification failed"
+  #           exit 1
+  #         fi
+  #         PKG=$(ls -t *.tar.gz | head -n1)
+  #         echo "PKG=$PKG" >> "$GITHUB_ENV"
+  #         echo "✅ Using tarball: $PKG"
 
-      - name: Publish to PPM development repo
-        shell: bash
-        env:
-          PACKAGEMANAGER_ADDRESS: ${{ secrets.RSPM_ADDRESS }}
-          PACKAGEMANAGER_TOKEN: ${{ secrets.RSPM_TOKEN }}
-          PACKAGEMANAGER_SOURCE: ${{ vars.RSPM_SOURCE }}
-          DOWNLOAD_PATH: ${{ steps.download-artifact.outputs.download-path }}
-        run: |
-          cd "$DOWNLOAD_PATH"
-          echo "🚚 Publishing $PKG . . ."
-          rspm add --source="$PACKAGEMANAGER_SOURCE" --path="$PKG" --replace
-          echo "✅ Published $PKG"
+  #     - name: Publish to PPM development repo
+  #       shell: bash
+  #       env:
+  #         PACKAGEMANAGER_ADDRESS: ${{ secrets.RSPM_ADDRESS }}
+  #         PACKAGEMANAGER_TOKEN: ${{ secrets.RSPM_TOKEN }}
+  #         PACKAGEMANAGER_SOURCE: ${{ vars.RSPM_SOURCE }}
+  #         DOWNLOAD_PATH: ${{ steps.download-artifact.outputs.download-path }}
+  #       run: |
+  #         cd "$DOWNLOAD_PATH"
+  #         echo "🚚 Publishing $PKG . . ."
+  #         rspm add --source="$PACKAGEMANAGER_SOURCE" --path="$PKG" --replace
+  #         echo "✅ Published $PKG"
 
-      - name: Create GitHub Release
-        if: ${{ success() }}
-        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          prerelease: false
-          make_latest: true
-          body: |
-            Published to PPM: ${{ env.ENV }} repo
-            Commit: ${{ github.sha }}
-            Version: ${{ env.PKG_VER }}
-            Checksums in SHA256SUMS.
-          files: |
-            dist/${{ env.PKG }}
-            dist/SHA256SUMS
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Create GitHub Release
+  #       if: ${{ success() }}
+  #       uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+  #       with:
+  #         tag_name: ${{ github.ref_name }}
+  #         name: ${{ github.ref_name }}
+  #         prerelease: false
+  #         make_latest: true
+  #         body: |
+  #           Published to PPM: ${{ env.ENV }} repo
+  #           Commit: ${{ github.sha }}
+  #           Version: ${{ env.PKG_VER }}
+  #           Checksums in SHA256SUMS.
+  #         files: |
+  #           dist/${{ env.PKG }}
+  #           dist/SHA256SUMS
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
