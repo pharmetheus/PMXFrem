@@ -208,25 +208,26 @@
 <span>  <span class="st">"GENO2=0"</span> <span class="op">=</span> <span class="st">"Poor Metabolizer"</span>, <span class="st">"GENO2=1"</span> <span class="op">=</span> <span class="st">"Extensive Metabolizer"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 2. Generate and map robust row labels directly to the results</span></span>
+<span><span class="va">group_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  <span class="st">"AGE"</span> <span class="op">=</span> <span class="st">"Age"</span>, <span class="st">"ALT"</span> <span class="op">=</span> <span class="st">"ALT"</span>, <span class="st">"AST"</span> <span class="op">=</span> <span class="st">"AST"</span>, <span class="st">"BILI"</span> <span class="op">=</span> <span class="st">"Total Bilirubin"</span>, </span>
+<span>  <span class="st">"BMI"</span> <span class="op">=</span> <span class="st">"BMI"</span>, <span class="st">"BSA"</span> <span class="op">=</span> <span class="st">"BSA"</span>, <span class="st">"CRCL"</span> <span class="op">=</span> <span class="st">"Creatinine Clearance"</span>, </span>
+<span>  <span class="st">"ETHN"</span> <span class="op">=</span> <span class="st">"Ethnicity"</span>, <span class="st">"GENO2"</span> <span class="op">=</span> <span class="st">"Genotype"</span>, <span class="st">"HT"</span> <span class="op">=</span> <span class="st">"Height"</span>, </span>
+<span>  <span class="st">"LBM"</span> <span class="op">=</span> <span class="st">"Lean Body Weight"</span>, <span class="st">"NCIL"</span> <span class="op">=</span> <span class="st">"NCI"</span>, <span class="st">"RACEL"</span> <span class="op">=</span> <span class="st">"Race"</span>, </span>
+<span>  <span class="st">"SEX"</span> <span class="op">=</span> <span class="st">"Sex"</span>, <span class="st">"SMOK"</span> <span class="op">=</span> <span class="st">"Smoking Status"</span>, <span class="st">"WT"</span> <span class="op">=</span> <span class="st">"Weight"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 2. Programmatically generate and map robust labels and groups directly to the results</span></span>
 <span><span class="va">dfres_formatted</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generateCovNames.html">generateCovNames</a></span><span class="op">(</span></span>
 <span>  <span class="va">dfCovs</span>, </span>
 <span>  dfres <span class="op">=</span> <span class="va">dfres</span>, </span>
 <span>  unit_map <span class="op">=</span> <span class="va">unit_map</span>, </span>
-<span>  label_map <span class="op">=</span> <span class="va">label_map</span></span>
+<span>  label_map <span class="op">=</span> <span class="va">label_map</span>,</span>
+<span>  group_map <span class="op">=</span> <span class="va">group_map</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 3. Define group headers (y-axis facets)</span></span>
-<span><span class="va">group_headers</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  <span class="st">"Age"</span>, <span class="st">"ALT"</span>, <span class="st">"AST"</span>, <span class="st">"Total Bilirubin"</span>, <span class="st">"BMI"</span>, <span class="st">"BSA"</span>, </span>
-<span>  <span class="st">"Creatinine Clearance"</span>, <span class="st">"Ethnicity"</span>, <span class="st">"Genotype"</span>, <span class="st">"Height"</span>, </span>
-<span>  <span class="st">"Lean Body Weight"</span>, <span class="st">"NCI"</span>, <span class="st">"Race"</span>, <span class="st">"Sex"</span>, <span class="st">"Smoking Status"</span>, <span class="st">"Weight"</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 4. Render Plot</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/PMXForest/man/forestPlot.html" class="external-link">forestPlot</a></span><span class="op">(</span></span>
+<span><span class="co"># 3. Render Plot</span></span>
+<span><span class="fu">PMXForest</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/PMXForest/man/forestPlot.html" class="external-link">forestPlot</a></span><span class="op">(</span></span>
 <span>  <span class="va">dfres_formatted</span>,</span>
-<span>  groupNameLabels <span class="op">=</span> <span class="va">group_headers</span>,</span>
 <span>  tabTextSize <span class="op">=</span> <span class="fl">14</span>,</span>
 <span>  strip_right_size <span class="op">=</span> <span class="fl">11</span></span>
 <span><span class="op">)</span></span></code></pre></div>

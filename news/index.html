@@ -53,7 +53,7 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.0.0" id="pmxfrem-2-0-0">PMXFrem 2.0.0<a class="anchor" aria-label="anchor" href="#pmxfrem-2-0-0"></a></h2>
 <div class="section level3">
-<h3 id="new-features-2-0-0">✨ New Features<a class="anchor" aria-label="anchor" href="#new-features-2-0-0"></a></h3>
+<h3 id="new-features-2-0-0">New Features<a class="anchor" aria-label="anchor" href="#new-features-2-0-0"></a></h3>
 <ul><li>
 <strong>Create FREM models:</strong> Added <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code>, a robust function for FREM model generation that can replace PsNs frem command.</li>
 <li>Added <code>keepDoseOnlySubjects</code> toggle across the pipeline to allow retention of subjects without PK observations (defaults to <code>FALSE</code> for legacy compatibility).</li>
@@ -73,7 +73,7 @@
 <strong>New Vignettes:</strong> Added Tier 1 (<code>quick-start.Rmd</code>) and Tier 2 (<code>walk-through.Rmd</code>) workflows. Deep-dive vignettes for <code>createFREMmodel</code>, standard diagnostics, forest plots, explained variability plots and <code>updateFREMmodel</code>.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="architecture-performance-2-0-0">🚀 Architecture &amp; Performance<a class="anchor" aria-label="anchor" href="#architecture-performance-2-0-0"></a></h3>
+<h3 id="architecture-performance-2-0-0">Architecture &amp; Performance<a class="anchor" aria-label="anchor" href="#architecture-performance-2-0-0"></a></h3>
 <ul><li>
 <strong>Modularized Variance Engines:</strong> The monolithic <code>getExplainedVar.R</code> script has been completely decoupled. The Delta Rule approximation (<code>type=0</code>) and empirical variance evaluations (<code>type=1,2,3</code>) are now isolated into pure, standalone helper functions within <code>R/utils-getExplainedVar.R</code>.</li>
 <li>
@@ -82,7 +82,7 @@
 <strong>Removed Regex AST Hacks:</strong> Eliminated the computationally expensive and brittle <code>jxrtp47</code> string replacement loop. FFEM expressions are now natively and securely evaluated using isolated environment scoping (<code>eval(..., envir = list(data = datatmp))</code>).</li>
 </ul></div>
 <div class="section level3">
-<h3 id="deprecations-guardrails-2-0-0">🚧 Deprecations &amp; Guardrails<a class="anchor" aria-label="anchor" href="#deprecations-guardrails-2-0-0"></a></h3>
+<h3 id="deprecations-guardrails-2-0-0">Deprecations &amp; Guardrails<a class="anchor" aria-label="anchor" href="#deprecations-guardrails-2-0-0"></a></h3>
 <ul><li>
 <strong>Stable Dataset Sorting:</strong> Output datasets are now automatically sorted using a stable index (<code>ORIG_ROW_IDX</code>) and <code>FREMTYPE</code> to protect intra-subject sequences. The <code>cstrSortCols</code> argument in <code>updateFREMmodel</code> is deprecated and will be safely ignored with a warning.</li>
 <li>
@@ -91,7 +91,7 @@
 <strong>API Cleanup:</strong> Internal pipeline functions (e.g., <code>augmentFremData</code>, <code>prepareAndValidateData</code>) have been moved to the internal namespace to declutter the user-facing API.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="bug-fixes-2-0-0">🐛 Bug Fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-2-0-0"></a></h3>
+<h3 id="bug-fixes-2-0-0">Bug Fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-2-0-0"></a></h3>
 <ul><li>
 <strong>Covariate Cross-Contamination (<code>TOTCOVVAR</code> Anomaly):</strong> Fixed a critical regex bug (<code>length(grepl(...))</code>) in the missing data mapping function that caused covariates with overlapping substrings (e.g., <code>AGE</code> and <code>PAGE</code>) to be incorrectly overwritten with <code>-99</code>. This resolves an anomaly where <code>TOTCOVVAR</code> was artificially suppressed below <code>COVVAR</code> due to valid data being silently dropped.</li>
 <li>
@@ -112,7 +112,7 @@
 <strong>Exact List Extraction:</strong> Replaced bracket subsetting with <code>[[cov]][1]</code> to fix vulnerability in dummy column mapping.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="chores-documentation-2-0-0">🧹 Chores &amp; Documentation<a class="anchor" aria-label="anchor" href="#chores-documentation-2-0-0"></a></h3>
+<h3 id="chores-documentation-2-0-0">Chores &amp; Documentation<a class="anchor" aria-label="anchor" href="#chores-documentation-2-0-0"></a></h3>
 <ul><li>
 <strong>Deprecations:</strong> Deprecated <code>cstrSortCols</code> in <code><a href="../reference/updateFREMmodel.html">updateFREMmodel()</a></code> (sorting is now native to PMXFrem v2).</li>
 <li>
