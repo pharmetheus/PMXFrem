@@ -28,7 +28,7 @@ relies on the covariate names added by PsN in the FREM code.
 }
 \examples{
 
-covList <- getCovNames(modFile = system.file("extData/SimNeb/run31.mod", package = "PMXFrem"))
+covList <- getCovNames(modFile = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"))
 
 }
 \seealso{

@@ -28,7 +28,7 @@ from the last TABLE.
 \examples{
 
 ## Read the complete information from the last TABLE in an .ext file.
-extFile <- system.file("extData/SimNeb/run30.ext", package = "PMXFrem")
+extFile <- system.file("extdata/SimNeb/run30.ext", package = "PMXFrem")
 dfExt <- getExt(extFile = extFile)
 
 ## Extract the final parameter estimates

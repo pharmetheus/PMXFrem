@@ -45,7 +45,7 @@ used.
 modDevDir can not be NULL.
 }
 \examples{
-getFileNames(runno = 30, modDevDir = system.file("extData/SimNeb/", package = "PMXFrem"))
+getFileNames(runno = 30, modDevDir = system.file("extdata/SimNeb/", package = "PMXFrem"))
 
 }
 \seealso{

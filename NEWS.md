@@ -20,6 +20,7 @@
 * **Stable Dataset Sorting:** Output datasets are now automatically sorted using a stable index (`ORIG_ROW_IDX`) and `FREMTYPE` to protect intra-subject sequences. The `cstrSortCols` argument in `updateFREMmodel` is deprecated and will be safely ignored with a warning.
 * **Strict Covariate Validation:** To ensure data hygiene, dichotomous covariates coded as `1/2` will now trigger a validation error by default. Legacy PsN compatibility can be maintained by explicitly setting `allowNon01 = TRUE` or `bRecodeDichotomous = TRUE`.
 * **API Cleanup:** Internal pipeline functions (e.g., `augmentFremData`, `prepareAndValidateData`) have been moved to the internal namespace to declutter the user-facing API.
+* renames `setypdfCovs()` to `setupDfCovsEV()`
 
 ## Bug Fixes
 * **Covariate Cross-Contamination (`TOTCOVVAR` Anomaly):** Fixed a critical regex bug (`length(grepl(...))`) in the missing data mapping function that caused covariates with overlapping substrings (e.g., `AGE` and `PAGE`) to be incorrectly overwritten with `-99`. This resolves an anomaly where `TOTCOVVAR` was artificially suppressed below `COVVAR` due to valid data being silently dropped.

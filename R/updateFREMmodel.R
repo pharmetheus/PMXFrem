@@ -128,10 +128,10 @@
 #' # Load the original data as data frames
 #' frem_df <- as.data.frame(data.table::fread(
 #'   system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem")
-#' ))
+#' )) %>% rename(LNDV=ODV)
 #' ffem_df <- as.data.frame(data.table::fread(
 #'   system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
-#' ))
+#' )) 
 #' 
 #' # Simulate new individuals by taking 50 rows and giving them new IDs
 #' ffem_new_ids <- ffem_df[1:50, ]

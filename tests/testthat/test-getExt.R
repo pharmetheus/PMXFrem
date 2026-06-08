@@ -1,7 +1,7 @@
 test_that("getExt works with real data file", {
   # Keep the original test to ensure no regressions
-  extData <- getExt(system.file("extdata","SimNeb/run30.ext",package="PMXFrem"))
-  expect_s3_class(extData, "data.frame")
+  extdata <- getExt(system.file("extdata","SimNeb/run30.ext",package="PMXFrem"))
+  expect_s3_class(extdata, "data.frame")
 })
 
 test_that("getExt handles all logic branches", {

@@ -52,7 +52,7 @@ effectively imputing the missing NCIL with the lowest level of the NCIL
 covariate.
 }
 \examples{
-\donttest{
+library(dplyr)
 
 # Load the base dataset
 dfFFEM <- read.csv(
@@ -72,7 +72,6 @@ dfFFEM_standard <- addFREMcovariates(dfFFEM, covariates = "RACEL")
 ## Example 3: Add specific covariates AND include the reference category
 # This will generate RACEL_3, RACEL_2, AND RACEL_1.
 dfFFEM_full <- addFREMcovariates(dfFFEM, covariates = "RACEL", includeReference = TRUE)
-}
 
 }
 \seealso{

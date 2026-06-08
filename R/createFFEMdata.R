@@ -63,6 +63,7 @@
 #' @export
 #'
 #' @examples
+#' library(dplyr)
 #'
 #' data <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
 #'   filter(BLQ != 1)

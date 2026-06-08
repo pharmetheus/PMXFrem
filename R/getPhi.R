@@ -21,7 +21,7 @@
 #'
 #' @examples
 #' ## Read the complete information from the last TABLE in a .phi file.
-#' phiFile <- system.file("extData/SimNeb/run30.phi", package = "PMXFrem")
+#' phiFile <- system.file("extdata/SimNeb/run30.phi", package = "PMXFrem")
 #' dfPhi <- getPhi(phiFile = phiFile)
 #'
 #' @family NONMEM Parsers

@@ -53,7 +53,7 @@
 #'   filter(BLQ == 0) %>%
 #'   distinct(ID,.keep_all = TRUE)
 #'
-#' dfCovs <- setupdfCovs(modFile)
+#' dfCovs <- setupDfCovsEV(modFile)
 #'
 #' cstrCovariates <- c("All",names(dfCovs))
 #'

@@ -135,7 +135,7 @@ Finally, we calculate how much variability in our parameters is explained by the
 ```{r explain_var}
 
 # 1. Setup the covariate matrix with actual covariate names
-dfCovsEV <- setupdfCovs(mod_path, fremCovs = cov_names$orgCovNames)
+dfCovsEV <- setupDfCovsEV(mod_path, fremCovs = cov_names$orgCovNames)
 
 # 1. Define the parameter function including ETAs for variability
 funcList_var <- list(

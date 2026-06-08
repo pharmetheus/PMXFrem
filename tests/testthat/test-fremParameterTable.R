@@ -154,6 +154,8 @@ test_that("fremParameterTable works for standard outputs", {
 
 test_that("fremParameterTable orchestrates unified base and coefficient tables", {
   
+  modDevDir        <- system.file("extdata/SimNeb/",package = "PMXFrem")
+  
   res_full <- fremParameterTable(
     runno            = 31,
     modDevDir        = modDevDir,

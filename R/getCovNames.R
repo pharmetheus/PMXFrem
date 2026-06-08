@@ -18,7 +18,7 @@
 #'
 #' @examples
 #'
-#' covList <- getCovNames(modFile = system.file("extData/SimNeb/run31.mod", package = "PMXFrem"))
+#' covList <- getCovNames(modFile = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"))
 #'
 #' @family NONMEM Parsers
 #' @concept nonmem_parsers
