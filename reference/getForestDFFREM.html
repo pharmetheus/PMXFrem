@@ -234,7 +234,11 @@ covariate combinations:</p>
 <span class="r-in"><span>  <span class="va">bsFile</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">modDevDir</span>, <span class="st">"bs31.dir/raw_results_run31.csv"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  </span></span>
 <span class="r-in"><span>  <span class="co"># 2. Setup Covariates</span></span></span>
-<span class="r-in"><span>  <span class="va">dfCovs</span> <span class="op">&lt;-</span> <span class="fu"><a href="setupdfCovs.html">setupdfCovs</a></span><span class="op">(</span><span class="va">modFile</span>, fremCovs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AGE"</span>, <span class="st">"SEX"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">dfCovs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    COVARIATEGROUPS <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AGE"</span>, <span class="st">"AGE"</span>, <span class="st">"SEX"</span>, <span class="st">"SEX"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    AGE <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">30</span>, <span class="fl">60</span>, <span class="op">-</span><span class="fl">99</span>, <span class="op">-</span><span class="fl">99</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    SEX <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">99</span>, <span class="op">-</span><span class="fl">99</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span>  </span></span>
 <span class="r-in"><span>  <span class="co"># 3. Define a simple parameter function</span></span></span>
 <span class="r-in"><span>  <span class="va">paramFunction</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">basethetas</span>, <span class="va">covthetas</span>, <span class="va">dfrow</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span></span>
@@ -259,29 +263,30 @@ covariate combinations:</p>
 <span class="r-in"><span>  </span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">dfresFREM</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   AGE SEX  WT  HT LBWT BSA AST ALT BILI CRCL BMI RACEL_3 RACEL_2 NCIL_2 NCIL_1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1   1   1 -99 -99  -99 -99 -99 -99  -99  -99 -99     -99     -99    -99    -99</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2   1 -99 -99 -99  -99 -99 -99 -99  -99  -99 -99     -99     -99    -99    -99</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 -99   1 -99 -99  -99 -99 -99 -99  -99  -99 -99     -99     -99    -99    -99</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   GENO2 ETHNIC SMOK GROUP GROUPNAME COVNUM      COVNAME PARAMETER REFFUNC</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1   -99    -99  -99     1         1      1 AGE=1, SEX=1        CL       1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2   -99    -99  -99     2         2      2        AGE=1        CL       1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3   -99    -99  -99     3         3      3        SEX=1        CL       1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   REFFINAL     POINT POINT_NOVAR_REL_REFFUNC POINT_REL_REFFUNC</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1        1 0.8424136               0.8424136         0.8424136</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2        1 0.8426730               0.8426730         0.8426730</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3        1 0.9979897               0.9979897         0.9979897</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   POINT_REL_REFFINAL COVEFF        Q1 Q1_REL_REFFUNC Q1_REL_REFFINAL        Q2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1          0.8424136   TRUE 0.7721860      0.7721860       0.7721860 0.9100799</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2          0.8426730   TRUE 0.7683576      0.7683576       0.7683576 0.9067980</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3          0.9979897   TRUE 0.9805936      0.9805936       0.9805936 1.0129876</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Q2_REL_REFFUNC Q2_REL_REFFINAL Q1_NOVAR_REL_REFFUNC Q2_NOVAR_REL_REFFUNC</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      0.9100799       0.9100799            0.7721860            0.9100799</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      0.9067980       0.9067980            0.7683576            0.9067980</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3      1.0129876       1.0129876            0.9805936            1.0129876</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   REFROW</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1     NO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2     NO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3     NO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  30 -99 -99 -99  -99 -99 -99 -99  -99  -99 -99     -99     -99    -99    -99</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  60 -99 -99 -99  -99 -99 -99 -99  -99  -99 -99     -99     -99    -99    -99</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 -99   0 -99 -99  -99 -99 -99 -99  -99  -99 -99     -99     -99    -99    -99</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 -99   1 -99 -99  -99 -99 -99 -99  -99  -99 -99     -99     -99    -99    -99</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   GENO2 ETHNIC SMOK GROUP GROUPNAME COVNUM COVNAME PARAMETER REFFUNC REFFINAL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1   -99    -99  -99     1       AGE      1  AGE=30        CL       1        1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2   -99    -99  -99     1       AGE      2  AGE=60        CL       1        1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3   -99    -99  -99     2       SEX      3   SEX=0        CL       1        1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4   -99    -99  -99     2       SEX      4   SEX=1        CL       1        1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       POINT POINT_NOVAR_REL_REFFUNC POINT_REL_REFFUNC POINT_REL_REFFINAL COVEFF</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.9456000               0.9456000         0.9456000          0.9456000   TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 1.0670830               1.0670830         1.0670830          1.0670830   TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 0.9935260               0.9935260         0.9935260          0.9935260   TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 0.9979897               0.9979897         0.9979897          0.9979897   TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          Q1 Q1_REL_REFFUNC Q1_REL_REFFINAL        Q2 Q2_REL_REFFUNC</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.9188339      0.9188339       0.9188339 0.9692244      0.9692244</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 1.0373770      1.0373770       1.0373770 1.1072571      1.1072571</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 0.9379012      0.9379012       0.9379012 1.0435611      1.0435611</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 0.9805936      0.9805936       0.9805936 1.0129876      1.0129876</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Q2_REL_REFFINAL Q1_NOVAR_REL_REFFUNC Q2_NOVAR_REL_REFFUNC REFROW</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1       0.9692244            0.9188339            0.9692244     NO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2       1.1072571            1.0373770            1.1072571     NO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3       1.0435611            0.9379012            1.0435611     NO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4       1.0129876            0.9805936            1.0129876     NO</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

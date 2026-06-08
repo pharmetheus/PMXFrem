@@ -123,13 +123,13 @@
 <div class="section level2">
 <h2 id="defining-the-covariate-scenarios">2. Defining the Covariate Scenarios<a class="anchor" aria-label="anchor" href="#defining-the-covariate-scenarios"></a>
 </h2>
-<p>We use the package’s internal <code><a href="../reference/setupdfCovs.html">setupdfCovs()</a></code> function to dynamically construct the covariate isolation matrix.</p>
+<p>We use the package’s internal <code><a href="../reference/setupDfCovsEV.html">setupDfCovsEV()</a></code> function to dynamically construct the covariate isolation matrix.</p>
 <p><strong>Important Conceptual Note:</strong> There is a fundamental difference in how the <code>dfCovs</code> matrix is utilized here compared to Forest plots. In a Forest plot, <code>dfCovs</code> dictates the exact numerical covariate values to visualize (e.g., <code>WT = 115</code>). For explained variability, <code>dfCovs</code> acts purely as an indicator matrix <strong>for the FREM covariates</strong>. For these covariates, the actual numerical value assigned does not impact the calculation; setting it to anything other than the missing covariate indicator (typically <code>-99</code>) simply flags <em>which</em> covariates should be actively evaluated for that specific scenario row.</p>
 <p><strong>However, this indicator system only applies to FREM covariates.</strong> For FFEM covariates (covariates outside the FREM matrix, such as <code>FOOD</code>), the parameter function will still evaluate the <em>actual numerical value</em> provided in <code>dfCovs</code>.</p>
 <p>Because <code>FOOD</code> is a time-varying categorical FFEM covariate that our parameter function evaluates manually, we append it as an <code>additionalCov</code> and set its state to <code>1</code> (Fed) so our function logic executes correctly.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Robustly generate the covariate matrix</span></span>
-<span><span class="va">dfCovs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/setupdfCovs.html">setupdfCovs</a></span><span class="op">(</span></span>
+<span><span class="va">dfCovs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/setupDfCovsEV.html">setupDfCovsEV</a></span><span class="op">(</span></span>
 <span>  modFileName <span class="op">=</span> <span class="va">fremFiles</span><span class="op">$</span><span class="va">mod</span>, </span>
 <span>  additionalCovs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FOOD"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>

@@ -361,10 +361,10 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-in"><span><span class="co"># Load the original data as data frames</span></span></span>
 <span class="r-in"><span><span class="va">frem_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fread.html" class="external-link">fread</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/frem_dataset.dta"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span>LNDV<span class="op">=</span><span class="va">ODV</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ffem_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fread.html" class="external-link">fread</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span><span class="op">)</span> </span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Simulate new individuals by taking 50 rows and giving them new IDs</span></span></span>
 <span class="r-in"><span><span class="va">ffem_new_ids</span> <span class="op">&lt;-</span> <span class="va">ffem_df</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">50</span>, <span class="op">]</span></span></span>
@@ -388,11 +388,36 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> If this filter is used for anything else than managing the header line, you will have to pre-filter the data or use IGNORE=(list).</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Variables already in FREM model (n=16): AGE ALT AST BILI BMI BSA CRCL ETHNIC GENO2 HT LBWT NCIL RACEL SEX SMOK WT"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Found 4 individuals that should be added to the FREM dataset"</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in augmentFremData(dfFREM, dfFFEM, covList, addedList, covnames,     cstrDV, strID, 100, cstrSetToZero, quiet):</span> Variables not found in FFEM dataset: ODV; please add column(s) and try again</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 50 observations (DV) from 4 individuals as fremtype 0"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 4 continuous covariate values (WT) from 4 individuals as fremtype 100"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 4 continuous covariate values (HT) from 4 individuals as fremtype 200"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 4 continuous covariate values (LBWT) from 4 individuals as fremtype 300"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 4 continuous covariate values (BSA) from 4 individuals as fremtype 400"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 3 continuous covariate values (AGE) from 3 individuals as fremtype 500"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 3 continuous covariate values (AST) from 3 individuals as fremtype 600"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 4 continuous covariate values (ALT) from 4 individuals as fremtype 700"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 3 continuous covariate values (BILI) from 3 individuals as fremtype 800"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 4 continuous covariate values (CRCL) from 4 individuals as fremtype 900"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 4 continuous covariate values (BMI) from 4 individuals as fremtype 1000"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 4 continuous covariate values (SEX) from 4 individuals as fremtype 1100"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 4 categorical covariate values (RACEL_3) from 4 individuals as fremtype 1200"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 4 categorical covariate values (RACEL_2) from 4 individuals as fremtype 1300"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 4 categorical covariate values (NCIL_2) from 4 individuals as fremtype 1400"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 4 categorical covariate values (NCIL_1) from 4 individuals as fremtype 1500"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 2 continuous covariate values (GENO2) from 2 individuals as fremtype 1600"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "No observed covariate values for ETHNIC (fremtype=1700); not adding any covariate values!"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 4 continuous covariate values (SMOK) from 4 individuals as fremtype 1800"</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Data integrity validation passed: The FREM dataset perfectly mirrors the base dataset.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># The returned data frame now contains the new IDs</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">data</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in tail(result$data):</span> object 'result' not found</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        ID TIME AMT     DV EVID RATE FREMTYPE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 45541 989    6   0 49.560    0    0        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 45542 989    8   0 25.143    0    0        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 45543 989   12   0 21.963    0    0        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 45544 989   16   0 16.067    0    0        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 45545 989   24   0  7.048    0    0        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 45546 989   36   0  1.901    0    0        0</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">## Example 4: Only Update Initial Estimates from an .ext file</span></span></span>
 <span class="r-in"><span><span class="va">td</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span></span>
