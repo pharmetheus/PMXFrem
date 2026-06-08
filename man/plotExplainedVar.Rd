@@ -81,7 +81,7 @@ dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"
   filter(BLQ == 0) \%>\%
   distinct(ID,.keep_all = TRUE)
 
-dfCovs <- setupdfCovs(modFile)
+dfCovs <- setupDfCovsEV(modFile)
 
 cstrCovariates <- c("All",names(dfCovs))
 

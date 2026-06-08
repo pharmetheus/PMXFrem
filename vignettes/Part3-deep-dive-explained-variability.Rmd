@@ -58,7 +58,7 @@ dfData <- fread(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", p
 
 ## 2. Defining the Covariate Scenarios
 
-We use the package's internal `setupdfCovs()` function to dynamically construct the covariate isolation matrix. 
+We use the package's internal `setupDfCovsEV()` function to dynamically construct the covariate isolation matrix. 
 
 **Important Conceptual Note:** There is a fundamental difference in how the `dfCovs` matrix is utilized here compared to Forest plots. In a Forest plot, `dfCovs` dictates the exact numerical covariate values to visualize (e.g., `WT = 115`). For explained variability, `dfCovs` acts purely as an indicator matrix **for the FREM covariates**. For these covariates, the actual numerical value assigned does not impact the calculation; setting it to anything other than the missing covariate indicator (typically `-99`) simply flags *which* covariates should be actively evaluated for that specific scenario row.
 
@@ -68,7 +68,7 @@ Because `FOOD` is a time-varying categorical FFEM covariate that our parameter f
 
 ```{r cov_setup}
 # Robustly generate the covariate matrix
-dfCovs <- setupdfCovs(
+dfCovs <- setupDfCovsEV(
   modFileName = fremFiles$mod, 
   additionalCovs = c("FOOD")
 )
