@@ -26,7 +26,7 @@
 #' @export
 #'
 #' @examples
-#' getFileNames(runno = 30, modDevDir = system.file("extData/SimNeb/", package = "PMXFrem"))
+#' getFileNames(runno = 30, modDevDir = system.file("extdata/SimNeb/", package = "PMXFrem"))
 #'
 #' @family NONMEM Parsers
 #' @concept nonmem_parsers

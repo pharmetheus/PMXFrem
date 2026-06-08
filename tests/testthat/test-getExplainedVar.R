@@ -17,7 +17,7 @@ test_that("getExplainedVar works on main paths", {
     dplyr::filter(BLQ == 0) %>%
     dplyr::distinct(ID,.keep_all = T)
 
-  dfCovs <- setupdfCovs(modFile)
+  dfCovs <- setupDfCovsEV(modFile)
 
   cstrCovariates <- c("All",names(dfCovs))
 
@@ -182,7 +182,7 @@ test_that("getExplainedVar input checks and edge cases", {
     dplyr::filter(BLQ == 0) %>%
     dplyr::distinct(ID,.keep_all = T)
 
-  dfCovs <- setupdfCovs(modFile)
+  dfCovs <- setupDfCovsEV(modFile)
 
   # Test error: type > 0 but data is missing
   expect_error(
@@ -243,7 +243,7 @@ modFile   <- file.path(modDevDir, paste0("run", fremRunno, ".mod"))
 dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
   filter(BLQ == 0)
 
-dfCovs <- setupdfCovs(modFile)
+dfCovs <- setupDfCovsEV(modFile)
 
 # Minimal function to bypass complex math during logic testing
 dummyFunc <- list(function(basethetas, covthetas, dfrow, etas, ...) { 1 })
@@ -314,7 +314,7 @@ test_that("getExplainedVar handles data.table inputs robustly without NSE scopin
   mock_dt   <- mock_dt[mock_dt$BLQ == 0, ]
   
   # Setup valid covariates and functions
-  dfCovsEV  <- setupdfCovs(mod_path)
+  dfCovsEV  <- setupDfCovsEV(mod_path)
   
   funcList_var <- list(
     function(basethetas, covthetas, dfrow, etas, ...) { 

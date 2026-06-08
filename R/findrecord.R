@@ -13,7 +13,7 @@
 #'
 #' @examples
 #'
-#' modFile <- system.file("extData/SimNeb/run30.mod", package = "PMXFrem")
+#' modFile <- system.file("extdata/SimNeb/run30.mod", package = "PMXFrem")
 #'
 #' ## Return the $PROBLEM record
 #' tmp <- findrecord(modFile, record = "\\$PROBLEM", quiet = TRUE)

@@ -32,6 +32,21 @@
 #' @export
 #' @family Diagnostics & Plotting
 #' @concept diagnostics
+#' 
+#' @examples
+#' # Define the directory containing the model files
+#' modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+#' 
+#' # Calculate shrinkage directly from the FFEM model files (e.g., run 31)
+#' shrinkage_res <- calcFremShrinkage(
+#'   runno = "31max0",
+#'   modDevDir = modDevDir,
+#'   dropUninformative = TRUE,
+#'   quiet = TRUE
+#' )
+#' 
+#' print(shrinkage_res)
+#' 
 calcFremShrinkage <- function(runno = NULL, modName = NULL, modDevDir = NULL, 
                               dropUninformative = TRUE, quiet = TRUE) {
   

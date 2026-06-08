@@ -47,6 +47,8 @@
 #' 
 #'if (requireNamespace("kableExtra", quietly = TRUE)) {
 #' library(kableExtra)
+#' library(dplyr)
+#' 
 #' set.seed(123)
 #' runno            <- 31
 #' modName          <- "run31"

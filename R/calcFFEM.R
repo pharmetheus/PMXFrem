@@ -69,7 +69,8 @@
 #' @export
 #'
 #' @examples
-#'
+# 'library(dplyr)
+
 #' extFile         <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
 #' dfExt           <- getExt(extFile = extFile)
 #' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE)

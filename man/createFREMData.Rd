@@ -104,7 +104,7 @@ tmp10 <- createFREMData(
 }
 \seealso{
 Other Data Assembly: 
-\code{\link{setupdfCovs}()}
+\code{\link{setupDfCovsEV}()}
 }
 \concept{Data Assembly}
 \concept{data_assembly}

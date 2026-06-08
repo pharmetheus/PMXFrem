@@ -46,6 +46,21 @@ It accurately replicates NONMEM's internal shrinkage mathematics, including the
 use of population variance (dividing by N rather than N-1) and the exact derivation
 of EBV SD shrinkage from EBV Variance shrinkage.
 }
+\examples{
+# Define the directory containing the model files
+modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+
+# Calculate shrinkage directly from the FFEM model files (e.g., run 31)
+shrinkage_res <- calcFremShrinkage(
+  runno = "31max0",
+  modDevDir = modDevDir,
+  dropUninformative = TRUE,
+  quiet = TRUE
+)
+
+print(shrinkage_res)
+
+}
 \seealso{
 Other Diagnostics & Plotting: 
 \code{\link{calcEtas}()},

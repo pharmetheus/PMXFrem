@@ -19,14 +19,14 @@
 #' modFile <- system.file("extdata", "SimNeb", "run31.mod",package = "PMXFrem")
 #' 
 #' # Use a covariates in the FREM model file
-#' setupdfCovs(modFile)
+#' setupDfCovsEV(modFile)
 #' 
 #' # Use only a subset of the covariates in the FREM specification and add an additional covariate.
-#' setupdfCovs(modFile, fremCovs = c("AGE", "SEX"), additionalCovs = "FORM")
+#' setupDfCovsEV(modFile, fremCovs = c("AGE", "SEX"), additionalCovs = "FORM")
 #' 
 #' @family Data Assembly
 #' @concept data_assembly
-setupdfCovs <- function(modFileName,
+setupDfCovsEV <- function(modFileName,
                         fremCovs       = getCovNames(modFile = modFileName)$orgCovNames,
                         additionalCovs = NULL) {
   ## Get the covariates from the model

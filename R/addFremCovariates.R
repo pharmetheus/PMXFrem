@@ -30,7 +30,7 @@
 #' @return A data.frame with the new binarised covariate columns.
 #' 
 #' @examples
-#' \donttest{
+#' library(dplyr)
 #'
 #' # Load the base dataset
 #' dfFFEM <- read.csv(
@@ -50,7 +50,6 @@
 #' ## Example 3: Add specific covariates AND include the reference category
 #' # This will generate RACEL_3, RACEL_2, AND RACEL_1.
 #' dfFFEM_full <- addFREMcovariates(dfFFEM, covariates = "RACEL", includeReference = TRUE)
-#' }
 #' 
 #' @family Data Assembly Internal
 #' @concept data_assembly

@@ -109,6 +109,8 @@
 #' @examples
 #' 
 #' \donttest{
+#' library(dplyr)
+#' 
 #' modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
 #' fremRunno <- 31
 #' modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))
@@ -119,7 +121,7 @@
 #'   filter(BLQ == 0) %>%
 #'   distinct(ID,.keep_all = TRUE)
 #'
-#' dfCovs <- setupdfCovs(modFile)
+#' dfCovs <- setupDfCovsEV(modFile)
 #'
 #' cstrCovariates <- c("All",names(dfCovs))
 #'

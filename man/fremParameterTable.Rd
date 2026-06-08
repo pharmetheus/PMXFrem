@@ -143,6 +143,8 @@ Covariate Effects) mapping each covariate to each structural parameter.
 
 if (requireNamespace("kableExtra", quietly = TRUE)) {
 library(kableExtra)
+library(dplyr)
+
 set.seed(123)
 runno            <- 31
 modName          <- "run31"

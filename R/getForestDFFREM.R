@@ -78,7 +78,11 @@
 #'   bsFile    <- file.path(modDevDir, "bs31.dir/raw_results_run31.csv")
 #'   
 #'   # 2. Setup Covariates
-#'   dfCovs <- setupdfCovs(modFile, fremCovs = c("AGE", "SEX"))
+#'   dfCovs <- data.frame(
+#'     COVARIATEGROUPS = c("AGE", "AGE", "SEX", "SEX"),
+#'     AGE = c(30, 60, -99, -99),
+#'     SEX = c(-99, -99, 0, 1)
+#'   )
 #'   
 #'   # 3. Define a simple parameter function
 #'   paramFunction <- function(basethetas, covthetas, dfrow, ...) {
