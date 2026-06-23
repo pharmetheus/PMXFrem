@@ -43,6 +43,8 @@
 #' @param filterString A character string with a filter expression to subset the
 #'   amended FFEM data set so that the number of rows matches the original data
 #'   file. Useful if IGNORE statements were used in the original model file.
+#' @param omegaToData Logical. If \code{TRUE}, the variance-covariance matrix elements 
+#'   are appended to the output dataset as V-columns (e.g., V11, V21). Defaults to \code{FALSE}.
 #'
 #' @seealso [createFFEMmodel()]
 #' @return A list with objects:
@@ -98,6 +100,7 @@ createFFEMdata <- function(runno = NULL,
                            quiet         = FALSE,
                            cores         = 1,
                            dfext         = NULL,
+                           omegaToData   = FALSE,
                            ...) {
 
 
@@ -209,7 +212,8 @@ createFFEMdata <- function(runno = NULL,
   }
 
   ## Loop over each individual to compute their covariate contributions ##
-  myFun <- function(data, parNames, dataMap = dataMap, availCov = NULL, covSuffix) {
+  myFun <- function(data, parNames, dataMap = dataMap, availCov = NULL, covSuffix, omegaToData = FALSE, numSkipOm = 0) {
+      
     ID <- data$ID
     if (is.null(availCov)) {
       availCov  <- covNames[as.logical(dataMap[dataMap$ID == ID, -1])]
@@ -223,9 +227,33 @@ createFFEMdata <- function(runno = NULL,
     for (i in 1:length(parNames)) {
       colName <- paste0(parNames[i], covSuffix)
       retDf[[colName]] <- as.numeric(eval(parse(text = ffemObj$Expr[i])))
-      # retDf[[parNames[i]]] <- as.numeric(eval(parse(text=ffemObj$Expr[i])))
     }
-
+    
+    # ----------------------------------------------------------------------
+    # INJECTION: Extract the variance/covariance matrix as V-columns with offset
+    # ----------------------------------------------------------------------
+    if (omegaToData) {
+      myOmega <- ffemObj$FullVars
+      
+      # Safely handle matrix subsetting for skipped omegas
+      if (numSkipOm > 0) {
+        myOmega <- myOmega[-(1:numSkipOm), -(1:numSkipOm), drop = FALSE]
+      }
+      
+      n_par <- nrow(myOmega)
+      
+      # Extract lower triangle (including diagonal) using the offset
+      for (j in seq_len(n_par)) {
+        jo <- j + numSkipOm
+        for (i in j:n_par) {
+          io <- i + numSkipOm
+          colName <- paste0("V", io, jo)
+          retDf[[colName]] <- as.numeric(myOmega[i, j])
+        }
+      }
+    }
+    # ----------------------------------------------------------------------
+    
     return(retDf)
   }
 
@@ -235,12 +263,14 @@ createFFEMdata <- function(runno = NULL,
 
   if (cores > 1) {
     covEff <- foreach(k = 1:nrow(dataOne)) %dopar% {
-      myFun(data = dataOne[k, ], parNames, dataMap = dataMap, availCov = availCov, covSuffix)
+      myFun(data = dataOne[k, ], parNames = parNames, dataMap = dataMap, availCov = availCov, covSuffix = covSuffix, omegaToData = omegaToData, numSkipOm = numSkipOm)
     }
     covEff <- data.frame(rbindlist(covEff))
   } else {
     covEff2 <- data.frame()
-    for (k in 1:nrow(dataOne)) covEff2 <- bind_rows(covEff2, myFun(data = dataOne[k, ], parNames, dataMap = dataMap, availCov = availCov, covSuffix))
+    for (k in 1:nrow(dataOne)) {
+      covEff2 <- bind_rows(covEff2, myFun(data = dataOne[k, ], parNames = parNames, dataMap = dataMap, availCov = availCov, covSuffix = covSuffix, omegaToData = omegaToData, numSkipOm = numSkipOm))
+    }
     covEff <- covEff2
   }
 
