@@ -8,7 +8,7 @@
 #'
 #' @param final_df A data.frame containing the finalized FREM dataset, used to dynamically construct the `$INPUT` record.
 #' @param modelState A list containing the model's current parameter state (including `theta`, `omegaMatrix`, `thetaFix`, `numTheta`, `numOmega`).
-#' @param covList A list of lists containing prepared statistical information for new covariates (`Name`, `Mean`, `Var`, `Fremtype`).
+#' @param covList A list of lists containing prepared statistical information for new covariates (`Name`, `Mean`, `Var`, `Fremtype`, `Fix`).
 #' @param addedList A character vector of new covariate names added during this update step.
 #' @param covnames A list containing parsed existing covariate names (`covNames`, `polyCatCovs`, `orgCovNames`).
 #' @param strFREMModel A character string specifying the file path to the base FREM model (`.mod`) file.
@@ -60,34 +60,52 @@ generateFremModel <- function(final_df,
   
   if (is.null(THETAFIX)) { THETAFIX <- rep(0, iNumTHETA) }
   
-  # --- Exact Comment Preservation ---
+  # --- Robust THETA Comment Extraction & Mapping ---
+  theta_comment <- character(iNumTHETA)
+  for (i in 1:iNumTHETA) {
+    if (i <= noBaseThetas) {
+      theta_comment[i] <- paste0(" ; ", i, " TV_", if (!is.null(basenames_th) && i <= length(basenames_th)) basenames_th[i] else paste0("BASE", i))
+    } else {
+      cov_idx <- i - noBaseThetas
+      theta_comment[i] <- paste0(" ; ", i, " TV_", if (cov_idx <= length(covnames$covNames)) covnames$covNames[cov_idx] else paste0("BASE", i))
+    }
+  }
   
+  # Override with inline comments if they exist
   th_lines <- safeFindRecord(line, "\\$THETA", replace = NULL)
-  existing_th_comments <- sub("^[^;]*;\\s*", "", grep(";", th_lines, value = TRUE))
-  if (length(existing_th_comments) >= iNumTHETA) {
-    theta_comment <- paste0(" ; ", trimws(existing_th_comments[1:iNumTHETA]))
-  } else if (!is.null(basenames_th)) {
-    theta_comment <- paste0(" ; ", 1:iNumTHETA, " TV_", c(basenames_th, covnames$covNames))
-  } else {
-    theta_comment <- paste0(" ; ", 1:iNumTHETA, " TV_BASE", 1:iNumTHETA)
+  idx <- 1
+  for (th_l in th_lines) {
+    if (idx > iNumTHETA) break
+    if (grepl(";", th_l)) {
+      theta_comment[idx] <- paste0(" ; ", trimws(sub("^[^;]*;\\s*", "", th_l)))
+    }
+    idx <- idx + 1
+  }
+  
+  # --- Robust OMEGA Comment Extraction & Mapping ---
+  om_comment <- character(iNumOM)
+  for (i in 1:iNumOM) {
+    if (i <= (numSkipOm + numParCov)) {
+      om_comment[i] <- paste0(" ; ", i, " BSV_", if (!is.null(basenames_om) && i <= length(basenames_om)) basenames_om[i] else paste0("BASE", i))
+    } else {
+      cov_idx <- i - (numSkipOm + numParCov)
+      om_comment[i] <- paste0(" ; ", i, " BSV_", if (cov_idx <= length(covnames$covNames)) covnames$covNames[cov_idx] else paste0("BASE", i))
+    }
   }
   
   in_omega <- FALSE
-  existing_om_comments <- c()
+  idx <- 1
   for (l in line) {
     if (grepl("^\\s*\\$[A-Za-z]+", l)) in_omega <- grepl("^\\s*\\$OMEGA", l, ignore.case = TRUE)
-    if (in_omega && grepl(";", l)) existing_om_comments <- c(existing_om_comments, sub("^[^;]*;\\s*", "", l))
+    if (in_omega && grepl(";", l)) {
+      if (idx <= iNumOM) {
+        om_comment[idx] <- paste0(" ; ", trimws(sub("^[^;]*;\\s*", "", l)))
+        idx <- idx + 1
+      }
+    }
   }
   
-  if (length(existing_om_comments) >= iNumOM) {
-    om_comment <- paste0(" ; ", trimws(existing_om_comments[1:iNumOM]))
-  } else if (!is.null(basenames_om)) {
-    om_comment <- paste0(" ; ", 1:iNumOM, " BSV_", c(basenames_om, covnames$covNames))
-  } else {
-    om_comment <- paste0(" ; ", 1:iNumOM, " BSV_BASE", 1:iNumOM)
-  }
-  
-  # PK and ERROR block logic
+  # --- PK and ERROR Block Logic ---
   strinput <- c()
   loop_start <- noBaseThetas + 1
   loop_end <- length(strNewCovNames) + noBaseThetas
@@ -130,7 +148,7 @@ generateFremModel <- function(final_df,
   line <- safeFindRecord(line, record = ";;;FREM CODE BEGIN COMPACT", replace = strinput_frem)
   
   # --- Matrix Expansion & Comment Appending ---
-  if (!is.null(addedList) & length(addedList) > 0) {
+  if (!is.null(addedList) && length(addedList) > 0) {
     if (is.null(OM)) stop("OM missing, must provide .ext file when adding covariates")
     OMNEW <- matrix(dDefaultCovValue, ncol(OM) + length(addedList), nrow(OM) + length(addedList))
     OMNEW[1:ncol(OM), 1:nrow(OM)] <- OM
@@ -139,11 +157,14 @@ generateFremModel <- function(final_df,
   
   OM[OM == 0] <- dDefaultCovValue
   
-  if (!is.null(addedList)) {
-    for (i in 1:length(addedList)) {
+  if (!is.null(addedList) && length(addedList) > 0) {
+    for (i in seq_along(addedList)) {
       strcov <- addedList[i]
       l <- covList[[strcov]]
-      THETA <- c(THETA, l[["Mean"]]); THETAFIX <- c(THETAFIX, 0)
+      
+      fix_val <- if (!is.null(l[["Fix"]])) l[["Fix"]] else 0
+      
+      THETA <- c(THETA, l[["Mean"]]); THETAFIX <- c(THETAFIX, fix_val)
       theta_comment <- c(theta_comment, paste0(" ; ", iNumTHETA + 1, " TV_", l[["Name"]]))
       iNumTHETA <- iNumTHETA + 1
       
@@ -160,7 +181,6 @@ generateFremModel <- function(final_df,
     omega_param_lines <- c()
     for (l in line) {
       if (grepl("^\\s*\\$[A-Za-z]+", l)) in_omega <- grepl("^\\s*\\$OMEGA", l, ignore.case = TRUE)
-      # Identify actual parameter definitions (lines with numbers before the semicolon)
       if (in_omega && grepl("[0-9]", sub(";.*", "", l))) omega_param_lines <- c(omega_param_lines, l)
     }
     

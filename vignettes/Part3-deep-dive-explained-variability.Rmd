@@ -84,19 +84,19 @@ cstrCovariates <- c("All", names(dfCovs))
 
 We must supply a function that mimics the structural relationships in the FFEM model. This function is conceptually identical to the one used for Forest plots, with one essential difference: it **must** include the `etas[]` argument to allow the package to integrate over the structural variance.
 
-**Handling Missing Covariates:** You must build defensive fallback logic for missing covariates (e.g., `dfrow$FOOD != -99`) *only* for covariates outside the FREM part of the model (FFEM covariates). `PMXFrem` automatically handles missing data for the covariates included in the FREM covariance matrix. However, because the `dfCovs` matrix intentionally assigns `-99` to isolate covariate effects, your function will encounter missing data for FFEM covariates like `FOOD` and must know how to revert to the baseline fixed effect.
+**Handling Missing Covariates:** You must build defensive fallback logic for missing covariates (e.g., `dfrow$FOOD != missVal`) *only* for covariates outside the FREM part of the model (FFEM covariates). `PMXFrem` automatically handles missing data for the covariates included in the FREM covariance matrix. However, because the `dfCovs` matrix intentionally assigns `-99` to isolate covariate effects, your function will encounter missing data for FFEM covariates like `FOOD` and must know how to revert to the baseline fixed effect.
 
 ```{r define_function}
 paramFunctionExpVar <- function(basethetas, covthetas, dfrow, etas, ...) {
 
   # Defensive fallback logic for isolating FFEM covariate effects
   FRELFOOD <- 1
-  if (any(names(dfrow) == "FOOD") && dfrow$FOOD != -99 && dfrow$FOOD == 0) {
+  if (any(names(dfrow) == "FOOD") && dfrow$FOOD != missVal && dfrow$FOOD == 0) {
     FRELFOOD <- (1 + basethetas[7])
   }
 
   MATFOOD <- 1
-  if (any(names(dfrow) == "FOOD") && dfrow$FOOD != -99 && dfrow$FOOD == 0) {
+  if (any(names(dfrow) == "FOOD") && dfrow$FOOD != missVal && dfrow$FOOD == 0) {
     MATFOOD <- (1 + basethetas[6])
   }
 

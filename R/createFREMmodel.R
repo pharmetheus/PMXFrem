@@ -22,7 +22,7 @@
 #' @param IDvar Character. The name of the subject identifier column in the dataset. Defaults to `"ID"`.
 #' @param missVal Numeric. The value representing missing data in the covariates. Defaults to `-99`.
 #' @param fixTheta Logical. Should the initial THETA estimates for the covariates be fixed? Defaults to `TRUE`.
-#' @param roundMeanTo Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to `1`.
+#' @param roundMeanTo Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to `2`.
 #' @param useMuModeling Logical. Should MU-referencing be utilized when generating the NONMEM $PK and $ERROR blocks? Defaults to `TRUE`.
 #' @param numSkipOm Numeric. Number of initial OMEGA parameters to skip when appending new FREM parameters. Defaults to `0`.
 #' @param cstrKeepCols Character vector. Columns to strictly retain in the generated FREM dataset. Note: `"FREMTYPE"` is managed internally and injected between phases.
@@ -101,7 +101,7 @@ createFREMmodel <- function(runno                = NULL,
                             IDvar                = "ID",
                             missVal              = -99,
                             fixTheta             = TRUE,
-                            roundMeanTo          = 1,
+                            roundMeanTo          = 2,
                             useMuModeling        = TRUE,
                             numSkipOm            = 0,
                             cstrKeepCols         = c("ID", "TIME", "AMT", "II", "EVID", "SS", "RATE", "DV"),
@@ -127,6 +127,90 @@ createFREMmodel <- function(runno                = NULL,
   }
   
   if (length(covariates) == 0) stop("At least one covariate must be provided.")
+  
+  # --- Base Model Diagnostics Check (Pre-flight Validation) ---
+  fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)
+  if (file.exists(fileNames$mod)) {
+    baseModelLines <- readLines(fileNames$mod, warn = FALSE)
+    
+    # Robustly parse $EST blocks (handling multi-line definitions and stripping comments)
+    est_blocks <- list()
+    in_est <- FALSE
+    current_est <- ""
+    
+    for (l in baseModelLines) {
+      l_clean <- gsub(";.*", "", l) # Strip inline comments
+      if (grepl("^\\s*\\$[A-Za-z]+", l_clean)) {
+        if (grepl("^\\s*\\$EST", l_clean, ignore.case = TRUE)) {
+          if (in_est) {
+            # Save the previous $EST block before initializing the new one
+            est_blocks <- c(est_blocks, current_est)
+          }
+          in_est <- TRUE
+          current_est <- trimws(l_clean)
+        } else {
+          if (in_est) {
+            est_blocks <- c(est_blocks, current_est)
+            in_est <- FALSE
+          }
+        }
+      } else if (in_est) {
+        # Only append if there is actual text remaining
+        if (nchar(trimws(l_clean)) > 0) {
+          current_est <- paste(current_est, trimws(l_clean))
+        }
+      }
+    }
+    if (in_est) est_blocks <- c(est_blocks, current_est)
+    
+    # Evaluate parsed $EST blocks against the safety rules
+    if (length(est_blocks) > 0) {
+      has_saem <- FALSE
+      has_imp <- FALSE
+      imp_niter_low <- FALSE
+      final_phitype <- 0
+      
+      for (block in est_blocks) {
+        if (grepl("\\bSAEM\\b", block, ignore.case = TRUE)) has_saem <- TRUE
+        if (grepl("\\bIMP(MAP)?\\b", block, ignore.case = TRUE)) has_imp <- TRUE
+        
+        # Check NITER if IMP/IMPMAP is used
+        if (grepl("\\bIMP(MAP)?\\b", block, ignore.case = TRUE)) {
+          niter_match <- regmatches(block, regexpr("NITER\\s*=\\s*([0-9]+)", block, ignore.case = TRUE))
+          if (length(niter_match) > 0) {
+            niter_val <- as.numeric(gsub("(?i)NITER\\s*=\\s*", "", niter_match[1]))
+            if (!is.na(niter_val) && niter_val < 150) {
+              imp_niter_low <- TRUE
+            }
+          }
+        }
+        
+        # Track PHITYPE state machine
+        if (grepl("\\bPHITYPE\\s*=\\s*1\\b", block, ignore.case = TRUE)) {
+          final_phitype <- 1
+        } else if (grepl("\\bPHITYPE\\s*=\\s*0\\b", block, ignore.case = TRUE)) {
+          final_phitype <- 0
+        }
+      }
+      
+      # Emit the requested warnings
+      if (has_saem) {
+        warning("SAEM currently can not handle missing covariate values correctly. If you have missing covariate values in the data, use IMP or IMPMAP instead.", call. = FALSE)
+      }
+      if (!has_imp) {
+        warning("Consider using IMP or IMPMAP to increase the robustness of the estimation of the FREM model.", call. = FALSE)
+      }
+      if (has_imp && imp_niter_low) {
+        warning("Consider increasing NITER to at least 150.", call. = FALSE)
+      }
+      if (final_phitype == 0) {
+        warning("Set PHITYPE=1 to facilitate post-processing of the results", call. = FALSE)
+      }
+    }
+  } else {
+    warning(sprintf("Could not locate base model file at '%s' for pre-flight diagnostics.", fileNames$mod), call. = FALSE)
+  }
+  # --- End Base Model Diagnostics Check ---
   
   minModName <- paste0(fremModName, "_minimal")
   
@@ -180,6 +264,7 @@ createFREMmodel <- function(runno                = NULL,
       strNewFREMData       = finalDataPath,
       strUpdateType        = "DataAndModel", 
       strID                = IDvar, 
+      missVal = missVal,
       numNonFREMThetas     = numNonFREMThetas,
       numSkipOm            = numSkipOm, 
       cstrKeepCols         = cstrKeepCols,
@@ -187,6 +272,8 @@ createFREMmodel <- function(runno                = NULL,
       bRecodeDichotomous   = bRecodeDichotomous,
       allowNon01           = allowNon01,
       keepDoseOnlySubjects = keepDoseOnlySubjects,
+      roundMeanTo          = roundMeanTo,
+      fixTheta             = fixTheta,
       quiet                = quiet 
     )
     

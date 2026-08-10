@@ -32,15 +32,34 @@ initializeModelParameters <- function(strFREMModel,
   extFile <- paste0(tools::file_path_sans_ext(strFREMModel), ".ext")
   
   if (file.exists(extFile)) {
-    dfext     <- subset(getExt(extFile = extFile), ITERATION == "-1000000000")
-    dfextfix  <- subset(getExt(extFile = extFile), ITERATION == "-1000000006")
+    # 1. Read the full .ext file data
+    ext_data <- getExt(extFile = extFile)
+    
+    # 2. Force strict numeric coercion to bypass factor/character parsing vulnerabilities
+    iter_num <- suppressWarnings(as.numeric(as.character(ext_data$ITERATION)))
+    
+    dfext    <- ext_data[!is.na(iter_num) & iter_num == -1000000000, , drop = FALSE]
+    dfextfix <- ext_data[!is.na(iter_num) & iter_num == -1000000006, , drop = FALSE]
     
     numTheta <- length(names(dfext)[regexpr("THETA.*", names(dfext)) == 1])
     numOmegaElements <- length(names(dfext)[regexpr("OMEGA.*", names(dfext)) == 1])
     numOmega <- -1 / 2 + sqrt(1 / 4 + 2 * numOmegaElements)
-    THETA    <- as.numeric(dfext[, names(dfext)[regexpr("THETA.*", names(dfext)) == 1]])
-    THETAFIX <- as.numeric(dfextfix[, names(dfextfix)[regexpr("THETA.*", names(dfextfix)) == 1]])
-    OMEGA    <- as.numeric(dfext[, names(dfext)[regexpr("OMEGA.*", names(dfext)) == 1]])
+    
+    # 3. unlist() ensures safe flattening of data.frames before numeric coercion
+    THETA    <- as.numeric(unlist(dfext[, names(dfext)[regexpr("THETA.*", names(dfext)) == 1]]))
+    
+    if (nrow(dfextfix) > 0) {
+      THETAFIX <- as.numeric(unlist(dfextfix[, names(dfextfix)[regexpr("THETA.*", names(dfextfix)) == 1]]))
+    } else {
+      THETAFIX <- rep(0, numTheta)
+    }
+    
+    # Defensive fallback if the fixed vector length mismatches
+    if (length(THETAFIX) == 0 || length(THETAFIX) != numTheta) {
+      THETAFIX <- rep(0, numTheta)
+    }
+    
+    OMEGA    <- as.numeric(unlist(dfext[, names(dfext)[regexpr("OMEGA.*", names(dfext)) == 1]]))
     
     OM                              <- matrix(0, nrow = numOmega, ncol = numOmega)
     OM[upper.tri(OM, diag = TRUE)]  <- OMEGA
@@ -72,7 +91,6 @@ initializeModelParameters <- function(strFREMModel,
         }
       }
       
-      # FIX: Use a more robust regex with a word boundary (\b) instead of a literal space
       osOmega <- mod[grep("\\bETA\\([0-9]+\\)", mod)] 
       
       for (str in osOmega) {

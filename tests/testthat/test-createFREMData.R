@@ -179,8 +179,8 @@ test_that("createFREMData handles edge cases and errors", {
   df_orig <- data.table::fread(strFFEMData, data.table = FALSE)
   df_mod <- df_orig
   # Make all WT and SEX values missing
-  df_mod$WT <- -99
-  df_mod$SEX <- -99
+  df_mod$WT <- missVal
+  df_mod$SEX <- missVal
   tmp_csv_missing <- tempfile(fileext = ".csv")
   write.csv(df_mod, tmp_csv_missing, row.names = FALSE)
 
@@ -221,10 +221,10 @@ test_that("createFREMData covers all edge cases from coverage report", {
     ID = c(1, 1, 2, 2, 3, 3),
     TIME = c(0, 1, 0, 1, 0, 1),
     DV = c(10, 11, 12, 13, 14, 15),
-    DV_ALL_MISSING = -99,
-    WT_ALL_MISSING = -99,
+    DV_ALL_MISSING = missVal,
+    WT_ALL_MISSING = missVal,
     RACE = c(1, 1, 2, 2, 3, 3), # Polycotomous covariate with 3 levels
-    RACE_ALL_MISSING = -99
+    RACE_ALL_MISSING = missVal
   )
 
   tmp_test_csv <- tempfile(fileext = ".csv")
@@ -386,7 +386,7 @@ test_that("createFREMData retains dosing records (EVID != 0) when DV is '.' or N
   # Row 1: Dose with DV as literal string "."
   # Row 2: Dose with DV as NA (standard read.csv behavior)
   # Row 3: Valid Observation
-  # Row 4: Invalid Observation (DV = -99)
+  # Row 4: Invalid Observation (DV = missVal)
   # Row 5: Invalid Observation (DV = NA)
   dfFFEM <- data.frame(
     ID = c(1, 1, 1, 1, 1),

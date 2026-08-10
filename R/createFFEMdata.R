@@ -45,7 +45,7 @@
 #'   file. Useful if IGNORE statements were used in the original model file.
 #' @param omegaToData Logical. If \code{TRUE}, the variance-covariance matrix elements 
 #'   are appended to the output dataset as V-columns (e.g., V11, V21). Defaults to \code{FALSE}.
-#'
+#' @param missVal Numeric. The value representing missing data in the covariates. Defaults to -99.
 #' @seealso [createFFEMmodel()]
 #' @return A list with objects:
 #'
@@ -115,6 +115,7 @@ createFFEMdata <- function(runno = NULL,
                            quiet         = FALSE,
                            cores         = 1,
                            dfext         = NULL,
+                           missVal       = -99,
                            omegaToData   = FALSE,
                            ...) {
 
@@ -182,7 +183,7 @@ createFFEMdata <- function(runno = NULL,
       rename("ID" = all_of(idvar))
   }
   ## Add the FREM covariates to the data file
-  data <- addFREMcovariates(dfFFEM = data, modFile)
+  data <- addFREMcovariates(dfFFEM = data, modFile = modFile, missVal = missVal)
 
   dataI <- data %>% distinct(ID, .keep_all = TRUE)
   dataI <- dataI[, c("ID", orgCovs, covNames)]
@@ -196,8 +197,8 @@ createFFEMdata <- function(runno = NULL,
     for (cov in orgCovs) {
       # Use exact list-extraction [[ ]] which is universally safe,
       # and sum() to correctly count matching dummy columns.
-      if (data[[cov]][1] == -99 && sum(grepl(cov, names(data))) > 1) {
-        data[1, grepl(cov, names(data))] <- -99
+      if (data[[cov]][1] == missVal && sum(grepl(cov, names(data))) > 1) {
+        data[1, grepl(cov, names(data))] <- missVal
       }
     }
     return(data)
@@ -223,7 +224,7 @@ createFFEMdata <- function(runno = NULL,
   dataMap[, covNames] <- TRUE
 
   for (c in covNames) {
-    dataMap[, c] <- ifelse(dataI[, c] == -99, FALSE, TRUE)
+    dataMap[, c] <- ifelse(dataI[, c] == missVal, FALSE, TRUE)
   }
 
   ## Loop over each individual to compute their covariate contributions ##

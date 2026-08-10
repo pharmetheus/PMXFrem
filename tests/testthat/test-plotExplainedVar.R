@@ -20,7 +20,7 @@ test_that("plotExplainedVar generates correct plot data", {
     dplyr::slice(rep(1,ncol(.)+1))
 
   for(i in 2:nrow(dfCovs)) {
-    dfCovs[i, names(dfCovs) != names(dfCovs)[i-1]] <- -99
+    dfCovs[i, names(dfCovs) != names(dfCovs)[i-1]] <- missVal
   }
 
   cstrCovariates <- c("All",names(dfCovs))

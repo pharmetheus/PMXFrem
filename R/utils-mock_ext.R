@@ -17,7 +17,6 @@ createMockExt <- function(baseExtFile, mockExtFile, initialCovariateInfo, dummyS
   fix_row   <- ext_df[ext_df$ITERATION == -1000000006, ][1, , drop = FALSE]
   
   # Fallback just in case the base model had no fixed parameters at all
-  # (R returns an NA row if the subset fails to find a match before taking [1, ])
   if (is.na(fix_row$ITERATION[1])) {
     fix_row <- final_row
     fix_row[1, ] <- 0
@@ -120,8 +119,10 @@ createMockExt <- function(baseExtFile, mockExtFile, initialCovariateInfo, dummyS
       new_row_fix[[col]] <- format_sci(new_row_fix[[col]])
     }
   }
-  new_row_est[["ITERATION"]] <- " -1000000000"
-  new_row_fix[["ITERATION"]] <- " -1000000006"
+  
+  # CRITICAL FIX: Explicit string assignment to prevent scientific notation coercion in write.table
+  new_row_est[["ITERATION"]] <- "-1000000000"
+  new_row_fix[["ITERATION"]] <- "-1000000006"
   
   writeLines(table_header_line, mockExtFile)
   out_df <- rbind(new_row_est, new_row_fix)

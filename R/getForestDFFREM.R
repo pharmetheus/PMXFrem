@@ -129,7 +129,7 @@ getForestDFFREM <- function(dfCovs,
                             ncores           = 1,
                             cstrPackages     = NULL,
                             cstrExports      = NULL,
-                            iMiss            = -99,
+                            iMiss            = missVal,
                             ...) {
 
 

@@ -117,7 +117,7 @@ eta_df <- data.frame(
   WT = subj_data$WT,
   FREM_ETA = frem_phi$ETA.3.,
   FFEM_EBE = ffem_phi$ETA.3.
-) %>% filter(WT != -99) # Remove missing baseline covariate rows for clean plotting
+) %>% filter(WT != missVal) # Remove missing baseline covariate rows for clean plotting
 
 # Plot FREM 
 p_frem <- ggplot(eta_df, aes(x = WT, y = FREM_ETA)) +
