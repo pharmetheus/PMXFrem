@@ -1,3 +1,20 @@
+# PMXFrem (development version)
+
+## New Features
+* **Cholesky Decomposition Integration (`omegaToData`)**: Introduced native support for Cholesky factorizations in the FFEM workflow[cite: 2]. By setting `omegaToData = TRUE` in `createFFEMdata()` and `createFFEMmodel()`, the pipeline now dynamically rewrites the NONMEM `$OMEGA` block as an identity matrix and injects robust algebraic equations ($V = L L^T$) into the `$PK`/`$PRED` blocks to map independent standard normal `ETA`s to correlated `MYETA`s[cite: 2, 3].
+* **Covariate Estimation Optimization (`fixTheta`)**: Added the `fixTheta` argument (default `TRUE`) to core data assembly functions[cite: 2]. The pipeline now automatically appends the `FIX` flag to initial `$THETA` estimates for fully observed covariates. Covariates containing missing data gracefully bypass this and remain estimated, improving overall EM algorithm stability[cite: 2].
+* **Pre-flight Estimation Diagnostics**: Implemented rigorous validation of the base NONMEM model's `$EST` block prior to FREM generation[cite: 2]. The system now automatically warns users about sub-optimal configurations, including the use of SAEM with missing covariates, absence of IMP/IMPMAP methods, `NITER` < 150, or incorrect `PHITYPE` settings[cite: 2].
+
+## Under the Hood & Refactoring
+* **Missing Value Harmonization (`missVal`)**: Eradicated all hardcoded `-99` magic numbers across the core data assembly pipeline (`createFREMmodel`, `updateFREMmodel`, `prepareNewCovariates`, `createFREMData`, `augmentFremData`, `calcEtas`, `addFREMcovariates`, `setupDfCovsEV`)[cite: 2, 3]. These are replaced with a systematically propagated `missVal` argument, allowing the package to safely handle arbitrary sponsor data conventions for missingness (e.g., `-999`, `NA`)[cite: 2].
+* **Parser Stability**: Hardened NONMEM `.ext` file parsing in `initializeModelParameters` against legacy R (version < 4.0) factor-coercion vulnerabilities[cite: 2]. Prevented `write.table` from silently applying scientific notation to exact `ITERATION` strings[cite: 2].
+* **Parallel Execution Hardening**: Explicitly mapped arguments (`omegaToData`, `numSkipOm`) into the `foreach` worker closures in `createFFEMdata()` to eliminate lexical scoping vulnerabilities across different parallel backends[cite: 2].
+* **Signature Stability**: Resolved recursive lazy evaluation promises caused by parameterizing default arguments, and eliminated positional argument bleeding in internal pipeline orchestrators[cite: 2].
+
+## Documentation & Testing
+* Updated `roxygen2` documentation and executable `@examples` for `createFFEMmodel` and `createFFEMdata` to be fully compliant with CRAN file I/O policies[cite: 2].
+* Stabilized the `testthat` suite by strictly scoping missingness tokens during mock data generation and updating test snapshots to reflect dynamic parameter labeling[cite: 2].
+
 # PMXFrem 2.0.0
 
 ## New Features

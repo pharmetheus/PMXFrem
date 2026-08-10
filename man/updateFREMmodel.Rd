@@ -29,10 +29,13 @@ updateFREMmodel(
   cstrDV = "DV",
   cstrRemoveCov = NULL,
   covEpsNum = 2,
+  missVal = -99,
   overrideExistingCheck = FALSE,
   bRecodeDichotomous = FALSE,
   allowNon01 = FALSE,
   keepDoseOnlySubjects = FALSE,
+  roundMeanTo = 2,
+  fixTheta = TRUE,
   sortFREMDataset = NULL
 )
 }
@@ -126,6 +129,8 @@ renumbering of FREMTYPEs}
 \item{covEpsNum}{The number of the epsilons parameter to be used for the
 covariates.}
 
+\item{missVal}{Numeric. The value representing missing data in the covariates. Defaults to \code{-99}.}
+
 \item{overrideExistingCheck}{If TRUE, the existing check will be overriden
 and covariates will be added even though they are present in $DATA of the
 modefile}
@@ -139,6 +144,12 @@ to pass through untouched for PsN compatibility. Defaults to FALSE.}
 \item{keepDoseOnlySubjects}{Logical. If \code{FALSE} (default), subjects without any valid PK observations (e.g.,
 only dosing records) are completely excluded from the generated dataset. If \code{TRUE},
 these subjects are retained and their covariates are included as observations.}
+
+\item{roundMeanTo}{Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to 2.}
+
+\item{fixTheta}{Logical. Should initial THETA estimates for covariates without missing values be fixed? Defaults to TRUE.}
+
+\item{sortFREMDataset}{Deprecated.}
 }
 \value{
 An invisible list with components data and model, containing the new

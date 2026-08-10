@@ -19,7 +19,7 @@ createFREMmodel(
   IDvar = "ID",
   missVal = -99,
   fixTheta = TRUE,
-  roundMeanTo = 1,
+  roundMeanTo = 2,
   useMuModeling = TRUE,
   numSkipOm = 0,
   cstrKeepCols = c("ID", "TIME", "AMT", "II", "EVID", "SS", "RATE", "DV"),
@@ -60,7 +60,7 @@ The first element is processed during Phase 1 (bootstrapping), and the remainder
 
 \item{fixTheta}{Logical. Should the initial THETA estimates for the covariates be fixed? Defaults to \code{TRUE}.}
 
-\item{roundMeanTo}{Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to \code{1}.}
+\item{roundMeanTo}{Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to \code{2}.}
 
 \item{useMuModeling}{Logical. Should MU-referencing be utilized when generating the NONMEM $PK and $ERROR blocks? Defaults to \code{TRUE}.}
 

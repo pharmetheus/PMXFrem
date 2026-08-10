@@ -16,7 +16,10 @@ prepareNewCovariates(
   overrideExistingCheck,
   bRecodeDichotomous = FALSE,
   allowNon01 = FALSE,
-  quiet
+  roundMeanTo = 1,
+  missVal = -99,
+  fixTheta = TRUE,
+  quiet = FALSE
 )
 }
 \arguments{
@@ -53,11 +56,17 @@ dichotomous covariates with non-standard coding (e.g., 1/2) to pass through
 untouched without being recoded. This provides 100\% compatibility with PsN
 legacy behavior. Defaults to FALSE.}
 
-\item{quiet}{A logical flag to suppress printed messages.}
+\item{roundMeanTo}{Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to 1.}
+
+\item{missVal}{Numeric. Missing value indicator.}
+
+\item{fixTheta}{Logical. Should initial THETA estimates for covariates without missing values be fixed? Defaults to TRUE.}
+
+\item{quiet}{A logical flag to suppress printed messages. Defaults to FALSE.}
 }
 \value{
 A list containing four elements:
-\item{covList}{A list where each element contains the prepared information for a new covariate (Name, Mean, Var, Fremtype, Data).}
+\item{covList}{A list where each element contains the prepared information for a new covariate (Name, Mean, Var, Fremtype, Data, Fix).}
 \item{addedList}{A character vector of the names of the covariates that were successfully prepared for addition (e.g., c("AGE", "SITE_2", "SITE_3")).}
 \item{dfFFEM}{The potentially modified dfFFEM data frame with new binarized columns.}
 \item{lastFremType}{The updated last (highest) FREMTYPE value.}

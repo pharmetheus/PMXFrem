@@ -7,6 +7,7 @@
 setupDfCovsEV(
   modFileName,
   fremCovs = getCovNames(modFile = modFileName)$orgCovNames,
+  missVal = -99,
   additionalCovs = NULL
 )
 }
@@ -16,9 +17,11 @@ setupDfCovsEV(
 \item{fremCovs}{A vector of covariates that are part of the FREM definition
 of the FREM model file. Default is all, i.e. \code{getCovNames(modFile = modFileName)$orgCovNames}}
 
+\item{missVal}{Numeric. Missing value indicator.}
+
 \item{additionalCovs}{Any additional covariates to be included in the output
 dfCovs. For example covariates that are part of the fixed effects part of
-the FREM model file.}
+the FREM model file}
 }
 \value{
 A data.frame that can be used as the dfCovs argument to

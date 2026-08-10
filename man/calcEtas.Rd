@@ -18,6 +18,7 @@ calcEtas(
   quiet = TRUE,
   ffemModName = NULL,
   appendMissingFlags = TRUE,
+  missVal = -99,
   ...
 )
 }
@@ -67,6 +68,8 @@ from its .phi file and appended to the output data frame. Default is \code{NULL}
 \item{appendMissingFlags}{Logical. If \code{TRUE}, evaluates the original dataset for missing
 covariate values (coded as -99 or NA) and appends a binary indicator column for each predicted
 covariate with the suffix \code{_MISSING} (1 = Missing, 0 = Not Missing). Default is \code{FALSE}.}
+
+\item{missVal}{Numeric. The value representing missing data in the covariates. Defaults to -99.}
 
 \item{...}{Additional arguments passed on to \code{createFFEMdata} when \code{FFEMData} is \code{NULL}.}
 }

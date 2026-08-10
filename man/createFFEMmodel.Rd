@@ -28,6 +28,7 @@ createFFEMmodel(
   baseModDevDir = modDevDir,
   ffemTabName = "ffemtab",
   ffemModName = NULL,
+  omegaToData = FALSE,
   ...
 )
 }
@@ -107,6 +108,9 @@ is 'ffemtab'.}
 \item{ffemModName}{The name of the file to write the ffem model to, or NULL.
 NULL is the default}
 
+\item{omegaToData}{Logical. If \code{TRUE}, writes an identity matrix for the FREM
+OMEGA block and implements a Cholesky decomposition in the model code. Defaults to \code{FALSE}.}
+
 \item{...}{Arguments passed to \code{createFFEMdata}}
 }
 \value{
@@ -142,7 +146,7 @@ to
 where PARCOV is the individual covariate coefficient. (The PARCOV term
 
 The addition of the individual covariate coefficients to the original data set
-is done by´ the \code{\link[=createFFEMdata]{createFFEMdata()}} function. However, \code{createFFEMdata()} is
+is done by麓 the \code{\link[=createFFEMdata]{createFFEMdata()}} function. However, \code{createFFEMdata()} is
 called by \code{createFFEMmodel()} so there is no need to do this as a separate
 step.
 
@@ -182,18 +186,35 @@ dataFile  <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
 
 # Isolate outputs to a temporary directory
 td <- tempdir()
+
+# Example 1: Standard FFEM model creation
 out_data <- file.path(td, "testFileName.csv")
 
 ffemMod <- createFFEMmodel(
   runno            = 31,
+  baserunno        = 30,
   modDevDir        = modDevDir,
   numNonFREMThetas = 7,
   numSkipOm        = 2,
   parNames         = c("CL","V","MAT"),
   dataFile         = dataFile,
   newDataFile      = out_data,
+  quiet            = TRUE
+)
+
+# Example 2: FFEM model creation using Cholesky Decomposition
+out_data_chol <- file.path(td, "testFileNameChol.csv")
+ffemModChol <- createFFEMmodel(
+  runno            = 31,
+  baserunno        = 30,
+  modDevDir        = modDevDir,
+  numNonFREMThetas = 7,
+  numSkipOm        = 2,
+  parNames         = c("CL","V","MAT"),
+  dataFile         = dataFile,
+  newDataFile      = out_data_chol,
   quiet            = TRUE,
-  baserunno        = 30
+  omegaToData      = TRUE
 )
 
 }

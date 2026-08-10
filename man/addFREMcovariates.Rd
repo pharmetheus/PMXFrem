@@ -8,7 +8,7 @@ addFREMcovariates(
   dfFFEM,
   modFile = NULL,
   covariates = NULL,
-  iMiss = -99,
+  missVal = -99,
   includeReference = FALSE,
   imputeMissing = TRUE
 )
@@ -20,13 +20,15 @@ addFREMcovariates(
 
 \item{covariates}{A character vector of covariates to binarise.}
 
-\item{iMiss}{The integer/numeric value representing missing data (default: -99).}
+\item{missVal}{The integer/numeric value representing missing data (default: -99).}
 
 \item{includeReference}{Logical. If TRUE, creates a dummy column for the lowest
 reference level as well (default: FALSE).}
 
 \item{imputeMissing}{Logical. If TRUE (default), missing values are imputed to 0
 (the reference category). If FALSE, missing values are preserved as iMiss.}
+
+\item{iMiss}{The integer/numeric value representing missing data (default: -99).}
 }
 \value{
 A data.frame with the new binarised covariate columns.
