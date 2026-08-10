@@ -86,32 +86,34 @@
 #'
 #' # Isolate outputs to a temporary directory
 #' td <- tempdir()
+#' 
+#' # Example 1: Standard FFEM model creation
 #' out_data <- file.path(td, "testFileName.csv")
 #'
 #' ffemMod <- createFFEMmodel(
 #'   runno            = 31,
+#'   baserunno        = 30,
 #'   modDevDir        = modDevDir,
 #'   numNonFREMThetas = 7,
 #'   numSkipOm        = 2,
 #'   parNames         = c("CL","V","MAT"),
 #'   dataFile         = dataFile,
 #'   newDataFile      = out_data,
-#'   quiet            = TRUE,
-#'   baserunno        = 30
+#'   quiet            = TRUE
 #' )
 #' 
-#' # Example 2: FFEM model creation utilizing Cholesky Decomposition
+#' # Example 2: FFEM model creation using Cholesky Decomposition
+#' out_data_chol <- file.path(td, "testFileNameChol.csv")
 #' ffemModChol <- createFFEMmodel(
 #'   runno            = 31,
+#'   baserunno        = 30,
 #'   modDevDir        = modDevDir,
 #'   numNonFREMThetas = 7,
 #'   numSkipOm        = 2,
 #'   parNames         = c("CL","V","MAT"),
 #'   dataFile         = dataFile,
 #'   newDataFile      = out_data_chol,
-#'   ffemModName      = out_mod_chol,
 #'   quiet            = TRUE,
-#'   baserunno        = 30,
 #'   omegaToData      = TRUE
 #' )
 #' 
