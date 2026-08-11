@@ -224,3 +224,49 @@ test_that("calcFFEM covers final quiet=FALSE and empty availCov paths", {
 
   expect_snapshot_value(stabilize(result_empty_cov), style = "serialize")
 })
+
+test_that("calcFFEM strictly validates parNames and covNames dimensions", {
+  # --- Setup ---
+  extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+  dfExt   <- getExt(extFile = extFile)
+  modFile <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
+  
+  # Extract the dynamically valid covariate names for run31
+  covNames_valid <- getCovNames(modFile)$covNames
+  
+  # Note: For run31 (numNonFREMThetas = 7, numSkipOm = 2), 
+  # the calculated numParCov is exactly 3.
+  
+  # --- 1. parNames Dimension Tests ---
+  
+  # Test 1A: parNames too short
+  expect_error(
+    calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, 
+             parNames = c("CL", "V"), quiet = TRUE),
+    regexp = "Validation Error: Length of `parNames` \\(2\\) must exactly match"
+  )
+  
+  # Test 1B: parNames too long
+  expect_error(
+    calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, 
+             parNames = c("CL", "V", "MAT", "KA"), quiet = TRUE),
+    regexp = "Validation Error: Length of `parNames` \\(4\\) must exactly match"
+  )
+  
+  # --- 2. covNames Dimension Tests ---
+  
+  # Test 2A: covNames too short
+  expect_error(
+    calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, 
+             covNames = c("WT", "AGE"), quiet = TRUE),
+    regexp = "Validation Error: Length of `covNames` \\(2\\) must exactly match"
+  )
+  
+  # Test 2B: covNames too long
+  # We dynamically append an extra string to the valid vector to ensure a length mismatch
+  expect_error(
+    calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, 
+             covNames = c(covNames_valid, "EXTRA_COV"), quiet = TRUE),
+    regexp = "Validation Error: Length of `covNames` \\(\\d+\\) must exactly match"
+  )
+})

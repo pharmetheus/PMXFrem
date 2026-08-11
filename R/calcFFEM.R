@@ -69,8 +69,7 @@
 #' @export
 #'
 #' @examples
-# 'library(dplyr)
-
+#' library(dplyr)
 #' extFile         <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
 #' dfExt           <- getExt(extFile = extFile)
 #' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE)
@@ -104,11 +103,25 @@ calcFFEM <- function(dfext,
     numParCov <- calcNumParCov(dfext, numNonFREMThetas, numSkipOm)
   }
 
-  # MODIFICATION 2: Add default logic for parNames inside the function
+  # Add default logic for parNames inside the function
   if (is.null(parNames)) {
     parNames <- paste("Par", 1:numParCov, sep = "")
   }
 
+  if (length(parNames) != numParCov) {
+    stop(sprintf(
+      "Validation Error: Length of `parNames` (%d) must exactly match the number of structural parameters affected by covariates `numParCov` (%d).", 
+      length(parNames), numParCov
+    ), call. = FALSE)
+  }
+  
+  if (length(covNames) != numFREMThetas) {
+    stop(sprintf(
+      "Validation Error: Length of `covNames` (%d) must exactly match the number of FREM covariates `numFREMThetas` (%d).", 
+      length(covNames), numFREMThetas
+    ), call. = FALSE)
+  }
+  
   iNumFREMOM <- (numFREMThetas + numParCov) * (numFREMThetas + numParCov + 1) / 2
   if (nrow(dfext) > 1) dfext  <- dfext[dfext$ITERATION == -1000000000, ]
 
