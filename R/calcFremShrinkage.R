@@ -163,6 +163,12 @@ calcFremShrinkage <- function(runno = NULL, modName = NULL, modDevDir = NULL,
       shk6 <- NA_real_
     }
     
+    # Clamp negative shrinkages to 0 to mimic NONMEM behavior
+    shk8 <- pmax(0, shk8, na.rm = FALSE)
+    shk4 <- pmax(0, shk4, na.rm = FALSE)
+    shk9 <- pmax(0, shk9, na.rm = FALSE)
+    shk6 <- pmax(0, shk6, na.rm = FALSE)
+    
     res_list$Parameter <- c(res_list$Parameter, paste0("ETA", i))
     res_list$ETA_Var   <- c(res_list$ETA_Var, round(shk8, 4))
     res_list$ETA_SD    <- c(res_list$ETA_SD, round(shk4, 4))
