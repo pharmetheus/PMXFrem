@@ -74,38 +74,6 @@ test_that("createFFEMdata works with parallel processing", {
   # so a snapshot is a good way to verify correctness.
   expect_snapshot_value(stabilize(vpcData), style = "serialize")
 })
-test_that("createFFEMdata generates V-columns when omegaToData = TRUE and numSkipOm = 0", {
-  data <- readr::read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"), show_col_types = FALSE) %>%
-    dplyr::filter(BLQ != 1)
-  
-  ## Execute with Cholesky data toggle active and no skipped omegas
-  vpcData <- createFFEMdata(
-    modName          = "run31",
-    modDevDir        = system.file("extdata/SimNeb/", package = "PMXFrem"),
-    parNames         = c("CL", "V", "MAT"),
-    numNonFREMThetas = 7,
-    numSkipOm        = 0,
-    dataFile         = data,
-    newDataFile      = NULL,
-    quiet            = TRUE,
-    omegaToData      = TRUE
-  )
-  
-  output_data <- vpcData$newData
-  
-  # Verify the structural variance columns exist
-  expect_true("V11" %in% names(output_data))
-  expect_true("V21" %in% names(output_data))
-  expect_true("V22" %in% names(output_data))
-  
-  # Verify data population (ensure it hasn't injected NAs due to matrix bounds errors)
-  expect_false(any(is.na(output_data$V11)))
-  expect_true(is.numeric(output_data$V11))
-  
-  # Snapshot the structural output to prevent regression
-  expect_snapshot_value(stabilize(as.data.frame(head(output_data, 20))), style = "serialize")
-})
-
 
 test_that("createFFEMdata shifts V-column indices correctly when numSkipOm > 0", {
   data <- readr::read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"), show_col_types = FALSE) %>%

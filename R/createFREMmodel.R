@@ -285,7 +285,7 @@ createFREMmodel <- function(runno                = NULL,
   
   # --- 2.5 STRICT DATA VALIDATION ---
   final_frem_data <- read.csv(finalDataPath)
-  validateFremData(originalData = phase1_out$validatedData, fremData = final_frem_data, strID = IDvar, quiet = quiet)
+  validateFremData(originalData = phase1_out$validatedData, fremData = final_frem_data, strID = IDvar, missVal=missVal,quiet = quiet)
   
   
   # --- 3. Cleanup ---

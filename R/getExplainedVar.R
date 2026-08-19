@@ -85,6 +85,7 @@
 #'   functionList, only used using type==2 & type==3
 #' @param seed (default = -1 = random, used when sampling ETAs in type==2 and
 #'   type==3)
+#' @param missVal Numeric. The value representing missing data in the covariates. Defaults to -99.
 #' @param ... additional variables to be forwarded to the the functionList
 #'   functions
 #'
@@ -203,6 +204,7 @@ getExplainedVar <- function(
     cstrExports      = NULL,
     numETASamples    = 100,
     seed             = NULL,
+    missVal          = -99,
     ...) {
 
   if (type > 0 && is.null(data)) stop("data can not be missing with type 1-3.")
@@ -282,7 +284,7 @@ getExplainedVar <- function(
       dfCovs = dfCovs, functionList = functionList, functionListName = functionListName, cstrCovariates = cstrCovariates,
       thetas = thetas, dfext = dfext, numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas,
       numParCov = numParCov, numSkipOm = numSkipOm, parNames = parNames, covNames = covNames, allCov = allCov, 
-      fremCovs = fremCovs, quiet = quiet, ...
+      fremCovs = fremCovs, quiet = quiet, missVal = missVal,...
     ))
   }
   
@@ -293,7 +295,7 @@ getExplainedVar <- function(
       numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas, numParCov = numParCov, 
       parNames = parNames, numSkipOm = numSkipOm, allCov = allCov, etas = etas, quiet = quiet, ncores = ncores, 
       cstrPackages = cstrPackages, cstrExports = cstrExports, numETASamples = numETASamples, seed = seed, 
-      thetas = thetas, covNames = covNames, fremCovs = fremCovs, orgCovs = orgCovs, ...
+      thetas = thetas, covNames = covNames, fremCovs = fremCovs, orgCovs = orgCovs, missVal = missVal,...
     ))
 
   }

@@ -15,7 +15,7 @@
 #' @family Data Assembly Internal
 #' @concept data_assembly
 #' @keywords internal
-validateFremData <- function(originalData, fremData, cstrDV = "DV", strID = "ID", quiet = FALSE) {
+validateFremData <- function(originalData, fremData, cstrDV = "DV", strID = "ID", missVal=-99,quiet = FALSE) {
   
   if (!"FREMTYPE" %in% names(fremData)) {
     stop("Validation failed: 'FREMTYPE' column is missing from the generated FREM data.", call. = FALSE)

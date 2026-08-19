@@ -52,7 +52,7 @@
 #' @noRd
 .calc_fo_variance <- function(dfCovs, functionList, functionListName, cstrCovariates,
                               thetas, dfext, numNonFREMThetas, numFREMThetas, numSigmas,
-                              numParCov, numSkipOm, parNames, covNames, allCov, fremCovs, quiet, ...) {
+                              numParCov, numSkipOm, parNames, covNames, allCov, fremCovs, quiet, missVal,...) {
   
   parf <- function(x, basethetas, covthetas, dfrow, myfunc, ...) {
     return(unlist(myfunc(basethetas, covthetas, dfrow, x, ...)))
@@ -124,7 +124,7 @@
                                      cstrCovariates, functionList, functionListName, numNonFREMThetas,
                                      numFREMThetas, numSigmas, numParCov, parNames, numSkipOm, allCov,
                                      etas, quiet, ncores, cstrPackages, cstrExports, numETASamples,
-                                     seed, thetas, covNames, fremCovs, orgCovs, ...) {
+                                     seed, thetas, covNames, fremCovs, orgCovs, missVal,...) {
   
   if (type == 2 || type == 3) { 
     ETAsamples <- matrix(stats::rnorm((numParCov + numSkipOm) * numETASamples), nrow = (numParCov + numSkipOm), ncol = numETASamples)

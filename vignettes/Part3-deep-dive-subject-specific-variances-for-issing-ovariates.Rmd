@@ -1,0 +1,112 @@
+---
+title: "Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## 1. Introduction and Clinical Rationale
+
+In standard `createFREMmodel` executions (`omegaToData = FALSE`), only one set of variance parameters is derived for all individuals, operating under the assumption of no missing covariate values. 
+
+However, in clinical datasets with significant missing data and high between-subject variability in missingness patterns, this assumption may fail. Setting `omegaToData = TRUE` relaxes this assumption. It ensures that each individual receives their own set of derived omega parameters, specifically adjusted according to their individual missing covariate pattern.
+
+To achieve this, the PMXFrem package extracts the individualized variance-covariance elements directly into the dataset and inserts Cholesky decomposition mathematics into the NONMEM `$PK` or `$PRED` blocks.
+
+## 2. Mathematical Foundation
+
+When `omegaToData = TRUE`, PMXFrem circumvents the standard block-diagonal `$OMEGA` structure. Instead, it uses the Cholesky factorization of the individualized variance-covariance matrix $V$:
+
+$$V = L L^T$$
+
+Where $L$ is a lower-triangular matrix. Independent standard normal random variables ($\eta$) are mapped to correlated variables (`MYETA`) via linear combinations of the $L$ factors. For a $2 \times 2$ matrix, the inserted equations evaluate to:
+
+$$L_{11} = \sqrt{V_{11}}$$
+$$L_{21} = \frac{V_{21}}{L_{11}}$$
+$$L_{22} = \sqrt{V_{22} - L_{21}^2}$$
+
+## 3. Dataset Augmentation (`V`-Columns)
+
+When invoking `createFFEMdata()` with `omegaToData = TRUE`, the matrix elements are appended to the output dataset as continuous `V`-columns. 
+
+```{r eval=FALSE}
+library(PMXFrem)
+
+ffem_data <- createFFEMdata(
+  modName = "run31",
+  modDevDir = system.file("extdata/SimNeb/", package = "PMXFrem"),
+  parNames = c("CL", "V"),
+  numNonFREMThetas = 7,
+  numSkipOm = 0,
+  dataFile = my_data,
+  omegaToData = TRUE
+)
+```
+
+### Data Snippet
+The resulting dataset assigns the individualized variances ($V_{11}, V_{22}$) and covariances ($V_{21}$) to each record based on that specific subject's missing covariate pattern:
+
+```text
+  ID TIME   DV       V11       V21       V22
+1  1    0 10.5 0.0651800 0.0196800 0.0520700
+2  1   12  8.2 0.0651800 0.0196800 0.0520700
+3  2    0 20.1 0.0712000 0.0154000 0.0601000
+4  2   24 15.0 0.0712000 0.0154000 0.0601000
+```
+*(Notice how Subject 1 and Subject 2 have different `V` values due to differing covariate missingness).*
+
+## 4. Model Code Modifications
+
+In `createFFEMmodel()`, activating this feature drops the empirical covariance estimates from the NONMEM `$OMEGA` block and replaces them with a fixed identity matrix. PMXFrem then inserts the structural equations directly into the model code.
+
+```{r eval=FALSE}
+ffem_model <- createFFEMmodel(
+  runno = 31,
+  baserunno = 30,
+  numNonFREMThetas = 7,
+  numSkipOm = 0,
+  parNames = c("CL", "V"),
+  dataFile = "raw_data.csv",
+  omegaToData = TRUE
+)
+```
+
+### Generated NONMEM Code Snippet
+The generated model explicitly computes the $L$ factors using the data-supplied $V$ parameters and generates `MYETA` assignments representing the newly correlated random effects.
+
+```text
+$PK
+; ----------------------------------------------------------------
+; 1. Cholesky factors (L) for an 2x2 matrix
+; ----------------------------------------------------------------
+
+; Column 1
+L11 = SQRT(MAX(0.000001, V11))
+L21 = V21 / L11
+
+; Column 2
+L22 = SQRT(MAX(0.000001, V22 - L21**2))
+
+; ----------------------------------------------------------------
+; 2. Multiply standard ETA with L for correlated MYETA
+; ----------------------------------------------------------------
+MYETA1 = L11 * ETA(1)
+MYETA2 = L21 * ETA(1) + L22 * ETA(2)
+
+; Structural parameter assignment using MYETA and individualized covariate effects
+CL = THETA(1) * EXP(MYETA1 + CLFREMCOV)
+V  = THETA(2) * EXP(MYETA2 + VFREMCOV)
+
+$OMEGA BLOCK(2) FIX
+1.0
+0.0 1.0
+```

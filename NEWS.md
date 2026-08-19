@@ -1,19 +1,21 @@
-# PMXFrem (development version)
+# PMXFrem 2.1.0
 
 ## New Features
-* **Cholesky Decomposition Integration (`omegaToData`)**: Introduced native support for Cholesky factorizations in the FFEM workflow[cite: 2]. By setting `omegaToData = TRUE` in `createFFEMdata()` and `createFFEMmodel()`, the pipeline now dynamically rewrites the NONMEM `$OMEGA` block as an identity matrix and injects robust algebraic equations ($V = L L^T$) into the `$PK`/`$PRED` blocks to map independent standard normal `ETA`s to correlated `MYETA`s[cite: 2, 3].
-* **Covariate Estimation Optimization (`fixTheta`)**: Added the `fixTheta` argument (default `TRUE`) to core data assembly functions[cite: 2]. The pipeline now automatically appends the `FIX` flag to initial `$THETA` estimates for fully observed covariates. Covariates containing missing data gracefully bypass this and remain estimated, improving overall EM algorithm stability[cite: 2].
-* **Pre-flight Estimation Diagnostics**: Implemented rigorous validation of the base NONMEM model's `$EST` block prior to FREM generation[cite: 2]. The system now automatically warns users about sub-optimal configurations, including the use of SAEM with missing covariates, absence of IMP/IMPMAP methods, `NITER` < 150, or incorrect `PHITYPE` settings[cite: 2].
+* **Cholesky Decomposition Support**: Added the `omegaToData` argument to `createFFEMdata()` and `createFFEMmodel()`. When set to `TRUE`, this extracts the variance-covariance matrix elements as `V`-columns (e.g., `V11`, `V21`) directly into the dataset. It rewrites the NONMEM `$OMEGA` block as an identity matrix and adds equations ($V = L L^T$) in the `$PK`/`$PRED` blocks to map independent standard normal `ETA`s to correlated `MYETA`s.
+* **Automated Fixing of Covariate Parameters**: Added the `fixTheta` argument (default `TRUE`) to core data assembly functions. The functions now automatically add the `FIX` flag to initial `$THETA` estimates for fully observed covariates. Covariates with missing data remain estimated, which improves overall EM algorithm stability.
+* **Estimation Block Validation**: Added evaluation checks for the base NONMEM model's `$EST` block prior to FREM generation. The package now warns users about sub-optimal configurations, including the use of SAEM with missing covariates, absence of IMP/IMPMAP methods, `NITER` < 150, or incorrect `PHITYPE` settings.
 
 ## Under the Hood & Refactoring
-* **Missing Value Harmonization (`missVal`)**: Eradicated all hardcoded `-99` magic numbers across the core data assembly pipeline (`createFREMmodel`, `updateFREMmodel`, `prepareNewCovariates`, `createFREMData`, `augmentFremData`, `calcEtas`, `addFREMcovariates`, `setupDfCovsEV`)[cite: 2, 3]. These are replaced with a systematically propagated `missVal` argument, allowing the package to safely handle arbitrary sponsor data conventions for missingness (e.g., `-999`, `NA`)[cite: 2].
-* **Parser Stability**: Hardened NONMEM `.ext` file parsing in `initializeModelParameters` against legacy R (version < 4.0) factor-coercion vulnerabilities[cite: 2]. Prevented `write.table` from silently applying scientific notation to exact `ITERATION` strings[cite: 2].
-* **Parallel Execution Hardening**: Explicitly mapped arguments (`omegaToData`, `numSkipOm`) into the `foreach` worker closures in `createFFEMdata()` to eliminate lexical scoping vulnerabilities across different parallel backends[cite: 2].
-* **Signature Stability**: Resolved recursive lazy evaluation promises caused by parameterizing default arguments, and eliminated positional argument bleeding in internal pipeline orchestrators[cite: 2].
+* **Missing Value Handling**: Removed hardcoded `-99` values across the core data assembly functions (`createFREMmodel`, `updateFREMmodel`, `prepareNewCovariates`, `createFREMData`, `augmentFremData`, `calcEtas`, `addFREMcovariates`, `setupDfCovsEV`). These are replaced with a `missVal` argument, allowing the package to handle alternative sponsor data conventions for missingness (e.g., `-999`, `NA`).
+* **Parameter Dimension Checks**: Added length checks in `calcFFEM()` to ensure that the number of provided parameter and covariate labels exactly matches the parsed `numParCov` and `numFREMThetas` derived from the model. This prevents vector-recycling errors and matrix-dimension mismatches.
+* **Matrix Formatting**: Added the `forceSingleBlock` argument to `buildmatrix()` to override block-diagonal detection. This formats expanded `$OMEGA` blocks as a single dense block, preventing the matrix from splitting when structural zeros are added during minimal model creation.
+* **Parsing Improvements**: Updated NONMEM `.ext` file parsing in `initializeModelParameters` to avoid factor-coercion issues in legacy R versions (version < 4.0). Prevented `write.table` from automatically applying scientific notation to `ITERATION` strings.
+* **Parallel Execution Updates**: Explicitly mapped arguments (`omegaToData`, `numSkipOm`) into the `foreach` closures in `createFFEMdata()` to prevent variable scoping issues across different parallel backends.
+* **Function Signature Updates**: Resolved recursive lazy evaluation caused by parameterizing default arguments, and corrected positional argument matching in internal functions.
 
 ## Documentation & Testing
-* Updated `roxygen2` documentation and executable `@examples` for `createFFEMmodel` and `createFFEMdata` to be fully compliant with CRAN file I/O policies[cite: 2].
-* Stabilized the `testthat` suite by strictly scoping missingness tokens during mock data generation and updating test snapshots to reflect dynamic parameter labeling[cite: 2].
+* Updated `roxygen2` documentation and executable `@examples` for `createFFEMmodel` and `createFFEMdata` to comply with CRAN file I/O policies.
+* Improved the `testthat` suite by scoping missingness tokens during mock data generation, using a recursive object stabilization helper (`stabilize()`), and updating test snapshots to reflect dynamic parameter labeling and Cholesky matrix outputs.
 
 # PMXFrem 2.0.0
 

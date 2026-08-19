@@ -119,7 +119,7 @@ test_that("createFREMdata works", {
 ################################################################################
 
 test_that("createFREMData handles edge cases and errors", {
-
+  missVal <- -99
   strFFEMData <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 
   # Test error when input file doesn't exist (L92)
@@ -215,7 +215,7 @@ test_that("createFREMData handles edge cases and errors", {
 ################################################################################
 
 test_that("createFREMData covers all edge cases from coverage report", {
-
+  missVal <- -99
   # 1. Create a custom, temporary dataset to control all conditions
   test_data <- data.frame(
     ID = c(1, 1, 2, 2, 3, 3),

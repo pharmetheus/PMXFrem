@@ -2,7 +2,7 @@ test_that("plotExplainedVar generates correct plot data", {
 
   # No need for vdiffr or RNGversion anymore.
   # Our stabilize() and standardize_plot_data() helpers are sufficient.
-
+  missVal <- -99
   set.seed(2342)
   modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
   fremRunno <- 31

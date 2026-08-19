@@ -385,7 +385,7 @@ updateFREMmodel <- function(strFREMModel,
     
     # validateFremData will apply the DV != missVal rule to the ground_truth.
     # This safely filters new subjects, while leaving existing subjects (already filtered) intact.
-    validateFremData(originalData = ground_truth, fremData = final_df, cstrDV = cstrDV, strID = strID, quiet = quiet)
+    validateFremData(originalData = ground_truth, fremData = final_df, cstrDV = cstrDV, strID = strID, missVal=missVal,quiet = quiet)
   }
   
   # ---> ADD THIS SAFETY NET: Ensure strNewFREMData has a string for the in-memory $DATA record

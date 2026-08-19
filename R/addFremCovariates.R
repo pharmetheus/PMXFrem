@@ -21,11 +21,10 @@
 #' @param dfFFEM A data.frame containing the FFEM data.
 #' @param modFile Path to a FREM model file.
 #' @param covariates A character vector of covariates to binarise.
-#' @param iMiss The integer/numeric value representing missing data (default: -99).
 #' @param includeReference Logical. If TRUE, creates a dummy column for the lowest 
 #'   reference level as well (default: FALSE).
 #' @param imputeMissing Logical. If TRUE (default), missing values are imputed to 0 
-#'   (the reference category). If FALSE, missing values are preserved as iMiss.
+#'   (the reference category). If FALSE, missing values are preserved as missVal.
 #' @param missVal The integer/numeric value representing missing data (default: -99).
 #'
 #' @return A data.frame with the new binarised covariate columns.

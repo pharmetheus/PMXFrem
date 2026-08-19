@@ -40,6 +40,7 @@ setup_dummy_frem_files <- function(td) {
 }
 
 test_that("createFREMmodel_phase1 processes a continuous covariate", {
+  missVal <- -99
   td <- withr::local_tempdir()
   out_dir <- file.path(td, "out_cont")
   files <- setup_dummy_frem_files(td)
@@ -74,6 +75,7 @@ test_that("createFREMmodel_phase1 processes a continuous covariate", {
 })
 
 test_that("createFREMmodel_phase1 handles polychotomous Y-1 expansion", {
+  missVal <- -99
   td <- withr::local_tempdir()
   out_dir <- file.path(td, "out_cat")
   files <- setup_dummy_frem_files(td)
