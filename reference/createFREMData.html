@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,6 +30,7 @@
     <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -70,6 +71,7 @@
 <span>  logtCovs <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  bRecodeDichotomous <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  allowNon01 <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  missVal <span class="op">=</span> <span class="op">-</span><span class="fl">99</span>,</span>
 <span>  cSortCols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ORIG_ROW_IDX"</span>, <span class="st">"FREMTYPE"</span><span class="op">)</span>,</span>
 <span>  cSortDirection <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  cFremtypes <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -141,6 +143,10 @@ as 0/1 in the input data; otherwise, a strict validation error will be thrown.</
 dichotomous covariates with non-standard coding (e.g., 1/2) to pass through
 untouched without being recoded. This provides 100% compatibility with PsN
 legacy behavior. Defaults to FALSE.</p></dd>
+
+
+<dt>missVal</dt>
+<dd><p>Numeric. Missing value indicator.</p></dd>
 
 
 <dt>cSortCols</dt>

@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,6 +30,7 @@
     <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -50,6 +51,38 @@
       
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2.1.0" id="pmxfrem-2-1-0">PMXFrem 2.1.0<a class="anchor" aria-label="anchor" href="#pmxfrem-2-1-0"></a></h2>
+<div class="section level3">
+<h3 id="new-features-2-1-0">New Features<a class="anchor" aria-label="anchor" href="#new-features-2-1-0"></a></h3>
+<ul><li>
+<strong>Cholesky Decomposition Support</strong>: Added the <code>omegaToData</code> argument to <code><a href="../reference/createFFEMdata.html">createFFEMdata()</a></code> and <code><a href="../reference/createFFEMmodel.html">createFFEMmodel()</a></code>. When set to <code>TRUE</code>, this extracts the variance-covariance matrix elements as <code>V</code>-columns (e.g., <code>V11</code>, <code>V21</code>) directly into the dataset. It rewrites the NONMEM <code>$OMEGA</code> block as an identity matrix and adds equations (<span class="math inline"><em>V</em> = <em>L</em><em>L</em><sup><em>T</em></sup></span>) in the <code>$PK</code>/<code>$PRED</code> blocks to map independent standard normal <code>ETA</code>s to correlated <code>MYETA</code>s.</li>
+<li>
+<strong>Automated Fixing of Covariate Parameters</strong>: Added the <code>fixTheta</code> argument (default <code>TRUE</code>) to core data assembly functions. The functions now automatically add the <code>FIX</code> flag to initial <code>$THETA</code> estimates for fully observed covariates. Covariates with missing data remain estimated, which improves overall EM algorithm stability.</li>
+<li>
+<strong>Estimation Block Validation</strong>: Added evaluation checks for the base NONMEM model’s <code>$EST</code> block prior to FREM generation. The package now warns users about sub-optimal configurations, including the use of SAEM with missing covariates, absence of IMP/IMPMAP methods, <code>NITER</code> &lt; 150, or incorrect <code>PHITYPE</code> settings.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="under-the-hood-refactoring-2-1-0">Under the Hood &amp; Refactoring<a class="anchor" aria-label="anchor" href="#under-the-hood-refactoring-2-1-0"></a></h3>
+<ul><li>
+<strong>Missing Value Handling</strong>: Removed hardcoded <code>-99</code> values across the core data assembly functions (<code>createFREMmodel</code>, <code>updateFREMmodel</code>, <code>prepareNewCovariates</code>, <code>createFREMData</code>, <code>augmentFremData</code>, <code>calcEtas</code>, <code>addFREMcovariates</code>, <code>setupDfCovsEV</code>). These are replaced with a <code>missVal</code> argument, allowing the package to handle alternative sponsor data conventions for missingness (e.g., <code>-999</code>, <code>NA</code>).</li>
+<li>
+<strong>Parameter Dimension Checks</strong>: Added length checks in <code><a href="../reference/calcFFEM.html">calcFFEM()</a></code> to ensure that the number of provided parameter and covariate labels exactly matches the parsed <code>numParCov</code> and <code>numFREMThetas</code> derived from the model. This prevents vector-recycling errors and matrix-dimension mismatches.</li>
+<li>
+<strong>Matrix Formatting</strong>: Added the <code>forceSingleBlock</code> argument to <code><a href="../reference/buildmatrix.html">buildmatrix()</a></code> to override block-diagonal detection. This formats expanded <code>$OMEGA</code> blocks as a single dense block, preventing the matrix from splitting when structural zeros are added during minimal model creation.</li>
+<li>
+<strong>Parsing Improvements</strong>: Updated NONMEM <code>.ext</code> file parsing in <code>initializeModelParameters</code> to avoid factor-coercion issues in legacy R versions (version &lt; 4.0). Prevented <code>write.table</code> from automatically applying scientific notation to <code>ITERATION</code> strings.</li>
+<li>
+<strong>Parallel Execution Updates</strong>: Explicitly mapped arguments (<code>omegaToData</code>, <code>numSkipOm</code>) into the <code>foreach</code> closures in <code><a href="../reference/createFFEMdata.html">createFFEMdata()</a></code> to prevent variable scoping issues across different parallel backends.</li>
+<li>
+<strong>Function Signature Updates</strong>: Resolved recursive lazy evaluation caused by parameterizing default arguments, and corrected positional argument matching in internal functions.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-testing-2-1-0">Documentation &amp; Testing<a class="anchor" aria-label="anchor" href="#documentation-testing-2-1-0"></a></h3>
+<ul><li>Updated <code>roxygen2</code> documentation and executable <code>@examples</code> for <code>createFFEMmodel</code> and <code>createFFEMdata</code> to comply with CRAN file I/O policies.</li>
+<li>Improved the <code>testthat</code> suite by scoping missingness tokens during mock data generation, using a recursive object stabilization helper (<code>stabilize()</code>), and updating test snapshots to reflect dynamic parameter labeling and Cholesky matrix outputs.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.0.0" id="pmxfrem-2-0-0">PMXFrem 2.0.0<a class="anchor" aria-label="anchor" href="#pmxfrem-2-0-0"></a></h2>
 <div class="section level3">

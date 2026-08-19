@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,6 +47,7 @@
     <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -296,11 +297,11 @@
 <a class="sourceLine" id="cb5-104" data-line-number="104"><span class="op">$</span>THETA <span class="fl">0.676682</span> ; <span class="fl">5.</span> D1</a>
 <a class="sourceLine" id="cb5-105" data-line-number="105"><span class="op">$</span>THETA <span class="fl">-0.0521041</span> ; <span class="fl">6.</span> FRELFOOD1</a>
 <a class="sourceLine" id="cb5-106" data-line-number="106"><span class="op">$</span>THETA <span class="fl">0.152505</span> ; <span class="fl">7.</span> MATFOOD1</a>
-<a class="sourceLine" id="cb5-107" data-line-number="107"><span class="op">$</span>THETA <span class="dv">43</span> ; <span class="dv">8</span> TV_AGE</a>
-<a class="sourceLine" id="cb5-108" data-line-number="108"><span class="op">$</span>THETA <span class="fl">86.800168374817</span> ; <span class="dv">9</span> TV_WT</a>
-<a class="sourceLine" id="cb5-109" data-line-number="109"><span class="op">$</span>THETA <span class="fl">0.441095890410959</span> ; <span class="dv">10</span> TV_SEX_<span class="dv">2</span></a>
-<a class="sourceLine" id="cb5-110" data-line-number="110"><span class="op">$</span>THETA <span class="fl">0.195369030390738</span> ; <span class="dv">11</span> TV_RACEL_<span class="dv">2</span></a>
-<a class="sourceLine" id="cb5-111" data-line-number="111"><span class="op">$</span>THETA <span class="fl">0.0246020260492041</span> ; <span class="dv">12</span> TV_RACEL_<span class="dv">3</span></a>
+<a class="sourceLine" id="cb5-107" data-line-number="107"><span class="op">$</span>THETA <span class="fl">42.97</span> ; <span class="dv">8</span> TV_AGE</a>
+<a class="sourceLine" id="cb5-108" data-line-number="108"><span class="op">$</span>THETA <span class="fl">86.8</span> ; <span class="dv">9</span> TV_WT</a>
+<a class="sourceLine" id="cb5-109" data-line-number="109"><span class="op">$</span>THETA <span class="fl">0.44</span> FIX ; <span class="dv">10</span> TV_SEX_<span class="dv">2</span></a>
+<a class="sourceLine" id="cb5-110" data-line-number="110"><span class="op">$</span>THETA <span class="fl">0.2</span> ; <span class="dv">11</span> TV_RACEL_<span class="dv">2</span></a>
+<a class="sourceLine" id="cb5-111" data-line-number="111"><span class="op">$</span>THETA <span class="fl">0.02</span> ; <span class="dv">12</span> TV_RACEL_<span class="dv">3</span></a>
 <a class="sourceLine" id="cb5-112" data-line-number="112"><span class="op">$</span>OMEGA <span class="kw">BLOCK</span>(<span class="dv">1</span>) <span class="fl">0.054943</span> ; <span class="fl">1.</span> IIV on RUV</a>
 <a class="sourceLine" id="cb5-113" data-line-number="113"><span class="op">$</span>OMEGA <span class="kw">BLOCK</span>(<span class="dv">1</span>) <span class="fl">1e-04</span> FIX ; <span class="fl">2.</span> IIV on D1</a>
 <a class="sourceLine" id="cb5-114" data-line-number="114"><span class="op">$</span>OMEGA <span class="kw">BLOCK</span>(<span class="dv">8</span>) </a>
@@ -316,8 +317,8 @@
 <a class="sourceLine" id="cb5-124" data-line-number="124"><span class="op">$</span>SIGMA <span class="fl">0.0000001</span> FIX</a>
 <a class="sourceLine" id="cb5-125" data-line-number="125"><span class="op">$</span>ESTIMATION METHOD=IMPMAP AUTO=<span class="dv">1</span> RANMETHOD=3P INTER NOABORT PRINT=<span class="dv">1</span></a>
 <a class="sourceLine" id="cb5-126" data-line-number="126">            NOCOV=<span class="dv">1</span> ISAMPEND=<span class="dv">100</span> NITER=<span class="dv">50</span> ISAMPLE=<span class="dv">300</span></a>
-<a class="sourceLine" id="cb5-127" data-line-number="127"><span class="op">$</span>ESTIMATION METHOD=IMPMAP INTER EONLY=<span class="dv">1</span> NITER=<span class="dv">50</span> ISAMPLE=<span class="dv">10000</span> NOCOV=<span class="dv">0</span></a>
-<a class="sourceLine" id="cb5-128" data-line-number="128">;            PHITYPE=<span class="dv">1</span></a>
+<a class="sourceLine" id="cb5-127" data-line-number="127"><span class="op">$</span>ESTIMATION METHOD=IMPMAP INTER EONLY=<span class="dv">1</span> NITER=<span class="dv">5</span> ISAMPLE=<span class="dv">10000</span> NOCOV=<span class="dv">0</span></a>
+<a class="sourceLine" id="cb5-128" data-line-number="128">            PHITYPE=<span class="dv">1</span></a>
 <a class="sourceLine" id="cb5-129" data-line-number="129">;<span class="op">$</span>COVARIANCE PRINT=E MATRIX=S UNCONDITIONAL</a></code></pre></div>
 <p>You can now submit <code>run30_FREM.mod</code> directly to NONMEM for execution!</p>
 </div>

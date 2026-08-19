@@ -18,7 +18,7 @@ cleans up all intermediate files."><!-- mathjax --><script src="https://cdnjs.cl
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,7 @@ cleans up all intermediate files."><!-- mathjax --><script src="https://cdnjs.cl
     <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -84,7 +85,7 @@ cleans up all intermediate files.</p>
 <span>  IDvar <span class="op">=</span> <span class="st">"ID"</span>,</span>
 <span>  missVal <span class="op">=</span> <span class="op">-</span><span class="fl">99</span>,</span>
 <span>  fixTheta <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  roundMeanTo <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  roundMeanTo <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  useMuModeling <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  numSkipOm <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  cstrKeepCols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ID"</span>, <span class="st">"TIME"</span>, <span class="st">"AMT"</span>, <span class="st">"II"</span>, <span class="st">"EVID"</span>, <span class="st">"SS"</span>, <span class="st">"RATE"</span>, <span class="st">"DV"</span><span class="op">)</span>,</span>
@@ -156,7 +157,7 @@ The first element is processed during Phase 1 (bootstrapping), and the remainder
 
 
 <dt>roundMeanTo</dt>
-<dd><p>Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to <code>1</code>.</p></dd>
+<dd><p>Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to <code>2</code>.</p></dd>
 
 
 <dt>useMuModeling</dt>
@@ -241,12 +242,13 @@ these subjects are retained and their covariates are included as observations.</
 <span class="r-in"><span>  bRecodeDichotomous <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
 <span class="r-in"><span>  quiet              <span class="op">=</span> <span class="cn">TRUE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Consider increasing NITER to at least 150.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># The generated files are available in the temporary directory</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">generated_files</span><span class="op">$</span><span class="va">model</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpjQXINZ/frem_example_43f617939b758/frem_final.mod"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpwNmWQb/frem_example_c9c74244988dd/frem_final.mod"</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">generated_files</span><span class="op">$</span><span class="va">data</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpjQXINZ/frem_example_43f617939b758/frem_final_data.csv"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpwNmWQb/frem_example_c9c74244988dd/frem_final_data.csv"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">#Clean up the temporary directory</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">td</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>

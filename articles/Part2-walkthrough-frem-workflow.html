@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,6 +47,7 @@
     <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -348,7 +349,7 @@ CL (L/h)
 6.15
 </td>
 <td style="text-align:left;">
-[5.98 - 6.32]
+[5.97 - 6.34]
 </td>
 <td style="text-align:left;">
 <ul><li></ul>
@@ -362,7 +363,7 @@ V (L)
 123
 </td>
 <td style="text-align:left;">
-[118. - 127.]
+[118. - 126.]
 </td>
 <td style="text-align:left;">
 <ul><li></ul>
@@ -376,7 +377,7 @@ MAT (h)
 1.89
 </td>
 <td style="text-align:left;">
-[1.79 - 1.98]
+[1.80 - 2.00]
 </td>
 <td style="text-align:left;">
 <ul><li></ul>
@@ -390,7 +391,7 @@ D1 (h)
 0.67
 </td>
 <td style="text-align:left;">
-[0.643 - 0.693]
+[0.648 - 0.697]
 </td>
 <td style="text-align:left;">
 <ul><li></ul>
@@ -404,10 +405,10 @@ IIV on RUV (SD)
 0.233
 </td>
 <td style="text-align:left;">
-[0.210 - 0.258]
+[0.201 - 0.260]
 </td>
 <td style="text-align:left;">
-1.0000e-10
+0.00
 </td>
 </tr>
 <tr>
@@ -418,10 +419,10 @@ IIV on CL (SD)
 0.255
 </td>
 <td style="text-align:left;">
-[0.234 - 0.263]
+[0.235 - 0.262]
 </td>
 <td style="text-align:left;">
-1.0000e-10
+0.00
 </td>
 </tr>
 <tr>
@@ -432,7 +433,7 @@ IIV on V (SD)
 0.228
 </td>
 <td style="text-align:left;">
-[0.197 - 0.238]
+[0.195 - 0.240]
 </td>
 <td style="text-align:left;">
 5.27
@@ -446,7 +447,7 @@ IIV on MAT (SD)
 0.206
 </td>
 <td style="text-align:left;">
-[0.160 - 0.213]
+[0.166 - 0.219]
 </td>
 <td style="text-align:left;">
 26.93
@@ -460,7 +461,7 @@ RUV (SD)
 0.176
 </td>
 <td style="text-align:left;">
-[0.171 - 0.180]
+[0.172 - 0.180]
 </td>
 <td style="text-align:left;">
 <ul><li></ul>
@@ -514,19 +515,19 @@ WT
 -0.00591
 </td>
 <td style="text-align:left;">
-[-0.0272 - 0.00922]
+[-0.0279 - 0.0123]
 </td>
 <td style="text-align:left;">
 -0.0265
 </td>
 <td style="text-align:left;">
-[-0.0511 - -0.00567]
+[-0.0553 - -0.00757]
 </td>
 <td style="text-align:left;">
 0.00556
 </td>
 <td style="text-align:left;">
-[-0.0216 - 0.0407]
+[-0.0265 - 0.0372]
 </td>
 </tr>
 <tr>
@@ -537,19 +538,19 @@ HT
 -0.0287
 </td>
 <td style="text-align:left;">
-[-0.0530 - -0.00530]
+[-0.0545 - 0.00140]
 </td>
 <td style="text-align:left;">
 -0.0279
 </td>
 <td style="text-align:left;">
-[-0.0601 - 0.00172]
+[-0.0658 - 0.00501]
 </td>
 <td style="text-align:left;">
 -0.0102
 </td>
 <td style="text-align:left;">
-[-0.0436 - 0.0284]
+[-0.0534 - 0.0309]
 </td>
 </tr>
 <tr>
@@ -560,19 +561,19 @@ LBWT
 -0.0181
 </td>
 <td style="text-align:left;">
-[-0.0405 - -0.00305]
+[-0.0385 - 0.00184]
 </td>
 <td style="text-align:left;">
 -0.0111
 </td>
 <td style="text-align:left;">
-[-0.0388 - 0.0127]
+[-0.0398 - 0.00928]
 </td>
 <td style="text-align:left;">
 -0.000679
 </td>
 <td style="text-align:left;">
-[-0.0309 - 0.0273]
+[-0.0299 - 0.0332]
 </td>
 </tr>
 <tr>
@@ -583,19 +584,19 @@ BSA
 2.75
 </td>
 <td style="text-align:left;">
-[0.737 - 5.48]
+[-0.635 - 5.61]
 </td>
 <td style="text-align:left;">
 4.01
 </td>
 <td style="text-align:left;">
-[0.625 - 8.07]
+[0.771 - 8.12]
 </td>
 <td style="text-align:left;">
 0.202
 </td>
 <td style="text-align:left;">
-[-3.93 - 4.23]
+[-4.98 - 5.28]
 </td>
 </tr>
 <tr>
@@ -606,19 +607,19 @@ AGE
 0.00215
 </td>
 <td style="text-align:left;">
-[-0.00220 - 0.00575]
+[-0.00148 - 0.00656]
 </td>
 <td style="text-align:left;">
 -0.000617
 </td>
 <td style="text-align:left;">
-[-0.00479 - 0.00369]
+[-0.00508 - 0.00298]
 </td>
 <td style="text-align:left;">
 0.00319
 </td>
 <td style="text-align:left;">
-[-0.000515 - 0.00730]
+[-0.00182 - 0.00789]
 </td>
 </tr>
 <tr>
@@ -629,19 +630,19 @@ AST
 -0.00466
 </td>
 <td style="text-align:left;">
-[-0.0101 - -2.31e-05]
+[-0.0104 - -0.000463]
 </td>
 <td style="text-align:left;">
 0.000291
 </td>
 <td style="text-align:left;">
-[-0.00413 - 0.00611]
+[-0.00391 - 0.00631]
 </td>
 <td style="text-align:left;">
 -0.00894
 </td>
 <td style="text-align:left;">
-[-0.0177 - -0.00322]
+[-0.0157 - -0.000313]
 </td>
 </tr>
 <tr>
@@ -652,19 +653,19 @@ ALT
 0.00427
 </td>
 <td style="text-align:left;">
-[0.00140 - 0.00785]
+[0.00107 - 0.00878]
 </td>
 <td style="text-align:left;">
 0.000161
 </td>
 <td style="text-align:left;">
-[-0.00324 - 0.00346]
+[-0.00317 - 0.00339]
 </td>
 <td style="text-align:left;">
 0.00616
 </td>
 <td style="text-align:left;">
-[0.00191 - 0.0136]
+[0.000869 - 0.0114]
 </td>
 </tr>
 <tr>
@@ -675,19 +676,19 @@ BILI
 0.00201
 </td>
 <td style="text-align:left;">
-[-0.00537 - 0.0116]
+[-0.00698 - 0.0112]
 </td>
 <td style="text-align:left;">
 0.000162
 </td>
 <td style="text-align:left;">
-[-0.00835 - 0.0106]
+[-0.00814 - 0.00926]
 </td>
 <td style="text-align:left;">
 0.00228
 </td>
 <td style="text-align:left;">
-[-0.00875 - 0.0130]
+[-0.00768 - 0.0130]
 </td>
 </tr>
 <tr>
@@ -698,19 +699,19 @@ CRCL
 0.00117
 </td>
 <td style="text-align:left;">
-[-0.00121 - 0.00328]
+[-0.000839 - 0.00352]
 </td>
 <td style="text-align:left;">
 -0.000471
 </td>
 <td style="text-align:left;">
-[-0.00277 - 0.00163]
+[-0.00303 - 0.00177]
 </td>
 <td style="text-align:left;">
 0.00189
 </td>
 <td style="text-align:left;">
-[-0.000272 - 0.00427]
+[-0.000210 - 0.00430]
 </td>
 </tr>
 <tr>
@@ -721,19 +722,19 @@ BMI
 -0.0500
 </td>
 <td style="text-align:left;">
-[-0.103 - -0.00213]
+[-0.102 - 0.0109]
 </td>
 <td style="text-align:left;">
 -0.0146
 </td>
 <td style="text-align:left;">
-[-0.0773 - 0.0479]
+[-0.0801 - 0.0503]
 </td>
 <td style="text-align:left;">
 -0.0274
 </td>
 <td style="text-align:left;">
-[-0.102 - 0.0563]
+[-0.114 - 0.0627]
 </td>
 </tr>
 <tr>
@@ -744,19 +745,19 @@ SEX
 -0.168
 </td>
 <td style="text-align:left;">
-[-0.347 - -0.0396]
+[-0.329 - 0.00653]
 </td>
 <td style="text-align:left;">
 0.153
 </td>
 <td style="text-align:left;">
-[-0.0359 - 0.339]
+[-0.0696 - 0.318]
 </td>
 <td style="text-align:left;">
 -0.0419
 </td>
 <td style="text-align:left;">
-[-0.257 - 0.160]
+[-0.257 - 0.191]
 </td>
 </tr>
 <tr>
@@ -767,19 +768,19 @@ RACEL_3
 0.00281
 </td>
 <td style="text-align:left;">
-[-0.128 - 0.155]
+[-0.118 - 0.154]
 </td>
 <td style="text-align:left;">
 0.0197
 </td>
 <td style="text-align:left;">
-[-0.119 - 0.156]
+[-0.136 - 0.170]
 </td>
 <td style="text-align:left;">
 0.0160
 </td>
 <td style="text-align:left;">
-[-0.151 - 0.204]
+[-0.161 - 0.171]
 </td>
 </tr>
 <tr>
@@ -790,19 +791,19 @@ RACEL_2
 0.00800
 </td>
 <td style="text-align:left;">
-[-0.0622 - 0.0663]
+[-0.0494 - 0.0826]
 </td>
 <td style="text-align:left;">
 0.00167
 </td>
 <td style="text-align:left;">
-[-0.0727 - 0.0749]
+[-0.0795 - 0.0749]
 </td>
 <td style="text-align:left;">
 0.0392
 </td>
 <td style="text-align:left;">
-[-0.0324 - 0.118]
+[-0.0320 - 0.107]
 </td>
 </tr>
 <tr>
@@ -813,19 +814,19 @@ NCIL_2
 -0.517
 </td>
 <td style="text-align:left;">
-[-0.821 - -0.278]
+[-0.787 - -0.283]
 </td>
 <td style="text-align:left;">
 -0.0215
 </td>
 <td style="text-align:left;">
-[-0.324 - 0.218]
+[-0.334 - 0.246]
 </td>
 <td style="text-align:left;">
 -0.174
 </td>
 <td style="text-align:left;">
-[-0.453 - 0.142]
+[-0.499 - 0.0939]
 </td>
 </tr>
 <tr>
@@ -836,19 +837,19 @@ NCIL_1
 -0.238
 </td>
 <td style="text-align:left;">
-[-0.336 - -0.142]
+[-0.341 - -0.131]
 </td>
 <td style="text-align:left;">
 0.0227
 </td>
 <td style="text-align:left;">
-[-0.0914 - 0.112]
+[-0.0856 - 0.124]
 </td>
 <td style="text-align:left;">
 -0.106
 </td>
 <td style="text-align:left;">
-[-0.252 - 0.0221]
+[-0.223 - -0.00864]
 </td>
 </tr>
 <tr>
@@ -859,19 +860,19 @@ GENO2
 0.737
 </td>
 <td style="text-align:left;">
-[0.690 - 0.786]
+[0.691 - 0.791]
 </td>
 <td style="text-align:left;">
 0.734
 </td>
 <td style="text-align:left;">
-[0.683 - 0.789]
+[0.683 - 0.786]
 </td>
 <td style="text-align:left;">
 0.0128
 </td>
 <td style="text-align:left;">
-[-0.0551 - 0.0840]
+[-0.0410 - 0.0753]
 </td>
 </tr>
 <tr>
@@ -882,19 +883,19 @@ ETHNIC
 -0.0533
 </td>
 <td style="text-align:left;">
-[-0.110 - -0.000309]
+[-0.103 - -0.00952]
 </td>
 <td style="text-align:left;">
 -0.0631
 </td>
 <td style="text-align:left;">
-[-0.123 - -0.00118]
+[-0.125 - -0.00130]
 </td>
 <td style="text-align:left;">
 -0.0158
 </td>
 <td style="text-align:left;">
-[-0.0831 - 0.0379]
+[-0.0828 - 0.0382]
 </td>
 </tr>
 <tr>
@@ -905,19 +906,19 @@ SMOK
 0.367
 </td>
 <td style="text-align:left;">
-[0.252 - 0.458]
+[0.248 - 0.505]
 </td>
 <td style="text-align:left;">
 0.250
 </td>
 <td style="text-align:left;">
-[0.0960 - 0.391]
+[0.108 - 0.390]
 </td>
 <td style="text-align:left;">
 0.0664
 </td>
 <td style="text-align:left;">
-[-0.0855 - 0.181]
+[-0.109 - 0.197]
 </td>
 </tr>
 </tbody>

@@ -14,7 +14,7 @@ computes the ETA_prims. Optionally appends the true Empirical Bayes Estimates
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,6 +34,7 @@ computes the ETA_prims. Optionally appends the true Empirical Bayes Estimates
     <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -77,6 +78,7 @@ computes the ETA_prims. Optionally appends the true Empirical Bayes Estimates
 <span>  quiet <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  ffemModName <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  appendMissingFlags <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  missVal <span class="op">=</span> <span class="op">-</span><span class="fl">99</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -153,6 +155,10 @@ from its .phi file and appended to the output data frame. Default is <code>NULL<
 <dd><p>Logical. If <code>TRUE</code>, evaluates the original dataset for missing
 covariate values (coded as -99 or NA) and appends a binary indicator column for each predicted
 covariate with the suffix <code>_MISSING</code> (1 = Missing, 0 = Not Missing). Default is <code>FALSE</code>.</p></dd>
+
+
+<dt>missVal</dt>
+<dd><p>Numeric. The value representing missing data in the covariates. Defaults to -99.</p></dd>
 
 
 <dt>...</dt>
