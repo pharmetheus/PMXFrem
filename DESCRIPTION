@@ -1,7 +1,7 @@
 Package: PMXFrem
 Type: Package
 Title: Support functions for FREM analyses in NONMEM
-Version: 2.0.0.9000
+Version: 2.1.0
 Authors@R: c(
     person("Pharmetheus AB", email = "info@pharmetheus.com", role = c("cre","cph")),
     person("Niclas", "Jonsson", role = c("aut")),
