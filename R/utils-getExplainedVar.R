@@ -52,7 +52,7 @@
 #' @noRd
 .calc_fo_variance <- function(dfCovs, functionList, functionListName, cstrCovariates,
                               thetas, dfext, numNonFREMThetas, numFREMThetas, numSigmas,
-                              numParCov, numSkipOm, parNames, covNames, allCov, fremCovs, quiet, ...) {
+                              numParCov, numSkipOm, parNames, covNames, allCov, fremCovs, quiet, missVal,...) {
   
   parf <- function(x, basethetas, covthetas, dfrow, myfunc, ...) {
     return(unlist(myfunc(basethetas, covthetas, dfrow, x, ...)))
@@ -86,7 +86,7 @@
     TOTCOVVAR <- TOTCOVVAR[(length(TOTCOVVAR)/2 + 1):length(TOTCOVVAR)]
     
     for (i in seq_len(nrow(dfCovs))) {
-      currentNames <- names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != -99]
+      currentNames <- names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != missVal]
       tmpcovs <- .get_frem_cov_names(currentNames, fremCovs)
       
       ffemObj <- calcFFEM(
@@ -124,7 +124,7 @@
                                      cstrCovariates, functionList, functionListName, numNonFREMThetas,
                                      numFREMThetas, numSigmas, numParCov, parNames, numSkipOm, allCov,
                                      etas, quiet, ncores, cstrPackages, cstrExports, numETASamples,
-                                     seed, thetas, covNames, fremCovs, orgCovs, ...) {
+                                     seed, thetas, covNames, fremCovs, orgCovs, missVal,...) {
   
   if (type == 2 || type == 3) { 
     ETAsamples <- matrix(stats::rnorm((numParCov + numSkipOm) * numETASamples), nrow = (numParCov + numSkipOm), ncol = numETASamples)
@@ -152,8 +152,8 @@
   
   mapFun <- function(data_row, orgCovs) {
     for (cov in orgCovs) {
-      if (data_row[[cov]][1] == -99 && sum(grepl(cov, names(data_row))) > 1) {
-        data_row[1, grepl(cov, names(data_row))] <- -99
+      if (data_row[[cov]][1] == missVal && sum(grepl(cov, names(data_row))) > 1) {
+        data_row[1, grepl(cov, names(data_row))] <- missVal
       }
     }
     return(data_row)
@@ -171,12 +171,12 @@
     }
     dataI <- dplyr::bind_rows(dataI_list)
   }
-  dataI$jxrtp47 <- -99 
+  dataI$jxrtp47 <- missVal 
   
   dfrest_list <- vector("list", nrow(dfCovs))
   
   for (i in seq_len(nrow(dfCovs))) {
-    currentNames <- names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, ]) != -99]
+    currentNames <- names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, ]) != missVal]
     strCovsRow <- currentNames
     
     if (type == 3 || type == 2) { 
@@ -191,7 +191,7 @@
     internalCalc <- function(k) { 
       tmpcovs <- .get_frem_cov_names(currentNames, fremCovs)
       datatmp <- dataI[k, covNames, drop = FALSE] 
-      avcov <- names(datatmp)[which(datatmp != -99)] 
+      avcov <- names(datatmp)[which(datatmp != missVal)] 
       
       eval_env <- list(data = datatmp)
       coveffects <- rep(0, length(parNames))
@@ -202,7 +202,7 @@
       )
       
       for (j in seq_along(parNames)) {
-        if (length(names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != -99]) != 0) {
+        if (length(names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal]) != 0) {
           coveffects[j] <- as.numeric(eval(parse(text = ffemObj$Expr[j]), envir = eval_env))
         }
       }

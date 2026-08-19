@@ -15,6 +15,7 @@
 #' @param iFremTypeIncrease The integer value by which to increment FREMTYPE.
 #' @param cstrSetToZero A character vector of column names to set to zero when
 #'   creating new covariate records.
+#' @param missVal Numeric. Missing value indicator.
 #' @param quiet A logical flag to suppress printed messages.
 #'
 #' @return The fully augmented `dfFREM` data frame.
@@ -31,7 +32,8 @@ augmentFremData <- function(dfFREM,
                             strID,
                             iFremTypeIncrease,
                             cstrSetToZero,
-                            quiet) {
+                            missVal = -99,
+                            quiet = FALSE) {
   
   printq <- function(str, quiet) {
     if (!quiet) print(str)
@@ -66,7 +68,7 @@ augmentFremData <- function(dfFREM,
     for (i in 1:length(iFremtypeDV)) {
       strDV <- cstrDV[i]
       
-      keep_rows <- dataToAdd[[strDV]] != -99
+      keep_rows <- dataToAdd[[strDV]] != missVal
       if ("EVID" %in% names(dataToAdd)) keep_rows <- keep_rows | dataToAdd$EVID != 0
       keep_rows[is.na(keep_rows)] <- FALSE
       
@@ -96,7 +98,7 @@ augmentFremData <- function(dfFREM,
     ### Add new DVs for all individuals
     for (i in 1:length(iNewFremtypeDV)) {
       strDV <- cstrDV[length(iFremtypeDV) + i]
-      dfDVData <- dfFFEM[dfFFEM[[strDV]] != -99, unique(c(names(dfFFEM)[names(dfFFEM) %in% names(dfFREM)], strDV)), ]
+      dfDVData <- dfFFEM[dfFFEM[[strDV]] != missVal, unique(c(names(dfFFEM)[names(dfFFEM) %in% names(dfFREM)], strDV)), ]
       if (nrow(dfDVData) == 0) {
         printq(paste0("No observations for ", strDV, " (fremtype=", iNewFremtypeDV[i], "); not adding any observations!"), quiet = quiet)
         warning(paste0("Note that it might be inconsistencies in DV fremtypes since fremtype ", iNewFremtypeDV[i], " is not present!"))
@@ -124,7 +126,7 @@ augmentFremData <- function(dfFREM,
       strCov <- covnames$covNames[i]
       iFremtype <- iFremTypeIncrease * i
       strCovClean <- stringr::str_replace(strCov, "_.*", "")
-      dfData <- dataToAdd[dataToAdd[[strCovClean]] != -99, unique(c(names(dataToAdd)[names(dataToAdd) %in% names(dfFREM)], strCovClean)), ]
+      dfData <- dataToAdd[dataToAdd[[strCovClean]] != missVal, unique(c(names(dataToAdd)[names(dataToAdd) %in% names(dfFREM)], strCovClean)), ]
       if (nrow(dfData) == 0) {
         printq(paste0("No observed covariate values for ", strCov, " (fremtype=", iFremtype, "); not adding any covariate values!"), quiet = quiet)
       } else {

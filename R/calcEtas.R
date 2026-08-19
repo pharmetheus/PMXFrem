@@ -19,6 +19,7 @@
 #'   covariate values (coded as -99 or NA) and appends a binary indicator column for each predicted 
 #'   covariate with the suffix \code{_MISSING} (1 = Missing, 0 = Not Missing). Default is \code{FALSE}.
 #' @param ... Additional arguments passed on to `createFFEMdata` when `FFEMData` is `NULL`.
+#' @param missVal Numeric. The value representing missing data in the covariates. Defaults to -99.
 #'
 #' @details The function collects the ETAs from the output of a FREM model, both for the
 #'   parameters as well as the covariates. The corresponding ETA_prims for the parameter
@@ -93,6 +94,7 @@ calcEtas <- function(
     quiet              = TRUE,
     ffemModName        = NULL,
     appendMissingFlags = TRUE,
+    missVal            = -99,
     ...) {
   
   # Capture all ... arguments into a list
@@ -125,7 +127,8 @@ calcEtas <- function(
         parNames         = parNames,
         newDataFile      = NULL,
         idvar            = idvar,
-        quiet            = quiet
+        quiet            = quiet,
+        missVal          = missVal   # <-- EXPLICITLY MAP DOWN
       ),
       ffem_args_from_dots
     )
@@ -219,7 +222,7 @@ calcEtas <- function(
         matched_obs <- df_obs[[parent_cov]][match(retDf$ID, df_obs[[idvar]])]
         
         # Flag as 1 if missing (-99 or NA), 0 otherwise
-        retDf[[paste0(cov, "_MISSING")]] <- as.integer(is.na(matched_obs) | matched_obs == -99)
+        retDf[[paste0(cov, "_MISSING")]] <- as.integer(is.na(matched_obs) | matched_obs == missVal)
       }
     }
   }

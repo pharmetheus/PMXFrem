@@ -9,7 +9,8 @@
 #'   modFileName)$orgCovNames`
 #' @param additionalCovs Any additional covariates to be included in the output
 #'   dfCovs. For example covariates that are part of the fixed effects part of
-#'   the FREM model file.
+#'   the FREM model file
+#' @param missVal Numeric. Missing value indicator.
 #' @return A data.frame that can be used as the dfCovs argument to
 #'   `getExplainedVar`.
 #' @export
@@ -28,6 +29,7 @@
 #' @concept data_assembly
 setupDfCovsEV <- function(modFileName,
                         fremCovs       = getCovNames(modFile = modFileName)$orgCovNames,
+                        missVal = -99,
                         additionalCovs = NULL) {
   ## Get the covariates from the model
   covNames <- getCovNames(modFile = modFileName)
@@ -43,7 +45,7 @@ setupDfCovsEV <- function(modFileName,
   dfCovs <- dfCovs %>%  mutate_all(function(x) 1)
 
   for (i in 2:nrow(dfCovs)) {
-    dfCovs[i, names(dfCovs) != names(dfCovs)[i - 1]] <- -99
+    dfCovs[i, names(dfCovs) != names(dfCovs)[i - 1]] <- missVal
   }
 
   return(dfCovs)

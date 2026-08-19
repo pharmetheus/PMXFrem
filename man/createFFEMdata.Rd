@@ -22,6 +22,8 @@ createFFEMdata(
   quiet = FALSE,
   cores = 1,
   dfext = NULL,
+  missVal = -99,
+  omegaToData = FALSE,
   ...
 )
 }
@@ -86,6 +88,11 @@ expressions.}
 \item{dfext}{A data frame of the ext file for the FREM model. In case of
 multiple $EST, the dfext should contain the estimates of the \emph{one} relevant
 $EST.}
+
+\item{missVal}{Numeric. The value representing missing data in the covariates. Defaults to -99.}
+
+\item{omegaToData}{Logical. If \code{TRUE}, the variance-covariance matrix elements
+are appended to the output dataset as V-columns (e.g., V11, V21). Defaults to \code{FALSE}.}
 }
 \value{
 A list with objects:
@@ -135,21 +142,36 @@ the console.
 }
 
 \examples{
-library(dplyr)
+# Setup paths using package extdata
+modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+dataFile  <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
 
-data <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) \%>\%
-  filter(BLQ != 1)
+# Isolate outputs to a temporary directory
+td <- tempdir()
 
-## Check with specified parameter names
+# Example 1: Basic usage, returning a data.frame
 ffemData <- createFFEMdata(
-  modName          = "run31",
-  modDevDir        = system.file("extdata/SimNeb/", package = "PMXFrem"),
+  runno            = 31,
+  modDevDir        = modDevDir,
   parNames         = c("CL", "V", "MAT"),
   numNonFREMThetas = 7,
   numSkipOm        = 2,
-  dataFile         = data,
+  dataFile         = dataFile,
   newDataFile      = NULL,
   quiet            = TRUE)
+
+# Example 2: Writing to a file and including Cholesky matrix columns
+out_data <- file.path(td, "ffem_data_chol.csv")
+ffemDataChol <- createFFEMdata(
+  runno            = 31,
+  modDevDir        = modDevDir,
+  parNames         = c("CL", "V", "MAT"),
+  numNonFREMThetas = 7,
+  numSkipOm        = 2,
+  dataFile         = dataFile,
+  newDataFile      = out_data,
+  quiet            = TRUE,
+  omegaToData      = TRUE)
 
 }
 \seealso{

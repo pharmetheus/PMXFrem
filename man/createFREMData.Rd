@@ -17,6 +17,7 @@ createFREMData(
   logtCovs = NULL,
   bRecodeDichotomous = FALSE,
   allowNon01 = FALSE,
+  missVal = -99,
   cSortCols = c("ORIG_ROW_IDX", "FREMTYPE"),
   cSortDirection = c(1, 1),
   cFremtypes = NULL,
@@ -63,6 +64,8 @@ as 0/1 in the input data; otherwise, a strict validation error will be thrown.}
 dichotomous covariates with non-standard coding (e.g., 1/2) to pass through
 untouched without being recoded. This provides 100\% compatibility with PsN
 legacy behavior. Defaults to FALSE.}
+
+\item{missVal}{Numeric. Missing value indicator.}
 
 \item{cSortCols}{A character vector of column names to sort the final dataset by.
 The special internally generated column \code{"ORIG_ROW_IDX"} can be used to

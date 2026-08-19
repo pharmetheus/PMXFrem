@@ -19,6 +19,7 @@
 #'   add, default = NULL (i.e. alphabetic order will be used), (not used with
 #'   strUpdateType "NoData"). Note: if used, this should contain all covariates
 #'   in cstrCatCovsToAdd as well as cstrContCovsToAdd.
+#' @param missVal Numeric. The value representing missing data in the covariates. Defaults to `-99`.
 #' @param strNewFREMData Name of the new dataset,
 #'   default=paste0(strFREMData_without_extension,"new",".",extension), (not
 #'   used with strUpdateType "NoData").
@@ -60,6 +61,9 @@
 #' @param keepDoseOnlySubjects Logical. If \code{FALSE} (default), subjects without any valid PK observations (e.g., 
 #' only dosing records) are completely excluded from the generated dataset. If \code{TRUE}, 
 #' these subjects are retained and their covariates are included as observations.
+#' @param roundMeanTo Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to 2.
+#' @param fixTheta Logical. Should initial THETA estimates for covariates without missing values be fixed? Defaults to TRUE.
+#' @param sortFREMDataset Deprecated.
 #' @return An invisible list with components data and model, containing the new
 #'   data set (if any, else NULL) and updated model.
 #'
@@ -205,11 +209,14 @@ updateFREMmodel <- function(strFREMModel,
                             cstrDV                = "DV",
                             cstrRemoveCov         = NULL,
                             covEpsNum             = 2,
+                            missVal               = -99,
                             overrideExistingCheck = FALSE,
                             bRecodeDichotomous    = FALSE,
                             allowNon01            = FALSE,
                             keepDoseOnlySubjects  = FALSE,
-                            sortFREMDataset = NULL) {
+                            roundMeanTo           = 2,
+                            fixTheta              = TRUE,
+                            sortFREMDataset       = NULL) {
   
   if (!is.null(sortFREMDataset)) {
     warning(
@@ -304,23 +311,40 @@ updateFREMmodel <- function(strFREMModel,
     
     # 3b. Prepare New Covariates
     iFremType    <- if(nrow(dfFREM) > 0) max(dfFREM$FREMTYPE) else 0
-    prepResult   <- prepareNewCovariates(dfFFEM, 
-                                         cstrCatCovsToAdd, 
-                                         cstrContCovsToAdd, 
-                                         cstrCovsToAddOrder, 
-                                         covnames, iFremType, 
-                                         100, 
-                                         strID, 
-                                         overrideExistingCheck, 
-                                         bRecodeDichotomous = bRecodeDichotomous,
-                                         allowNon01         = allowNon01,
-                                         quiet)
+    prepResult   <- prepareNewCovariates(dfFFEM                = dfFFEM, 
+                                         cstrCatCovsToAdd      = cstrCatCovsToAdd, 
+                                         cstrContCovsToAdd     = cstrContCovsToAdd, 
+                                         cstrCovsToAddOrder    = cstrCovsToAddOrder, 
+                                         existingCovNames      = covnames, 
+                                         lastFremType          = iFremType, 
+                                         iFremTypeIncrease     = 100, 
+                                         strID                 = strID, 
+                                         missVal               = missVal,
+                                         overrideExistingCheck = overrideExistingCheck, 
+                                         bRecodeDichotomous    = bRecodeDichotomous,
+                                         allowNon01            = allowNon01,
+                                         roundMeanTo           = roundMeanTo,
+                                         fixTheta              = fixTheta,
+                                         quiet                 = quiet)
     covList      <- prepResult$covList
     addedList    <- prepResult$addedList
     dfFFEM       <- prepResult$dfFFEM
     
     # 3c. Augment FREM Data
-    dfFREM <- augmentFremData(dfFREM, dfFFEM, covList, addedList, covnames, cstrDV, strID, 100, cstrSetToZero, quiet)
+    dfFREM <- augmentFremData(
+      dfFREM            = dfFREM, 
+      dfFFEM            = dfFFEM, 
+      covList           = covList, 
+      addedList         = addedList, 
+      covnames          = covnames, 
+      cstrDV            = cstrDV, 
+      strID             = strID, 
+      iFremTypeIncrease = 100, 
+      cstrSetToZero     = cstrSetToZero, 
+      missVal           = missVal,         # <-- Explicit mapping
+      quiet             = quiet            # <-- Explicit mapping
+    )
+    
     # --- PHASE 2 KEEP_COLS HEALING ---
     # If the user requested keep_cols that were generated during Phase 2 (e.g., SEX_2),
     # we must extract them from the updated wide dataset and merge them into the long dataset.
@@ -359,9 +383,9 @@ updateFREMmodel <- function(strFREMModel,
       ground_truth <- base_existing
     }
     
-    # validateFremData will apply the DV != -99 rule to the ground_truth.
+    # validateFremData will apply the DV != missVal rule to the ground_truth.
     # This safely filters new subjects, while leaving existing subjects (already filtered) intact.
-    validateFremData(originalData = ground_truth, fremData = final_df, cstrDV = cstrDV, strID = strID, quiet = quiet)
+    validateFremData(originalData = ground_truth, fremData = final_df, cstrDV = cstrDV, strID = strID, missVal=missVal,quiet = quiet)
   }
   
   # ---> ADD THIS SAFETY NET: Ensure strNewFREMData has a string for the in-memory $DATA record

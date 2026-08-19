@@ -43,6 +43,7 @@
 #'   \code{cSortCols} (1 for ascending, -1 for descending). Default is \code{c(1, 1)}.
 #' @param cFremtypes A vector of FREMTYPE values that each DV and covariate
 #'   should use. Default=NULL.
+#' @param missVal Numeric. Missing value indicator.
 #' @param keepDoseOnlySubjects Logical. If \code{FALSE} (default), subjects without any valid PK observations (e.g., 
 #' only dosing records) are completely excluded from the generated dataset. If \code{TRUE}, 
 #' these subjects are retained and their covariates are included as observations.
@@ -75,6 +76,7 @@ createFREMData <- function(
     logtCovs             = NULL,
     bRecodeDichotomous   = FALSE,
     allowNon01           = FALSE,
+    missVal              = -99,
     cSortCols            = c("ORIG_ROW_IDX", "FREMTYPE"), 
     cSortDirection       = c(1, 1),
     cFremtypes           = NULL,
@@ -138,7 +140,7 @@ createFREMData <- function(
   
   # --- 2. TIME-VARYING WARNING ---
   for (cov in c(valid_ContCovs, valid_CatCovs)) {
-    time_varying <- dfFFEM[dfFFEM[[cov]] != -99, ]
+    time_varying <- dfFFEM[dfFFEM[[cov]] != missVal, ]
     if (nrow(time_varying) > 0) {
       n_distinct_per_id <- tapply(time_varying[[cov]], time_varying[[strID]], function(x) length(unique(x)))
       violators <- sum(n_distinct_per_id > 1)
@@ -156,7 +158,7 @@ createFREMData <- function(
     
     for (cov in valid_CatCovs) {
       valid_vals <- unique(dfFFEM[[cov]])
-      valid_vals <- valid_vals[valid_vals != -99 & !is.na(valid_vals)]
+      valid_vals <- valid_vals[valid_vals != missVal & !is.na(valid_vals)]
       
       if (length(valid_vals) == 0) {
         # FIX: Restored exact text match for missing covariates
@@ -170,7 +172,7 @@ createFREMData <- function(
         if (bRecodeDichotomous) {
           covVal <- sort(valid_vals)[2]
           new_name <- paste0(cov, "_", covVal)
-          dfFFEM[[new_name]] <- ifelse(dfFFEM[[cov]] == -99, -99, ifelse(dfFFEM[[cov]] == covVal, 1, 0))
+          dfFFEM[[new_name]] <- ifelse(dfFFEM[[cov]] == missVal, -99, ifelse(dfFFEM[[cov]] == covVal, 1, 0))
           final_CatCovs <- c(final_CatCovs, new_name)
         } else {
           # Strict validation only fires if the kill-switch is NOT overridden
@@ -188,7 +190,7 @@ createFREMData <- function(
       dfFFEM <- addFREMcovariates(
         dfFFEM           = dfFFEM, 
         covariates       = poly_covs, 
-        iMiss            = -99, 
+        missVal            = missVal, 
         includeReference = FALSE, 
         imputeMissing    = FALSE
       )
@@ -224,10 +226,10 @@ createFREMData <- function(
     
     # Evaluate which rows to keep
     if ("EVID" %in% names(dfFFEM)) {
-      # Keep if DV is quantifiable (!= -99), OR if it's a dosing/reset record (EVID != 0)
-      keep_rows <- dfFFEM[[strDV]] != -99 | dfFFEM$EVID != 0
+      # Keep if DV is quantifiable (!= missVal), OR if it's a dosing/reset record (EVID != 0)
+      keep_rows <- dfFFEM[[strDV]] != missVal | dfFFEM$EVID != 0
     } else {
-      keep_rows <- dfFFEM[[strDV]] != -99
+      keep_rows <- dfFFEM[[strDV]] != missVal
     }
     
     # Catch Scenario 1: NAs evaluate to NA in logic checks. Convert them to FALSE so they drop safely
@@ -249,7 +251,7 @@ createFREMData <- function(
   if (length(valid_ContCovs) > 0) {
     for (i in seq_along(valid_ContCovs)) {
       cov_name <- valid_ContCovs[i]
-      dfDVData <- dfFFEM[dfFFEM[[cov_name]] != -99, ]
+      dfDVData <- dfFFEM[dfFFEM[[cov_name]] != missVal, ]
       dfDVData <- dfDVData[!duplicated(dfDVData[[strID]]), ] 
       
       if (nrow(dfDVData) > 0) {
@@ -275,7 +277,7 @@ createFREMData <- function(
   if (numCatLevels > 0) {
     for (i in seq_along(final_CatCovs)) {
       cov_name <- final_CatCovs[i]
-      dfDVData <- dfFFEM[dfFFEM[[cov_name]] != -99, ]
+      dfDVData <- dfFFEM[dfFFEM[[cov_name]] != missVal, ]
       dfDVData <- dfDVData[!duplicated(dfDVData[[strID]]), ]
       
       if (nrow(dfDVData) > 0) {

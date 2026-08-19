@@ -33,7 +33,7 @@ test_that("prepareNewCovariates handles continuous and polychotomous categorical
   expect_equal(result$dfFFEM$SITE_102, c(0, 1, 0, 0, 1, 0))
   
   # Check the covList structure for one of the new covariates
-  expect_equal(names(result$covList$AGE), c("Name", "Mean", "Var", "Fremtype", "Data"))
+  expect_equal(names(result$covList$AGE), c("Name", "Mean", "Var", "Fremtype", "Fix","Data"))
   expect_equal(result$covList$AGE$Mean, 37.5)
   expect_equal(result$covList$AGE$Fremtype, 100)
   

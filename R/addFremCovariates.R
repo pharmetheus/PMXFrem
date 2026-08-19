@@ -21,11 +21,11 @@
 #' @param dfFFEM A data.frame containing the FFEM data.
 #' @param modFile Path to a FREM model file.
 #' @param covariates A character vector of covariates to binarise.
-#' @param iMiss The integer/numeric value representing missing data (default: -99).
 #' @param includeReference Logical. If TRUE, creates a dummy column for the lowest 
 #'   reference level as well (default: FALSE).
 #' @param imputeMissing Logical. If TRUE (default), missing values are imputed to 0 
-#'   (the reference category). If FALSE, missing values are preserved as iMiss.
+#'   (the reference category). If FALSE, missing values are preserved as missVal.
+#' @param missVal The integer/numeric value representing missing data (default: -99).
 #'
 #' @return A data.frame with the new binarised covariate columns.
 #' 
@@ -54,7 +54,7 @@
 #' @family Data Assembly Internal
 #' @concept data_assembly
 #' @export
-addFREMcovariates <- function(dfFFEM, modFile=NULL, covariates=NULL, iMiss = -99, includeReference = FALSE, imputeMissing = TRUE) {
+addFREMcovariates <- function(dfFFEM, modFile=NULL, covariates=NULL, missVal = -99, includeReference = FALSE, imputeMissing = TRUE) {
   
   if(!is.data.frame(dfFFEM)) stop("dfFFEM has to be a data.frame")
   if(is.null(modFile) && is.null(covariates)) stop("modFile and covariates can not both be NULL")
@@ -65,11 +65,10 @@ addFREMcovariates <- function(dfFFEM, modFile=NULL, covariates=NULL, iMiss = -99
       myCov         <- stringr::str_replace(cov, "_[0-9]*", "")
       myCovNum      <- as.numeric(stringr::str_replace(cov, paste0(myCov, "_"), ""))
       
-      # Inside the modFile loop:
       if (imputeMissing) {
-        dfFFEM[[cov]] <- ifelse(dfFFEM[[myCov]] == myCovNum & dfFFEM[[myCov]] != iMiss, 1, 0)
+        dfFFEM[[cov]] <- ifelse(dfFFEM[[myCov]] == myCovNum & dfFFEM[[myCov]] != missVal, 1, 0)
       } else {
-        dfFFEM[[cov]] <- ifelse(dfFFEM[[myCov]] == iMiss, iMiss, ifelse(dfFFEM[[myCov]] == myCovNum, 1, 0))
+        dfFFEM[[cov]] <- ifelse(dfFFEM[[myCov]] == missVal, missVal, ifelse(dfFFEM[[myCov]] == myCovNum, 1, 0))
       }
     }
   }
@@ -82,9 +81,8 @@ addFREMcovariates <- function(dfFFEM, modFile=NULL, covariates=NULL, iMiss = -99
         next
       }
       
-      # Safely isolate valid categories for THIS specific covariate
       valid_vals <- unique(dfFFEM[[cov]])
-      valid_vals <- valid_vals[valid_vals != iMiss & !is.na(valid_vals)]
+      valid_vals <- valid_vals[valid_vals != missVal & !is.na(valid_vals)]
       
       if(length(valid_vals) <= 1) {
         warning(cov, " has only one non-missing level, not added to data set.")
@@ -100,28 +98,19 @@ addFREMcovariates <- function(dfFFEM, modFile=NULL, covariates=NULL, iMiss = -99
     if(length(addCovs) == 0) stop("No binarised covariates to add to the FFEM data.")
     
     for(cov in addCovs) {
-      # Re-isolate valid categories to ensure safe processing
       valid_vals <- unique(dfFFEM[[cov]])
-      valid_vals <- valid_vals[valid_vals != iMiss & !is.na(valid_vals)]
+      valid_vals <- valid_vals[valid_vals != missVal & !is.na(valid_vals)]
       
-      # Sort ascending
       covVal <- sort(valid_vals)
-      
-      # Drop the lowest valid level (reference) unless explicitly requested
-      if(!includeReference) {
-        covVal <- covVal[-1]
-      }
-      
-      # Reverse to match historical descending output (e.g., RACEL_3, RACEL_2)
+      if(!includeReference) covVal <- covVal[-1]
       covVal <- rev(covVal)
       
-      # Inside the covariates loop:
       for(myCovNum in covVal) {
         newCovName <- paste0(cov, "_", myCovNum)
         if (imputeMissing) {
-          dfFFEM[[newCovName]] <- ifelse(dfFFEM[[cov]] == myCovNum & dfFFEM[[cov]] != iMiss, 1, 0)
+          dfFFEM[[newCovName]] <- ifelse(dfFFEM[[cov]] == myCovNum & dfFFEM[[cov]] != missVal, 1, 0)
         } else {
-          dfFFEM[[newCovName]] <- ifelse(dfFFEM[[cov]] == iMiss, iMiss, ifelse(dfFFEM[[cov]] == myCovNum, 1, 0))
+          dfFFEM[[newCovName]] <- ifelse(dfFFEM[[cov]] == missVal, missVal, ifelse(dfFFEM[[cov]] == myCovNum, 1, 0))
         }
       }
     }

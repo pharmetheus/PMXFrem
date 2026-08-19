@@ -29,7 +29,7 @@ generateFremModel(
 
 \item{modelState}{A list containing the model's current parameter state (including \code{theta}, \code{omegaMatrix}, \code{thetaFix}, \code{numTheta}, \code{numOmega}).}
 
-\item{covList}{A list of lists containing prepared statistical information for new covariates (\code{Name}, \code{Mean}, \code{Var}, \code{Fremtype}).}
+\item{covList}{A list of lists containing prepared statistical information for new covariates (\code{Name}, \code{Mean}, \code{Var}, \code{Fremtype}, \code{Fix}).}
 
 \item{addedList}{A character vector of new covariate names added during this update step.}
 

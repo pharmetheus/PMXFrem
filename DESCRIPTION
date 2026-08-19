@@ -1,7 +1,7 @@
 Package: PMXFrem
 Type: Package
 Title: Support functions for FREM analyses in NONMEM
-Version: 2.0.0
+Version: 2.1.0
 Authors@R: c(
     person("Pharmetheus AB", email = "info@pharmetheus.com", role = c("cre","cph")),
     person("Niclas", "Jonsson", role = c("aut")),
@@ -14,7 +14,7 @@ Encoding: UTF-8
 LazyData: true
 Author: Niclas Jonsson [aut, cre],
   Joakim Nyberg [aut]
-RoxygenNote: 7.3.2
+RoxygenNote: 7.2.1
 Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 3.5.0),

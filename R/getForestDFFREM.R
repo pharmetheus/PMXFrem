@@ -50,7 +50,7 @@
 #'   calculations in parallel, default = NULL
 #' @param cstrExports a character vector with variables needed to run the
 #'   calculations in parallel, default = NULL
-#' @param iMiss The missing value number. -99 by default.
+#' @param missVal The missing value number. -99 by default.
 #' @param ... additional variables to be forwarded to the the functionList
 #'   functions
 #' @param numNonFREMThetas Number of thetas that are not FREM covariates. These
@@ -129,7 +129,7 @@ getForestDFFREM <- function(dfCovs,
                             ncores           = 1,
                             cstrPackages     = NULL,
                             cstrExports      = NULL,
-                            iMiss            = -99,
+                            missVal            = -99,
                             ...) {
 
 
@@ -143,12 +143,12 @@ getForestDFFREM <- function(dfCovs,
     dfCovs <- PMXForest::createInputForestData(dfCovs)
   }
   ## Replace potential NAs in dfCovs with the missing value token
-  dfCovs[is.na(dfCovs)] <- iMiss
+  dfCovs[is.na(dfCovs)] <- missVal
 
   # If a needed covariate is not present in dfCovs, set it to missing
   if (!all(covNames %in% names(dfCovs))) {
     if (!quiet) warning("Not all covariates in frem model are present in dfCovs, setting them to missing")
-    dfCovs[, covNames[!(covNames %in% names(dfCovs))]] <- iMiss
+    dfCovs[, covNames[!(covNames %in% names(dfCovs))]] <- missVal
   }
 
 
@@ -164,7 +164,7 @@ getForestDFFREM <- function(dfCovs,
     cUnique <- c()
     iGroup <- 0
     for (i in 1:nrow(df)) {
-      tmp <- paste0(names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != iMiss], collapse = ",")
+      tmp <- paste0(names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != missVal], collapse = ",")
       if (tmp %in% cUnique) {
         tmpl <- which(tmp == cUnique)
         cGroups <- c(cGroups, tmpl)
@@ -193,7 +193,7 @@ getForestDFFREM <- function(dfCovs,
     dfrest <- data.frame()
 
     for (i in 1:nrow(dfCovs)) {
-      currentNames <- names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != iMiss]
+      currentNames <- names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != missVal]
 
       if (any(!currentNames %in% covNames) && !quiet) {
         warning(paste0("Can't find some of the covariates: ", currentNames, " in the FREM model, perhaps they are structural covariates!"))
@@ -209,7 +209,7 @@ getForestDFFREM <- function(dfCovs,
           numNonFREMThetas = numNonFREMThetas,
           dfext            = dfext,
           covNames         = covNames,
-          availCov         = names(dfRefRow[indi, ])[as.numeric(dfRefRow[indi, ]) != iMiss][names(dfRefRow[indi, ])[as.numeric(dfRefRow[indi, ]) != iMiss] %in% covNames],
+          availCov         = names(dfRefRow[indi, ])[as.numeric(dfRefRow[indi, ]) != missVal][names(dfRefRow[indi, ])[as.numeric(dfRefRow[indi, ]) != missVal] %in% covNames],
           quiet            = quiet
         )
       }
@@ -220,7 +220,7 @@ getForestDFFREM <- function(dfCovs,
         numNonFREMThetas = numNonFREMThetas,
         dfext        = dfext,
         covNames     = covNames,
-        availCov     = names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != iMiss][names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != iMiss] %in% covNames],
+        availCov     = names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != missVal][names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != missVal] %in% covNames],
         quiet        = quiet
       )
 
@@ -233,7 +233,7 @@ getForestDFFREM <- function(dfCovs,
       for (j in 1:length(parNames)) {
         ffem_expr <- str_replace_all(ffemObj$Expr[j], pattern = "data\\$", replacement = "data47_jxrtp$")
 
-        if (length(names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != iMiss]) != 0) {
+        if (length(names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != missVal]) != 0) {
           coveffects[j] <- as.numeric(eval(parse(text = ffem_expr)))
         }
 
@@ -255,7 +255,7 @@ getForestDFFREM <- function(dfCovs,
           valbase <- functionList[[j]](basethetas = thetas, covthetas = coveffects_base, dfrow = dfRefRow[indi, ], ...)
         } else {
           dfmissing <- dfCovs[1, ]
-          dfmissing[, ] <- iMiss
+          dfmissing[, ] <- missVal
           valbase <- functionList[[j]](basethetas = thetas, covthetas = rep(0, length(parNames)), dfrow = dfmissing, ...)
         }
 
@@ -293,7 +293,7 @@ getForestDFFREM <- function(dfCovs,
     colnames <- names(dfrow)
 
     for (i in 1:ncol(dfrow)) {
-      if (dfrow[1, i] != iMiss) {
+      if (dfrow[1, i] != missVal) {
         if (strName == "") {
           strName <- paste0(colnames[i], "=", dfrow[1, i])
         } else {

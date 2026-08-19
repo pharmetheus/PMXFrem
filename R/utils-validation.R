@@ -15,7 +15,7 @@
 #' @family Data Assembly Internal
 #' @concept data_assembly
 #' @keywords internal
-validateFremData <- function(originalData, fremData, cstrDV = "DV", strID = "ID", quiet = FALSE) {
+validateFremData <- function(originalData, fremData, cstrDV = "DV", strID = "ID", missVal=-99,quiet = FALSE) {
   
   if (!"FREMTYPE" %in% names(fremData)) {
     stop("Validation failed: 'FREMTYPE' column is missing from the generated FREM data.", call. = FALSE)
@@ -26,9 +26,9 @@ validateFremData <- function(originalData, fremData, cstrDV = "DV", strID = "ID"
   primaryDV <- cstrDV[1]
   if (primaryDV %in% names(originalData)) {
     if ("EVID" %in% names(originalData)) {
-      keep_rows <- originalData[[primaryDV]] != -99 | originalData$EVID != 0
+      keep_rows <- originalData[[primaryDV]] != missVal | originalData$EVID != 0
     } else {
-      keep_rows <- originalData[[primaryDV]] != -99
+      keep_rows <- originalData[[primaryDV]] != missVal
     }
     keep_rows[is.na(keep_rows)] <- FALSE
     expected_base <- originalData[keep_rows, , drop = FALSE]
