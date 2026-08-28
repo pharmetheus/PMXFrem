@@ -73,6 +73,56 @@ test_that("getForestDFFREM works", {
 })
 
 
+test_that("getForestDFFREM keeps relative CI endpoints ordered when paramFunction is negative", {
+
+  runno   <- "22-3"
+  extFile <- system.file("extdata", paste0("SimVal/run", runno, ".ext"), package = "PMXForest")
+  covFile <- system.file("extdata", paste0("SimVal/run", runno, ".cov"), package = "PMXForest")
+  modFile <- system.file("extdata", paste0("SimVal/run", runno, ".mod"), package = "PMXForest")
+  datFile <- system.file("extdata", paste0("SimVal/DAT-1-MI-PMX-2.csv"), package = "PMXForest")
+
+  dfData   <- read.csv(datFile)
+  covNames <- getCovNames(modFile = modFile)
+  dfCovs   <- PMXForest::createInputForestData(
+    PMXForest::getCovStats(dfData, covNames$orgCovNames, probs = c(0.05, 0.95)))
+
+  set.seed(123)
+  dfSamplesCOV <- PMXForest::getSamples(covFile, extFile = extFile, n = 25)
+
+  # Same structure as the positive control below, but returning a NEGATIVE value
+  # so the reference value (and func_base / true_base) are negative too.
+  paramFunNeg <- function(basethetas, covthetas, dfrow, ...) -basethetas[1] * exp(covthetas[1])
+  paramFunPos <- function(basethetas, covthetas, dfrow, ...)  basethetas[1] * exp(covthetas[1])
+
+  resNeg <- suppressWarnings(getForestDFFREM(
+    dfCovs = dfCovs, covNames = covNames$covNames,
+    functionList = list(paramFunNeg), functionListName = "CL",
+    numNonFREMThetas = 13, numSkipOm = 2, dfParameters = dfSamplesCOV,
+    probs = c(0.05, 0.95), dfRefRow = NULL, quiet = TRUE, ncores = 1))
+
+  resPos <- suppressWarnings(getForestDFFREM(
+    dfCovs = dfCovs, covNames = covNames$covNames,
+    functionList = list(paramFunPos), functionListName = "CL",
+    numNonFREMThetas = 13, numSkipOm = 2, dfParameters = dfSamplesCOV,
+    probs = c(0.05, 0.95), dfRefRow = NULL, quiet = TRUE, ncores = 1))
+
+  # Absolute quantile columns are always ascending (Q1 = lower prob, Q2 = upper prob)
+  expect_true(all(resNeg$Q1 <= resNeg$Q2))
+
+  # The relative CI columns must also stay ascending: Q1_REL_* is the lower limit,
+  # Q2_REL_* the upper limit, since positions 1 and 2 of `probs` are used as the
+  # plotted uncertainty. This holds for the positive function ...
+  expect_true(all(resPos$Q1_REL_REFFUNC  <= resPos$Q2_REL_REFFUNC))
+  expect_true(all(resPos$Q1_REL_REFFINAL <= resPos$Q2_REL_REFFINAL))
+
+  # ... and must equally hold for the negative function. Dividing the ascending
+  # absolute quantiles by a negative reference reverses their order, so without
+  # the fix Q1_REL_* ends up above Q2_REL_* and the forest CI is drawn reversed.
+  expect_true(all(resNeg$Q1_REL_REFFUNC  <= resNeg$Q2_REL_REFFUNC))
+  expect_true(all(resNeg$Q1_REL_REFFINAL <= resNeg$Q2_REL_REFFINAL))
+})
+
+
 test_that("getForestDFFREM covers edge cases", {
 
   # THIS IS THE FIX: Added the complete setup block to this test

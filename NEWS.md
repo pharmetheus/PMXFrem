@@ -1,6 +1,7 @@
 # PMXFrem 2.1.0.9000
 
 ## Bug fixes
+* **Reversed relative confidence intervals:** Fixed a bug in `getForestDFFREM()` where the `Q*_REL_REFFUNC` and `Q*_REL_REFFINAL` columns had their lower and upper limits swapped when the `functionList` function returned a negative reference value. The relative quantiles are now computed from the ratio directly instead of dividing the absolute quantiles by the (possibly negative) reference, so the interval endpoints stay correctly ordered.
 
 # PMXFrem 2.1.0
 
