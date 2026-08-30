@@ -26,7 +26,9 @@ getForestDFFREM(
   ncores = 1,
   cstrPackages = NULL,
   cstrExports = NULL,
-  iMiss = missVal,
+  missVal = -99,
+  oneHot = NULL,
+  oneHotSep = "_",
   ...
 )
 }
@@ -98,7 +100,19 @@ calculations in parallel, default = NULL}
 \item{cstrExports}{a character vector with variables needed to run the
 calculations in parallel, default = NULL}
 
-\item{iMiss}{The missing value number. -99 by default.}
+\item{missVal}{The missing value number. -99 by default.}
+
+\item{oneHot}{An optional one-hot encoding specification (see
+\code{\link[PMXForest:oneHotEncode]{PMXForest::oneHotEncode()}}). When supplied, raw multi-level categorical
+columns in \code{dfCovs} (and in \code{dfRefRow} when it is a data frame) are one-hot
+encoded before the FFEM expressions are evaluated, so \code{dfCovs} can be built
+with a raw covariate column instead of the FREM \verb{<cov>_<level>} dummy
+columns. The raw column is dropped after encoding. Default \code{NULL} (no
+encoding).}
+
+\item{oneHotSep}{The separator between covariate name and level in the dummy
+column names created when \code{oneHot} is used. Defaults to \code{"_"}, matching the
+FREM convention.}
 
 \item{...}{additional variables to be forwarded to the the functionList
 functions}

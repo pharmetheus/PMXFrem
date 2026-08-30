@@ -180,3 +180,49 @@ test_that("getForestDFFREM covers edge cases", {
     }
   }) # End of suppressWarnings
 })
+
+test_that("getForestDFFREM oneHot matches a manually pre-encoded dfCovs", {
+  skip_on_cran()
+
+  modFile <- system.file("extdata", "SimNeb/run31.mod", package = "PMXFrem")
+  extFile <- system.file("extdata", "SimNeb/run31.ext", package = "PMXFrem")
+  covFile <- system.file("extdata", "SimNeb/run31.cov", package = "PMXFrem")
+
+  covNames <- getCovNames(modFile = modFile)
+
+  paramFun <- function(basethetas, covthetas, dfrow, ...) {
+    basethetas[1] * exp(covthetas[1])
+  }
+
+  set.seed(123)
+  dfSamples <- PMXForest::getSamples(covFile, extFile = extFile, n = 15)
+
+  ## dfCovs built with raw multi-level NCIL / RACEL columns
+  dfCovsRaw <- PMXForest::createInputForestData(
+    list(NCIL = c(0, 1, 2), RACEL = c(1, 2, 3))
+  )
+  spec <- list(NCIL = list(ref = 0), RACEL = list(ref = 1))
+
+  common <- list(
+    covNames         = covNames$covNames,
+    functionList     = list(paramFun),
+    functionListName = "CL",
+    numNonFREMThetas = 7,
+    numSkipOm        = 2,
+    dfParameters     = dfSamples,
+    quiet            = TRUE,
+    ncores           = 1
+  )
+
+  res_onehot <- suppressWarnings(do.call(
+    getForestDFFREM, c(list(dfCovs = dfCovsRaw, oneHot = spec), common)
+  ))
+
+  dfCovsPre <- PMXForest::oneHotEncode(dfCovsRaw, spec = spec, sep = "_",
+                                       dropOriginal = TRUE)
+  res_pre <- suppressWarnings(do.call(
+    getForestDFFREM, c(list(dfCovs = dfCovsPre), common)
+  ))
+
+  expect_equal(res_onehot, res_pre)
+})
