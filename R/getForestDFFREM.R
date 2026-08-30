@@ -62,6 +62,16 @@
 #' @param covNames Names of the covariates
 #' @param availCov Names of the covariates to use in the calculation of the FFEM
 #'   model.
+#' @param oneHot An optional one-hot encoding specification (see
+#'   [PMXForest::oneHotEncode()]). When supplied, raw multi-level categorical
+#'   columns in `dfCovs` (and in `dfRefRow` when it is a data frame) are one-hot
+#'   encoded before the FFEM expressions are evaluated, so `dfCovs` can be built
+#'   with a raw covariate column instead of the FREM `<cov>_<level>` dummy
+#'   columns. The raw column is dropped after encoding. Default `NULL` (no
+#'   encoding).
+#' @param oneHotSep The separator between covariate name and level in the dummy
+#'   column names created when `oneHot` is used. Defaults to `"_"`, matching the
+#'   FREM convention.
 #'
 #'
 #' @return A data frame with summary statistics for each parameters and
@@ -130,6 +140,8 @@ getForestDFFREM <- function(dfCovs,
                             cstrPackages     = NULL,
                             cstrExports      = NULL,
                             missVal            = -99,
+                            oneHot           = NULL,
+                            oneHotSep        = "_",
                             ...) {
 
 
@@ -144,6 +156,19 @@ getForestDFFREM <- function(dfCovs,
   }
   ## Replace potential NAs in dfCovs with the missing value token
   dfCovs[is.na(dfCovs)] <- missVal
+
+  ## Optionally one-hot encode raw multi-level categorical columns so dfCovs can
+  ## be built without the FREM <cov>_<level> dummy columns.
+  if (!is.null(oneHot)) {
+    dfCovs <- PMXForest::oneHotEncode(dfCovs, spec = oneHot, sep = oneHotSep,
+                                      missVal = missVal, dropOriginal = TRUE)
+    if (!is.null(dfRefRow) && is.data.frame(dfRefRow)) {
+      dfRefRow <- suppressWarnings(
+        PMXForest::oneHotEncode(dfRefRow, spec = oneHot, sep = oneHotSep,
+                                missVal = missVal, dropOriginal = TRUE)
+      )
+    }
+  }
 
   # If a needed covariate is not present in dfCovs, set it to missing
   if (!all(covNames %in% names(dfCovs))) {

@@ -26,9 +26,7 @@ addFREMcovariates(
 reference level as well (default: FALSE).}
 
 \item{imputeMissing}{Logical. If TRUE (default), missing values are imputed to 0
-(the reference category). If FALSE, missing values are preserved as iMiss.}
-
-\item{iMiss}{The integer/numeric value representing missing data (default: -99).}
+(the reference category). If FALSE, missing values are preserved as missVal.}
 }
 \value{
 A data.frame with the new binarised covariate columns.
@@ -52,13 +50,17 @@ value of NCIL is not 1/2 and 1 when the in NCIL is 1 or 2, respectively. If
 an ID has a missing value of NCIL, then NCIL_1 and NCIL_2 will both be 0,
 effectively imputing the missing NCIL with the lowest level of the NCIL
 covariate.
+
+The binarisation itself is performed by \code{\link[PMXForest:oneHotEncode]{PMXForest::oneHotEncode()}}; this
+function is the FREM-aware wrapper that derives the columns to create from a
+model file or a covariate vector.
 }
 \examples{
 library(dplyr)
 
 # Load the base dataset
 dfFFEM <- read.csv(
-  system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package="PMXFrem")) \%>\% 
+  system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package="PMXFrem")) \%>\%
   filter(BLQ != 1)
 
 modFile <- system.file("extdata/SimNeb/run31.mod", package="PMXFrem")

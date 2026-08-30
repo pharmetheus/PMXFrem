@@ -1,5 +1,11 @@
 # PMXFrem 2.1.0.9000
 
+## Under the Hood & Refactoring
+* **Shared one-hot encoder:** `addFREMcovariates()` now performs its binarisation through `PMXForest::oneHotEncode()` (requires PMXForest >= 1.2.15.9002) instead of a private implementation. The column names, order, values, and warnings are unchanged; a single implementation of the `<cov>_<level>` convention is now shared with PMXForest.
+
+## New Features
+* **`oneHot` in `getForestDFFREM()`:** Added optional `oneHot` and `oneHotSep` arguments. When `oneHot` is supplied, raw multi-level categorical columns in `dfCovs` (and `dfRefRow`) are one-hot encoded before the FFEM expressions are evaluated, so `dfCovs` can be built with a raw covariate column rather than the FREM `<cov>_<level>` dummies. Defaults to `NULL` (no encoding, output unchanged).
+
 ## Bug fixes
 * **Reversed relative confidence intervals:** Fixed a bug in `getForestDFFREM()` where the `Q*_REL_REFFUNC` and `Q*_REL_REFFINAL` columns had their lower and upper limits swapped when the `functionList` function returned a negative reference value. The relative quantiles are now computed from the ratio directly instead of dividing the absolute quantiles by the (possibly negative) reference, so the interval endpoints stay correctly ordered.
 
