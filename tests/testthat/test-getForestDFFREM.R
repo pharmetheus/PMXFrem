@@ -226,3 +226,39 @@ test_that("getForestDFFREM oneHot matches a manually pre-encoded dfCovs", {
 
   expect_equal(res_onehot, res_pre)
 })
+
+test_that("getForestDFFREM accepts a tibble dfCovs and a single covariate", {
+  skip_on_cran()
+  skip_if_not_installed("tibble")
+
+  runno   <- "22-3"
+  extFile <- system.file("extdata", paste0("SimVal/run", runno, ".ext"), package = "PMXForest")
+  covFile <- system.file("extdata", paste0("SimVal/run", runno, ".cov"), package = "PMXForest")
+  modFile <- system.file("extdata", paste0("SimVal/run", runno, ".mod"), package = "PMXForest")
+
+  covNames <- getCovNames(modFile = modFile)
+  paramFun <- function(basethetas, covthetas, dfrow, ...) basethetas[1] * exp(covthetas[1])
+
+  set.seed(123)
+  dfS <- PMXForest::getSamples(covFile, extFile = extFile, n = 15, quiet = TRUE)
+
+  common <- list(
+    covNames = covNames$covNames, functionList = list(paramFun),
+    functionListName = "CL", numNonFREMThetas = 13, numSkipOm = 2,
+    dfParameters = dfS, quiet = TRUE
+  )
+
+  ## tibble dfCovs == data.frame dfCovs
+  dfCovs2 <- PMXForest::createInputForestData(list(AGE = c(30, 60), SEX = c(0, 1)))
+  ref <- suppressWarnings(do.call(getForestDFFREM, c(list(dfCovs = dfCovs2), common)))
+  tbl <- suppressWarnings(do.call(getForestDFFREM,
+                                  c(list(dfCovs = tibble::as_tibble(dfCovs2)), common)))
+  expect_equal(tbl, ref)
+
+  ## single covariate: column keeps its name, not "dfCovs[i, ]"
+  dfCovs1 <- PMXForest::createInputForestData(list(AGE = c(30, 60)))
+  res1 <- suppressWarnings(do.call(getForestDFFREM, c(list(dfCovs = dfCovs1), common)))
+  expect_false(any(grepl("dfCovs", names(res1))))
+  expect_equal(as.character(unique(res1$GROUPNAME)), "AGE")
+  expect_setequal(res1$COVNAME, c("AGE=30", "AGE=60"))
+})

@@ -154,6 +154,10 @@ getForestDFFREM <- function(dfCovs,
   if (!is.data.frame(dfCovs)) {
     dfCovs <- PMXForest::createInputForestData(dfCovs)
   }
+  ## Coerce to a plain data.frame: the row/column subsetting below assumes
+  ## base-R `[` drop-to-vector behaviour, which a tibble does not provide.
+  dfCovs <- as.data.frame(dfCovs)
+  if (!is.null(dfRefRow) && is.data.frame(dfRefRow)) dfRefRow <- as.data.frame(dfRefRow)
   ## Replace potential NAs in dfCovs with the missing value token
   dfCovs[is.na(dfCovs)] <- missVal
 
@@ -189,7 +193,7 @@ getForestDFFREM <- function(dfCovs,
     cUnique <- c()
     iGroup <- 0
     for (i in 1:nrow(df)) {
-      tmp <- paste0(names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != missVal], collapse = ",")
+      tmp <- paste0(names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal], collapse = ",")
       if (tmp %in% cUnique) {
         tmpl <- which(tmp == cUnique)
         cGroups <- c(cGroups, tmpl)
@@ -218,7 +222,7 @@ getForestDFFREM <- function(dfCovs,
     dfrest <- data.frame()
 
     for (i in 1:nrow(dfCovs)) {
-      currentNames <- names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != missVal]
+      currentNames <- names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal]
 
       if (any(!currentNames %in% covNames) && !quiet) {
         warning(paste0("Can't find some of the covariates: ", currentNames, " in the FREM model, perhaps they are structural covariates!"))
@@ -234,7 +238,7 @@ getForestDFFREM <- function(dfCovs,
           numNonFREMThetas = numNonFREMThetas,
           dfext            = dfext,
           covNames         = covNames,
-          availCov         = names(dfRefRow[indi, ])[as.numeric(dfRefRow[indi, ]) != missVal][names(dfRefRow[indi, ])[as.numeric(dfRefRow[indi, ]) != missVal] %in% covNames],
+          availCov         = names(dfRefRow[indi, , drop = FALSE])[as.numeric(dfRefRow[indi, , drop = FALSE]) != missVal][names(dfRefRow[indi, , drop = FALSE])[as.numeric(dfRefRow[indi, , drop = FALSE]) != missVal] %in% covNames],
           quiet            = quiet
         )
       }
@@ -245,25 +249,25 @@ getForestDFFREM <- function(dfCovs,
         numNonFREMThetas = numNonFREMThetas,
         dfext        = dfext,
         covNames     = covNames,
-        availCov     = names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != missVal][names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != missVal] %in% covNames],
+        availCov     = names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal][names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal] %in% covNames],
         quiet        = quiet
       )
 
 
       coveffects      <- rep(0, length(parNames))
       coveffects_base <- rep(0, length(parNames))
-      data47_jxrtp    <- dfCovs[i, ]
+      data47_jxrtp    <- dfCovs[i, , drop = FALSE]
 
       ## Compute the ffem expressions
       for (j in 1:length(parNames)) {
         ffem_expr <- str_replace_all(ffemObj$Expr[j], pattern = "data\\$", replacement = "data47_jxrtp$")
 
-        if (length(names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != missVal]) != 0) {
+        if (length(names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal]) != 0) {
           coveffects[j] <- as.numeric(eval(parse(text = ffem_expr)))
         }
 
         if (!is.null(dfRefRow)) {
-          data47_jxrtp_ref <- dfRefRow[indi, ]
+          data47_jxrtp_ref <- dfRefRow[indi, , drop = FALSE]
           ffem_expr_base <- str_replace_all(ffemObjRef$Expr[j], pattern = "data\\$", replacement = "data47_jxrtp_ref$")
           coveffects_base[j] <- as.numeric(eval(parse(text = ffem_expr_base)))
         }
@@ -273,13 +277,13 @@ getForestDFFREM <- function(dfCovs,
       n <- 1
       for (j in 1:length(functionList)) {
 
-        val <- functionList[[j]](thetas, coveffects, dfrow = dfCovs[i, ], ...)
+        val <- functionList[[j]](thetas, coveffects, dfrow = dfCovs[i, , drop = FALSE], ...)
 
         ## Do it for the reference
         if (!is.null(dfRefRow)) {
-          valbase <- functionList[[j]](basethetas = thetas, covthetas = coveffects_base, dfrow = dfRefRow[indi, ], ...)
+          valbase <- functionList[[j]](basethetas = thetas, covthetas = coveffects_base, dfrow = dfRefRow[indi, , drop = FALSE], ...)
         } else {
-          dfmissing <- dfCovs[1, ]
+          dfmissing <- dfCovs[1, , drop = FALSE]
           dfmissing[, ] <- missVal
           valbase <- functionList[[j]](basethetas = thetas, covthetas = rep(0, length(parNames)), dfrow = dfmissing, ...)
         }
@@ -337,7 +341,7 @@ getForestDFFREM <- function(dfCovs,
   for (i in 1:nrow(dfCovs)) {
 
     if (is.null(cdfCovsNames)) {
-      covname <- getCovNameString(dfCovs[i, ])
+      covname <- getCovNameString(dfCovs[i, , drop = FALSE])
     } else {
       covname <- cdfCovsNames[i]
     }
@@ -370,7 +374,7 @@ getForestDFFREM <- function(dfCovs,
       quant_reffunc  <- if (is.na(func_base)) quant / func_base else quantile(dft$VALUE / func_base, probs = probs, names = FALSE, na.rm = TRUE)
       quant_reffinal <- if (is.na(true_base)) quant / true_base else quantile(dft$VALUE / true_base, probs = probs, names = FALSE, na.rm = TRUE)
 
-      dfrow       <- cbind(dfCovs[i, ],
+      dfrow       <- cbind(dfCovs[i, , drop = FALSE],
         data.frame(GROUP = group,
           GROUPNAME = groupname,
           COVNUM = i, COVNAME = covname, PARAMETER = functionListName[j],
