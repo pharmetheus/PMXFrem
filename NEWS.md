@@ -10,6 +10,9 @@
 * **`tibble` and single-covariate `dfCovs` in `getForestDFFREM()`:** Passing `dfCovs` (or `dfRefRow`) as a `tibble` failed with an unclear `vctrs` "Can't subset columns past the end" error, because the internal code relies on base-R `[` dropping a single-column selection to a vector. `dfCovs` / `dfRefRow` are now coerced with `as.data.frame()` on entry, and `drop = FALSE` was added to every `dfCovs[i, ]` / `dfRefRow[indi, ]` access, so `tibble` and `data.frame` inputs behave identically and a `dfCovs` with a single covariate column no longer mislabels that column as `dfCovs[i, ]`. Mirrors the same fix in `PMXForest::getForestDFSCM()`.
 * **Reversed relative confidence intervals:** Fixed a bug in `getForestDFFREM()` where the `Q*_REL_REFFUNC` and `Q*_REL_REFFINAL` columns had their lower and upper limits swapped when the `functionList` function returned a negative reference value. The relative quantiles are now computed from the ratio directly instead of dividing the absolute quantiles by the (possibly negative) reference, so the interval endpoints stay correctly ordered.
 
+## Testing
+* **`traceplot()` tests no longer use `vdiffr`.** The visual regression checks (`expect_doppelganger`) compared rendered SVG and failed on any `svglite` / `freetype` / OS difference even when the plotted data was unchanged. They are replaced by data-level assertions on the structure of the returned `ggplot` objects and an independent recomputation of the values each panel must contain. The committed `tests/testthat/_snaps/tracePlot/*.svg` snapshots and the `vdiffr` entry in `Suggests` were removed.
+
 # PMXFrem 2.1.0
 
 ## New Features

@@ -39,8 +39,7 @@ Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
-    R.rsp,
-    vdiffr
+    R.rsp
 VignetteBuilder: R.rsp, knitr
 NeedsCompilation: no
 Config/testthat/edition: 3
