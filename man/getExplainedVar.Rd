@@ -211,6 +211,7 @@ functionList2 <- list(
 
 functionListName2 <- c("CL","V")
 
+## numNonFREMThetas / numSkipOm passed explicitly
 dfres1 <- getExplainedVar(type             = 1,
                           data             = dfData,
                           dfCovs           = dfCovs,
@@ -234,11 +235,11 @@ vectorFunction <- function(basethetas,covthetas, dfrow, etas, ...) {
 )
 }
 
+## numNonFREMThetas / numSkipOm omitted: derived from the model file located
+## via runno / modDevDir (see fremModelInfo())
 dfres12 <- getExplainedVar(type            = 0,
                           data             = dfData,
                           dfCovs           = dfCovs,
-                          numNonFREMThetas = 7,
-                          numSkipOm        = 2,
                           functionList     = list(vectorFunction), # Need to enclose the function in list()
                           functionListName = functionListName2,
                           cstrCovariates   = cstrCovariates,

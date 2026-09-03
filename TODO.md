@@ -72,6 +72,14 @@ reference in `$PK` and increments `numNonFREMThetas`. Helper: insert + renumber 
 
 Branch + `SESSION-HANDOFF.md`, once its context is fully absorbed.
 
+## T7 — update the vignettes for `fremModelInfo()`
+
+The FREM vignettes still pass `numNonFREMThetas` / `numSkipOm` (and `covNames`)
+by hand everywhere. Once the T2 rollout is done, rework the vignettes to show
+the derived form (locate the model via `runno` / `modName` / `modDevDir`, or
+call `fremModelInfo()` directly) and keep at most one explicit example for
+reference.
+
 ---
 
 ## Done

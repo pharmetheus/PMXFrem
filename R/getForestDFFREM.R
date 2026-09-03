@@ -111,7 +111,8 @@
 #'   set.seed(123)
 #'   samples <- PMXForest::getSamples(bsFile, extFile = extFile, n = 25)
 #'   
-#'   # 5. Generate Forest Plot Data
+#'   # 5a. Generate Forest Plot Data -- covNames / numSkipOm / numNonFREMThetas
+#'   #     passed explicitly
 #'   dfresFREM <- getForestDFFREM(
 #'     dfCovs           = dfCovs,
 #'     covNames         = getCovNames(modFile)$covNames,
@@ -122,7 +123,20 @@
 #'     dfParameters     = samples,
 #'     quiet            = TRUE
 #'   )
-#'   
+#'
+#'   # 5b. Same result -- covNames / numSkipOm / numNonFREMThetas omitted and
+#'   #     derived from the model file located via runno / modDevDir
+#'   #     (see fremModelInfo())
+#'   dfresFREM2 <- getForestDFFREM(
+#'     dfCovs           = dfCovs,
+#'     functionList     = list(paramFunction),
+#'     functionListName = "CL",
+#'     dfParameters     = samples,
+#'     runno            = 31,
+#'     modDevDir        = modDevDir,
+#'     quiet            = TRUE
+#'   )
+#'
 #'   print(head(dfresFREM))
 #' }
 #' @family Diagnostics & Plotting
