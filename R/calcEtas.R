@@ -7,6 +7,14 @@
 #'   (EBEs) from a specified FFEM run for diagnostic plotting.
 #'
 #' @inheritParams createFFEMdata
+#' @param numNonFREMThetas Number of structural (non-FREM-covariate) THETAs in the
+#'   FREM model. If `NULL` (default) it is derived from the FREM model file (found
+#'   via `runno` / `modName` / `modDevDir`) and the ext via [fremModelInfo()]; a
+#'   supplied value that disagrees with the derived one triggers a warning and is
+#'   kept.
+#' @param numSkipOm Number of diagonal OMEGAs before the FREM block that are not
+#'   part of the FREM calculations. If `NULL` (default) it is derived via
+#'   [fremModelInfo()] (warn-and-keep on a disagreeing explicit value).
 #' @param FFEMData An FFEMData object as obtained with the function `createFFEMdata`. If NULL,
 #'   the object will be created internally, requiring `dataFile`, `parNames`, and other
 #'   arguments for `createFFEMdata` to be provided.
@@ -78,13 +86,22 @@
 #' # The output contains subject IDs, ETAs, ETA_PRIMs, EBEs, and missingness flags.
 #' head(individual_etas)
 #'
+#' # 5. The same call with numNonFREMThetas / numSkipOm omitted -- derived from
+#' # the FREM model located via modName / modDevDir (see fremModelInfo())
+#' individual_etas_derived <- calcEtas(
+#'   modName   = "run31",
+#'   modDevDir = model_dir,
+#'   dataFile  = my_data,
+#'   parNames  = c("CL", "V", "MAT")
+#' )
+#'
 #' @family Diagnostics & Plotting
 #' @concept diagnostics
 calcEtas <- function(
     runno              = NULL,
-    numNonFREMThetas,
+    numNonFREMThetas   = NULL,
     modName            = NULL,
-    numSkipOm          = 0,
+    numSkipOm          = NULL,
     idvar              = "ID",
     modDevDir          = NULL,
     FFEMData           = NULL,
@@ -107,7 +124,15 @@ calcEtas <- function(
     getfiles_args_from_dots
   )
   fileNames <- do.call(getFileNames, getfiles_args)
-  
+
+  ## Derive numNonFREMThetas / numSkipOm from the FREM model when not supplied,
+  ## and validate them (warn, keep the explicit value) when they are. Done before
+  ## the FFEMData sub-call so createFFEMdata() receives resolved values.
+  .info <- fremModelInfo(modFile = fileNames$mod, dfext = getExt(extFile = fileNames$ext),
+                         numNonFREMThetas = numNonFREMThetas, numSkipOm = numSkipOm)
+  numNonFREMThetas <- .info$numNonFREMThetas
+  numSkipOm        <- .info$numSkipOm
+
   # --- Conditional creation of FFEMData ---
   if (is.null(FFEMData)) {
     if (is.null(dataFile) || is.null(parNames)) {

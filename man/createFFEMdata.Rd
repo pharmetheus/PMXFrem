@@ -6,13 +6,13 @@
 \usage{
 createFFEMdata(
   runno = NULL,
-  numNonFREMThetas,
+  numNonFREMThetas = NULL,
   modName = NULL,
   numFREMThetas = length(grep("THETA", names(dfext))) - numNonFREMThetas,
   covSuffix = "FREMCOV",
   parNames = paste("Par", 1:numParCov, sep = ""),
   numParCov = NULL,
-  numSkipOm = 0,
+  numSkipOm = NULL,
   dataFile,
   newDataFile = paste("vpcData", runno, ".csv", sep = ""),
   filterString = NULL,
@@ -33,9 +33,11 @@ used to create NONMEM model and results file names  with the structure
 run#.mod and run#. NONMEM ext, phi and cov files will be assumed to be
 named run# followed by the appropriate suffix (where # is \code{runno}).}
 
-\item{numNonFREMThetas}{Number of thetas in the FREM model that are not FREM
-covariates. These need to come before the FREM covariate thetas in the FREM
-model file.}
+\item{numNonFREMThetas}{Number of structural (non-FREM-covariate) THETAs in the
+FREM model. If \code{NULL} (default) it is derived from the FREM model file (found
+via \code{runno} / \code{modName} / \code{modDevDir}) and the ext via \code{\link[=fremModelInfo]{fremModelInfo()}}; a
+supplied value that disagrees with the derived one triggers a warning and is
+kept.}
 
 \item{modName}{The model name. Will be used together with \code{modExt}, \code{lstExt},
 ext, phi and cov to form the NONMEM file names, for example
@@ -56,9 +58,9 @@ sought (often the same as numNonFREMThetas). default (NULL) indicates that
 this is guessed by the function by assuming that each covariate effect is
 modeled as one theta and one eta.}
 
-\item{numSkipOm}{Number of diagonal omegas that should not be part of the
-FREM calculations. Such omegas has to come before the large FREM omega
-block in the FREM model file.}
+\item{numSkipOm}{Number of diagonal OMEGAs before the FREM block that are not
+part of the FREM calculations. If \code{NULL} (default) it is derived via
+\code{\link[=fremModelInfo]{fremModelInfo()}} (warn-and-keep on a disagreeing explicit value).}
 
 \item{dataFile}{The name of the data file used in the base model, i.e. the
 original data file, or a data.frame with the same data.}
@@ -172,6 +174,16 @@ ffemDataChol <- createFFEMdata(
   newDataFile      = out_data,
   quiet            = TRUE,
   omegaToData      = TRUE)
+
+# Example 3: numNonFREMThetas / numSkipOm omitted -- derived from the FREM
+# model located via runno / modDevDir (see fremModelInfo())
+ffemDataDerived <- createFFEMdata(
+  runno       = 31,
+  modDevDir   = modDevDir,
+  parNames    = c("CL", "V", "MAT"),
+  dataFile    = dataFile,
+  newDataFile = NULL,
+  quiet       = TRUE)
 
 }
 \seealso{

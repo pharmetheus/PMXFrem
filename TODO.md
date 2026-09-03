@@ -26,17 +26,32 @@ Open design points:
 
 ## T2 — roll `fremModelInfo()` out to the remaining entry points
 
-`fremModelInfo()` and the wiring into `getExplainedVar()` / `getForestDFFREM()`
-landed in PR #41 (merged). `getForestDFFREM()` takes `runno` / `modName` /
-`modDevDir` (resolved via `getFileNames()`, like `getExplainedVar()`); the two
-counts default to `NULL` and are derived, with an explicit disagreeing value
-warned-and-kept.
+Done so far:
+- PR #41 — `fremModelInfo()` + `getExplainedVar()` / `getForestDFFREM()`
+  (the latter via `runno` / `modName` / `modDevDir`).
+- PR #43 — `@examples` show both syntaxes.
+- PR #44 — `fremParameterTable()`, `createFFEMmodel()`, `createFFEMdata()`,
+  `calcEtas()` (+ derived-syntax `@examples`).
 
-Still to do — apply the same optional-arg + derive-or-validate pattern to:
-`calcFFEM()`, `fremParameterTable()`, `createFFEMmodel()`, `createFFEMdata()`,
-`calcEtas()`, `calcParameterEsts()`, `plotCovDist()`, `plotEtasCov()`,
-`removeFremCovariates()`, `initializeModel()`, `updateFREMmodel()`,
-`createFREMmodel()` (`numNonFREMThetas` only — no `.ext` yet at build time).
+Decided against:
+- `calcFFEM()` — **leave as is.** It has no notion of a model, is a low-level
+  workhorse with little direct user exposure, and every caller already resolves
+  `numNonFREMThetas` / `numSkipOm` before calling it. Wiring it in would need a
+  new model-file argument for marginal benefit. Revisit only if a concrete need
+  appears.
+
+Still to do:
+- `updateFREMmodel()`, `createFREMmodel()` — model *mutation* on a FREM / base
+  model. Both already parse the omega structure (`parseBaseModel()` /
+  `initializeModelParameters()`); the right fix is to use that parse to fill
+  `numSkipOm` / `numNonFREMThetas`, not `fremModelInfo()` (`createFREMmodel()`
+  starts from a *base* model with no `;;;FREM CODE` markers and no covariate
+  thetas yet).
+- Not applicable: `plotCovDist()`, `plotEtasCov()` (no such args),
+  `calcParameterEsts()` (low-level; its caller `fremParameterTable()` resolves),
+  `removeFremCovariates()` (operates on an already-resolved `currentState`),
+  `initializeModel()` / `initializeModelParameters()` (internal; fed resolved
+  values by callers).
 
 Derivation (verified on `run31` → 7/2/3 and `run22-3` → 13/2/4):
 

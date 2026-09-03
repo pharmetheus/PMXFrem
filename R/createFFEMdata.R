@@ -29,6 +29,14 @@
 #'
 #' @inheritParams calcFFEM
 #' @inheritParams getFileNames
+#' @param numNonFREMThetas Number of structural (non-FREM-covariate) THETAs in the
+#'   FREM model. If `NULL` (default) it is derived from the FREM model file (found
+#'   via `runno` / `modName` / `modDevDir`) and the ext via [fremModelInfo()]; a
+#'   supplied value that disagrees with the derived one triggers a warning and is
+#'   kept.
+#' @param numSkipOm Number of diagonal OMEGAs before the FREM block that are not
+#'   part of the FREM calculations. If `NULL` (default) it is derived via
+#'   [fremModelInfo()] (warn-and-keep on a disagreeing explicit value).
 #' @param dataFile The name of the data file used in the base model, i.e. the
 #'   original data file, or a data.frame with the same data.
 #' @param newDataFile The name of a new data file with the FFEM columns added.
@@ -96,16 +104,26 @@
 #'   quiet            = TRUE,
 #'   omegaToData      = TRUE)
 #'
+#' # Example 3: numNonFREMThetas / numSkipOm omitted -- derived from the FREM
+#' # model located via runno / modDevDir (see fremModelInfo())
+#' ffemDataDerived <- createFFEMdata(
+#'   runno       = 31,
+#'   modDevDir   = modDevDir,
+#'   parNames    = c("CL", "V", "MAT"),
+#'   dataFile    = dataFile,
+#'   newDataFile = NULL,
+#'   quiet       = TRUE)
+#'
 #' @family FFEM Conversion
 #' @concept ffem_conversion
 createFFEMdata <- function(runno = NULL,
-                           numNonFREMThetas,
+                           numNonFREMThetas = NULL,
                            modName       = NULL,
                            numFREMThetas = length(grep("THETA", names(dfext))) - numNonFREMThetas,
                            covSuffix     = "FREMCOV",
                            parNames      = paste("Par", 1:numParCov, sep = ""),
                            numParCov     = NULL,
-                           numSkipOm     = 0,
+                           numSkipOm     = NULL,
                            dataFile,
                            newDataFile   = paste("vpcData", runno, ".csv", sep = ""),
                            filterString  = NULL,
@@ -139,6 +157,13 @@ createFFEMdata <- function(runno = NULL,
   } else {
     dfext <- dfext
   }
+
+  ## Derive numNonFREMThetas / numSkipOm from the FREM model when not supplied,
+  ## and validate them (warn, keep the explicit value) when they are.
+  .info <- fremModelInfo(modFile = modFile, dfext = dfext,
+                         numNonFREMThetas = numNonFREMThetas, numSkipOm = numSkipOm)
+  numNonFREMThetas <- .info$numNonFREMThetas
+  numSkipOm        <- .info$numSkipOm
 
   # dfPhi   <- getPhi(phiFile)
 

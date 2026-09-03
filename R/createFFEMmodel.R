@@ -57,6 +57,14 @@
 #'@inheritParams getFileNames
 #'@inheritParams createFFEMdata
 #'@inheritParams calcFFEM
+#'@param numNonFREMThetas Number of structural (non-FREM-covariate) THETAs in the
+#'  FREM model. If `NULL` (default) it is derived from the FREM model file (found
+#'  via `runno` / `modName` / `modDevDir`) and the ext via [fremModelInfo()]; a
+#'  supplied value that disagrees with the derived one triggers a warning and is
+#'  kept.
+#'@param numSkipOm Number of diagonal OMEGAs before the FREM block that are not
+#'  part of the FREM calculations. If `NULL` (default) it is derived via
+#'  [fremModelInfo()] (warn-and-keep on a disagreeing explicit value).
 #'@param baserunno The run number of the base model.
 #'@param baseModName The name of the base model. If NULL (default) no model file
 #'  will be printed to file.
@@ -116,12 +124,25 @@
 #'   quiet            = TRUE,
 #'   omegaToData      = TRUE
 #' )
-#' 
+#'
+#' # Example 3: numNonFREMThetas / numSkipOm omitted -- derived from the FREM
+#' # model located via runno / modDevDir (see fremModelInfo())
+#' out_data_derived <- file.path(td, "testFileNameDerived.csv")
+#' ffemModDerived <- createFFEMmodel(
+#'   runno       = 31,
+#'   baserunno   = 30,
+#'   modDevDir   = modDevDir,
+#'   parNames    = c("CL","V","MAT"),
+#'   dataFile    = dataFile,
+#'   newDataFile = out_data_derived,
+#'   quiet       = TRUE
+#' )
+#'
 #' @family FFEM Conversion
 #' @concept ffem_conversion
 createFFEMmodel <- function(
     runno         = NULL,
-    numNonFREMThetas,
+    numNonFREMThetas = NULL,
     modName       = NULL,
     modExt        = ".mod",
     lstExt        = ".lst",
@@ -129,7 +150,7 @@ createFFEMmodel <- function(
     covSuffix     = "FREMCOV",
     parNames      = NULL,
     numParCov     = NULL,
-    numSkipOm     = 0,
+    numSkipOm     = NULL,
     dataFile,
     newDataFile   = paste("vpcData",runno,".csv",sep=""),
     availCov      = "all",
@@ -163,7 +184,14 @@ createFFEMmodel <- function(
   } else {
     dfExt <- dfext
   }
-  
+
+  ## Derive numNonFREMThetas / numSkipOm from the FREM model when not supplied,
+  ## and validate them (warn, keep the explicit value) when they are.
+  .info <- fremModelInfo(modFile = fremModNames$mod, dfext = dfExt,
+                         numNonFREMThetas = numNonFREMThetas, numSkipOm = numSkipOm)
+  numNonFREMThetas <- .info$numNonFREMThetas
+  numSkipOm        <- .info$numSkipOm
+
   ## Check the parNames argument
   if(is.null(parNames)) stop("parNames should specify a vector of names for the parameters related to frem covariates.")
   if (is.null(numParCov)) {
