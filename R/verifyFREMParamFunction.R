@@ -29,9 +29,11 @@
 #' @param tol Relative tolerance for a check to pass. Default `1e-6`.
 #' @param quiet If `FALSE` (default), prints a per-parameter pass/fail summary.
 #'
-#' @return A data frame with one row per parameter: `PARAMETER`,
-#'   `STRUCTURAL` / `COVSPLICE` / `ETASPLICE` (max relative difference for each
-#'   check) and `PASS` (all three within `tol`).
+#' @return A single logical - `TRUE` if every parameter passes all three checks
+#'   within `tol` - so the result can be used directly in an `if`. The
+#'   per-parameter detail is attached as `attr(x, "checks")`: a data frame with
+#'   `PARAMETER`, `STRUCTURAL` / `COVSPLICE` / `ETASPLICE` (max relative
+#'   difference for each check) and `PASS`. Printing shows the table.
 #'
 #' @seealso [createFREMParamFunction()].
 #'
@@ -39,10 +41,13 @@
 #'
 #' @examples
 #' fremModel <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
-#' extFile   <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
 #' out <- createFREMParamFunction(fremModel, parameters = c("CL", "V", "MAT"),
-#'                                extFile = extFile, quiet = TRUE)
-#' verifyFREMParamFunction(out, extFile = extFile)
+#'                                quiet = TRUE)
+#'
+#' if (verifyFREMParamFunction(out, quiet = TRUE)) message("generated function checks out")
+#'
+#' v <- verifyFREMParamFunction(out, quiet = TRUE)
+#' attr(v, "checks")          # per-parameter detail
 #'
 #' @family Diagnostics & Plotting
 #' @concept diagnostics
@@ -158,5 +163,16 @@ verifyFREMParamFunction <- function(x,
     }
   }
 
-  invisible(out)
+  ## A single TRUE/FALSE for use in `if`; the per-parameter table rides along.
+  invisible(structure(all(out$PASS), class = "pmxFREMVerify", checks = out))
+}
+
+#' @export
+print.pmxFREMVerify <- function(x, ...) {
+  d <- attr(x, "checks")
+  cat(if (isTRUE(unclass(x)[1])) "PASS" else "FAIL",
+      " - verifyFREMParamFunction: ", sum(d$PASS), "/", nrow(d),
+      " parameter(s)\n", sep = "")
+  print(d, row.names = FALSE)
+  invisible(x)
 }

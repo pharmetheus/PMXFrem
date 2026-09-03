@@ -199,24 +199,32 @@ test_that("covthetas[k] / etas[numSkipOm+k] scale only parameter k, by exp()", {
 # verifyFREMParamFunction()
 # ---------------------------------------------------------------------------
 
-test_that("verifyFREMParamFunction passes a faithfully generated function", {
+test_that("verifyFREMParamFunction returns a scalar TRUE for a faithful function", {
   out <- createFREMParamFunction(.fremMod(), parameters = c("CL", "V", "MAT"),
                                  extFile = .fremExt(), quiet = TRUE)
   v <- verifyFREMParamFunction(out, extFile = .fremExt(), quiet = TRUE)
-  expect_s3_class(v, "data.frame")
-  expect_identical(v$PARAMETER, c("CL", "V", "MAT"))
-  expect_true(all(v$PASS))
-  expect_true(all(v$STRUCTURAL < 1e-8))
+
+  expect_length(as.logical(v), 1L)
+  expect_true(as.logical(v))
+  expect_true(if (v) TRUE else FALSE)              # usable in an if
+
+  d <- attr(v, "checks")
+  expect_s3_class(d, "data.frame")
+  expect_identical(d$PARAMETER, c("CL", "V", "MAT"))
+  expect_true(all(d$PASS))
+  expect_true(all(d$STRUCTURAL < 1e-8))
 })
 
-test_that("verifyFREMParamFunction flags a tampered function", {
+test_that("verifyFREMParamFunction returns FALSE and flags the tampered parameter", {
   out <- createFREMParamFunction(.fremMod(), parameters = c("CL", "V", "MAT"),
                                  extFile = .fremExt(), quiet = TRUE)
   bad <- gsub("covthetas\\[1\\]", "2 * covthetas[1]", paste(out$code, collapse = "\n"))
   v   <- verifyFREMParamFunction(out, fun = eval(parse(text = bad)),
                                  extFile = .fremExt(), quiet = TRUE)
-  expect_false(v$PASS[v$PARAMETER == "CL"])
-  expect_true(all(v$PASS[v$PARAMETER != "CL"]))
+  expect_false(as.logical(v))
+  d <- attr(v, "checks")
+  expect_false(d$PASS[d$PARAMETER == "CL"])
+  expect_true(all(d$PASS[d$PARAMETER != "CL"]))
 })
 
 # ---------------------------------------------------------------------------

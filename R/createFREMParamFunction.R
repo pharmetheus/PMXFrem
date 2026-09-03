@@ -99,10 +99,20 @@
 #'
 #' @examples
 #' fremModel <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
-#' extFile   <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
-#' out <- createFREMParamFunction(fremModel, parameters = c("CL", "V", "MAT"),
-#'                                extFile = extFile)
+#'
+#' # numSkipOm / numNonFREMThetas are derived from the FREM model and its ext.
+#' # The ext is found next to the model automatically, so `extFile` is not
+#' # needed here - pass `extFile` (or `dfext`) only when the .ext is elsewhere
+#' # and cannot be reached through runno / modName / modDevDir.
+#' out <- createFREMParamFunction(fremModel, parameters = c("CL", "V", "MAT"))
 #' cat(out$code, sep = "\n")
+#'
+#' # Same result, located by run number instead of a path:
+#' out2 <- createFREMParamFunction(
+#'   runno      = 31,
+#'   modDevDir  = system.file("extdata/SimNeb/", package = "PMXFrem"),
+#'   parameters = c("CL", "V", "MAT"))
+#' stopifnot(identical(out$code, out2$code))
 #'
 #' @family Diagnostics & Plotting
 #' @concept diagnostics

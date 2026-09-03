@@ -35,9 +35,11 @@ covariate at \code{x$missVal}).}
 \item{quiet}{If \code{FALSE} (default), prints a per-parameter pass/fail summary.}
 }
 \value{
-A data frame with one row per parameter: \code{PARAMETER},
-\code{STRUCTURAL} / \code{COVSPLICE} / \code{ETASPLICE} (max relative difference for each
-check) and \code{PASS} (all three within \code{tol}).
+A single logical - \code{TRUE} if every parameter passes all three checks
+within \code{tol} - so the result can be used directly in an \code{if}. The
+per-parameter detail is attached as \code{attr(x, "checks")}: a data frame with
+\code{PARAMETER}, \code{STRUCTURAL} / \code{COVSPLICE} / \code{ETASPLICE} (max relative
+difference for each check) and \code{PASS}. Printing shows the table.
 }
 \description{
 Runs three consistency checks on the function from
@@ -58,10 +60,13 @@ relative difference per parameter.
 }
 \examples{
 fremModel <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
-extFile   <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
 out <- createFREMParamFunction(fremModel, parameters = c("CL", "V", "MAT"),
-                               extFile = extFile, quiet = TRUE)
-verifyFREMParamFunction(out, extFile = extFile)
+                               quiet = TRUE)
+
+if (verifyFREMParamFunction(out, quiet = TRUE)) message("generated function checks out")
+
+v <- verifyFREMParamFunction(out, quiet = TRUE)
+attr(v, "checks")          # per-parameter detail
 
 }
 \seealso{
