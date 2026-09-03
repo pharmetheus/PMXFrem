@@ -8,7 +8,7 @@ createFREMParamFunction(
   baseModel,
   parameters,
   numSkipOm = 0,
-  numParCov = length(parameters),
+  numParCov = NULL,
   covRef = NULL,
   functionName = "paramFunction",
   extFile = NULL,
@@ -22,15 +22,17 @@ createFREMParamFunction(
 i.e. the model \code{createFREMmodel()} / \code{updateFREMmodel()} start from. Its
 \verb{$PK} is the structural model; the FREM covariate machinery is added on top.}
 
-\item{parameters}{Character vector of \verb{$PK} variables that carry FREM
-covariate effects, \strong{in the order of the FREM parameter block} - this order
-is what \code{covthetas[k]} and \code{etas[numSkipOm + k]} index.}
+\item{parameters}{Character vector of \verb{$PK} variables the generated function
+should return. List the FREM covariate parameters \strong{in the order of the FREM
+parameter block} (that order is what \code{covthetas} / \code{etas} index); other
+\verb{$PK} quantities may be included and are returned as-is.}
 
 \item{numSkipOm}{Number of diagonal omegas before the FREM block (offsets the
 \code{etas} index). Default 0. \code{\link[=fremModelInfo]{fremModelInfo()}} derives it from a FREM model.}
 
-\item{numParCov}{Number of FREM covariate parameters. Must equal
-\code{length(parameters)}; kept as an explicit argument so a mismatch is caught.}
+\item{numParCov}{Optional. If given, a check: it should equal the number of
+entries in \code{parameters} that carry an \code{ETA()} in \verb{$PK} (the FREM covariate
+parameters). A mismatch warns and the derived count is used.}
 
 \item{covRef}{Optional named list of structural-covariate reference values,
 e.g. \code{list(WT = 75)}, forwarded to \code{\link[PMXForest:nmParsePK]{PMXForest::nmParsePK()}}.}
@@ -55,9 +57,12 @@ A list:
 \code{"pmxFREMParamFunction"} so printing renders it.
 \item \code{functionListName} - \code{parameters}, for \code{getForestDFFREM()} /
 \code{getExplainedVar()}.
+\item \code{fremParameters} - the subset of \code{parameters} that got the covariate
+splice (those with an \code{ETA()} in \verb{$PK}), in order.
 \item \code{noBaseThetas} - the base model's THETA count.
 \item \code{covRef} - the structural-covariate reference used, with its source.
-\item \code{numSkipOm}, \code{numParCov}, \code{baseModel}, \code{missVal} - as supplied.
+\item \code{numParCov} - the number of \code{fremParameters}.
+\item \code{numSkipOm}, \code{baseModel}, \code{missVal} - as supplied.
 }
 }
 \description{
@@ -66,9 +71,13 @@ control stream into R source for a parameter function of the shape
 \code{getForestDFFREM()} and \code{getExplainedVar()} expect,
 \verb{function(basethetas, covthetas, dfrow, etas, ...)}. The structural \verb{$PK} is
 transliterated as-is (including structural, non-FREM covariates such as
-allometric weight); for the parameters named in \code{parameters} the FREM
-covariate coefficient and random effect are spliced into the exponent, so
-the parameter becomes \verb{<structural> * exp(... + covthetas[k] + etas[k])}.
+allometric weight). A parameter in \code{parameters} that carries IIV in \verb{$PK}
+(exactly one \code{ETA()} in its assignment) is treated as a \strong{FREM covariate
+parameter}: its \code{ETA()} reference is replaced \strong{in place} - whatever
+encloses it, \code{exp(mu + ETA)}, \code{TV * exp(ETA)}, \code{TV + ETA}, ... - by
+\code{covthetas[k] + etas[numSkipOm + k]}, because the FREM covariate coefficient
+is additive on the same (eta) scale. A parameter in \code{parameters} with no
+\code{ETA()} simply has no covariate effect and is returned as computed by \verb{$PK}.
 Every other \code{ETA(n)} is set to 0.
 
 The result is \strong{source text for you to read, check and edit} - nothing is
@@ -79,8 +88,9 @@ across the explained-variability types).
 }
 \details{
 \strong{What \code{covthetas} and \code{etas} are.} \code{covthetas[k]} is the FFEM-projected
-covariate coefficient for the k-th parameter in \code{parameters}, as computed by
-\code{\link[=calcFFEM]{calcFFEM()}} and passed in by \code{getForestDFFREM()} / \code{getExplainedVar()}.
+covariate coefficient for the k-th \strong{FREM covariate parameter} (the k-th
+entry of \code{parameters} that carries an \code{ETA()}), as computed by \code{\link[=calcFFEM]{calcFFEM()}}
+and passed in by \code{getForestDFFREM()} / \code{getExplainedVar()}.
 \code{etas} carries the random effects with the \code{numSkipOm} leading non-FREM
 omegas in front, so the k-th parameter's structural eta is
 \code{etas[numSkipOm + k]}; the generated function indexes it with a small
@@ -93,10 +103,15 @@ but not assigned in \verb{$PK} needs a value for the rows where it is inactive
 rules as \code{\link[PMXForest:createParamFunction]{PMXForest::createParamFunction()}} and hoisted into a preamble;
 override or supply through \code{covRef}.
 
-\strong{One \code{ETA()} per FREM parameter.} A parameter written with no \code{ETA()} in
-\verb{$PK} still gets the FREM covariate effect, applied as
-\verb{(<structural>) * exp(covthetas[k] + etas[k])}, with a warning. A parameter
-referencing \code{ETA()} more than once in its assignment is an error.
+\strong{Which parameters get the covariate splice.} A parameter carries a FREM
+covariate effect only if it has IIV, i.e. an \code{ETA()} in \verb{$PK}. So an entry
+of \code{parameters} with exactly one \code{ETA()} is spliced; one with none is
+returned as-is (no covariate effect - not an error); one referencing \code{ETA()}
+more than once is returned as-is with a warning (which eta is "the"
+structural one is ambiguous). \code{covthetas} and \code{etas[numSkipOm + ...]} are
+indexed by position \strong{among the spliced parameters}, in \code{parameters}
+order. If the eta index found for a spliced parameter is not
+\code{numSkipOm + k}, its position is used anyway and a warning is issued.
 }
 \examples{
 baseModel <- system.file("extdata/SimNeb/run30.mod", package = "PMXFrem")

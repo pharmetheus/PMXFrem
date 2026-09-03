@@ -16,10 +16,16 @@ Named `createFREMParamFunction()` / `verifyFREMParamFunction()` (not
   `verifyFREMParamFunction()` checks structural match vs
   `PMXForest::createParamFunction()`, plus `covthetas` / `etas` scaling.
 
+The `ETA()` reference is replaced in place regardless of what encloses it, so
+`exp(mu + ETA)`, `TV * exp(ETA)`, `TV + ETA` etc. all work. A named parameter
+with no `ETA()` in `$PK` (not a FREM covariate parameter) or more than one is an
+error.
+
 v2 / still open:
-- Non-log-normal parameters (logit F, additive-eta) — v1 assumes `exp()`; a
-  parameter with no `ETA()` in `$PK` gets `(<structural>) * exp(covthetas + eta)`
-  with a warning; more than one `ETA()` in a parameter's assignment is an error.
+- `verifyFREMParamFunction()`'s `covthetas` / `etas` scaling checks assume the
+  parameter is log-normal (`exp` scaling). An additive-eta or logit parameter
+  emits correctly from `createFREMParamFunction()` but would fail those checks —
+  make `verify` transform-aware, or scope it.
 - Derived metrics (AUC, t½) — left to the user, as in PMXForest.
 - Auto-derive `numSkipOm` from a FREM model via `fremModelInfo()` instead of the
   plain argument.

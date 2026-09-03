@@ -21,15 +21,17 @@ test_that("createFREMParamFunction returns the expected list shape", {
   expect_equal(out$noBaseThetas, 7)
   expect_equal(out$numSkipOm, 2)
   expect_equal(out$numParCov, 3)
+  expect_identical(out$fremParameters, c("CL", "V", "MAT"))
   expect_true("FOOD" %in% names(out$covRef))          # structural covariate kept
 })
 
 test_that("createFREMParamFunction validates its arguments", {
   expect_error(createFREMParamFunction(.baseMod(), parameters = character(0)),
                "at least one")
-  expect_error(
-    createFREMParamFunction(.baseMod(), parameters = c("CL", "V"), numParCov = 3),
-    "numParCov"
+  expect_warning(
+    createFREMParamFunction(.baseMod(), parameters = c("CL", "V"), numParCov = 3,
+                            numSkipOm = 2, quiet = TRUE),
+    "numParCov \\(3\\) does not match"
   )
   expect_error(
     createFREMParamFunction(.baseMod(), parameters = c("CL", "NOSUCHPAR"),
@@ -38,7 +40,7 @@ test_that("createFREMParamFunction validates its arguments", {
   )
 })
 
-test_that("the generated source splices covthetas / etas at numSkipOm + k", {
+test_that("the generated source replaces ETA() in place at numSkipOm + k", {
   out  <- createFREMParamFunction(.baseMod(), parameters = c("CL", "V", "MAT"),
                                   numSkipOm = 2, quiet = TRUE)
   code <- paste(out$code, collapse = "\n")
@@ -46,6 +48,70 @@ test_that("the generated source splices covthetas / etas at numSkipOm + k", {
   expect_match(code, "CL <- exp\\(MU_3 \\+ \\(covthetas\\[1\\] \\+ .eta\\(etas, 3\\)\\)\\)")
   expect_match(code, "V <- exp\\(MU_4 \\+ \\(covthetas\\[2\\] \\+ .eta\\(etas, 4\\)\\)\\)")
   expect_match(code, "MAT <- MATCOVTIME \\* exp\\(MU_5 \\+ \\(covthetas\\[3\\] \\+ .eta\\(etas, 5\\)\\)\\)")
+})
+
+# a tiny base model with a controllable $PK, for the ETA-placement edge cases
+.stubBase <- function(pk) {
+  f <- withr::local_tempfile(fileext = ".mod", .local_envir = parent.frame())
+  writeLines(c(
+    "$PROBLEM stub", "$INPUT ID TIME DV WT", "$DATA d.csv IGNORE=@",
+    "$PK", pk, "$ERROR", "  Y = F + EPS(1)",
+    "$THETA 1 2 3 4", "$OMEGA 0.1 0.1 0.1", "$SIGMA 1"
+  ), f)
+  f
+}
+
+test_that("ETA() is replaced whatever encloses it (not only inside exp())", {
+  bm  <- .stubBase(c(
+    "  TVCL = THETA(1)", "  TVV  = THETA(2)",
+    "  CL = TVCL * EXP(ETA(1))",     # multiplicative
+    "  V  = TVV + ETA(2)"            # additive
+  ))
+  out  <- createFREMParamFunction(bm, parameters = c("CL", "V"), numSkipOm = 0,
+                                  quiet = TRUE)
+  code <- paste(out$code, collapse = "\n")
+  expect_match(code, "CL <- TVCL \\* exp\\(\\(covthetas\\[1\\] \\+ .eta\\(etas, 1\\)\\)\\)")
+  expect_match(code, "V <- TVV \\+ \\(covthetas\\[2\\] \\+ .eta\\(etas, 2\\)\\)")
+})
+
+test_that("a parameter with no ETA() is returned as-is, not an error", {
+  bm  <- .stubBase(c("  TVCL = THETA(1)", "  CL = TVCL",
+                     "  TVV = THETA(2)",  "  V  = TVV * EXP(ETA(1))"))
+  out <- createFREMParamFunction(bm, parameters = c("V", "CL"), numSkipOm = 0,
+                                 quiet = TRUE)
+  expect_identical(out$fremParameters, "V")             # only V carries an eta
+  expect_equal(out$numParCov, 1)
+  code <- paste(out$code, collapse = "\n")
+  expect_match(code, "V <- TVV \\* exp\\(\\(covthetas\\[1\\] \\+ .eta\\(etas, 1\\)\\)\\)")
+  expect_match(code, "CL <- TVCL   # returned as-is")
+
+  fn <- eval(parse(text = out$code))
+  r  <- fn(basethetas = c(3, 5), covthetas = 0.2, dfrow = data.frame(), etas = 0)
+  expect_equal(r$CL, 3)                                 # structural, no covariate effect
+  expect_equal(r$V,  5 * exp(0.2))
+})
+
+test_that("a $PK assignment referencing ETA() more than once is returned as-is with a warning", {
+  bm <- .stubBase(c("  TVCL = THETA(1)", "  CL = TVCL * EXP(ETA(1) + ETA(2))"))
+  expect_warning(
+    out <- createFREMParamFunction(bm, parameters = "CL", numSkipOm = 0,
+                                   quiet = TRUE),
+    "references ETA\\(\\) 2 times"
+  )
+  expect_length(out$fremParameters, 0)
+  expect_match(paste(out$code, collapse = "\n"),
+               "CL <- TVCL \\* exp\\(0 \\+ 0\\).*returned as-is; ETA\\(\\) -> 0")
+})
+
+test_that("an unexpected ETA index warns but still emits by parameter position", {
+  bm <- .stubBase(c("  TVCL = THETA(1)", "  CL = TVCL * EXP(ETA(4))"))
+  expect_warning(
+    out <- createFREMParamFunction(bm, parameters = "CL", numSkipOm = 0,
+                                   quiet = TRUE),
+    "ETA\\(4\\).*ETA\\(1\\) was expected"
+  )
+  expect_match(paste(out$code, collapse = "\n"),
+               "CL <- TVCL \\* exp\\(\\(covthetas\\[1\\] \\+ .eta\\(etas, 1\\)\\)\\)")
 })
 
 # ---------------------------------------------------------------------------
