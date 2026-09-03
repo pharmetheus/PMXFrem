@@ -9,3 +9,6 @@
 ^\.github$
 ^Makefile$
 ^vignettes/vpc_for_a_FREM_model.Rmd$
+^CLAUDE\.md$
+^\.claude$
+^TODO\.md$
