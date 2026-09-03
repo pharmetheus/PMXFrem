@@ -107,12 +107,14 @@ trace_plots_no_shape <- traceplot(
 Other Diagnostics & Plotting: 
 \code{\link{calcEtas}()},
 \code{\link{calcFremShrinkage}()},
+\code{\link{createFREMParamFunction}()},
 \code{\link{fremParameterTable}()},
 \code{\link{getExplainedVar}()},
 \code{\link{getForestDFFREM}()},
 \code{\link{plotCovDist}()},
 \code{\link{plotEtasCov}()},
-\code{\link{plotExplainedVar}()}
+\code{\link{plotExplainedVar}()},
+\code{\link{verifyFREMParamFunction}()}
 }
 \concept{Diagnostics & Plotting}
 \concept{diagnostics}

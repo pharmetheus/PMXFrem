@@ -64,13 +64,15 @@ print(shrinkage_res)
 \seealso{
 Other Diagnostics & Plotting: 
 \code{\link{calcEtas}()},
+\code{\link{createFREMParamFunction}()},
 \code{\link{fremParameterTable}()},
 \code{\link{getExplainedVar}()},
 \code{\link{getForestDFFREM}()},
 \code{\link{plotCovDist}()},
 \code{\link{plotEtasCov}()},
 \code{\link{plotExplainedVar}()},
-\code{\link{traceplot}()}
+\code{\link{traceplot}()},
+\code{\link{verifyFREMParamFunction}()}
 }
 \concept{Diagnostics & Plotting}
 \concept{diagnostics}

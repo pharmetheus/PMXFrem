@@ -3,26 +3,28 @@
 Items parked for future consideration. Not a substitute for GitHub issues; move an
 item there when it becomes active work.
 
-## T1 — `createParamFunction()` / `verifyParamFunction()` for PMXFrem
+## T1 — `createFREMParamFunction()` / `verifyFREMParamFunction()`  *(v1 delivered)*
 
-Generate an R function that mirrors what `createFFEMmodel()` writes as NONMEM: the
-base model's structural `$PK`, with each covariate-associated parameter wrapped as
-`P_k = TV_k(basethetas, structural covariates) * exp(covthetas[k] + etas[numSkipOm + k])`.
-Takes `covthetas` (from `calcFFEM()`, per uncertainty sample) and `etas` as
-arguments. One function serves both uses: `etas = 0` for `getForestDFFREM()` forest
-plots, `etas != 0` for `getExplainedVar()` explained-variability plots (the eta
-layout is uniform across EV types 0–3 — see `CLAUDE.md`).
+Named `createFREMParamFunction()` / `verifyFREMParamFunction()` (not
+`createParamFunction`) so there is no collision with `PMXForest::createParamFunction`.
 
-Open design points:
-- Reuse / extend PMXForest's `nmParsePK` for the structural `$PK` transcription, or a
-  FREM-specific parser (FREM base models are usually MU-referenced).
-- v1 = log-normal parameters only; v2 handles logit/additive transforms.
-- Return the structural parameters only; derived metrics (AUC, t½) stay
-  user-composed, as in PMXForest.
-- Ship as the pair `createParamFunction()` + `verifyParamFunction()`.
-- `etas` default = zero vector; index via `if (length(e) >= i) e[i] else 0` because
-  the EV eta-zero reference calls pass `rep(0, 3 * numNonFREMThetas)`.
-- Can build on `fremModelInfo()` (T2) for the structural integers.
+- PMXForest PR #23 (merged): exported `nmParsePK()` / `nmDeparse()` / `nmFormatNum()`
+  — the `$PK` parser front end.
+- PMXFrem PR (this branch): `createFREMParamFunction(baseModel, parameters,
+  numSkipOm, ...)` transliterates the base model's `$PK`, splicing
+  `covthetas[k] + etas[numSkipOm + k]` into the exponent of each named parameter.
+  `verifyFREMParamFunction()` checks structural match vs
+  `PMXForest::createParamFunction()`, plus `covthetas` / `etas` scaling.
+
+v2 / still open:
+- Non-log-normal parameters (logit F, additive-eta) — v1 assumes `exp()`; a
+  parameter with no `ETA()` in `$PK` gets `(<structural>) * exp(covthetas + eta)`
+  with a warning; more than one `ETA()` in a parameter's assignment is an error.
+- Derived metrics (AUC, t½) — left to the user, as in PMXForest.
+- Auto-derive `numSkipOm` from a FREM model via `fremModelInfo()` instead of the
+  plain argument.
+- A NONMEM `$TABLE`-based check in `verifyFREMParamFunction()` once a FREM model
+  fixture that tables `CL`/`V`/... exists (none in `inst/extdata` today).
 
 ## T2 — roll `fremModelInfo()` out to the remaining entry points
 
