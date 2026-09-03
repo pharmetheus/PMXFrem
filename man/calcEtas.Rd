@@ -149,13 +149,15 @@ individual_etas_derived <- calcEtas(
 
 Other Diagnostics & Plotting: 
 \code{\link{calcFremShrinkage}()},
+\code{\link{createFREMParamFunction}()},
 \code{\link{fremParameterTable}()},
 \code{\link{getExplainedVar}()},
 \code{\link{getForestDFFREM}()},
 \code{\link{plotCovDist}()},
 \code{\link{plotEtasCov}()},
 \code{\link{plotExplainedVar}()},
-\code{\link{traceplot}()}
+\code{\link{traceplot}()},
+\code{\link{verifyFREMParamFunction}()}
 }
 \concept{Diagnostics & Plotting}
 \concept{diagnostics}

@@ -3,26 +3,33 @@
 Items parked for future consideration. Not a substitute for GitHub issues; move an
 item there when it becomes active work.
 
-## T1 — `createParamFunction()` / `verifyParamFunction()` for PMXFrem
+## T1 — `createFREMParamFunction()` / `verifyFREMParamFunction()`  *(v1 delivered)*
 
-Generate an R function that mirrors what `createFFEMmodel()` writes as NONMEM: the
-base model's structural `$PK`, with each covariate-associated parameter wrapped as
-`P_k = TV_k(basethetas, structural covariates) * exp(covthetas[k] + etas[numSkipOm + k])`.
-Takes `covthetas` (from `calcFFEM()`, per uncertainty sample) and `etas` as
-arguments. One function serves both uses: `etas = 0` for `getForestDFFREM()` forest
-plots, `etas != 0` for `getExplainedVar()` explained-variability plots (the eta
-layout is uniform across EV types 0–3 — see `CLAUDE.md`).
+Named `createFREMParamFunction()` / `verifyFREMParamFunction()` (not
+`createParamFunction`) so there is no collision with `PMXForest::createParamFunction`.
 
-Open design points:
-- Reuse / extend PMXForest's `nmParsePK` for the structural `$PK` transcription, or a
-  FREM-specific parser (FREM base models are usually MU-referenced).
-- v1 = log-normal parameters only; v2 handles logit/additive transforms.
-- Return the structural parameters only; derived metrics (AUC, t½) stay
-  user-composed, as in PMXForest.
-- Ship as the pair `createParamFunction()` + `verifyParamFunction()`.
-- `etas` default = zero vector; index via `if (length(e) >= i) e[i] else 0` because
-  the EV eta-zero reference calls pass `rep(0, 3 * numNonFREMThetas)`.
-- Can build on `fremModelInfo()` (T2) for the structural integers.
+- PMXForest PR #23 (merged): exported `nmParsePK()` / `nmDeparse()` / `nmFormatNum()`
+  — the `$PK` parser front end.
+- PMXFrem PR #45 (this branch): `createFREMParamFunction(fremModel, parameters,
+  ...)` (or `runno` / `modName` / `modDevDir`) transliterates **the FREM model's**
+  `$PK`, deriving `numSkipOm` / `numNonFREMThetas` via `fremModelInfo()`. The
+  single `ETA()` of a FREM covariate parameter is replaced in place (whatever
+  encloses it) by `covthetas[k] + etas[numSkipOm + k]`. A parameter with no
+  `ETA()` is returned as-is (no covariate effect); more than one -> as-is + a
+  warning. The body is pruned to the transitive dependencies of `parameters`, so
+  the FREM covariate block drops and `basethetas` is the first
+  `numNonFREMThetas`. `verifyFREMParamFunction()` checks the structural part
+  against `PMXForest::createParamFunction()` on the same FREM model, plus the
+  `covthetas` / `etas` scaling.
+
+v2 / still open:
+- `verifyFREMParamFunction()`'s `covthetas` / `etas` scaling checks assume the
+  parameter is log-normal (`exp` scaling). An additive-eta or logit parameter
+  emits correctly from `createFREMParamFunction()` but would fail those checks —
+  make `verify` transform-aware, or scope it.
+- Derived metrics (AUC, t½) — left to the user, as in PMXForest.
+- A NONMEM `$TABLE`-based check in `verifyFREMParamFunction()` once a FREM model
+  fixture that tables `CL`/`V`/... exists (none in `inst/extdata` today).
 
 ## T2 — roll `fremModelInfo()` out to the remaining entry points
 
