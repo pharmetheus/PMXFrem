@@ -134,6 +134,15 @@ individual_etas <- calcEtas(
 # The output contains subject IDs, ETAs, ETA_PRIMs, EBEs, and missingness flags.
 head(individual_etas)
 
+# 5. The same call with numNonFREMThetas / numSkipOm omitted -- derived from
+# the FREM model located via modName / modDevDir (see fremModelInfo())
+individual_etas_derived <- calcEtas(
+  modName   = "run31",
+  modDevDir = model_dir,
+  dataFile  = my_data,
+  parNames  = c("CL", "V", "MAT")
+)
+
 }
 \seealso{
 \code{\link[=createFFEMdata]{createFFEMdata()}} for information about creating the FFEMData object

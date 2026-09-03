@@ -104,6 +104,16 @@
 #'   quiet            = TRUE,
 #'   omegaToData      = TRUE)
 #'
+#' # Example 3: numNonFREMThetas / numSkipOm omitted -- derived from the FREM
+#' # model located via runno / modDevDir (see fremModelInfo())
+#' ffemDataDerived <- createFFEMdata(
+#'   runno       = 31,
+#'   modDevDir   = modDevDir,
+#'   parNames    = c("CL", "V", "MAT"),
+#'   dataFile    = dataFile,
+#'   newDataFile = NULL,
+#'   quiet       = TRUE)
+#'
 #' @family FFEM Conversion
 #' @concept ffem_conversion
 createFFEMdata <- function(runno = NULL,

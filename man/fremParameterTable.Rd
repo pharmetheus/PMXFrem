@@ -155,7 +155,19 @@ modDevDir        <- system.file("extdata/SimNeb/",package = "PMXFrem")
 numNonFREMThetas <- 7
 numSkipOm        <- 2
 
-## Generate the raw output
+## numNonFREMThetas / numSkipOm omitted: derived from the model located via
+## runno / modDevDir (see fremModelInfo())
+tmpDerived <- fremParameterTable(
+      runno     = runno,
+      modDevDir = modDevDir,
+      thetaNum  = 2:7,
+      omegaNum  = c(1, 3, 4, 5),
+      sigmaNum  = 1,
+      parNames  = c("CL", "V", "MAT"),
+      availCov  = "all",
+      quiet     = TRUE)
+
+## Full output, numNonFREMThetas / numSkipOm passed explicitly
 tmp <- fremParameterTable(
       runno            = runno,
       modName          = modName,

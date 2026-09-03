@@ -219,6 +219,19 @@ ffemModChol <- createFFEMmodel(
   omegaToData      = TRUE
 )
 
+# Example 3: numNonFREMThetas / numSkipOm omitted -- derived from the FREM
+# model located via runno / modDevDir (see fremModelInfo())
+out_data_derived <- file.path(td, "testFileNameDerived.csv")
+ffemModDerived <- createFFEMmodel(
+  runno       = 31,
+  baserunno   = 30,
+  modDevDir   = modDevDir,
+  parNames    = c("CL","V","MAT"),
+  dataFile    = dataFile,
+  newDataFile = out_data_derived,
+  quiet       = TRUE
+)
+
 }
 \seealso{
 \code{\link[=getFileName]{getFileName()}} \code{\link[=createFFEMdata]{createFFEMdata()}} \code{\link[=calcFFEM]{calcFFEM()}}]

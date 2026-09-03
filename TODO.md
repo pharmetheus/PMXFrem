@@ -30,14 +30,17 @@ Done so far:
 - PR #41 — `fremModelInfo()` + `getExplainedVar()` / `getForestDFFREM()`
   (the latter via `runno` / `modName` / `modDevDir`).
 - PR #43 — `@examples` show both syntaxes.
-- (next PR) — `fremParameterTable()`, `createFFEMmodel()`, `createFFEMdata()`,
-  `calcEtas()`.
+- PR #44 — `fremParameterTable()`, `createFFEMmodel()`, `createFFEMdata()`,
+  `calcEtas()` (+ derived-syntax `@examples`).
+
+Decided against:
+- `calcFFEM()` — **leave as is.** It has no notion of a model, is a low-level
+  workhorse with little direct user exposure, and every caller already resolves
+  `numNonFREMThetas` / `numSkipOm` before calling it. Wiring it in would need a
+  new model-file argument for marginal benefit. Revisit only if a concrete need
+  appears.
 
 Still to do:
-- `calcFFEM()` — the low-level workhorse. It takes `dfext` but no model file;
-  needs an optional `modFile` / `runno` / `modName` / `modDevDir` added. Most
-  callers already pass resolved counts, so lower value / higher blast radius —
-  do last, on its own.
 - `updateFREMmodel()`, `createFREMmodel()` — model *mutation* on a FREM / base
   model. Both already parse the omega structure (`parseBaseModel()` /
   `initializeModelParameters()`); the right fix is to use that parse to fill
