@@ -361,3 +361,44 @@ test_that("createFREMmodel selectively applies FIX to fully observed covariates 
   age_line <- theta_block[grep("TV_AGE", theta_block)]
   expect_false(grepl("FIX", age_line, ignore.case = TRUE), info = "Covariate AGE with missing data must NOT be FIXED.")
 })
+
+test_that("getCovNames can parse the output of createFREMmodel", {
+  # createFREMmodel reaches its final model through the updateFREMmodel /
+  # generateFremModel path, so it should emit the ;;;FREM CODE ... COMPACT
+  # markers and PsN-style covariate comment lines that getCovNames() needs.
+  # updateFREMmodel and createMinimalFremModel already have equivalent tests.
+  modDevDir    <- system.file("extdata", "SimNeb", package = "PMXFrem")
+  ffemDataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+  outDir       <- file.path(tempdir(), "frem_test_getcovnames")
+  dir.create(outDir, showWarnings = FALSE)
+
+  res <- suppressWarnings(createFREMmodel(
+    modName          = "run30",
+    modDevDir        = modDevDir,
+    ffemDataFile     = ffemDataFile,
+    covariates       = c("RACEL", "WT"),
+    catCovs          = c("RACEL"),
+    numNonFREMThetas = 7,
+    cstrKeepCols     = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ"),
+    numSkipOm        = 2,
+    outputDir        = outDir,
+    fremModName      = "test_getcovnames",
+    quiet            = TRUE
+  ))
+
+  expect_no_error(cn <- getCovNames(modFile = res$model))
+
+  # original covariates round-trip
+  expect_setequal(cn$orgCovNames, c("RACEL", "WT"))
+  # the categorical covariate is dichotomised into <name>_<level> dummies
+  expect_true(all(grepl("^RACEL_", cn$polyCatCovs)))
+  expect_setequal(cn$polyCatCovs, c("RACEL_2", "RACEL_3"))
+  # covNames is the full set of FREM covariate columns, in FREM-code order
+  expect_setequal(cn$covNames, c("RACEL_2", "RACEL_3", "WT"))
+  # one FREM covariate column per FREMTYPE IF() branch in the model
+  mod_lines <- readLines(res$model)
+  n_fremtype <- length(grep("IF\\s*\\(FREMTYPE\\.EQ\\.", mod_lines))
+  expect_equal(length(cn$covNames), n_fremtype)
+
+  unlink(outDir, recursive = TRUE)
+})
