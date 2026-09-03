@@ -154,10 +154,10 @@ test_that("getExplainedVar still accepts explicit counts without warning", {
 })
 
 # ---------------------------------------------------------------------------
-# getForestDFFREM(): modFile + derive when the counts are omitted
+# getForestDFFREM(): runno / modName + derive when the counts are omitted
 # ---------------------------------------------------------------------------
 
-test_that("getForestDFFREM derives the counts from modFile when they are omitted", {
+test_that("getForestDFFREM derives covNames / counts from runno / modName when omitted", {
   extFile <- system.file("extdata/SimVal/run22-3.ext", package = "PMXForest")
   covFile <- system.file("extdata/SimVal/run22-3.cov", package = "PMXForest")
   modFile <- system.file("extdata/SimVal/run22-3.mod", package = "PMXForest")
@@ -190,7 +190,7 @@ test_that("getForestDFFREM derives the counts from modFile when they are omitted
     covNames = covNames$covNames, numNonFREMThetas = 13, numSkipOm = 2
   ))))
   derived <- suppressWarnings(do.call(getForestDFFREM, c(common, list(
-    modFile = modFile           # covNames + counts all derived from here
+    modName = "run22-3", modDevDir = dirname(modFile)  # covNames + counts derived
   ))))
 
   expect_equal(as.data.frame(derived), as.data.frame(explicit))
