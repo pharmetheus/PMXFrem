@@ -195,3 +195,69 @@ test_that("getForestDFFREM derives covNames / counts from runno / modName when o
 
   expect_equal(as.data.frame(derived), as.data.frame(explicit))
 })
+
+# ===========================================================================
+# T2 rollout: fremParameterTable / createFFEMmodel / createFFEMdata / calcEtas
+# derive numNonFREMThetas / numSkipOm when omitted (identical result to the
+# explicit call). These fail until the rollout is implemented.
+# ===========================================================================
+
+.simNeb <- function() system.file("extdata/SimNeb/", package = "PMXFrem")
+
+.ffemInputData <- function() {
+  readr::read_csv(
+    system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
+    show_col_types = FALSE
+  ) %>% dplyr::filter(BLQ != 1)
+}
+
+test_that("fremParameterTable derives the counts when they are omitted", {
+  common <- list(
+    runno = 31, modDevDir = .simNeb(),
+    thetaNum = 1:7, omegaNum = 1:5, sigmaNum = 1:2,
+    availCov = "all", quiet = TRUE
+  )
+  set.seed(1); explicit <- do.call(fremParameterTable,
+                                   c(common, list(numNonFREMThetas = 7, numSkipOm = 2)))
+  set.seed(1); derived  <- do.call(fremParameterTable, common)
+  expect_equal(derived, explicit)
+})
+
+test_that("createFFEMdata derives the counts when they are omitted", {
+  data   <- .ffemInputData()
+  common <- list(
+    modName = "run31", modDevDir = .simNeb(),
+    parNames = c("CL", "V", "MAT"),
+    dataFile = data, newDataFile = NULL, quiet = TRUE
+  )
+  explicit <- do.call(createFFEMdata, c(common, list(numNonFREMThetas = 7, numSkipOm = 2)))
+  derived  <- do.call(createFFEMdata, common)
+  expect_equal(derived$newData,      explicit$newData)
+  expect_equal(derived$Omega,        explicit$Omega)
+  expect_equal(derived$Coefficients, explicit$Coefficients)
+})
+
+test_that("createFFEMmodel derives the counts when they are omitted", {
+  td     <- withr::local_tempdir()
+  common <- list(
+    runno = 31, modDevDir = system.file("extdata/SimNeb", package = "PMXFrem"),
+    parNames = c("CL", "V", "MAT"),
+    dataFile = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
+    newDataFile = file.path(td, "ffemdata.csv"),
+    baserunno = 30, quiet = TRUE
+  )
+  explicit <- do.call(createFFEMmodel, c(common, list(numNonFREMThetas = 7, numSkipOm = 2)))
+  derived  <- do.call(createFFEMmodel, common)
+  expect_equal(derived, explicit)
+})
+
+test_that("calcEtas derives the counts when they are omitted", {
+  data   <- .ffemInputData()
+  common <- list(
+    modName = "run31", modDevDir = .simNeb(),
+    parNames = c("CL", "V", "MAT"), dataFile = data
+  )
+  explicit <- do.call(calcEtas, c(common, list(numNonFREMThetas = 7, numSkipOm = 2)))
+  derived  <- do.call(calcEtas, common)
+  expect_equal(derived, explicit)
+})

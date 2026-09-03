@@ -7,8 +7,8 @@
 fremParameterTable(
   runno = NULL,
   modDevDir = NULL,
-  numNonFREMThetas,
-  numSkipOm = 0,
+  numNonFREMThetas = NULL,
+  numSkipOm = NULL,
   thetaNum,
   omegaNum,
   sigmaNum,
@@ -49,13 +49,15 @@ named run# followed by the appropriate suffix (where # is \code{runno}).}
 \item{modDevDir}{The directory where the files reside. Default is the current
 directory, i.e. ".".}
 
-\item{numNonFREMThetas}{Number of thetas in the FREM model that are not FREM
-covariates. These need to come before the FREM covariate thetas in the FREM
-model file.}
+\item{numNonFREMThetas}{Number of structural (non-FREM-covariate) THETAs in
+the FREM model. If \code{NULL} (default) it is derived from the model file (found
+via \code{runno} / \code{modName} / \code{modDevDir}) and the ext via \code{\link[=fremModelInfo]{fremModelInfo()}}; a
+supplied value that disagrees with the derived one triggers a warning and is
+kept.}
 
-\item{numSkipOm}{Number of diagonal omegas that should not be part of the
-FREM calculations. Such omegas has to come before the large FREM omega
-block in the FREM model file.}
+\item{numSkipOm}{Number of diagonal OMEGAs before the FREM block that are not
+part of the FREM calculations. If \code{NULL} (default) it is derived via
+\code{\link[=fremModelInfo]{fremModelInfo()}} (warn-and-keep on a disagreeing explicit value).}
 
 \item{thetaNum}{The theta numbers to include in the output. This refers to
 the number associated with the theta value in \code{parVector}. `}

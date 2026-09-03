@@ -11,6 +11,14 @@
 #' @inheritParams createFFEMdata
 #' @inheritParams calcFFEM
 #' @inheritParams calcParameterEsts
+#' @param numNonFREMThetas Number of structural (non-FREM-covariate) THETAs in
+#'   the FREM model. If `NULL` (default) it is derived from the model file (found
+#'   via `runno` / `modName` / `modDevDir`) and the ext via [fremModelInfo()]; a
+#'   supplied value that disagrees with the derived one triggers a warning and is
+#'   kept.
+#' @param numSkipOm Number of diagonal OMEGAs before the FREM block that are not
+#'   part of the FREM calculations. If `NULL` (default) it is derived via
+#'   [fremModelInfo()] (warn-and-keep on a disagreeing explicit value).
 #' @param thetaLabels A character vector with labels for the THETAs. Should be exactly as long as \code{thetaNum}. Note: This is used strictly for the base parameter table, which may include non-FREM structural parameters.
 #' @param omegaLabels A vector with labels for the OMEGAs. Should be as long as `omegaNum`.
 #' @param sigmaLabels A vector with labels for the SIGMAs Should be as long as `sigmaNum`.
@@ -97,8 +105,8 @@
 fremParameterTable <- function(
     runno         = NULL,
     modDevDir     = NULL,
-    numNonFREMThetas,
-    numSkipOm     = 0,
+    numNonFREMThetas = NULL,
+    numSkipOm     = NULL,
     thetaNum,
     omegaNum,
     sigmaNum,
@@ -159,6 +167,13 @@ fremParameterTable <- function(
     dfExt <- dfext
   }
   extRes <- dfExt %>% dplyr::filter(ITERATION == -1000000000)
+
+  ## Derive numNonFREMThetas / numSkipOm from the model when not supplied, and
+  ## validate them (warn, keep the explicit value) when they are.
+  .info <- fremModelInfo(modFile = modFile, dfext = dfExt,
+                         numNonFREMThetas = numNonFREMThetas, numSkipOm = numSkipOm)
+  numNonFREMThetas <- .info$numNonFREMThetas
+  numSkipOm        <- .info$numSkipOm
   
   ## 3. Sort out Covariates
   extractedCovNames <- getCovNames(modFile)$covNames
