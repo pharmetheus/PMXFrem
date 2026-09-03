@@ -22,28 +22,33 @@ Open design points:
 - Ship as the pair `createParamFunction()` + `verifyParamFunction()`.
 - `etas` default = zero vector; index via `if (length(e) >= i) e[i] else 0` because
   the EV eta-zero reference calls pass `rep(0, 3 * numNonFREMThetas)`.
+- Can build on `fremModelInfo()` (T2) for the structural integers.
 
-## T2 — auto-derive `numNonFREMThetas` / `numSkipOm`  *(in progress)*
+## T2 — roll `fremModelInfo()` out to the remaining entry points
 
-Internal `fremModelInfo(modFile, dfext)` resolver. Derivation (verified on `run31`):
+`fremModelInfo()` and the wiring into `getExplainedVar()` / `getForestDFFREM()`
+landed in PR #41 (merged). `getForestDFFREM()` takes `runno` / `modName` /
+`modDevDir` (resolved via `getFileNames()`, like `getExplainedVar()`); the two
+counts default to `NULL` and are derived, with an explicit disagreeing value
+warned-and-kept.
+
+Still to do — apply the same optional-arg + derive-or-validate pattern to:
+`calcFFEM()`, `fremParameterTable()`, `createFFEMmodel()`, `createFFEMdata()`,
+`calcEtas()`, `calcParameterEsts()`, `plotCovDist()`, `plotEtasCov()`,
+`removeFremCovariates()`, `initializeModel()`, `updateFREMmodel()`,
+`createFREMmodel()` (`numNonFREMThetas` only — no `.ext` yet at build time).
+
+Derivation (verified on `run31` → 7/2/3 and `run22-3` → 13/2/4):
 
 ```
 numFREMThetas    = length(getCovNames(modFile)$covNames)
-totalThetas      = #THETA columns in dfext
-numNonFREMThetas = totalThetas - numFREMThetas
-numTotEta        = solve k(k+1)/2 = #OMEGA columns in dfext
+numNonFREMThetas = (#THETA columns in ext) - numFREMThetas
+numTotEta        = solve k(k+1)/2 = (#OMEGA columns in ext)
 blockN           = N in the final "$OMEGA BLOCK(N)" of modFile
 numParCov        = blockN - numFREMThetas
-numSkipOm        = numTotEta - blockN        # more robust than token-counting $OMEGA lines
-numSigmas        = #SIGMA columns in dfext
+numSkipOm        = numTotEta - blockN        # robust to a structural BLOCK before the FREM block
+numSigmas        = #SIGMA columns in ext
 ```
-
-Scope for the first PR: resolver + wire into `getExplainedVar()` and
-`getForestDFFREM()` only (adds optional `modFile` to `getForestDFFREM()`). Args
-become optional (`NULL` -> derive); when supplied they are an override, and a
-mismatch with the derived value **warns and keeps the explicit value**. Follow-up
-PR rolls the pattern out to `calcFFEM`, `fremParameterTable`, `createFFEMmodel`,
-`createFFEMdata`, `calcEtas`, `calcParameterEsts`, etc.
 
 ## T3 — helper: add an IIV eta to an established FREM model
 
@@ -63,13 +68,14 @@ means contiguously. A new structural theta must be inserted at position
 reference in `$PK` and increments `numNonFREMThetas`. Helper: insert + renumber the
 `MU_j = THETA(...)` refs.
 
-## T5 — direct `getCovNames(createFREMmodel() output)` test  *(next)*
-
-`createFREMmodel()` reaches its final model through the
-`updateFREMmodel()` / `generateFremModel()` path, so it inherits marker
-compliance, but there is no test asserting `getCovNames()` round-trips its output.
-`updateFREMmodel` and `createMinimalFremModel` already have such tests.
-
 ## T6 — remove `chore/session-handoff` (PMXForest-private)
 
 Branch + `SESSION-HANDOFF.md`, once its context is fully absorbed.
+
+---
+
+## Done
+
+- **T5** — direct `getCovNames(createFREMmodel() output)` test — PR #40 (merged).
+- **T2 (first PR)** — `fremModelInfo()` + `getExplainedVar()` / `getForestDFFREM()`
+  wiring — PR #41 (merged). Rollout to the rest tracked above under T2.
