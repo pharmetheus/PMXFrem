@@ -31,6 +31,8 @@ test_that("createFREMParamFunction returns the expected list shape", {
   expect_type(out, "list")
   expect_s3_class(out$code, "pmxFREMParamFunction")
   expect_identical(out$functionListName, c("CL", "V", "MAT"))
+  expect_identical(out$primaryNames, c("CL", "V", "MAT"))
+  expect_identical(out$secondaryNames, character(0))
   expect_identical(out$fremParameters, c("CL", "V", "MAT"))
   expect_equal(out$numSkipOm, 2)                 # derived
   expect_equal(out$numNonFREMThetas, 7)          # derived
@@ -225,6 +227,82 @@ test_that("verifyFREMParamFunction returns FALSE and flags the tampered paramete
   d <- attr(v, "checks")
   expect_false(d$PASS[d$PARAMETER == "CL"])
   expect_true(all(d$PASS[d$PARAMETER != "CL"]))
+})
+
+test_that("verifyFREMParamFunction ignores secondary parameters", {
+  out <- createFREMParamFunction(.fremMod(), parameters = c("CL", "V", "MAT"),
+                                 extFile = .fremExt(), quiet = TRUE,
+                                 secondary = list(AUC = "80 / CL"))
+  v <- verifyFREMParamFunction(out, extFile = .fremExt(), quiet = TRUE)
+  expect_true(as.logical(v))
+  expect_identical(attr(v, "checks")$PARAMETER, c("CL", "V", "MAT"))  # no AUC
+})
+
+# ---------------------------------------------------------------------------
+# secondary parameters
+# ---------------------------------------------------------------------------
+
+test_that("a secondary snippet is spliced in, returned, and listed", {
+  out <- createFREMParamFunction(.fremMod(), parameters = c("CL", "V", "MAT"),
+                                 extFile = .fremExt(), quiet = TRUE,
+                                 secondary = list(AUC = "dfrow$DOSE / CL",
+                                                  KEL = "CL / V"))
+  expect_identical(out$functionListName, c("CL", "V", "MAT", "AUC", "KEL"))
+  expect_identical(out$primaryNames,   c("CL", "V", "MAT"))
+  expect_identical(out$secondaryNames, c("AUC", "KEL"))
+
+  code <- paste(out$code, collapse = "\n")
+  expect_match(code, "df <- dfrow")                       # alias emitted
+  expect_match(code, "AUC <- local\\(\\{ dfrow\\$DOSE / CL \\}\\)")
+
+  fn  <- eval(parse(text = out$code))
+  bth <- .finals()[seq_len(out$noBaseThetas)]
+  v   <- fn(basethetas = bth, covthetas = c(0, 0, 0),
+            dfrow = data.frame(DOSE = 100), etas = rep(0, out$numSkipOm + 3))
+  expect_named(v, c("CL", "V", "MAT", "AUC", "KEL"))
+  expect_equal(v$AUC, 100 / v$CL)
+  expect_equal(v$KEL, v$CL / v$V)
+})
+
+test_that("a secondary from a file is inlined verbatim and survives file removal", {
+  rf <- withr::local_tempfile(fileext = ".R")
+  writeLines(c("## model string must not be re-indented",
+               "code <- \"",
+               "$PARAM CL=1",
+               "\"",
+               "nchar(code)"), rf)
+  out <- createFREMParamFunction(.fremMod(), parameters = c("CL", "V", "MAT"),
+                                 extFile = .fremExt(), quiet = TRUE,
+                                 secondary = list(NC = rf))
+  code <- paste(out$code, collapse = "\n")
+  expect_match(code, "\\n\\$PARAM CL=1\\n")               # column-0, not indented
+  file.remove(rf)
+  fn  <- eval(parse(text = out$code))
+  bth <- .finals()[seq_len(out$noBaseThetas)]
+  v <- fn(basethetas = bth, covthetas = c(0, 0, 0), dfrow = data.frame(),
+          etas = rep(0, out$numSkipOm + 3))
+  expect_true(is.finite(v$NC))
+})
+
+test_that("a generated function with a secondary drives getForestDFFREM()", {
+  out <- createFREMParamFunction(.fremMod(), parameters = c("CL", "V", "MAT"),
+                                 extFile = .fremExt(), quiet = TRUE,
+                                 secondary = list(AUC = "80 / CL"))
+  fn  <- eval(parse(text = out$code))
+
+  covNames <- getCovNames(.fremMod())
+  dfCovs   <- data.frame(WT = c(60, 90), AGE = c(-99, -99))
+  set.seed(1)
+  samples <- PMXForest::getSamples(
+    system.file("extdata/SimNeb/bs31.dir/raw_results_run31.csv", package = "PMXFrem"),
+    extFile = .fremExt(), n = 10)
+
+  res <- suppressWarnings(getForestDFFREM(
+    dfCovs = dfCovs, covNames = covNames$covNames, functionList = list(fn),
+    functionListName = out$functionListName, numNonFREMThetas = 7, numSkipOm = 2,
+    dfParameters = samples, quiet = TRUE, cstrPackages = c("PMXFrem", "dplyr")))
+  expect_setequal(as.character(unique(res$PARAMETER)), c("CL", "V", "MAT", "AUC"))
+  expect_true(all(is.finite(res$POINT)))
 })
 
 # ---------------------------------------------------------------------------

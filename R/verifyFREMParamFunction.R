@@ -14,7 +14,9 @@
 #'       checks the `numSkipOm` offset is right.
 #'   }
 #'   Anything that fails is reported loudly; the return value records the maximum
-#'   relative difference per parameter.
+#'   relative difference per parameter. Only the FREM `$PK` parameters are
+#'   checked - `secondary` parameters (AUC, Cmax, ...) are skipped, as they have
+#'   no structural counterpart or splice to probe.
 #'
 #' @param x The list returned by [createFREMParamFunction()].
 #' @param fun The function to check. Defaults to `eval(parse(text = x$code))`.
@@ -63,7 +65,15 @@ verifyFREMParamFunction <- function(x,
     stop("`x` must be the list returned by createFREMParamFunction().",
          call. = FALSE)
   }
-  params    <- x$functionListName
+  ## Check the $PK parameters only; `secondary` quantities (AUC, Cmax, ...) are
+  ## not comparable to PMXForest::createParamFunction() and have no eta/cov
+  ## splice to probe.
+  params <- if (!is.null(x$primaryNames)) {
+    x$primaryNames
+  } else {
+    setdiff(x$functionListName,
+            if (is.null(x$secondaryNames)) character(0) else x$secondaryNames)
+  }
   numSkipOm <- if (is.null(x$numSkipOm)) 0 else x$numSkipOm
   nNonFREM  <- x$noBaseThetas                       # length of `basethetas`
   if (is.null(fun)) fun <- eval(parse(text = x$code))
