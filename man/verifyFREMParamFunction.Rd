@@ -7,7 +7,7 @@
 verifyFREMParamFunction(
   x,
   fun = NULL,
-  basethetas = NULL,
+  thetas = NULL,
   extFile = NULL,
   dfrows = NULL,
   tol = 1e-06,
@@ -19,11 +19,12 @@ verifyFREMParamFunction(
 
 \item{fun}{The function to check. Defaults to \code{eval(parse(text = x$code))}.}
 
-\item{basethetas}{A numeric vector of base-model THETA values. Defaults to the
-final estimates read from \code{extFile}.}
+\item{thetas}{A numeric vector of the FREM model's THETA final estimates
+(structural \strong{and} covariate means). Defaults to the values read from
+\code{extFile}.}
 
-\item{extFile}{Path to the base model's \code{.ext}. Required if \code{basethetas} is
-not supplied. Defaults to the \code{.ext} next to \code{x$baseModel}.}
+\item{extFile}{Path to the FREM model's \code{.ext}. Required if \code{thetas} is not
+supplied. Defaults to the \code{.ext} next to \code{x$fremModel}.}
 
 \item{dfrows}{A data frame of covariate rows to test over. Each row is passed
 as \code{dfrow}. Defaults to a single all-reference row (every structural
@@ -45,7 +46,7 @@ Runs three consistency checks on the function from
 \item \strong{Structural match.} With \code{covthetas = 0} and \code{etas = 0} a FREM
 parameter reduces to its structural typical value. The result is
 compared with the SCM-style typical-value function that
-\code{\link[PMXForest:createParamFunction]{PMXForest::createParamFunction()}} generates from the same base model.
+\code{\link[PMXForest:createParamFunction]{PMXForest::createParamFunction()}} generates from the same FREM model.
 \item \strong{Covariate splice.} Multiplying every \code{covthetas[k]} in should
 scale parameter \code{k} by \code{exp(covthetas[k])} and nothing else.
 \item \strong{Random-effect splice.} Setting \code{etas[numSkipOm + k]} should scale
@@ -56,10 +57,11 @@ Anything that fails is reported loudly; the return value records the maximum
 relative difference per parameter.
 }
 \examples{
-baseModel <- system.file("extdata/SimNeb/run30.mod", package = "PMXFrem")
-out <- createFREMParamFunction(baseModel, parameters = c("CL", "V", "MAT"),
-                               numSkipOm = 2, quiet = TRUE)
-verifyFREMParamFunction(out)
+fremModel <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
+extFile   <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+out <- createFREMParamFunction(fremModel, parameters = c("CL", "V", "MAT"),
+                               extFile = extFile, quiet = TRUE)
+verifyFREMParamFunction(out, extFile = extFile)
 
 }
 \seealso{

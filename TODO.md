@@ -10,16 +10,17 @@ Named `createFREMParamFunction()` / `verifyFREMParamFunction()` (not
 
 - PMXForest PR #23 (merged): exported `nmParsePK()` / `nmDeparse()` / `nmFormatNum()`
   — the `$PK` parser front end.
-- PMXFrem PR (this branch): `createFREMParamFunction(baseModel, parameters,
-  numSkipOm, ...)` transliterates the base model's `$PK`, splicing
-  `covthetas[k] + etas[numSkipOm + k]` into the exponent of each named parameter.
-  `verifyFREMParamFunction()` checks structural match vs
-  `PMXForest::createParamFunction()`, plus `covthetas` / `etas` scaling.
-
-The `ETA()` reference is replaced in place regardless of what encloses it, so
-`exp(mu + ETA)`, `TV * exp(ETA)`, `TV + ETA` etc. all work. A named parameter
-with no `ETA()` in `$PK` (not a FREM covariate parameter) or more than one is an
-error.
+- PMXFrem PR #45 (this branch): `createFREMParamFunction(fremModel, parameters,
+  ...)` (or `runno` / `modName` / `modDevDir`) transliterates **the FREM model's**
+  `$PK`, deriving `numSkipOm` / `numNonFREMThetas` via `fremModelInfo()`. The
+  single `ETA()` of a FREM covariate parameter is replaced in place (whatever
+  encloses it) by `covthetas[k] + etas[numSkipOm + k]`. A parameter with no
+  `ETA()` is returned as-is (no covariate effect); more than one -> as-is + a
+  warning. The body is pruned to the transitive dependencies of `parameters`, so
+  the FREM covariate block drops and `basethetas` is the first
+  `numNonFREMThetas`. `verifyFREMParamFunction()` checks the structural part
+  against `PMXForest::createParamFunction()` on the same FREM model, plus the
+  `covthetas` / `etas` scaling.
 
 v2 / still open:
 - `verifyFREMParamFunction()`'s `covthetas` / `etas` scaling checks assume the
@@ -27,8 +28,6 @@ v2 / still open:
   emits correctly from `createFREMParamFunction()` but would fail those checks —
   make `verify` transform-aware, or scope it.
 - Derived metrics (AUC, t½) — left to the user, as in PMXForest.
-- Auto-derive `numSkipOm` from a FREM model via `fremModelInfo()` instead of the
-  plain argument.
 - A NONMEM `$TABLE`-based check in `verifyFREMParamFunction()` once a FREM model
   fixture that tables `CL`/`V`/... exists (none in `inst/extdata` today).
 
