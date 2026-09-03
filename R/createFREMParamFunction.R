@@ -78,11 +78,23 @@
 #'   either way.
 #' @param missVal The value marking an inactive covariate. Default -99.
 #' @param quiet If `FALSE` (default), reports what was found.
+#' @param secondary Optional named list of secondary parameters to append to the
+#'   generated function's return list. Each entry is a single string: either R
+#'   code whose last value is the result (`list(AUC = "dfrow$DOSE / CL")`) or the
+#'   path to an `.R` file of arbitrary code, e.g. an `mrgsolve` simulation. The
+#'   code is spliced in inside `local({ ... })` and sees `basethetas`,
+#'   `covthetas`, `dfrow` (also as `df`), `etas`, `...` and every structural
+#'   parameter by name; covariate columns are `dfrow$NAME`. Handled by
+#'   [PMXForest::nmResolveSecondary()]; see [PMXForest::createParamFunction()].
 #'
 #' @return A list:
 #'   \itemize{
 #'     \item `code` - the generated R source, class `"pmxFREMParamFunction"`.
-#'     \item `functionListName` - `parameters`.
+#'     \item `functionListName` - `parameters`, with any `secondary` names
+#'       appended (so `getForestDFFREM()` / `getExplainedVar()` pick them up).
+#'     \item `primaryNames` - `parameters` alone.
+#'     \item `secondaryNames` - the `secondary` names (`character(0)` when none).
+#'       [verifyFREMParamFunction()] skips these.
 #'     \item `fremParameters` - the subset of `parameters` that got the covariate
 #'       splice, in order.
 #'     \item `noBaseThetas` - `numNonFREMThetas` (the length of `basethetas`).
@@ -130,12 +142,16 @@ createFREMParamFunction <- function(fremModel        = NULL,
                                     functionName     = "paramFunction",
                                     file             = NULL,
                                     missVal          = -99,
-                                    quiet            = FALSE) {
+                                    quiet            = FALSE,
+                                    secondary        = NULL) {
 
   if (!requireNamespace("PMXForest", quietly = TRUE) ||
-      !exists("nmParsePK", where = asNamespace("PMXForest"), inherits = FALSE)) {
-    stop("createFREMParamFunction() needs a PMXForest that exports nmParsePK(); ",
-         "please update PMXForest.", call. = FALSE)
+      !exists("nmParsePK", where = asNamespace("PMXForest"), inherits = FALSE) ||
+      !exists("nmResolveSecondary", where = asNamespace("PMXForest"),
+              inherits = FALSE)) {
+    stop("createFREMParamFunction() needs PMXForest (>= 1.2.15.9006), which ",
+         "exports nmParsePK() and nmResolveSecondary(); please update PMXForest.",
+         call. = FALSE)
   }
   if (missing(parameters) || length(parameters) < 1) {
     stop("`parameters` must name at least one $PK variable.", call. = FALSE)
@@ -214,8 +230,11 @@ createFREMParamFunction <- function(fremModel        = NULL,
             "`parameters` and `numNonFREMThetas`.", call. = FALSE)
   }
 
+  sec      <- PMXForest::nmResolveSecondary(secondary, quiet = quiet)
+  secNames <- unname(vapply(sec, `[[`, "", "name"))
+
   code <- .fremEmit(kept, covs, p$covRef, parameters, fremParams, numSkipOm,
-                    functionName, fremModel, missVal, quiet)
+                    functionName, fremModel, missVal, quiet, secondary = sec)
   class(code) <- c("pmxFREMParamFunction", "character")
 
   if (!is.null(file)) writeLines(code, file)
@@ -226,7 +245,10 @@ createFREMParamFunction <- function(fremModel        = NULL,
             paste(fremParams, collapse = ", "), "), ",
             length(parameters) - length(fremParams), " returned as-is; ",
             "numSkipOm = ", numSkipOm, ", numNonFREMThetas = ", numNonFREMThetas,
-            ", ", length(covs), " structural covariate(s).")
+            ", ", length(covs), " structural covariate(s)",
+            if (length(secNames))
+              paste0(", ", length(secNames), " secondary parameter(s)") else "",
+            ".")
     for (cov in covs) {
       message("  ", cov, " reference ",
               PMXForest::nmFormatNum(p$covRef[[cov]]$value), " - ",
@@ -235,7 +257,11 @@ createFREMParamFunction <- function(fremModel        = NULL,
     if (!is.null(file)) message("Written to ", file)
   }
 
-  list(code = code, functionListName = parameters, fremParameters = fremParams,
+  list(code = code,
+       functionListName = c(parameters, secNames),
+       primaryNames     = parameters,
+       secondaryNames   = secNames,
+       fremParameters = fremParams,
        noBaseThetas = numNonFREMThetas, covRef = p$covRef[covs],
        numParCov = numParCov, numSkipOm = numSkipOm,
        numNonFREMThetas = numNonFREMThetas, fremModel = fremModel,
@@ -333,7 +359,8 @@ createFREMParamFunction <- function(fremModel        = NULL,
 #' @keywords internal
 #' @noRd
 .fremEmit <- function(stmts, covs, covRef, parameters, fremParams, numSkipOm,
-                      functionName, fremModel, missVal, quiet) {
+                      functionName, fremModel, missVal, quiet,
+                      secondary = list()) {
 
   nEtas <- numSkipOm + length(fremParams)
   dep   <- function(node, etaVal = "0") {
@@ -408,11 +435,29 @@ createFREMParamFunction <- function(fremModel        = NULL,
       PMXForest::nmFormatNum(r$value), r$source))
   }
 
-  body   <- emit(stmts, 1L)
-  retval <- c("  list(",
-              paste0("    ", parameters, " = ", parameters,
-                     c(rep(",", length(parameters) - 1L), "")),
-              "  )")
+  body <- emit(stmts, 1L)
+
+  ## secondary parameters: inlined verbatim inside local({ }) so a multi-line
+  ## string literal (e.g. an mrgsolve model block) is not re-indented.
+  secblock <- character(0)
+  for (s in secondary) {
+    loc <- if (is.na(s$src)) "inline snippet"
+           else paste0("inlined from ", basename(s$src))
+    secblock <- c(secblock, paste0("  ## ", s$name, "  (", loc, ")"))
+    if (length(s$lines) == 1L && nzchar(trimws(s$lines))) {
+      secblock <- c(secblock,
+                    paste0("  ", s$name, " <- local({ ", trimws(s$lines), " })"))
+    } else {
+      secblock <- c(secblock, paste0("  ", s$name, " <- local({"),
+                    s$lines, "  })")
+    }
+  }
+
+  retNames <- c(parameters, unname(vapply(secondary, `[[`, "", "name")))
+  retval   <- c("  list(",
+                paste0("    ", retNames, " = ", retNames,
+                       c(rep(",", length(retNames) - 1L), "")),
+                "  )")
 
   c(
     paste0("## Generated by PMXFrem::createFREMParamFunction() from ",
@@ -427,12 +472,14 @@ createFREMParamFunction <- function(fremModel        = NULL,
            "), ...) {"),
     "",
     "  .eta <- function(e, i) if (length(e) >= i) e[i] else 0",
+    if (length(secondary)) c("  df <- dfrow   # alias for secondary code") else NULL,
     "",
     if (length(preamble)) {
       c("  ## ---- structural covariate references ----", preamble, "")
     },
     "  ## ---- $PK (pruned) ----",
     body,
+    if (length(secblock)) c("", "  ## ---- secondary parameters ----", secblock),
     "",
     retval,
     "}"

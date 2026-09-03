@@ -56,7 +56,9 @@ parameter \code{k} by \code{exp(etas[numSkipOm + k])} and nothing else - this al
 checks the \code{numSkipOm} offset is right.
 }
 Anything that fails is reported loudly; the return value records the maximum
-relative difference per parameter.
+relative difference per parameter. Only the FREM \verb{$PK} parameters are
+checked - \code{secondary} parameters (AUC, Cmax, ...) are skipped, as they have
+no structural counterpart or splice to probe.
 }
 \examples{
 fremModel <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")

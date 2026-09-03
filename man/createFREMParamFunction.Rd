@@ -19,7 +19,8 @@ createFREMParamFunction(
   functionName = "paramFunction",
   file = NULL,
   missVal = -99,
-  quiet = FALSE
+  quiet = FALSE,
+  secondary = NULL
 )
 }
 \arguments{
@@ -66,12 +67,25 @@ either way.}
 \item{missVal}{The value marking an inactive covariate. Default -99.}
 
 \item{quiet}{If \code{FALSE} (default), reports what was found.}
+
+\item{secondary}{Optional named list of secondary parameters to append to the
+generated function's return list. Each entry is a single string: either R
+code whose last value is the result (\code{list(AUC = "dfrow$DOSE / CL")}) or the
+path to an \code{.R} file of arbitrary code, e.g. an \code{mrgsolve} simulation. The
+code is spliced in inside \code{local({ ... })} and sees \code{basethetas},
+\code{covthetas}, \code{dfrow} (also as \code{df}), \code{etas}, \code{...} and every structural
+parameter by name; covariate columns are \code{dfrow$NAME}. Handled by
+\code{\link[PMXForest:nmResolveSecondary]{PMXForest::nmResolveSecondary()}}; see \code{\link[PMXForest:createParamFunction]{PMXForest::createParamFunction()}}.}
 }
 \value{
 A list:
 \itemize{
 \item \code{code} - the generated R source, class \code{"pmxFREMParamFunction"}.
-\item \code{functionListName} - \code{parameters}.
+\item \code{functionListName} - \code{parameters}, with any \code{secondary} names
+appended (so \code{getForestDFFREM()} / \code{getExplainedVar()} pick them up).
+\item \code{primaryNames} - \code{parameters} alone.
+\item \code{secondaryNames} - the \code{secondary} names (\code{character(0)} when none).
+\code{\link[=verifyFREMParamFunction]{verifyFREMParamFunction()}} skips these.
 \item \code{fremParameters} - the subset of \code{parameters} that got the covariate
 splice, in order.
 \item \code{noBaseThetas} - \code{numNonFREMThetas} (the length of \code{basethetas}).
