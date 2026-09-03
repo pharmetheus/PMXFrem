@@ -53,13 +53,21 @@
 #' @param missVal The missing value number. -99 by default.
 #' @param ... additional variables to be forwarded to the the functionList
 #'   functions
+#' @inheritParams getFileNames
 #' @param numNonFREMThetas Number of thetas that are not FREM covariates. These
-#'   need to come before the FREM covariate thetas.
+#'   need to come before the FREM covariate thetas. If `NULL` (default) and the
+#'   model file is located via `runno` / `modName` / `modDevDir`, it is derived
+#'   via [fremModelInfo()]; an explicit value that disagrees with the derived one
+#'   triggers a warning and is kept. Required when the model file is not given.
 #' @param numSkipOm Number of diag omegas (variances) that should not be part of
 #'   the FREM calculations. Such omegas has to come before the large FREM omega
-#'   block.
+#'   block. If `NULL` (default) and the model file is located via `runno` /
+#'   `modName` / `modDevDir`, it is derived via [fremModelInfo()] (warn-and-keep
+#'   on a disagreeing explicit value); otherwise it defaults to 0.
 #' @param parNames Names of the parameters
-#' @param covNames Names of the covariates
+#' @param covNames Names of the covariates. If `NULL` (default), locate the model
+#'   file via `runno` / `modName` / `modDevDir` so they can be derived; otherwise
+#'   required.
 #' @param availCov Names of the covariates to use in the calculation of the FFEM
 #'   model.
 #' @param oneHot An optional one-hot encoding specification (see
@@ -124,11 +132,14 @@ getForestDFFREM <- function(dfCovs,
                             functionList     = list(function(basethetas, covthetas, dfrow, ...) {
                               return(basethetas[1] * exp(covthetas[1]))
                             }),
-                            covNames,
+                            covNames         = NULL,
                             functionListName = "PAR1",
-                            numSkipOm        = 0,
-                            numNonFREMThetas,
+                            numSkipOm        = NULL,
+                            numNonFREMThetas = NULL,
                             dfParameters,
+                            runno            = NULL,
+                            modName          = NULL,
+                            modDevDir        = NULL,
                             parNames         = paste("Par", 1:numParCov, sep = ""),
                             availCov         = covNames,
                             quiet            = FALSE,
@@ -160,6 +171,31 @@ getForestDFFREM <- function(dfCovs,
   if (!is.null(dfRefRow) && is.data.frame(dfRefRow)) dfRefRow <- as.data.frame(dfRefRow)
   ## Replace potential NAs in dfCovs with the missing value token
   dfCovs[is.na(dfCovs)] <- missVal
+
+  ## Locate the FREM model file the same way as getExplainedVar() -- from
+  ## runno / modName / modDevDir via getFileNames() -- and, when it is given,
+  ## derive covNames / numNonFREMThetas / numSkipOm from it (and the ext-shaped
+  ## dfParameters) via fremModelInfo(), validating any explicit values (warn,
+  ## keep the explicit value). Without it, covNames and numNonFREMThetas are
+  ## required and numSkipOm keeps its historical default of 0.
+  if (!is.null(runno) || !is.null(modName)) {
+    modFile <- getFileNames(runno     = runno,
+                            modName   = modName,
+                            modDevDir = if (is.null(modDevDir)) "." else modDevDir)$mod
+    .info <- fremModelInfo(modFile = modFile, dfext = dfParameters,
+                           numNonFREMThetas = numNonFREMThetas,
+                           numSkipOm        = numSkipOm)
+    if (is.null(covNames))         covNames         <- .info$covNames
+    if (is.null(numNonFREMThetas)) numNonFREMThetas <- .info$numNonFREMThetas
+    if (is.null(numSkipOm))        numSkipOm        <- .info$numSkipOm
+  }
+  if (is.null(covNames)) {
+    stop("`covNames` is required (or supply `runno` / `modName` (+ `modDevDir`) so it can be derived).")
+  }
+  if (is.null(numNonFREMThetas)) {
+    stop("`numNonFREMThetas` is required (or supply `runno` / `modName` (+ `modDevDir`) so it can be derived).")
+  }
+  if (is.null(numSkipOm)) numSkipOm <- 0
 
   ## Optionally one-hot encode raw multi-level categorical columns so dfCovs can
   ## be built without the FREM <cov>_<level> dummy columns.

@@ -33,6 +33,7 @@ covList <- getCovNames(modFile = system.file("extdata/SimNeb/run31.mod", package
 }
 \seealso{
 Other NONMEM Parsers: 
+\code{\link{fremModelInfo}()},
 \code{\link{getExt}()},
 \code{\link{getFileNames}()},
 \code{\link{getPhi}()}

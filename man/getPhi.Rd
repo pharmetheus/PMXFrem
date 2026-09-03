@@ -36,6 +36,7 @@ dfPhi <- getPhi(phiFile = phiFile)
 }
 \seealso{
 Other NONMEM Parsers: 
+\code{\link{fremModelInfo}()},
 \code{\link{getCovNames}()},
 \code{\link{getExt}()},
 \code{\link{getFileNames}()}

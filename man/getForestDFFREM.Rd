@@ -11,11 +11,14 @@ getForestDFFREM(
     
     return(basethetas[1] * exp(covthetas[1]))
  }),
-  covNames,
+  covNames = NULL,
   functionListName = "PAR1",
-  numSkipOm = 0,
-  numNonFREMThetas,
+  numSkipOm = NULL,
+  numNonFREMThetas = NULL,
   dfParameters,
+  runno = NULL,
+  modName = NULL,
+  modDevDir = NULL,
   parNames = paste("Par", 1:numParCov, sep = ""),
   availCov = covNames,
   quiet = FALSE,
@@ -48,22 +51,41 @@ will be calculated. If the function returns a vector of values, each value
 will be used but functionListName must contain the names with a length of
 all return for all functions in the functionList}
 
-\item{covNames}{Names of the covariates}
+\item{covNames}{Names of the covariates. If \code{NULL} (default), locate the model
+file via \code{runno} / \code{modName} / \code{modDevDir} so they can be derived; otherwise
+required.}
 
 \item{functionListName}{A vector of strings (names) of the parameters for
 each function in the functionList}
 
 \item{numSkipOm}{Number of diag omegas (variances) that should not be part of
 the FREM calculations. Such omegas has to come before the large FREM omega
-block.}
+block. If \code{NULL} (default) and the model file is located via \code{runno} /
+\code{modName} / \code{modDevDir}, it is derived via \code{\link[=fremModelInfo]{fremModelInfo()}} (warn-and-keep
+on a disagreeing explicit value); otherwise it defaults to 0.}
 
 \item{numNonFREMThetas}{Number of thetas that are not FREM covariates. These
-need to come before the FREM covariate thetas.}
+need to come before the FREM covariate thetas. If \code{NULL} (default) and the
+model file is located via \code{runno} / \code{modName} / \code{modDevDir}, it is derived
+via \code{\link[=fremModelInfo]{fremModelInfo()}}; an explicit value that disagrees with the derived one
+triggers a warning and is kept. Required when the model file is not given.}
 
 \item{dfParameters}{A data frame with parameter samples from the uncertainty
 distribution. The vector of final parameter estimates is assumed to be in
 the first row. The column order is assumed the same as in the NONMEM ext
 file except the ITERATION and OBJ columns whichshould not be included.}
+
+\item{runno}{The run number. Must be provided if \code{modName} is NULL. Will be
+used to create NONMEM model and results file names  with the structure
+run#.mod and run#. NONMEM ext, phi and cov files will be assumed to be
+named run# followed by the appropriate suffix (where # is \code{runno}).}
+
+\item{modName}{The model name. Will be used together with \code{modExt}, \code{lstExt},
+ext, phi and cov to form the NONMEM file names, for example
+\code{modName}.mod for the model file.}
+
+\item{modDevDir}{The directory where the files reside. Default is the current
+directory, i.e. ".".}
 
 \item{parNames}{Names of the parameters}
 
