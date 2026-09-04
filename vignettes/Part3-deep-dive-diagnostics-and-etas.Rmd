@@ -169,12 +169,12 @@ Similarly to the standard diagnostic variables, ETAs must also be adjusted to re
 clin_data <- read.csv(dataFile) %>% 
   filter(BLQ != 1)
 
-# Calculate ETAs, ETA Prims, and EBEs
+# Calculate ETAs, ETA Prims, and EBEs. With the FREM model located through
+# `runno` / `modDevDir`, `numSkipOm` and `numNonFREMThetas` are derived from
+# the model and its `.ext` (via `fremModelInfo()`); pass them only to override.
 ind_params <- calcEtas(
   runno              = fremRun,
   modDevDir          = modDevDir,
-  numSkipOm          = 2,
-  numNonFREMThetas   = 7,
   dataFile           = clin_data,
   parNames           = c("CL", "V", "MAT"),
   ffemModName        = "run31max0",

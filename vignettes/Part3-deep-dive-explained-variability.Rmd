@@ -49,10 +49,7 @@ runname <- "run31"
 modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
 fremFiles <- getFileNames(modName = runname, modDevDir = modDevDir)
 
-numNonFREMThetas <- 7
-numSkipOm        <- 2
-
-dfData <- fread(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package="PMXFrem"), data.table = FALSE) %>% 
+dfData <- fread(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package="PMXFrem"), data.table = FALSE) %>%
   distinct(ID, .keep_all = TRUE)
 ```
 
@@ -155,8 +152,6 @@ dfres <- getExplainedVar(
   type             = 2,
   data             = dfData,
   dfCovs           = dfCovs,
-  numNonFREMThetas = numNonFREMThetas,
-  numSkipOm        = numSkipOm,
   functionList     = list(paramFunctionExpVar),
   functionListName = functionListName,
   cstrCovariates   = cstrCovariates,
@@ -168,6 +163,11 @@ dfres <- getExplainedVar(
   seed             = 123
 )
 ```
+
+`numNonFREMThetas` and `numSkipOm` are not passed: when the FREM model is
+located through `modName` / `modDevDir` (or `runno`), `getExplainedVar()`
+derives them -- and `covNames` -- from the model and its `.ext` via
+`fremModelInfo()`. Supply them explicitly only to override the derived values.
 
 ## 5. Visualization
 

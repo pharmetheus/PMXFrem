@@ -43,6 +43,11 @@ cov_names <- getCovNames(mod_path)
 ## 2. Generate the FFEM Model
 The primary entry point is `createFFEMmodel()`. This function automates the creation of the individual covariate coefficients and the corresponding NONMEM control stream.
 
+Throughout this workflow the FREM model is located by `runno` / `modName` and
+`modDevDir`, so `numNonFREMThetas` and `numSkipOm` (and `covNames`, where a
+function needs it) are derived from the model and its `.ext` via
+`fremModelInfo()`. Pass them explicitly only to override the derived values.
+
 ```{r generate_ffem}
 # Parameters in the model associated with covariates
 parNames <- c("CL", "V", "MAT")
@@ -53,8 +58,6 @@ ffemMod <- createFFEMmodel(
   modDevDir        = modDevDir,
   dataFile         = ffemData,
   parNames         = parNames,
-  numNonFREMThetas = 7,
-  numSkipOm        = 2,
   newDataFile      = file.path(td, "vpcData31.csv"),
   ffemModName      = file.path(td, "run31_ffem.mod"),
   quiet            = TRUE
@@ -71,8 +74,6 @@ Once the FREM model has converged, we can extract the base parameters, adjusted 
 table_data <- fremParameterTable(
   runno            = 31,
   modDevDir        = modDevDir,
-  numNonFREMThetas = 7,
-  numSkipOm        = 2,
   thetaNum         = 2:7,
   omegaNum         = c(1, 3, 4, 5),
   sigmaNum         = 1,
@@ -115,12 +116,11 @@ formatted_labels <- generateCovNames(dfCovsForest)
 # 5. Generate Forest Plot Data
 dfresFREM <- getForestDFFREM(
   dfCovs           = dfCovsForest,
-  covNames         = cov_names$covNames,
+  runno            = 31,
+  modDevDir        = modDevDir,
   cdfCovsNames     = formatted_labels,
   functionList     = funcList_forest,
   functionListName = "CL",
-  numSkipOm        = 2,
-  numNonFREMThetas = 7,
   dfParameters     = samples,
   quiet            = TRUE
 )
@@ -146,11 +146,9 @@ funcList_var <- list(
 
 # 2. Calculate variability
 dfres_var <- getExplainedVar(
-  type             = 0, 
+  type             = 0,
   dfCovs           = dfCovsEV,
   cstrCovariates   =c("ALL",cov_names$orgCovNames),
-  numNonFREMThetas = 7,
-  numSkipOm        = 2,
   functionList     = funcList_var,
   functionListName = "CL",
   modDevDir        = modDevDir,

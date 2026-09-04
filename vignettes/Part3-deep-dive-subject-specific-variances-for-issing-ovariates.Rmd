@@ -36,7 +36,13 @@ $$L_{22} = \sqrt{V_{22} - L_{21}^2}$$
 
 ## 3. Dataset Augmentation (`V`-Columns)
 
-When invoking `createFFEMdata()` with `omegaToData = TRUE`, the matrix elements are appended to the output dataset as continuous `V`-columns. 
+When invoking `createFFEMdata()` with `omegaToData = TRUE`, the matrix elements are appended to the output dataset as continuous `V`-columns.
+
+The examples in this vignette pass `numNonFREMThetas` and `numSkipOm`
+explicitly. When the FREM model is located through `runno` / `modName` /
+`modDevDir` these are normally derived from the model and its `.ext` (via
+`fremModelInfo()`) and can be omitted -- see the Quick-Start vignette. Pass them
+by hand, as here, when you need to override the derived values.
 
 ```{r eval=FALSE}
 library(PMXFrem)

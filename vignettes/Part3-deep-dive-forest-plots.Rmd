@@ -115,13 +115,17 @@ head(dfCovs, 5)
 
 With our scenarios defined, we pass everything to `getForestDFFREM()`. This function computes the relative parameter changes across all bootstrapped/sampled parameter vectors to construct the confidence intervals.
 
+We point it at the FREM model with `modName` / `modDevDir` (or `runno`), so
+`numNonFREMThetas`, `numSkipOm` and `covNames` are derived from the model and
+its `.ext` (via `fremModelInfo()`) rather than passed by hand. Supply them
+explicitly only to override the derived values.
+
 ```{r compute_forest}
 dfres <- getForestDFFREM(
   dfCovs           = dfCovs,
-  numNonFREMThetas = 7,
-  numSkipOm        = 2,
+  modName          = runname,
+  modDevDir        = modDevDir,
   dfParameters     = dfParameters,
-  covNames         = covNames$covNames,
   functionList     = functionList,
   functionListName = functionListName,
   quiet            = TRUE
