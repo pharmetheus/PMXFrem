@@ -79,13 +79,16 @@
 #' @param missVal The value marking an inactive covariate. Default -99.
 #' @param quiet If `FALSE` (default), reports what was found.
 #' @param secondary Optional named list of secondary parameters to append to the
-#'   generated function's return list. Each entry is a single string: either R
-#'   code whose last value is the result (`list(AUC = "dfrow$DOSE / CL")`) or the
-#'   path to an `.R` file of arbitrary code, e.g. an `mrgsolve` simulation. The
-#'   code is spliced in inside `local({ ... })` and sees `basethetas`,
-#'   `covthetas`, `dfrow` (also as `df`), `etas`, `...` and every structural
-#'   parameter by name; covariate columns are `dfrow$NAME`. Handled by
-#'   [PMXForest::nmResolveSecondary()]; see [PMXForest::createParamFunction()].
+#'   generated function's return list. Each entry's value is a single string (R
+#'   code whose last value is the result, `list(AUC = "dfrow$DOSE / CL")`, or
+#'   the path to an `.R` file of arbitrary code such as an `mrgsolve`
+#'   simulation), or a list `list(source = <string>, dose = 100, tau = 12, ...)`
+#'   carrying that `source` plus named atomic constants bound ahead of it. The
+#'   code is spliced in inside a `local()` block and sees `basethetas`,
+#'   `covthetas`, `dfrow` (also as `df`), `etas`, `...`, any constants passed
+#'   alongside `source`, and every structural parameter by name; covariate
+#'   columns are `dfrow$NAME`. Handled by [PMXForest::nmResolveSecondary()]; see
+#'   [PMXForest::createParamFunction()].
 #'
 #' @return A list:
 #'   \itemize{
@@ -149,7 +152,7 @@ createFREMParamFunction <- function(fremModel        = NULL,
       !exists("nmParsePK", where = asNamespace("PMXForest"), inherits = FALSE) ||
       !exists("nmResolveSecondary", where = asNamespace("PMXForest"),
               inherits = FALSE)) {
-    stop("createFREMParamFunction() needs PMXForest (>= 1.2.15.9006), which ",
+    stop("createFREMParamFunction() needs PMXForest (>= 1.2.15.9007), which ",
          "exports nmParsePK() and nmResolveSecondary(); please update PMXForest.",
          call. = FALSE)
   }
@@ -437,18 +440,22 @@ createFREMParamFunction <- function(fremModel        = NULL,
 
   body <- emit(stmts, 1L)
 
-  ## secondary parameters: inlined verbatim inside local({ }) so a multi-line
-  ## string literal (e.g. an mrgsolve model block) is not re-indented.
+  ## secondary parameters: any call-site constants first, then the source
+  ## inlined verbatim inside local({ }) so a multi-line string literal (e.g. an
+  ## mrgsolve model block) is not re-indented.
   secblock <- character(0)
   for (s in secondary) {
     loc <- if (is.na(s$src)) "inline snippet"
            else paste0("inlined from ", basename(s$src))
     secblock <- c(secblock, paste0("  ## ", s$name, "  (", loc, ")"))
-    if (length(s$lines) == 1L && nzchar(trimws(s$lines))) {
+    consts <- if (is.null(s$consts)) character(0) else s$consts
+    if (length(s$lines) == 1L && nzchar(trimws(s$lines)) &&
+        length(consts) == 0L) {
       secblock <- c(secblock,
                     paste0("  ", s$name, " <- local({ ", trimws(s$lines), " })"))
     } else {
       secblock <- c(secblock, paste0("  ", s$name, " <- local({"),
+                    if (length(consts) > 0L) paste0("    ", consts),
                     s$lines, "  })")
     }
   }
