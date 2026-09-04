@@ -102,6 +102,29 @@ the derived form (locate the model via `runno` / `modName` / `modDevDir`, or
 call `fremModelInfo()` directly) and keep at most one explicit example for
 reference.
 
+## T8 — rework the secondary-parameters vignette (PMXForest-private)
+
+`PMXForest/vignettes/Part3-deep-dive-secondary-parameters-mrgsolve.Rmd` (added
+with `secondary=` in PR #25) should become a two-part vignette:
+
+1. **`secondary =` with AUC — runnable on any machine.** Uses only a closed-form
+   snippet (e.g. `AUC = "df$DOSE / CL"`), no compiled deps. Chunks `eval = TRUE`
+   so `R CMD build` / pkgdown actually run it.
+2. **The mrgsolve example — `eval = FALSE` by default.** Keep it close to the
+   current content. Must state plainly, up front, that (a) the chunks are **not
+   executed** when the vignette is built and the shown output is **illustrative /
+   not from a live run**, and (b) the code itself *is* runnable, but the reader
+   must have a working `mrgsolve` install (C++ toolchain — Rtools / Xcode CLT /
+   `r-base-dev`) before trying it.
+
+Version requirements for the bundled `inst/secondary-cmax-mrgsolve.R`: it uses
+only long-stable core API (`mcode_cache()`, `param()`, `ev()`, `mrgsim()`) and
+the basic `$PARAM`/`$CMT`/`$ODE`/`$TABLE`/`$CAPTURE` blocks — **no
+version-specific features**. Verified working on **mrgsolve 1.0.9** (R 4.2.3,
+GCC 15). Any **mrgsolve >= 1.0.0** should be sufficient; the current CRAN release
+is **2.0.1** and these calls are unchanged across the 1.x -> 2.x boundary, so the
+latest version is *not* required. State this in the vignette.
+
 ---
 
 ## Done
