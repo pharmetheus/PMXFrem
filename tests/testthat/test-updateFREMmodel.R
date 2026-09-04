@@ -438,3 +438,54 @@ test_that("updateFREMmodel correctly adds a new DV type", {
 
 
 
+
+test_that("updateFREMmodel derives numNonFREMThetas / numSkipOm from the model", {
+  td <- withr::local_tempdir()
+  for (f in c("run31.mod", "run31.ext", "frem_dataset.dta",
+              "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")) {
+    file.copy(system.file("extdata/SimNeb", f, package = "PMXFrem"), td)
+  }
+  kc <- c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
+
+  derived <- updateFREMmodel(
+    strFREMModel   = file.path(td, "run31.mod"),
+    strFREMData    = file.path(td, "frem_dataset.dta"),
+    strFFEMData    = file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+    cstrRemoveCov  = "SEX",
+    strNewFREMData = file.path(td, "d_new.csv"),
+    bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE, cstrKeepCols = kc)
+
+  explicit <- updateFREMmodel(
+    strFREMModel   = file.path(td, "run31.mod"),
+    strFREMData    = file.path(td, "frem_dataset.dta"),
+    strFFEMData    = file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+    cstrRemoveCov  = "SEX",
+    strNewFREMData = file.path(td, "d_new.csv"),
+    numNonFREMThetas = 7, numSkipOm = 2,
+    bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE, cstrKeepCols = kc)
+
+  expect_equal(derived$model, explicit$model)
+})
+
+test_that("updateFREMmodel stops loudly when the model structure and its .ext disagree", {
+  td <- withr::local_tempdir()
+  for (f in c("run31.mod", "run31.ext", "frem_dataset.dta",
+              "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")) {
+    file.copy(system.file("extdata/SimNeb", f, package = "PMXFrem"), td)
+  }
+  kc <- c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
+  bad <- file.path(td, "run31.mod")
+  L   <- readLines(bad)
+  h   <- grep("OMEGA *BLOCK", L, ignore.case = TRUE)
+  L[h] <- sub("BLOCK\\s*\\(\\s*[0-9]+\\s*\\)", "BLOCK(99)", L[h], ignore.case = TRUE)
+  writeLines(L, bad)
+
+  call_it <- function(...) updateFREMmodel(
+    strFREMModel = bad, strFREMData = file.path(td, "frem_dataset.dta"),
+    strFFEMData = file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+    cstrRemoveCov = "SEX", strNewFREMData = file.path(td, "d.csv"),
+    bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE, cstrKeepCols = kc, ...)
+
+  expect_error(call_it(), "do not agree")                    # derivation stops
+  expect_error(call_it(numNonFREMThetas = 7, numSkipOm = 2), NA)  # explicit overrides
+})

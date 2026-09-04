@@ -46,14 +46,17 @@ Decided against:
   new model-file argument for marginal benefit. Revisit only if a concrete need
   appears.
 
-Still to do:
-- `updateFREMmodel()`, `createFREMmodel()` — model *mutation* on a FREM / base
-  model. Both already parse the omega structure (`parseBaseModel()` /
-  `initializeModelParameters()`); the right fix is to use that parse to fill
-  `numSkipOm` / `numNonFREMThetas`, not `fremModelInfo()` (`createFREMmodel()`
-  starts from a *base* model with no `;;;FREM CODE` markers and no covariate
-  thetas yet).
-- Not applicable: `plotCovDist()`, `plotEtasCov()` (no such args),
+Done:
+- `updateFREMmodel()` / `createFREMmodel()` (PR #54). `updateFREMmodel()`
+  derives `numNonFREMThetas` / `numSkipOm` from the FREM model + `.ext` via
+  `fremModelInfo()`, and **stops loudly** when the `;;;FREM CODE` markers /
+  `$OMEGA BLOCK(N)` disagree with the `.ext` (explicit values override).
+  `createFREMmodel()` reads `numNonFREMThetas` from the base model's `.ext`;
+  `numSkipOm` stays a required input (a base model has no FREM structure to
+  deduce it from) and is passed straight through to `updateFREMmodel()`.
+
+Not applicable:
+- `plotCovDist()`, `plotEtasCov()` (no such args),
   `calcParameterEsts()` (low-level; its caller `fremParameterTable()` resolves),
   `removeFremCovariates()` (operates on an already-resolved `currentState`),
   `initializeModel()` / `initializeModelParameters()` (internal; fed resolved

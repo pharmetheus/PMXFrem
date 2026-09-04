@@ -402,3 +402,20 @@ test_that("getCovNames can parse the output of createFREMmodel", {
 
   unlink(outDir, recursive = TRUE)
 })
+test_that("createFREMmodel derives numNonFREMThetas from the base model .ext", {
+  modDevDir    <- system.file("extdata", "SimNeb", package = "PMXFrem")
+  ffemDataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+  common <- list(
+    modName = "run30", modDevDir = modDevDir, ffemDataFile = ffemDataFile,
+    covariates = c("WT"), numSkipOm = 2, fremModName = "fm", quiet = TRUE,
+    cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ"))
+
+  # run30.ext has 7 THETA columns -> deriving numNonFREMThetas gives 7
+  res <- suppressWarnings(do.call(createFREMmodel,
+    c(common, list(outputDir = withr::local_tempdir()))))          # omitted -> derived
+  ref <- suppressWarnings(do.call(createFREMmodel,
+    c(common, list(numNonFREMThetas = 7, outputDir = withr::local_tempdir()))))
+
+  expect_true(file.exists(res$model))
+  expect_identical(readLines(res$model), readLines(ref$model))
+})

@@ -18,8 +18,8 @@ updateFREMmodel(
   strID = "ID",
   basenames_th = NULL,
   basenames_om = NULL,
-  numNonFREMThetas,
-  numSkipOm = 0,
+  numNonFREMThetas = NULL,
+  numSkipOm = NULL,
   numParCov = NULL,
   cstrKeepCols = c("ID", "TIME", "AMT", "DV", "II", "EVID", "SS", "RATE", "FREMTYPE"),
   cstrSetToZero = c("AMT", "II", "SS", "EVID", "RATE"),
@@ -84,18 +84,15 @@ nonFREMThetas in the model, if NULL, BASE1,BASE2,etc are used as names.}
 numSkipOm+numParCov in the model, if NULL, BASE1,BASE2,etc are used as
 names.}
 
-\item{numNonFREMThetas}{Number of thetas in the FREM model that are not FREM
-covariates. These need to come before the FREM covariate thetas in the FREM
-model file.}
+\item{numNonFREMThetas, numSkipOm}{The number of structural (non-FREM) THETAs
+and the number of skipped OMEGAs in \code{strFREMModel}. \code{NULL} (default) derives
+both from the model and its \code{.ext} via \code{\link[=fremModelInfo]{fremModelInfo()}}. If the model's
+\verb{;;;FREM CODE} markers / final \verb{$OMEGA BLOCK(N)} and the \code{.ext} column counts
+do not agree, the derivation \strong{stops} - pass explicit values to override.
+When \code{\link[=createFREMmodel]{createFREMmodel()}} calls this it always supplies both.}
 
-\item{numSkipOm}{Number of diagonal omegas that should not be part of the
-FREM calculations. Such omegas has to come before the large FREM omega
-block in the FREM model file.}
-
-\item{numParCov}{Number of parameters for which covariate relations are
-sought (often the same as numNonFREMThetas). default (NULL) indicates that
-this is guessed by the function by assuming that each covariate effect is
-modeled as one theta and one eta.}
+\item{numParCov}{Optional. The number of FREM covariate parameters; derived
+from the \code{.ext} when \code{NULL}.}
 
 \item{cstrKeepCols}{A vector of columns to keep in the dataset (for the
 updated new dataset).}

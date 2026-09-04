@@ -59,7 +59,7 @@ model_in_td <- file.path(td, "run31.mod")
 
 You may sometimes need to remove covariates from an existing model. Here, we remove `WT`, `SEX`, and `AGE` from `run31.mod`.
 
-The function requires the base model's structural configuration: `numNonFREMThetas` (the number of structural fixed effects) and `numSkipOm` (the number of standard variances, such as IIV or RUV, that precede the FREM `$OMEGA BLOCK`).
+The function needs the model's structural configuration: `numNonFREMThetas` (the number of structural fixed effects) and `numSkipOm` (the number of standard variances, such as IIV or RUV, that precede the FREM `$OMEGA BLOCK`). Left as `NULL` (the default) they are derived from the FREM model and its `.ext` via `fremModelInfo()`; if the model's `;;;FREM CODE` markers / `$OMEGA BLOCK(N)` disagree with the `.ext` the derivation stops and asks for explicit values. We pass them here for clarity.
 
 ```{r remove_covariates}
 result_remove <- updateFREMmodel(
