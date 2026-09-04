@@ -264,6 +264,22 @@ test_that("a secondary snippet is spliced in, returned, and listed", {
   expect_equal(v$KEL, v$CL / v$V)
 })
 
+test_that("a config-list secondary binds its constants ahead of the source", {
+  out <- createFREMParamFunction(.fremMod(), parameters = c("CL", "V", "MAT"),
+                                 extFile = .fremExt(), quiet = TRUE,
+                                 secondary = list(
+                                   AUC = list(source = "dose / CL", dose = 240)))
+  expect_identical(out$functionListName, c("CL", "V", "MAT", "AUC"))
+  code <- paste(out$code, collapse = "\n")
+  expect_match(code, "AUC <- local\\(\\{\\n\\s*dose <- 240")
+
+  fn  <- eval(parse(text = out$code))
+  bth <- .finals()[seq_len(out$noBaseThetas)]
+  v   <- fn(basethetas = bth, covthetas = c(0, 0, 0), dfrow = data.frame(),
+            etas = rep(0, out$numSkipOm + 3))
+  expect_equal(v$AUC, 240 / v$CL)
+})
+
 test_that("a secondary from a file is inlined verbatim and survives file removal", {
   rf <- withr::local_tempfile(fileext = ".R")
   writeLines(c("## model string must not be re-indented",

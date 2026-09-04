@@ -33,7 +33,7 @@ Imports:
     tools,
     withr,
     numDeriv,
-    PMXForest (>= 1.2.15.9006)
+    PMXForest (>= 1.2.15.9007)
 Suggests:
     kableExtra,
     knitr,

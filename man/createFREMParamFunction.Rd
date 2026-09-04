@@ -69,13 +69,16 @@ either way.}
 \item{quiet}{If \code{FALSE} (default), reports what was found.}
 
 \item{secondary}{Optional named list of secondary parameters to append to the
-generated function's return list. Each entry is a single string: either R
-code whose last value is the result (\code{list(AUC = "dfrow$DOSE / CL")}) or the
-path to an \code{.R} file of arbitrary code, e.g. an \code{mrgsolve} simulation. The
-code is spliced in inside \code{local({ ... })} and sees \code{basethetas},
-\code{covthetas}, \code{dfrow} (also as \code{df}), \code{etas}, \code{...} and every structural
-parameter by name; covariate columns are \code{dfrow$NAME}. Handled by
-\code{\link[PMXForest:nmResolveSecondary]{PMXForest::nmResolveSecondary()}}; see \code{\link[PMXForest:createParamFunction]{PMXForest::createParamFunction()}}.}
+generated function's return list. Each entry's value is a single string (R
+code whose last value is the result, \code{list(AUC = "dfrow$DOSE / CL")}, or
+the path to an \code{.R} file of arbitrary code such as an \code{mrgsolve}
+simulation), or a list \verb{list(source = <string>, dose = 100, tau = 12, ...)}
+carrying that \code{source} plus named atomic constants bound ahead of it. The
+code is spliced in inside a \code{local()} block and sees \code{basethetas},
+\code{covthetas}, \code{dfrow} (also as \code{df}), \code{etas}, \code{...}, any constants passed
+alongside \code{source}, and every structural parameter by name; covariate
+columns are \code{dfrow$NAME}. Handled by \code{\link[PMXForest:nmResolveSecondary]{PMXForest::nmResolveSecondary()}}; see
+\code{\link[PMXForest:createParamFunction]{PMXForest::createParamFunction()}}.}
 }
 \value{
 A list:
