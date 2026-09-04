@@ -94,14 +94,6 @@ reference in `$PK` and increments `numNonFREMThetas`. Helper: insert + renumber 
 
 Branch + `SESSION-HANDOFF.md`, once its context is fully absorbed.
 
-## T7 — update the vignettes for `fremModelInfo()`
-
-The FREM vignettes still pass `numNonFREMThetas` / `numSkipOm` (and `covNames`)
-by hand everywhere. Once the T2 rollout is done, rework the vignettes to show
-the derived form (locate the model via `runno` / `modName` / `modDevDir`, or
-call `fremModelInfo()` directly) and keep at most one explicit example for
-reference.
-
 ## T9 — a small library of secondary-parameter files (PMXForest-private)
 
 Ship a handful of ready-made secondary files under `inst/secondary/` as
@@ -125,20 +117,6 @@ Document that non-standard models (transit absorption, TMDD, non-linear CL,
 time-varying regimens) need a hand-written file. Add exact tests for the
 closed-form ones; a slow mrgsolve-backed test behind `Suggests`.
 
-## T10 — secondary-parameters vignette for PMXFrem
-
-PMXForest has `Part3-deep-dive-secondary-parameters.Rmd`; PMXFrem needs its own.
-`createFREMParamFunction()` takes the same `secondary` argument, but the shape
-differs: the generated function is `function(basethetas, covthetas, dfrow, etas,
-...)`, `dfrow` is also aliased as `df`, and the plot drivers are
-`getForestDFFREM()` / `getExplainedVar()` (not `getForestDFSCM()`). Mirror the
-two-part structure: a closed-form part that runs (AUC / half-life from a FREM
-`run31`-style model), and an `eval = FALSE` mrgsolve part reusing
-`PMXForest`'s `inst/secondary-cmax-mrgsolve.R` (or a FREM-flavoured copy). Note
-that `etas = 0` gives the forest-plot value and non-zero `etas` the
-explained-variability value, and that secondaries flow through
-`functionListName` into both.
-
 ---
 
 ## Done
@@ -149,3 +127,10 @@ explained-variability value, and that secondaries flow through
 - **T8** — `secondary` config-list support (PMXForest PR #27, PMXFrem PR #48) +
   two-part `Part3-deep-dive-secondary-parameters.Rmd` vignette split
   (PMXForest PR #28). All merged.
+- **T7** — FREM vignettes reworked to the derived `fremModelInfo()` form
+  (`createFFEMmodel` / `fremParameterTable` / `getForestDFFREM` /
+  `getExplainedVar` / `calcEtas` no longer take the integers by hand) — PMXFrem
+  PR #50 (merged). `updateFREMmodel` / `createFREMmodel` stay explicit
+  (T2-residual).
+- **T10** — PMXFrem `Part3-deep-dive-secondary-parameters.Rmd` (two parts:
+  closed-form runs, mrgsolve part shown) — PMXFrem PR #49 (merged).
