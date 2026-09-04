@@ -157,6 +157,20 @@ Document that non-standard models (transit absorption, TMDD, non-linear CL,
 time-varying regimens) need a hand-written file. Add exact tests for the
 closed-form ones; a slow mrgsolve-backed test behind `Suggests`.
 
+## T10 — secondary-parameters vignette for PMXFrem
+
+PMXForest has `Part3-deep-dive-secondary-parameters.Rmd`; PMXFrem needs its own.
+`createFREMParamFunction()` takes the same `secondary` argument, but the shape
+differs: the generated function is `function(basethetas, covthetas, dfrow, etas,
+...)`, `dfrow` is also aliased as `df`, and the plot drivers are
+`getForestDFFREM()` / `getExplainedVar()` (not `getForestDFSCM()`). Mirror the
+two-part structure: a closed-form part that runs (AUC / half-life from a FREM
+`run31`-style model), and an `eval = FALSE` mrgsolve part reusing
+`PMXForest`'s `inst/secondary-cmax-mrgsolve.R` (or a FREM-flavoured copy). Note
+that `etas = 0` gives the forest-plot value and non-zero `etas` the
+explained-variability value, and that secondaries flow through
+`functionListName` into both.
+
 ---
 
 ## Done
