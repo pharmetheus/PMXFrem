@@ -100,6 +100,10 @@
 #'       [verifyFREMParamFunction()] skips these.
 #'     \item `fremParameters` - the subset of `parameters` that got the covariate
 #'       splice, in order.
+#'     \item `fremEtaScale` - named character over `fremParameters`: `"exp"` when
+#'       the `$PK` line is `C * exp(<linear in ETA>)` (log-normal), `"other"`
+#'       otherwise. [verifyFREMParamFunction()] uses this to decide whether the
+#'       `exp()` splice checks apply.
 #'     \item `noBaseThetas` - `numNonFREMThetas` (the length of `basethetas`).
 #'     \item `covRef` - the structural-covariate reference used, with its source.
 #'     \item `numParCov` - the number of `fremParameters`.
@@ -203,6 +207,16 @@ createFREMParamFunction <- function(fremModel        = NULL,
   }, integer(1))
   fremParams <- parameters[etaCounts == 1L]
 
+  ## For each FREM parameter, how its single ETA() is enclosed in $PK:
+  ## "exp"   -> P = C * exp(<linear-in-ETA>)      (log-normal; splice is exp())
+  ## "other" -> additive, logit, exp(theta*ETA), ... (verify skips the splice)
+  fremEtaScale <- vapply(fremParams, function(nm) {
+    a <- Find(function(s) identical(s$type, "assign") && identical(s$lhs, nm),
+              p$statements)
+    .fremEtaScale(a$rhs)
+  }, character(1))
+  names(fremEtaScale) <- fremParams
+
   if (!is.null(numParCov) && numParCov != length(fremParams)) {
     warning("numParCov (", numParCov, ") does not match the ",
             length(fremParams), " parameter(s) in `parameters` that carry a ",
@@ -265,6 +279,7 @@ createFREMParamFunction <- function(fremModel        = NULL,
        primaryNames     = parameters,
        secondaryNames   = secNames,
        fremParameters = fremParams,
+       fremEtaScale   = fremEtaScale,
        noBaseThetas = numNonFREMThetas, covRef = p$covRef[covs],
        numParCov = numParCov, numSkipOm = numSkipOm,
        numNonFREMThetas = numNonFREMThetas, fremModel = fremModel,
@@ -286,6 +301,51 @@ createFREMParamFunction <- function(fremModel        = NULL,
     unop  = .fremEtaIndices(node$arg),
     binop = c(.fremEtaIndices(node$lhs), .fremEtaIndices(node$rhs)),
     integer(0))
+}
+
+#' How the single ETA() of a FREM parameter is enclosed in its $PK line
+#'
+#' Returns `"exp"` when the parameter is `C * exp(<sum in which ETA appears with
+#' coefficient +1>)` - the log-normal form for which
+#' [verifyFREMParamFunction()]'s covariate / random-effect splice checks (scale
+#' by `exp(.)`) are meaningful - and `"other"` for anything else (additive ETA,
+#' logit, `exp(THETA * ETA)`, ETA inside a further transform, ...).
+#'
+#' @keywords internal
+#' @noRd
+.fremEtaScale <- function(node) {
+  rec <- function(nd, inExp) {
+    if (is.null(nd)) return(NA_character_)
+    switch(nd$type,
+      eta = if (inExp) "exp" else "other",
+      num = , sym = , theta = NA_character_,
+      call = {
+        kids <- vapply(nd$args, function(a) {
+          v <- rec(a, inExp || identical(nd$fn, "exp")); if (is.na(v)) "" else v
+        }, character(1))
+        kids <- kids[nzchar(kids)]
+        if (length(kids) == 0L) NA_character_
+        else if (!inExp && identical(nd$fn, "exp") && all(kids == "exp")) "exp"
+        else "other"
+      },
+      unop = {
+        v <- rec(nd$arg, inExp)
+        if (is.na(v)) NA_character_
+        else if (identical(nd$op, "+")) v
+        else "other"                       # negation (either side of exp) -> other
+      },
+      binop = {
+        lv <- rec(nd$lhs, inExp); rv <- rec(nd$rhs, inExp)
+        v  <- if (!is.na(lv)) lv else rv
+        if (is.na(v)) NA_character_
+        else if (!inExp && nd$op %in% c("*", "/")) v   # C * exp(...) : multiplicative
+        else if ( inExp && nd$op == "+")            v   # exp(mu + ETA) : additive in ETA
+        else "other"
+      },
+      "other")
+  }
+  v <- rec(node, FALSE)
+  if (is.na(v)) "other" else v
 }
 
 #' Symbol names referenced in an expression node
