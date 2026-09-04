@@ -215,8 +215,12 @@ createFFEMdata <- function(runno = NULL,
 
   ## Go through the individuals to make sure that missing values for polycats are coded properly
 
-  ## Register to allow for parallel computing
-  if (cores > 1) registerDoParallel(cores = cores)
+  ## Register to allow for parallel computing. Tear the cluster down on exit
+  ## (including on error), not only on a clean finish.
+  if (cores > 1) {
+    registerDoParallel(cores = cores)
+    on.exit(stopImplicitCluster(), add = TRUE)
+  }
 
   mapFun <- function(data, orgCovs) {
     for (cov in orgCovs) {
@@ -230,8 +234,8 @@ createFFEMdata <- function(runno = NULL,
   }
   
   if (cores > 1) {
-    dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
-      # REMOVED: cov = cov
+    dataI <- foreach(k = 1:nrow(dataI),
+                     .export = ls(environment())) %dopar% {
       mapFun(data = dataI[k, ], orgCovs = orgCovs)
     }
     dataI <- data.frame(data.table::rbindlist(dataI))
@@ -303,7 +307,9 @@ createFFEMdata <- function(runno = NULL,
 
 
   if (cores > 1) {
-    covEff <- foreach(k = 1:nrow(dataOne)) %dopar% {
+    covEff <- foreach(k = 1:nrow(dataOne),
+                      .packages = "PMXFrem",
+                      .export = ls(environment())) %dopar% {
       myFun(data = dataOne[k, ], parNames = parNames, dataMap = dataMap, availCov = availCov, covSuffix = covSuffix, omegaToData = omegaToData, numSkipOm = numSkipOm)
     }
     covEff <- data.frame(rbindlist(covEff))
@@ -339,6 +345,6 @@ createFFEMdata <- function(runno = NULL,
     write.csv(retList$newData, file = newDataFile, quote = FALSE, row.names = FALSE)
   }
 
-  if (cores > 1) stopImplicitCluster()
+  ## (cluster teardown is handled by on.exit() registered above)
   invisible(retList)
 }
