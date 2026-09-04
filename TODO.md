@@ -123,6 +123,36 @@ and the branches most likely to regress (error paths, the derived-vs-explicit
 `fremModelInfo()` paths, the `secondary` / `verify` edge cases). Record the
 before/after number.
 
+## T12 — modernise the `getForestDF*` parallel backend and result assembly
+
+The `getForestDFSCM()` / `getForestDFFREM()` / `getForestDFemp()` family (and
+`createFFEMdata()`) use `foreach` + `%dopar%` on `doParallel`, with a
+hard-coded `registerDoParallel(cores = ncores)` and manual `.packages =
+cstrPackages` / `.export = cstrExports`. Two independent pieces of work:
+
+**(a) Result assembly — do this regardless of the backend.** The three
+`getForestDF*` functions build the result with per-cell `data.frame()` +
+`dfres <- bind_rows(dfres, ...)` in a loop (both the inner `internalCalc` and
+the outer combine). Rewrite to accumulate atomic vectors (or per-cell lists)
+and build the data frame once (`data.table::rbindlist` / a single
+`data.frame()`), as `utils-getExplainedVar.R` already does. Measured on a
+representative shape (300 parameter rows x 20 covariate rows x 2 functions x 3
+params -> ~36k result rows): **10.7 s -> 0.13-0.19 s, ~50-80x** for the
+assembly step. It is only the assembly that speeds up - if `functionList` is
+expensive (e.g. an `mrgsolve` sim per cell) total time barely moves - but for
+closed-form parameter functions this is most of the sequential runtime, and it
+shrinks the payload returned from parallel workers.
+
+**(b) Backend.** Move to `future` (`future.apply::future_lapply` / `furrr`, or
+`doFuture` as a drop-in for the existing `foreach %dopar%`). Benefits:
+automatic global + package detection (drop `cstrPackages` / `cstrExports` and
+their "works locally, fails on the cluster" failure mode), one code path for
+all OSes including Windows, parallel-safe RNG via `future.seed = TRUE`, and the
+user chooses the backend with `plan()` (local `multicore` / `multisession`, or
+an HPC scheduler via `future.batchtools`) instead of the package hard-coding
+it. Keep `ncores` as a convenience that sets up a transient `plan()` with an
+`on.exit()` restore; document `plan()` as the real control.
+
 ---
 
 ## Done
