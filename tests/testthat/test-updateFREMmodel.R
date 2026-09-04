@@ -187,6 +187,8 @@ test_that("updateFREMmodel handles missing files correctly", {
       # FIX: Add strNewFREMData to satisfy the new validation check
       strNewFREMData = "new_data.csv",
       numNonFREMThetas = 7,
+      numSkipOm = 2, # supplied so the .ext-derivation gate is passed and the
+                     # numParCov check below is the one actually exercised
       numParCov = NULL # This is the error we actually want to test
     ),
     regexp = "If no \\*.ext file exist, the number of parameters.*needs to be specified!"
@@ -199,6 +201,7 @@ test_that("updateFREMmodel handles missing files correctly", {
       strFREMData = file.path(td, "non_existent_frem_data.csv"),
       strFFEMData = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
       numNonFREMThetas = 7,
+      numSkipOm = 2,
       numParCov = 3
     ),
     regexp = "Cannot find FREM dataset"
