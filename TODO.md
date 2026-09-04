@@ -102,6 +102,43 @@ the derived form (locate the model via `runno` / `modName` / `modDevDir`, or
 call `fremModelInfo()` directly) and keep at most one explicit example for
 reference.
 
+## T9 — a small library of secondary-parameter files (PMXForest-private)
+
+Ship a handful of ready-made secondary files under `inst/secondary/` as
+**examples / starters**, not a general solution (parameter-name mapping across
+models can't be done generically — see the design discussion). Written against
+canonical names (`.CL` / `.V` / `.KA` / `.F` / `.dose` / `.tau` / `.n`) with the
+config list supplying expressions for the non-default ones, e.g.
+`list(source = "cmax_1cmt_oral_ss.R", dose = 100, tau = 12, KA = "1/(MAT - D1)")`.
+
+Prefer closed-form where it exists (pure R, no mrgsolve, exact tests):
+- `cmax_cmin_1cmt_iv_ss.R` — analytical steady-state Cmax/Cmin (two files, or
+  one file per quantity since a secondary returns one value).
+- `cmax_cmin_1cmt_infusion_ss.R` — analytical.
+- `cmax_cmin_1cmt_oral_ss.R` — Cmin analytical; Cmax via a short `uniroot` on
+  `dC/dt = 0`, not a dense-grid `optimize`.
+- keep `secondary-cmax-mrgsolve.R` as the multi-compartment / complex-regimen
+  fallback.
+
+Each file states its assumptions (steady state, linear, single input) loudly.
+Document that non-standard models (transit absorption, TMDD, non-linear CL,
+time-varying regimens) need a hand-written file. Add exact tests for the
+closed-form ones; a slow mrgsolve-backed test behind `Suggests`.
+
+## T10 — secondary-parameters vignette for PMXFrem
+
+PMXForest has `Part3-deep-dive-secondary-parameters.Rmd`; PMXFrem needs its own.
+`createFREMParamFunction()` takes the same `secondary` argument, but the shape
+differs: the generated function is `function(basethetas, covthetas, dfrow, etas,
+...)`, `dfrow` is also aliased as `df`, and the plot drivers are
+`getForestDFFREM()` / `getExplainedVar()` (not `getForestDFSCM()`). Mirror the
+two-part structure: a closed-form part that runs (AUC / half-life from a FREM
+`run31`-style model), and an `eval = FALSE` mrgsolve part reusing
+`PMXForest`'s `inst/secondary-cmax-mrgsolve.R` (or a FREM-flavoured copy). Note
+that `etas = 0` gives the forest-plot value and non-zero `etas` the
+explained-variability value, and that secondaries flow through
+`functionListName` into both.
+
 ---
 
 ## Done
@@ -109,3 +146,6 @@ reference.
 - **T5** — direct `getCovNames(createFREMmodel() output)` test — PR #40 (merged).
 - **T2 (first PR)** — `fremModelInfo()` + `getExplainedVar()` / `getForestDFFREM()`
   wiring — PR #41 (merged). Rollout to the rest tracked above under T2.
+- **T8** — `secondary` config-list support (PMXForest PR #27, PMXFrem PR #48) +
+  two-part `Part3-deep-dive-secondary-parameters.Rmd` vignette split
+  (PMXForest PR #28). All merged.
