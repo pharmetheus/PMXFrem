@@ -104,26 +104,58 @@ reference.
 
 ## T8 — rework the secondary-parameters vignette (PMXForest-private)
 
-`PMXForest/vignettes/Part3-deep-dive-secondary-parameters-mrgsolve.Rmd` (added
-with `secondary=` in PR #25) should become a two-part vignette:
+**Done (PMXForest PR #27, PMXFrem PR #48):** `secondary` entries accept a config
+list `list(source = <string>, dose = 100, tau = 12, ...)` alongside the bare
+string; constants are bound ahead of the source inside the `local()` block, so a
+reusable secondary file is parametrised at the call site. `nmResolveSecondary()`
+gained a `consts` field; both emitters write it. `inst/secondary-cmax-mrgsolve.R`
+reads `dose` / `tau` / `n` via `exists(name, inherits = FALSE)` guards. PMXForest
+dev version -> 1.2.15.9007, PMXFrem dep -> `PMXForest (>= 1.2.15.9007)`.
+
+Still to do — split
+`PMXForest/vignettes/Part3-deep-dive-secondary-parameters-mrgsolve.Rmd` into a
+two-part vignette:
 
 1. **`secondary =` with AUC — runnable on any machine.** Uses only a closed-form
-   snippet (e.g. `AUC = "df$DOSE / CL"`), no compiled deps. Chunks `eval = TRUE`
-   so `R CMD build` / pkgdown actually run it.
+   snippet or config list (e.g. `AUC = list(source = "dose / CL", dose = 100)`),
+   no compiled deps. Chunks `eval = TRUE` so `R CMD build` / pkgdown run it.
 2. **The mrgsolve example — `eval = FALSE` by default.** Keep it close to the
-   current content. Must state plainly, up front, that (a) the chunks are **not
-   executed** when the vignette is built and the shown output is **illustrative /
-   not from a live run**, and (b) the code itself *is* runnable, but the reader
-   must have a working `mrgsolve` install (C++ toolchain — Rtools / Xcode CLT /
-   `r-base-dev`) before trying it.
+   current content, but demonstrate the config-list form. Must state plainly, up
+   front, that (a) the chunks are **not executed** when the vignette is built and
+   the shown output is **illustrative / not from a live run**, and (b) the code
+   itself *is* runnable, but the reader must have a working `mrgsolve` install
+   (C++ toolchain — Rtools / Xcode CLT / `r-base-dev`) before trying it.
 
 Version requirements for the bundled `inst/secondary-cmax-mrgsolve.R`: it uses
-only long-stable core API (`mcode_cache()`, `param()`, `ev()`, `mrgsim()`) and
-the basic `$PARAM`/`$CMT`/`$ODE`/`$TABLE`/`$CAPTURE` blocks — **no
+only long-stable core API (`mcode_cache()`, `param()`, `ev()`, `mrgsim_df()`)
+and the basic `$PARAM`/`$CMT`/`$ODE`/`$TABLE`/`$CAPTURE` blocks — **no
 version-specific features**. Verified working on **mrgsolve 1.0.9** (R 4.2.3,
 GCC 15). Any **mrgsolve >= 1.0.0** should be sufficient; the current CRAN release
 is **2.0.1** and these calls are unchanged across the 1.x -> 2.x boundary, so the
 latest version is *not* required. State this in the vignette.
+
+## T9 — a small library of secondary-parameter files (PMXForest-private)
+
+Ship a handful of ready-made secondary files under `inst/secondary/` as
+**examples / starters**, not a general solution (parameter-name mapping across
+models can't be done generically — see the design discussion). Written against
+canonical names (`.CL` / `.V` / `.KA` / `.F` / `.dose` / `.tau` / `.n`) with the
+config list supplying expressions for the non-default ones, e.g.
+`list(source = "cmax_1cmt_oral_ss.R", dose = 100, tau = 12, KA = "1/(MAT - D1)")`.
+
+Prefer closed-form where it exists (pure R, no mrgsolve, exact tests):
+- `cmax_cmin_1cmt_iv_ss.R` — analytical steady-state Cmax/Cmin (two files, or
+  one file per quantity since a secondary returns one value).
+- `cmax_cmin_1cmt_infusion_ss.R` — analytical.
+- `cmax_cmin_1cmt_oral_ss.R` — Cmin analytical; Cmax via a short `uniroot` on
+  `dC/dt = 0`, not a dense-grid `optimize`.
+- keep `secondary-cmax-mrgsolve.R` as the multi-compartment / complex-regimen
+  fallback.
+
+Each file states its assumptions (steady state, linear, single input) loudly.
+Document that non-standard models (transit absorption, TMDD, non-linear CL,
+time-varying regimens) need a hand-written file. Add exact tests for the
+closed-form ones; a slow mrgsolve-backed test behind `Suggests`.
 
 ---
 
