@@ -90,10 +90,6 @@ means contiguously. A new structural theta must be inserted at position
 reference in `$PK` and increments `numNonFREMThetas`. Helper: insert + renumber the
 `MU_j = THETA(...)` refs.
 
-## T6 — remove `chore/session-handoff` (PMXForest-private)
-
-Branch + `SESSION-HANDOFF.md`, once its context is fully absorbed.
-
 ## T9 — a small library of secondary-parameter files (PMXForest-private)
 
 Ship a handful of ready-made secondary files under `inst/secondary/` as
@@ -134,3 +130,6 @@ closed-form ones; a slow mrgsolve-backed test behind `Suggests`.
   (T2-residual).
 - **T10** — PMXFrem `Part3-deep-dive-secondary-parameters.Rmd` (two parts:
   closed-form runs, mrgsolve part shown) — PMXFrem PR #49 (merged).
+- **T6** — `chore/session-handoff` branch deleted from PMXForest-private
+  (2026-09-04). `SESSION-HANDOFF.md` was never on `epic/v1.3.0`; its content
+  was fully absorbed.

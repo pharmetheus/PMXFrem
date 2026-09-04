@@ -35,10 +35,13 @@ Imports:
     numDeriv,
     PMXForest (>= 1.2.15.9007)
 Suggests:
+    GGally,
     kableExtra,
     knitr,
+    purrr,
     rmarkdown,
     testthat (>= 3.0.0),
+    tidyr,
     R.rsp
 VignetteBuilder: R.rsp, knitr
 NeedsCompilation: no

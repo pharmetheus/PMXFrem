@@ -27,7 +27,9 @@ We begin by loading the necessary packages and setting our global plotting stand
 ```{r setup}
 library(PMXFrem)
 library(ggplot2)
-library(tidyverse)
+library(dplyr)     # mutate / filter / group_by / summarise / select / across / ...
+library(tidyr)     # pivot_longer / nest / unnest / fill
+library(purrr)     # map
 library(kableExtra)
 
 # Enforce standard ggplot theme
