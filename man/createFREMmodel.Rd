@@ -10,7 +10,7 @@ createFREMmodel(
   modDevDir = NULL,
   ffemDataFile,
   covariates,
-  numNonFREMThetas,
+  numNonFREMThetas = NULL,
   outputDir = NULL,
   fremModName = "frem_model",
   keepMinimalModel = FALSE,
@@ -42,7 +42,9 @@ createFREMmodel(
 \item{covariates}{Character vector. The full list of covariates to include in the FREM model.
 The first element is processed during Phase 1 (bootstrapping), and the remainder during Phase 2.}
 
-\item{numNonFREMThetas}{Numeric. The number of THETAs in the base model that are not part of the FREM structure.}
+\item{numNonFREMThetas}{Numeric, or \code{NULL} (default). The number of THETAs in
+the base model. When \code{NULL} it is read from the base model's \code{.ext} (the
+THETA column count). Supply it explicitly if the \code{.ext} is unavailable.}
 
 \item{outputDir}{Character. Directory where the final model and data files will be saved. Defaults to \code{modDevDir} or current working directory.}
 
@@ -64,7 +66,10 @@ The first element is processed during Phase 1 (bootstrapping), and the remainder
 
 \item{useMuModeling}{Logical. Should MU-referencing be utilized when generating the NONMEM $PK and $ERROR blocks? Defaults to \code{TRUE}.}
 
-\item{numSkipOm}{Numeric. Number of initial OMEGA parameters to skip when appending new FREM parameters. Defaults to \code{0}.}
+\item{numSkipOm}{Numeric. Number of initial OMEGA parameters (IIV / RUV
+variances that precede the FREM block) to skip when appending the FREM
+parameters. Defaults to \code{0}. This cannot be deduced from a base model - it
+has no FREM structure yet - so set it correctly for your model.}
 
 \item{cstrKeepCols}{Character vector. Columns to strictly retain in the generated FREM dataset. Note: \code{"FREMTYPE"} is managed internally and injected between phases.}
 

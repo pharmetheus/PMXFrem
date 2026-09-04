@@ -60,7 +60,7 @@ keep_cols <- c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV")
 
 ### **3. Generating the Model**
 
-We pass our specifications into `createFREMmodel()`. We use the `run30` base model, which has `7` structural THETAs (`numNonFREMThetas`) and `2` specific OMEGAs that we want to skip correlating with the covariates (`numSkipOm`).
+We pass our specifications into `createFREMmodel()`. We use the `run30` base model, which has `7` structural THETAs (`numNonFREMThetas`) and `2` specific OMEGAs that we want to skip correlating with the covariates (`numSkipOm`). `numNonFREMThetas` can be left `NULL` -- it is then read from the base model's `.ext` -- but `numSkipOm` cannot be deduced from a base model and must be given.
 
 **Handling Dichotomous Covariates (`bRecodeDichotomous`):**
 Notice that we set `bRecodeDichotomous = TRUE`. In many standard datasets, dichotomous variables are coded as `1` and `2` (e.g., Males = 1, Females = 2). If left as-is, the intercept of the FREM covariate effect becomes harder to interpret. When this argument is `TRUE`, the function automatically detects 2-level categorical covariates and recodes them to `0` and `1`. This cleanly establishes the `0` level as the reference baseline. 

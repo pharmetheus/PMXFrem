@@ -34,6 +34,14 @@
 #'   (used for commenting omegas), should be the same length as number of
 #'   numSkipOm+numParCov in the model, if NULL, BASE1,BASE2,etc are used as
 #'   names.
+#' @param numNonFREMThetas,numSkipOm The number of structural (non-FREM) THETAs
+#'   and the number of skipped OMEGAs in `strFREMModel`. `NULL` (default) derives
+#'   both from the model and its `.ext` via [fremModelInfo()]. If the model's
+#'   `;;;FREM CODE` markers / final `$OMEGA BLOCK(N)` and the `.ext` column counts
+#'   do not agree, the derivation **stops** - pass explicit values to override.
+#'   When [createFREMmodel()] calls this it always supplies both.
+#' @param numParCov Optional. The number of FREM covariate parameters; derived
+#'   from the `.ext` when `NULL`.
 #' @param bWriteData If FALSE; add new variables to the model file but do not
 #'   write new datasets, has no effect when "NoData" is used.
 #' @param bWriteFIX If TRUE; FIX is written to the theta parameter estimates
@@ -198,8 +206,8 @@ updateFREMmodel <- function(strFREMModel,
                             strID                 = "ID",
                             basenames_th          = NULL,
                             basenames_om          = NULL,
-                            numNonFREMThetas,
-                            numSkipOm             = 0,
+                            numNonFREMThetas      = NULL,
+                            numSkipOm             = NULL,
                             numParCov             = NULL,
                             cstrKeepCols          = c("ID", "TIME", "AMT", "DV","II", "EVID", "SS", "RATE","FREMTYPE"),
                             cstrSetToZero         = c("AMT", "II", "SS", "EVID", "RATE"),
@@ -222,11 +230,48 @@ updateFREMmodel <- function(strFREMModel,
     warning(
       "The `sortFREMDataset` argument is deprecated. ",
       "PMXFrem v2 and above now automatically enforces stable, intra-subject dataset sorting. ",
-      "This argument is safely ignored.", 
+      "This argument is safely ignored.",
       call. = FALSE
     )
   }
-  
+
+  # --- 0. Resolve numNonFREMThetas / numSkipOm ---
+  # When called from createFREMmodel() both are passed and this is a no-op.
+  # For a direct call, derive them from the FREM model + its .ext. If the two
+  # ways of reading the structure disagree - the ;;;FREM CODE markers / final
+  # $OMEGA BLOCK(N) vs the .ext column counts - stop loudly; the caller can then
+  # pass explicit values, which override the check.
+  if (is.null(numNonFREMThetas) || is.null(numSkipOm)) {
+    .ext <- paste0(tools::file_path_sans_ext(strFREMModel), ".ext")
+    if (!file.exists(.ext)) {
+      stop("updateFREMmodel(): supply `numNonFREMThetas` and `numSkipOm`, or ",
+           "place ", basename(.ext), " next to the model so they can be derived.",
+           call. = FALSE)
+    }
+    .info <- withCallingHandlers(
+      fremModelInfo(strFREMModel, .ext,
+                    numNonFREMThetas = numNonFREMThetas,
+                    numSkipOm        = numSkipOm),
+      warning = function(w) {
+        if (grepl("inconsistent", conditionMessage(w), ignore.case = TRUE)) {
+          stop("updateFREMmodel(): the FREM model's structure (;;;FREM CODE ",
+               "markers, final $OMEGA BLOCK(N)) and its .ext do not agree, so ",
+               "`numNonFREMThetas` / `numSkipOm` cannot be derived reliably:\n  ",
+               conditionMessage(w),
+               "\nPass `numNonFREMThetas` and `numSkipOm` explicitly to override.",
+               call. = FALSE)
+        }
+        # other warnings (e.g. a supplied value disagreeing) pass through
+      })
+    if (is.null(numNonFREMThetas)) numNonFREMThetas <- .info$numNonFREMThetas
+    if (is.null(numSkipOm))        numSkipOm        <- .info$numSkipOm
+    if (!quiet) {
+      message("updateFREMmodel(): numNonFREMThetas = ", numNonFREMThetas,
+              ", numSkipOm = ", numSkipOm, " (derived from ",
+              basename(strFREMModel), ").")
+    }
+  }
+
   # --- 1. Initial Setup ---
   if (strUpdateType != "NoData") {
     

@@ -13,7 +13,9 @@
 #' @param ffemDataFile Character. Path to the Full Fixed Effects Model (FFEM) dataset.
 #' @param covariates Character vector. The full list of covariates to include in the FREM model. 
 #'   The first element is processed during Phase 1 (bootstrapping), and the remainder during Phase 2.
-#' @param numNonFREMThetas Numeric. The number of THETAs in the base model that are not part of the FREM structure.
+#' @param numNonFREMThetas Numeric, or `NULL` (default). The number of THETAs in
+#'   the base model. When `NULL` it is read from the base model's `.ext` (the
+#'   THETA column count). Supply it explicitly if the `.ext` is unavailable.
 #' @param outputDir Character. Directory where the final model and data files will be saved. Defaults to `modDevDir` or current working directory.
 #' @param fremModName Character. The base name for the generated final model and data files (e.g., `"frem_model"`).
 #' @param keepMinimalModel Logical. Should the intermediate minimal model files (Phase 1 output) be preserved? Defaults to `FALSE`.
@@ -24,7 +26,10 @@
 #' @param fixTheta Logical. Should the initial THETA estimates for the covariates be fixed? Defaults to `TRUE`.
 #' @param roundMeanTo Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to `2`.
 #' @param useMuModeling Logical. Should MU-referencing be utilized when generating the NONMEM $PK and $ERROR blocks? Defaults to `TRUE`.
-#' @param numSkipOm Numeric. Number of initial OMEGA parameters to skip when appending new FREM parameters. Defaults to `0`.
+#' @param numSkipOm Numeric. Number of initial OMEGA parameters (IIV / RUV
+#'   variances that precede the FREM block) to skip when appending the FREM
+#'   parameters. Defaults to `0`. This cannot be deduced from a base model - it
+#'   has no FREM structure yet - so set it correctly for your model.
 #' @param cstrKeepCols Character vector. Columns to strictly retain in the generated FREM dataset. Note: `"FREMTYPE"` is managed internally and injected between phases.
 #' @param bRecodeDichotomous Logical. Should dichotomous covariates be automatically 
 #'   recoded to 0/1? Defaults to FALSE. If FALSE, inputs must be strictly 0/1.
@@ -92,7 +97,7 @@ createFREMmodel <- function(runno                = NULL,
                             modDevDir            = NULL,
                             ffemDataFile,
                             covariates,
-                            numNonFREMThetas,
+                            numNonFREMThetas     = NULL,
                             outputDir            = NULL,
                             fremModName         = "frem_model",
                             keepMinimalModel     = FALSE,
@@ -130,6 +135,26 @@ createFREMmodel <- function(runno                = NULL,
   
   # --- Base Model Diagnostics Check (Pre-flight Validation) ---
   fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)
+
+  # numNonFREMThetas = the number of THETAs in the base model; read it from the
+  # base model's .ext when not supplied. numSkipOm cannot be deduced from a base
+  # model (it has no FREM structure yet) and must be given by the caller.
+  if (is.null(numNonFREMThetas)) {
+    if (!file.exists(fileNames$ext)) {
+      stop("createFREMmodel(): `numNonFREMThetas` was not supplied and the base ",
+           "model's .ext (", basename(fileNames$ext), ") was not found. Pass ",
+           "`numNonFREMThetas` (the number of THETAs in the base model).",
+           call. = FALSE)
+    }
+    numNonFREMThetas <- length(grep("^THETA",
+                                    names(getExt(extFile = fileNames$ext))))
+    if (!quiet) {
+      message("createFREMmodel(): numNonFREMThetas = ", numNonFREMThetas,
+              " (THETA count in ", basename(fileNames$ext),
+              "); numSkipOm = ", numSkipOm, " (as supplied).")
+    }
+  }
+
   if (file.exists(fileNames$mod)) {
     baseModelLines <- readLines(fileNames$mod, warn = FALSE)
     
