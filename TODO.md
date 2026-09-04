@@ -115,6 +115,14 @@ Document that non-standard models (transit absorption, TMDD, non-linear CL,
 time-varying regimens) need a hand-written file. Add exact tests for the
 closed-form ones; a slow mrgsolve-backed test behind `Suggests`.
 
+## T11 — test coverage audit
+
+Run `covr::package_coverage()` (both PMXFrem and PMXForest). If overall package
+coverage is **< 95%**, add tests to bring it up: prioritise exported functions
+and the branches most likely to regress (error paths, the derived-vs-explicit
+`fremModelInfo()` paths, the `secondary` / `verify` edge cases). Record the
+before/after number.
+
 ---
 
 ## Done
