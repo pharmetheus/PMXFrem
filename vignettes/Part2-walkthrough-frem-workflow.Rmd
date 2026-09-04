@@ -49,13 +49,16 @@ Because a FREM model estimates covariates as dependent variables, it is mathemat
 
 The `createFFEMmodel()` function locks the covariates into the dataset as individual parameter coefficients. We execute this to create the `.mod` and `.csv` files, saving them directly to our temp directory.
 
+Because the FREM model is located by `runno` / `modDevDir`, `numNonFREMThetas`
+and `numSkipOm` are derived from the model and its `.ext` via `fremModelInfo()`.
+They are still passed explicitly to `updateFREMmodel()` further down, which
+mutates a model and cannot derive them.
+
 ```{r create_ffem}
 ffemMod <- createFFEMmodel(
   runno            = 31,
   baserunno        = 30,
   modDevDir        = modDevDir,
-  numNonFREMThetas = 7,
-  numSkipOm        = 2,
   parNames         = c("CL", "V", "MAT"),
   dataFile         = base_data,
   newDataFile      = file.path(td, "ffem_data.csv"),
@@ -240,8 +243,6 @@ parTableData <- fremParameterTable(
   uncertainty      = "CI",             # Generate 95% CIs
   includeShrinkage = TRUE,             # Include Eta Shrinkage
   ffemModName      = "run31max0",      # Used to calculate true EBE shrinkage
-  numNonFREMThetas = 7,
-  numSkipOm        = 2,
   availCov         = "all",
   quiet            = TRUE
 )
