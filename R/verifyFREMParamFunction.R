@@ -7,16 +7,20 @@
 #'       parameter reduces to its structural typical value. The result is
 #'       compared with the SCM-style typical-value function that
 #'       [PMXForest::createParamFunction()] generates from the same FREM model.
-#'     \item **Covariate splice.** Multiplying every `covthetas[k]` in should
-#'       scale parameter `k` by `exp(covthetas[k])` and nothing else.
+#'     \item **Covariate splice.** Setting `covthetas[k]` should scale parameter
+#'       `k` by `exp(covthetas[k])` and nothing else.
 #'     \item **Random-effect splice.** Setting `etas[numSkipOm + k]` should scale
 #'       parameter `k` by `exp(etas[numSkipOm + k])` and nothing else - this also
 #'       checks the `numSkipOm` offset is right.
 #'   }
-#'   Anything that fails is reported loudly; the return value records the maximum
-#'   relative difference per parameter. Only the FREM `$PK` parameters are
-#'   checked - `secondary` parameters (AUC, Cmax, ...) are skipped, as they have
-#'   no structural counterpart or splice to probe.
+#'   Checks 2 and 3 assume the parameter is **log-normal** (`P = C * exp(<linear
+#'   in ETA>)`). For a parameter whose `$PK` encloses its `ETA()` differently -
+#'   additive, logit, `exp(THETA * ETA)`, ... - the splice is not `exp()` scaling,
+#'   so `COVSPLICE` / `ETASPLICE` and `PASS` are reported as `NA` for that
+#'   parameter (the structural check still runs). Anything that actually fails is
+#'   reported loudly. Only the FREM `$PK` parameters are checked - `secondary`
+#'   parameters (AUC, Cmax, ...) are skipped, as they have no structural
+#'   counterpart or splice to probe.
 #'
 #' @param x The list returned by [createFREMParamFunction()].
 #' @param fun The function to check. Defaults to `eval(parse(text = x$code))`.
@@ -31,11 +35,13 @@
 #' @param tol Relative tolerance for a check to pass. Default `1e-6`.
 #' @param quiet If `FALSE` (default), prints a per-parameter pass/fail summary.
 #'
-#' @return A single logical - `TRUE` if every parameter passes all three checks
-#'   within `tol` - so the result can be used directly in an `if`. The
+#' @return A single logical - `TRUE` unless a parameter's check actually failed,
+#'   so the result can be used directly in an `if`. A non-log-normal parameter
+#'   (splice not checked, `PASS = NA`) does not make the result `FALSE`. The
 #'   per-parameter detail is attached as `attr(x, "checks")`: a data frame with
 #'   `PARAMETER`, `STRUCTURAL` / `COVSPLICE` / `ETASPLICE` (max relative
-#'   difference for each check) and `PASS`. Printing shows the table.
+#'   difference for each check, `NA` when skipped) and `PASS` (`TRUE` / `FALSE` /
+#'   `NA`). Printing shows the table.
 #'
 #' @seealso [createFREMParamFunction()].
 #'
@@ -110,10 +116,21 @@ verifyFREMParamFunction <- function(x,
   }
   np      <- length(params)
   nEtas   <- numSkipOm + np
-  relDiff <- function(a, b) max(abs((unlist(a) - unlist(b)) /
-                                      ifelse(unlist(b) == 0, 1, unlist(b))))
+
+  ## Which parameters are log-normal (P = C * exp(<linear in ETA>))? Only those
+  ## can be checked with the exp() splice; the rest get NA. `fremEtaScale` is
+  ## absent on objects made before this was recorded - assume "exp" then.
+  scale   <- if (is.null(x$fremEtaScale)) {
+    stats::setNames(rep("exp", np), params)
+  } else {
+    s <- x$fremEtaScale[params]
+    s[is.na(s)] <- "exp"                      # not a FREM covariate parameter
+    stats::setNames(s, params)
+  }
+  isExp   <- scale == "exp"
 
   structD <- covD <- etaD <- rep(0, np)
+  covD[!isExp] <- etaD[!isExp] <- NA_real_
   names(structD) <- names(covD) <- names(etaD) <- params
 
   for (i in seq_len(nrow(dfrows))) {
@@ -130,7 +147,7 @@ verifyFREMParamFunction <- function(x,
 
     ct   <- seq_len(np) / 7
     covV <- fun(basethetas, covthetas = ct, dfrow = dfrow, etas = rep(0, nEtas))
-    for (k in seq_len(np)) {
+    for (k in which(isExp)) {
       exp_k <- unlist(base0)
       exp_k[k] <- exp_k[k] * exp(ct[k])
       covD[k] <- max(covD[k],
@@ -138,12 +155,14 @@ verifyFREMParamFunction <- function(x,
                            ifelse(exp_k[k] == 0, 1, exp_k[k])))
     }
 
-    for (k in seq_len(np)) {
+    for (k in which(isExp)) {
       e <- rep(0, nEtas); e[numSkipOm + k] <- 0.3
       etaV  <- fun(basethetas, covthetas = rep(0, np), dfrow = dfrow, etas = e)
       exp_k <- unlist(base0)
       exp_k[k] <- exp_k[k] * exp(0.3)
-      for (j in seq_len(np)) {
+      # only parameter k should move; a non-exp parameter j is left out of the
+      # comparison (its own splice was not applied here, so it must be unchanged)
+      for (j in which(isExp)) {
         etaD[j] <- max(etaD[j],
                        abs((etaV[[j]] - exp_k[j]) /
                              ifelse(exp_k[j] == 0, 1, exp_k[j])))
@@ -159,30 +178,43 @@ verifyFREMParamFunction <- function(x,
     row.names  = NULL,
     stringsAsFactors = FALSE
   )
+  # NA COVSPLICE / ETASPLICE (non-log-normal parameter) -> PASS is NA when the
+  # structural check passes, FALSE when it does not.
   out$PASS <- with(out, STRUCTURAL <= tol & COVSPLICE <= tol & ETASPLICE <= tol)
 
+  nFail <- sum(out$PASS %in% FALSE)
+  nNA   <- sum(is.na(out$PASS))
+
   if (!quiet) {
-    message("verifyFREMParamFunction(): ", sum(out$PASS), "/", nrow(out),
-            " parameter(s) pass (tol ", tol, ").")
+    message("verifyFREMParamFunction(): ", sum(out$PASS %in% TRUE), "/",
+            nrow(out), " parameter(s) pass (tol ", tol, ")",
+            if (nNA) paste0(", ", nNA, " not checked (non-log-normal)") else "",
+            ".")
     for (i in seq_len(nrow(out))) {
-      message("  ", out$PARAMETER[i], ": ",
-              if (out$PASS[i]) "pass" else "FAIL",
+      status <- if (isTRUE(out$PASS[i])) "pass" else if (is.na(out$PASS[i])) {
+        "not checked (non-log-normal; structural OK)"
+      } else "FAIL"
+      message("  ", out$PARAMETER[i], ": ", status,
               "  (structural ", signif(out$STRUCTURAL[i], 3),
               ", cov ", signif(out$COVSPLICE[i], 3),
               ", eta ", signif(out$ETASPLICE[i], 3), ")")
     }
   }
 
-  ## A single TRUE/FALSE for use in `if`; the per-parameter table rides along.
-  invisible(structure(all(out$PASS), class = "pmxFREMVerify", checks = out))
+  ## A single logical for use in `if`: FALSE only if a check actually failed;
+  ## a non-log-normal parameter (PASS = NA) does not make it FALSE.
+  invisible(structure(nFail == 0L, class = "pmxFREMVerify", checks = out))
 }
 
 #' @export
 print.pmxFREMVerify <- function(x, ...) {
-  d <- attr(x, "checks")
+  d    <- attr(x, "checks")
+  nNA  <- sum(is.na(d$PASS))
   cat(if (isTRUE(unclass(x)[1])) "PASS" else "FAIL",
-      " - verifyFREMParamFunction: ", sum(d$PASS), "/", nrow(d),
-      " parameter(s)\n", sep = "")
+      " - verifyFREMParamFunction: ", sum(d$PASS %in% TRUE), "/", nrow(d),
+      " parameter(s)",
+      if (nNA) paste0(" (", nNA, " not checked - non-log-normal)") else "",
+      "\n", sep = "")
   print(d, row.names = FALSE)
   invisible(x)
 }

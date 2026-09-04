@@ -112,6 +112,55 @@ test_that("ETA() is replaced whatever encloses it (not only inside exp())", {
   expect_match(code, "V <- TVV \\+ \\(covthetas\\[2\\] \\+ .eta\\(etas, 2\\)\\)")
 })
 
+test_that("fremEtaScale classifies the ETA() enclosure per FREM parameter", {
+  bm  <- .stubMod(c(
+    "  TVCL = THETA(1)", "  TVV = THETA(2)", "  TVKA = THETA(3)",
+    "  CL = TVCL * EXP(ETA(1))",         # log-normal
+    "  V  = TVV + ETA(2)",               # additive
+    "  KA = EXP(THETA(3) * ETA(3))"      # exp of a non-unit multiple -> not simple
+  ))
+  out <- createFREMParamFunction(bm, parameters = c("CL", "V", "KA"),
+                                 numSkipOm = 0, numNonFREMThetas = 4, quiet = TRUE)
+  expect_identical(out$fremEtaScale, c(CL = "exp", V = "other", KA = "other"))
+})
+
+test_that("verifyFREMParamFunction skips the splice for a non-log-normal parameter", {
+  bm  <- .stubMod(c(
+    "  TVCL = THETA(1)", "  TVV = THETA(2)",
+    "  CL = TVCL * EXP(ETA(1))",     # log-normal
+    "  V  = TVV + ETA(2)"            # additive
+  ))
+  out <- createFREMParamFunction(bm, parameters = c("CL", "V"), numSkipOm = 0,
+                                 numNonFREMThetas = 4, quiet = TRUE)
+  v <- verifyFREMParamFunction(out, thetas = c(3, 5, 0, 0), quiet = TRUE)
+  d <- attr(v, "checks")
+
+  expect_true(d$PASS[d$PARAMETER == "CL"])                  # fully checked
+  expect_true(is.na(d$PASS[d$PARAMETER == "V"]))            # splice skipped
+  expect_true(is.na(d$COVSPLICE[d$PARAMETER == "V"]))
+  expect_true(is.na(d$ETASPLICE[d$PARAMETER == "V"]))
+  expect_false(is.na(d$STRUCTURAL[d$PARAMETER == "V"]))     # structural still ran
+  expect_true(d$STRUCTURAL[d$PARAMETER == "V"] <= 1e-6)
+
+  expect_true(as.logical(v))                                # nothing failed
+  expect_output(print(v), "non-log-normal")
+})
+
+test_that("verifyFREMParamFunction still FALSE if a non-log-normal parameter is structurally wrong", {
+  bm  <- .stubMod(c(
+    "  TVV = THETA(2)",
+    "  V  = TVV + ETA(1)"            # additive
+  ))
+  out <- createFREMParamFunction(bm, parameters = "V", numSkipOm = 0,
+                                 numNonFREMThetas = 4, quiet = TRUE)
+  # tamper: the generated V is `basethetas[2] + (...)`; make it basethetas[1]
+  bad <- gsub("basethetas\\[2\\]", "basethetas[1]", paste(out$code, collapse = "\n"))
+  v   <- verifyFREMParamFunction(out, fun = eval(parse(text = bad)),
+                                 thetas = c(9, 5, 0, 0), quiet = TRUE)
+  expect_false(as.logical(v))
+  expect_false(attr(v, "checks")$PASS[1])   # STRUCTURAL fails -> PASS FALSE, not NA
+})
+
 test_that("a parameter with no ETA() is returned as-is, not an error", {
   bm  <- .stubMod(c("  TVCL = THETA(1)", "  CL = TVCL",
                     "  TVV = THETA(2)",  "  V  = TVV * EXP(ETA(1))"))

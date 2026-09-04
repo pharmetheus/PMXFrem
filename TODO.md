@@ -22,14 +22,13 @@ Named `createFREMParamFunction()` / `verifyFREMParamFunction()` (not
   against `PMXForest::createParamFunction()` on the same FREM model, plus the
   `covthetas` / `etas` scaling.
 
-v2 / still open:
-- `verifyFREMParamFunction()`'s `covthetas` / `etas` scaling checks assume the
-  parameter is log-normal (`exp` scaling). An additive-eta or logit parameter
-  emits correctly from `createFREMParamFunction()` but would fail those checks —
-  make `verify` transform-aware, or scope it.
-- Derived metrics (AUC, t½) — left to the user, as in PMXForest.
-- A NONMEM `$TABLE`-based check in `verifyFREMParamFunction()` once a FREM model
-  fixture that tables `CL`/`V`/... exists (none in `inst/extdata` today).
+v2:
+- **Done** — non-log-normal parameters. `createFREMParamFunction()` records
+  `fremEtaScale` (`"exp"` vs `"other"`); `verifyFREMParamFunction()` reports
+  `COVSPLICE` / `ETASPLICE` / `PASS` as `NA` for a non-log-normal parameter
+  (structural check still runs). PR #53.
+- **Won't do** — a NONMEM `$TABLE`-based check. No bundled FREM model tables
+  `CL` / `V` / ...; not worth adding a fixture for it.
 
 ## T2 — roll `fremModelInfo()` out to the remaining entry points
 

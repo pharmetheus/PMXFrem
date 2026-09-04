@@ -35,11 +35,13 @@ covariate at \code{x$missVal}).}
 \item{quiet}{If \code{FALSE} (default), prints a per-parameter pass/fail summary.}
 }
 \value{
-A single logical - \code{TRUE} if every parameter passes all three checks
-within \code{tol} - so the result can be used directly in an \code{if}. The
+A single logical - \code{TRUE} unless a parameter's check actually failed,
+so the result can be used directly in an \code{if}. A non-log-normal parameter
+(splice not checked, \code{PASS = NA}) does not make the result \code{FALSE}. The
 per-parameter detail is attached as \code{attr(x, "checks")}: a data frame with
 \code{PARAMETER}, \code{STRUCTURAL} / \code{COVSPLICE} / \code{ETASPLICE} (max relative
-difference for each check) and \code{PASS}. Printing shows the table.
+difference for each check, \code{NA} when skipped) and \code{PASS} (\code{TRUE} / \code{FALSE} /
+\code{NA}). Printing shows the table.
 }
 \description{
 Runs three consistency checks on the function from
@@ -49,16 +51,19 @@ Runs three consistency checks on the function from
 parameter reduces to its structural typical value. The result is
 compared with the SCM-style typical-value function that
 \code{\link[PMXForest:createParamFunction]{PMXForest::createParamFunction()}} generates from the same FREM model.
-\item \strong{Covariate splice.} Multiplying every \code{covthetas[k]} in should
-scale parameter \code{k} by \code{exp(covthetas[k])} and nothing else.
+\item \strong{Covariate splice.} Setting \code{covthetas[k]} should scale parameter
+\code{k} by \code{exp(covthetas[k])} and nothing else.
 \item \strong{Random-effect splice.} Setting \code{etas[numSkipOm + k]} should scale
 parameter \code{k} by \code{exp(etas[numSkipOm + k])} and nothing else - this also
 checks the \code{numSkipOm} offset is right.
 }
-Anything that fails is reported loudly; the return value records the maximum
-relative difference per parameter. Only the FREM \verb{$PK} parameters are
-checked - \code{secondary} parameters (AUC, Cmax, ...) are skipped, as they have
-no structural counterpart or splice to probe.
+Checks 2 and 3 assume the parameter is \strong{log-normal} (\verb{P = C * exp(<linear in ETA>)}). For a parameter whose \verb{$PK} encloses its \code{ETA()} differently -
+additive, logit, \code{exp(THETA * ETA)}, ... - the splice is not \code{exp()} scaling,
+so \code{COVSPLICE} / \code{ETASPLICE} and \code{PASS} are reported as \code{NA} for that
+parameter (the structural check still runs). Anything that actually fails is
+reported loudly. Only the FREM \verb{$PK} parameters are checked - \code{secondary}
+parameters (AUC, Cmax, ...) are skipped, as they have no structural
+counterpart or splice to probe.
 }
 \examples{
 fremModel <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")

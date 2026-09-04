@@ -91,6 +91,10 @@ appended (so \code{getForestDFFREM()} / \code{getExplainedVar()} pick them up).
 \code{\link[=verifyFREMParamFunction]{verifyFREMParamFunction()}} skips these.
 \item \code{fremParameters} - the subset of \code{parameters} that got the covariate
 splice, in order.
+\item \code{fremEtaScale} - named character over \code{fremParameters}: \code{"exp"} when
+the \verb{$PK} line is \verb{C * exp(<linear in ETA>)} (log-normal), \code{"other"}
+otherwise. \code{\link[=verifyFREMParamFunction]{verifyFREMParamFunction()}} uses this to decide whether the
+\code{exp()} splice checks apply.
 \item \code{noBaseThetas} - \code{numNonFREMThetas} (the length of \code{basethetas}).
 \item \code{covRef} - the structural-covariate reference used, with its source.
 \item \code{numParCov} - the number of \code{fremParameters}.
