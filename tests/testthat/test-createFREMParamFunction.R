@@ -287,6 +287,41 @@ test_that("verifyFREMParamFunction ignores secondary parameters", {
   expect_identical(attr(v, "checks")$PARAMETER, c("CL", "V", "MAT"))  # no AUC
 })
 
+test_that("verifyFREMParamFunction rejects an object it did not produce", {
+  expect_error(verifyFREMParamFunction(list(code = "1")),
+               "must be the list returned by createFREMParamFunction")
+  expect_error(verifyFREMParamFunction(42),
+               "must be the list returned by createFREMParamFunction")
+})
+
+test_that("verifyFREMParamFunction derives the extFile from the model when thetas are absent", {
+  out <- createFREMParamFunction(.fremMod(), parameters = c("CL", "V", "MAT"),
+                                 extFile = .fremExt(), quiet = TRUE)
+  # neither `thetas` nor `extFile` supplied: it should find run31.ext beside the model
+  v <- verifyFREMParamFunction(out, quiet = TRUE)
+  expect_true(as.logical(v))
+})
+
+test_that("verifyFREMParamFunction errors when neither thetas nor a usable extFile exist", {
+  td  <- withr::local_tempdir()
+  mod <- file.path(td, "lonely.mod")
+  file.copy(.fremMod(), mod)                         # model copied, no .ext beside it
+  out <- createFREMParamFunction(.fremMod(), parameters = c("CL", "V", "MAT"),
+                                 extFile = .fremExt(), quiet = TRUE)
+  out$fremModel <- mod                               # point at the ext-less copy
+  expect_error(verifyFREMParamFunction(out, quiet = TRUE),
+               "Supply `thetas`, or an `extFile`")
+})
+
+test_that("verifyFREMParamFunction reports each parameter when quiet = FALSE", {
+  out <- createFREMParamFunction(.fremMod(), parameters = c("CL", "V", "MAT"),
+                                 extFile = .fremExt(), quiet = TRUE)
+  expect_message(verifyFREMParamFunction(out, extFile = .fremExt(), quiet = FALSE),
+                 "parameter\\(s\\) pass")
+  expect_message(verifyFREMParamFunction(out, extFile = .fremExt(), quiet = FALSE),
+                 "CL: pass")
+})
+
 # ---------------------------------------------------------------------------
 # secondary parameters
 # ---------------------------------------------------------------------------

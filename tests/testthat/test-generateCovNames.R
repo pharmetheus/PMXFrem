@@ -76,6 +76,48 @@ test_that("generateCovNames maps labels relationally to dfres", {
   expect_equal(as.character(mapped_df$COVNAME[mapped_df$COVNUM == 3]), c("Male", "Male"))
 })
 
+test_that("generateCovNames print_template = TRUE prints the three maps and returns NULL", {
+  df <- data.frame(
+    COVARIATEGROUPS = c("WT", "WT", "SEX"),
+    WT = c(70, 90, -99),
+    SEX = c(-99, -99, 1)
+  )
+  expect_output(
+    out <- generateCovNames(df, print_template = TRUE),
+    "group_map <- c\\("
+  )
+  expect_output(generateCovNames(df, print_template = TRUE), "unit_map <- c\\(")
+  expect_output(generateCovNames(df, print_template = TRUE), "label_map <- c\\(")
+  # the template lists the distinct groups and base strings
+  expect_output(generateCovNames(df, print_template = TRUE), "\"WT=70\"")
+  invisible(utils::capture.output(res <- generateCovNames(df, print_template = TRUE)))
+  expect_null(res)
+})
+
+test_that("generateCovNames applies group_map to GROUPNAME in relational mode", {
+  df <- data.frame(
+    COVARIATEGROUPS = c("WT", "WT", "SEX"),
+    WT = c(70, 90, -99),
+    SEX = c(-99, -99, 1)
+  )
+  dfres_mock <- data.frame(
+    COVNUM    = c(1, 1, 2, 2, 3, 3),
+    PARAMETER = c("CL", "V", "CL", "V", "CL", "V")
+  )
+
+  mapped <- generateCovNames(
+    df,
+    dfres     = dfres_mock,
+    group_map = c(WT = "Body Weight", SEX = "")   # "" is ignored -> stays "SEX"
+  )
+
+  expect_s3_class(mapped$GROUPNAME, "factor")
+  expect_equal(levels(mapped$GROUPNAME), c("Body Weight", "SEX"))
+  expect_equal(as.character(mapped$GROUPNAME[mapped$COVNUM == 1]),
+               c("Body Weight", "Body Weight"))
+  expect_equal(as.character(mapped$GROUPNAME[mapped$COVNUM == 3]), c("SEX", "SEX"))
+})
+
 test_that("generateCovNames strictly enforces COVNUM requirement when dfres is passed", {
   df <- data.frame(
     COVARIATEGROUPS = c("WT"),
