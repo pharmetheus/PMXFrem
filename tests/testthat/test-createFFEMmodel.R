@@ -18,6 +18,23 @@ test_that("createFFEMmodel works", {
   expect_error(createFFEMmodel(baserunno=6))
   expect_error(createFFEMmodel(baseModdName="run6"))
 
+  # parNames validation
+  expect_error(
+    createFFEMmodel(runno = fremRun, modDevDir = modDevDir,
+                    numNonFREMThetas = 7, numSkipOm = 2, parNames = NULL,
+                    dataFile = dataFile, newDataFile = new_data_path,
+                    quiet = TRUE, baserunno = baseRun1),
+    "parNames should specify a vector of names"
+  )
+  expect_error(
+    createFFEMmodel(runno = fremRun, modDevDir = modDevDir,
+                    numNonFREMThetas = 7, numSkipOm = 2,
+                    parNames = c("CL", "V"),          # 2, but numParCov = 3
+                    dataFile = dataFile, newDataFile = new_data_path,
+                    quiet = TRUE, baserunno = baseRun1),
+    "parNames should have the same length as numParCov"
+  )
+
 
   ffemMod1 <- createFFEMmodel(runno              = fremRun,
                               modDevDir          = modDevDir,

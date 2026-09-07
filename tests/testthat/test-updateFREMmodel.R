@@ -492,3 +492,43 @@ test_that("updateFREMmodel stops loudly when the model structure and its .ext di
   expect_error(call_it(), "do not agree")                    # derivation stops
   expect_error(call_it(numNonFREMThetas = 7, numSkipOm = 2), NA)  # explicit overrides
 })
+
+test_that("updateFREMmodel warns that the deprecated sortFREMDataset arg is ignored", {
+  td <- withr::local_tempdir()
+  file.copy(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), td)
+  file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
+  expect_warning(
+    updateFREMmodel(strFREMModel = file.path(td, "run31.mod"),
+                    numNonFREMThetas = 7, numSkipOm = 2,
+                    bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE,
+                    strUpdateType = "NoData", sortFREMDataset = TRUE),
+    "sortFREMDataset` argument is deprecated"
+  )
+})
+
+test_that("updateFREMmodel announces the derived counts when quiet = FALSE", {
+  td <- withr::local_tempdir()
+  file.copy(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), td)
+  file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
+  expect_message(
+    updateFREMmodel(strFREMModel = file.path(td, "run31.mod"),
+                    bWriteData = FALSE, bWriteMod = FALSE, quiet = FALSE,
+                    strUpdateType = "NoData"),
+    "numNonFREMThetas = 7, numSkipOm = 2 \\(derived from run31.mod\\)"
+  )
+})
+
+test_that("updateFREMmodel errors when the FFEM dataset cannot be found", {
+  td <- withr::local_tempdir()
+  file.copy(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), td)
+  file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
+  expect_error(
+    updateFREMmodel(strFREMModel = file.path(td, "run31.mod"),
+                    strFREMData  = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
+                    strFFEMData  = file.path(td, "does-not-exist.csv"),
+                    cstrRemoveCov = "SEX",
+                    numNonFREMThetas = 7, numSkipOm = 2,
+                    bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE),
+    "Cannot find FFEM dataset"
+  )
+})

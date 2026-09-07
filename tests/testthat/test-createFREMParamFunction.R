@@ -61,6 +61,62 @@ test_that("numSkipOm / numNonFREMThetas are derived, or validated when given", {
   expect_true(any(grepl("was expected for numSkipOm = 1", w)))
 })
 
+test_that("createFREMParamFunction warns when a kept $PK statement references a THETA beyond numNonFREMThetas", {
+  # MAT depends on MATFOOD, which uses THETA(6); force numNonFREMThetas = 4 so
+  # that index sits outside the structural theta block.
+  w <- capture_warnings(
+    createFREMParamFunction(.fremMod(), parameters = "MAT",
+                            numNonFREMThetas = 4, numSkipOm = 2,
+                            extFile = .fremExt(), quiet = TRUE)
+  )
+  expect_true(any(grepl("references THETA\\(6\\), beyond .*numNonFREMThetas = 4", w)))
+})
+
+test_that("createFREMParamFunction errors when the counts can't be derived (no ext, no dfext)", {
+  td  <- withr::local_tempdir()
+  mod <- file.path(td, "lonely.mod")
+  file.copy(.fremMod(), mod)                        # model copied, .ext deliberately not
+  expect_error(
+    createFREMParamFunction(mod, parameters = c("CL", "V", "MAT"), quiet = TRUE),
+    "Need `numSkipOm` and `numNonFREMThetas`, or an ext"
+  )
+})
+
+test_that("createFREMParamFunction resolves the model from runno / modDevDir", {
+  out <- createFREMParamFunction(runno = 31,
+                                 modDevDir = system.file("extdata/SimNeb/", package = "PMXFrem"),
+                                 parameters = c("CL", "V", "MAT"), quiet = TRUE)
+  ref <- createFREMParamFunction(.fremMod(), parameters = c("CL", "V", "MAT"),
+                                 extFile = .fremExt(), quiet = TRUE)
+  expect_identical(out$code, ref$code)
+})
+
+test_that("createFREMParamFunction writes the source to `file` and reports it when quiet = FALSE", {
+  f <- withr::local_tempfile(fileext = ".R")
+  expect_message(
+    out <- createFREMParamFunction(.fremMod(), parameters = c("CL", "V", "MAT"),
+                                   extFile = .fremExt(), file = f, quiet = FALSE),
+    "Written to "
+  )
+  expect_true(file.exists(f))
+  expect_identical(readLines(f), as.character(out$code))
+})
+
+test_that("createFREMParamFunction quiet = FALSE narrates the translation and covariate references", {
+  expect_message(
+    createFREMParamFunction(.fremMod(), parameters = c("CL", "V", "MAT"),
+                            extFile = .fremExt(), quiet = FALSE),
+    "Translated \\$PK of run31.mod for FREM"
+  )
+})
+
+test_that("print.pmxFREMParamFunction echoes the generated source", {
+  out <- createFREMParamFunction(.fremMod(), parameters = c("CL", "V", "MAT"),
+                                 extFile = .fremExt(), quiet = TRUE)
+  expect_s3_class(out$code, "pmxFREMParamFunction")
+  expect_output(print(out$code), "function\\(")
+})
+
 test_that("createFREMParamFunction validates its arguments", {
   expect_error(
     createFREMParamFunction(.fremMod(), parameters = character(0),
