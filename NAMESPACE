@@ -3,6 +3,8 @@
 S3method(print,pmxFREMParamFunction)
 S3method(print,pmxFREMVerify)
 export(addFREMcovariates)
+export(addFremIIV)
+export(addFremStructuralTheta)
 export(calcEtas)
 export(calcFFEM)
 export(calcFremShrinkage)

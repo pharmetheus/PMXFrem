@@ -275,6 +275,8 @@ updateFREMmodel(
 }
 \seealso{
 Other FREM model management: 
+\code{\link{addFremIIV}()},
+\code{\link{addFremStructuralTheta}()},
 \code{\link{createFREMmodel}()}
 }
 \concept{FREM model management}
