@@ -16,27 +16,50 @@
 #' The existing `.ext` / `.phi` are **not** migrated - the model must be
 #' re-estimated. Only the control stream is rewritten.
 #'
-#' When `addEta = TRUE` a new `$PK` definition for `parameter` is inserted just
-#' before the FREM `MU_k = THETA(...)` block:
+#' Whether `parameter` already exists in `$PK` decides what happens:
+#'
+#' **A new parameter** (no `$PK` assignment) gets a definition inserted just
+#' before the FREM `MU_k = THETA(...)` block, delimited by
+#' `;; Begin added THETA` / `;; End added THETA` so it is visually separate from
+#' the FREM covariate block. With `j = numNonFREMThetas + 1` (the new theta) and
+#' `k = numSkipOm + 1` (the new eta):
 #' \describe{
-#'   \item{`muReference = TRUE`}{`MU_<k> = THETA(<j>)` then
-#'     `<parameter> = EXP(MU_<k> + ETA(<k>))` (log-normal, MU-referenced - the
-#'     FREM convention).}
-#'   \item{`muReference = FALSE`}{`<parameter> = THETA(<j>) * EXP(ETA(<k>))`
-#'     (log-normal, no MU line).}
+#'   \item{`addEta = TRUE`, `muReference = TRUE`}{`TV<parameter> = THETA(<j>)`,
+#'     `MU_<k> = LOG(TV<parameter>)`, `<parameter> = EXP(MU_<k> + ETA(<k>))` -
+#'     log-normal and MU-referenced, the form the FREM models themselves use for
+#'     `CL` / `V` / `MAT`.}
+#'   \item{`addEta = TRUE`, `muReference = FALSE`}{`<parameter> = THETA(<j>) *
+#'     EXP(ETA(<k>))` (log-normal, no MU line).}
+#'   \item{`addEta = FALSE`}{`<parameter> = THETA(<j>)` - a structural parameter
+#'     with no between-subject variability.}
 #' }
-#' where `j = numNonFREMThetas + 1` (the new theta) and `k = numSkipOm + 1` (the
-#' new eta). With `addEta = FALSE` only the `$THETA` record is added; if
-#' `parameter` is given its `$PK` line gets a `* THETA(<j>)` factor, otherwise
-#' the caller wires the new theta in by hand.
+#'
+#' **An existing parameter** is modified in place instead: its `$PK` assignment
+#' gains a `* THETA(<j>)` factor, and with `addEta = TRUE` also an
+#' `* EXP(ETA(<k>))` term. Nothing is inserted, so no markers appear.
+#'
+#' The MU-referenced form deliberately goes through `TV<parameter>` rather than
+#' writing `MU_<k> = THETA(<j>)` directly. [generateFremModel()] locates the
+#' FREM block as everything from the first `MU_<n> = THETA(` line to the last
+#' `COV<n> = MU_` line and regenerates it; a direct `MU_<k> = THETA(<j>)` here
+#' would match that pattern, and being *before* the FREM block would move the
+#' start of the replaced range - so a later [updateFREMmodel()] would silently
+#' delete this definition. The `LOG(TV...)` form cannot collide.
+#'
+#' Markers are only ever placed in `$PK`, never in `$THETA` / `$OMEGA`, where
+#' `generateFremModel()` reads comments positionally and a standalone comment
+#' line would shift every subsequent parameter label.
 #'
 #' @param strFREMModel Path to the FREM model file, or a character vector of its
 #'   lines.
 #' @param thetaInit Initial value for the new `$THETA`. Required - a scalar
 #'   (e.g. `0.1`), a length-3 numeric `c(low, init, up)`, or a string written
 #'   verbatim after `$THETA` (e.g. `"(0, 1.2)"` or `"0.5 FIX"`).
-#' @param parameter Name of the `$PK` variable the new theta belongs to.
-#'   Required when `addEta = TRUE`; optional otherwise.
+#' @param parameter Name of the `$PK` variable the new theta belongs to. If it
+#'   has no `$PK` assignment yet a definition is created for it; if it already
+#'   exists, that assignment is modified in place. Required when
+#'   `addEta = TRUE`; optional otherwise (with no `parameter` only the `$THETA`
+#'   record is added and the caller wires it in by hand).
 #' @param addEta Logical. Also add an accompanying IIV (via [addFremIIV()])?
 #'   Default `FALSE`.
 #' @param muReference Logical. Only used when `addEta = TRUE` - see Details.
@@ -143,12 +166,17 @@ addFremStructuralTheta <- function(strFREMModel,
   numNonFREMThetas <- jNew
   etaIndex <- NA_integer_
 
+  ## Does `parameter` already exist in $PK? That decides whether we are
+  ## *creating* a new structural parameter (emit a definition block) or
+  ## *modifying* an existing one (edit its assignment in place).
+  isNew <- !is.null(parameter) && !.fremPkAssigns(lines, parameter)
+
   ## ---- optionally add the IIV + wire it in ---------------------------
   if (addEta) {
     iiv <- addFremIIV(lines,
-                      parameter        = NULL,
+                      parameter        = if (isNew) NULL else parameter,
                       omegaInit        = omegaInit,
-                      link             = "none",
+                      link             = if (isNew) "none" else "exp",
                       numNonFREMThetas = numNonFREMThetas,
                       numSkipOm        = numSkipOm,
                       label            = paste0("IIV on ", parameter),
@@ -158,13 +186,31 @@ addFremStructuralTheta <- function(strFREMModel,
     etaIndex  <- iiv$etaIndex
     numSkipOm <- iiv$numSkipOm
 
-    pkDef <- if (muReference) {
-      c(sprintf("MU_%d = THETA(%d)", etaIndex, jNew),
-        sprintf("%s = EXP(MU_%d + ETA(%d))", parameter, etaIndex, etaIndex))
+    if (isNew) {
+      ## House style, as run31 writes CL/V/MAT:
+      ##   TV<par> = THETA(j) ; MU_k = LOG(TV<par>) ; <par> = EXP(MU_k + ETA(k))
+      ## Emitting `MU_k = THETA(j)` directly would match the
+      ## `MU_\d+ = THETA` grep that generateFremModel() uses to locate the FREM
+      ## block, and - sitting before that block - would make min(mu_indices)
+      ## point here, so a later updateFREMmodel() would splice this definition
+      ## away. The LOG(TV) form cannot collide.
+      pkDef <- if (muReference) {
+        c(sprintf("TV%s = THETA(%d)", parameter, jNew),
+          sprintf("MU_%d = LOG(TV%s)", etaIndex, parameter),
+          sprintf("%s = EXP(MU_%d + ETA(%d))", parameter, etaIndex, etaIndex))
+      } else {
+        sprintf("%s = THETA(%d) * EXP(ETA(%d))", parameter, jNew, etaIndex)
+      }
+      lines <- .fremInsertPkBlock(lines, pkDef)
     } else {
-      sprintf("%s = THETA(%d) * EXP(ETA(%d))", parameter, jNew, etaIndex)
+      ## existing parameter: addFremIIV() already attached the ETA; add the
+      ## new THETA as a factor on the same assignment.
+      lines <- .fremAttachEta_thetaFactor(lines, parameter = parameter,
+                                          thetaIdx = jNew)
     }
-    lines <- .fremInsertBeforeFremMuBlock(lines, pkDef)
+  } else if (isNew) {
+    ## A new structural parameter with no IIV.
+    lines <- .fremInsertPkBlock(lines, sprintf("%s = THETA(%d)", parameter, jNew))
   } else if (!is.null(parameter)) {
     lines <- .fremAttachEta_thetaFactor(lines, parameter = parameter, thetaIdx = jNew)
   }
@@ -268,6 +314,37 @@ addFremStructuralTheta <- function(strFREMModel,
 }
 
 
+#' Is `parameter` assigned anywhere in the model's $PK record?
+#' @keywords internal
+#' @noRd
+.fremPkAssigns <- function(lines, parameter) {
+  recStart <- grep("^\\s*\\$[A-Za-z]", lines)
+  pkStart  <- recStart[grepl("^\\s*\\$PK\\b", lines[recStart], ignore.case = TRUE)]
+  if (length(pkStart) == 0L) return(FALSE)
+  pkEnd <- recStart[recStart > pkStart[1]]
+  pkEnd <- if (length(pkEnd)) pkEnd[1] - 1L else length(lines)
+  pat   <- sprintf("^\\s*%s\\s*=", .fremEscape(parameter))
+  any(grepl(pat, lines[pkStart[1]:pkEnd]))
+}
+
+
+#' Insert a delimited block of $PK lines before the FREM MU/COV block
+#'
+#' Wrapped in `;; Begin added THETA` / `;; End added THETA` so the addition is
+#' visually separated from the FREM covariate block, and followed by a blank
+#' line. Markers are only ever placed in `$PK` - never in `$THETA` / `$OMEGA`,
+#' where `generateFremModel()` reads comments positionally and a standalone
+#' comment line would shift every subsequent label (see TODO T16).
+#' @keywords internal
+#' @noRd
+.fremInsertPkBlock <- function(lines, newLines) {
+  .fremInsertBeforeFremMuBlock(
+    lines,
+    c(";; Begin added THETA", newLines, ";; End added THETA", "")
+  )
+}
+
+
 #' Insert lines into $PK immediately before the first `MU_k = THETA(...)` FREM line
 #' @keywords internal
 #' @noRd
@@ -282,7 +359,9 @@ addFremStructuralTheta <- function(strFREMModel,
   a    <- anchor[1]
   pad  <- sub("\\S.*$", "", lines[a])          # match the anchor's indentation
   at   <- a - 1L
-  c(lines[seq_len(at)], paste0(pad, newLines), lines[(at + 1L):length(lines)])
+  # do not pad blank separator lines into whitespace-only lines
+  padded <- ifelse(nzchar(newLines), paste0(pad, newLines), newLines)
+  c(lines[seq_len(at)], padded, lines[(at + 1L):length(lines)])
 }
 
 

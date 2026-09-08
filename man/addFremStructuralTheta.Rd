@@ -28,8 +28,11 @@ lines.}
 (e.g. \code{0.1}), a length-3 numeric \code{c(low, init, up)}, or a string written
 verbatim after \verb{$THETA} (e.g. \code{"(0, 1.2)"} or \code{"0.5 FIX"}).}
 
-\item{parameter}{Name of the \verb{$PK} variable the new theta belongs to.
-Required when \code{addEta = TRUE}; optional otherwise.}
+\item{parameter}{Name of the \verb{$PK} variable the new theta belongs to. If it
+has no \verb{$PK} assignment yet a definition is created for it; if it already
+exists, that assignment is modified in place. Required when
+\code{addEta = TRUE}; optional otherwise (with no \code{parameter} only the \verb{$THETA}
+record is added and the caller wires it in by hand).}
 
 \item{addEta}{Logical. Also add an accompanying IIV (via \code{\link[=addFremIIV]{addFremIIV()}})?
 Default \code{FALSE}.}
@@ -78,19 +81,38 @@ between-subject variability in one step.
 The existing \code{.ext} / \code{.phi} are \strong{not} migrated - the model must be
 re-estimated. Only the control stream is rewritten.
 
-When \code{addEta = TRUE} a new \verb{$PK} definition for \code{parameter} is inserted just
-before the FREM \code{MU_k = THETA(...)} block:
+Whether \code{parameter} already exists in \verb{$PK} decides what happens:
+
+\strong{A new parameter} (no \verb{$PK} assignment) gets a definition inserted just
+before the FREM \code{MU_k = THETA(...)} block, delimited by
+\verb{;; Begin added THETA} / \verb{;; End added THETA} so it is visually separate from
+the FREM covariate block. With \code{j = numNonFREMThetas + 1} (the new theta) and
+\code{k = numSkipOm + 1} (the new eta):
 \describe{
-\item{\code{muReference = TRUE}}{\verb{MU_<k> = THETA(<j>)} then
-\verb{<parameter> = EXP(MU_<k> + ETA(<k>))} (log-normal, MU-referenced - the
-FREM convention).}
-\item{\code{muReference = FALSE}}{\verb{<parameter> = THETA(<j>) * EXP(ETA(<k>))}
-(log-normal, no MU line).}
+\item{\code{addEta = TRUE}, \code{muReference = TRUE}}{\verb{TV<parameter> = THETA(<j>)},
+\verb{MU_<k> = LOG(TV<parameter>)}, \verb{<parameter> = EXP(MU_<k> + ETA(<k>))} -
+log-normal and MU-referenced, the form the FREM models themselves use for
+\code{CL} / \code{V} / \code{MAT}.}
+\item{\code{addEta = TRUE}, \code{muReference = FALSE}}{\verb{<parameter> = THETA(<j>) * EXP(ETA(<k>))} (log-normal, no MU line).}
+\item{\code{addEta = FALSE}}{\verb{<parameter> = THETA(<j>)} - a structural parameter
+with no between-subject variability.}
 }
-where \code{j = numNonFREMThetas + 1} (the new theta) and \code{k = numSkipOm + 1} (the
-new eta). With \code{addEta = FALSE} only the \verb{$THETA} record is added; if
-\code{parameter} is given its \verb{$PK} line gets a \verb{* THETA(<j>)} factor, otherwise
-the caller wires the new theta in by hand.
+
+\strong{An existing parameter} is modified in place instead: its \verb{$PK} assignment
+gains a \verb{* THETA(<j>)} factor, and with \code{addEta = TRUE} also an
+\verb{* EXP(ETA(<k>))} term. Nothing is inserted, so no markers appear.
+
+The MU-referenced form deliberately goes through \verb{TV<parameter>} rather than
+writing \verb{MU_<k> = THETA(<j>)} directly. \code{\link[=generateFremModel]{generateFremModel()}} locates the
+FREM block as everything from the first \verb{MU_<n> = THETA(} line to the last
+\verb{COV<n> = MU_} line and regenerates it; a direct \verb{MU_<k> = THETA(<j>)} here
+would match that pattern, and being \emph{before} the FREM block would move the
+start of the replaced range - so a later \code{\link[=updateFREMmodel]{updateFREMmodel()}} would silently
+delete this definition. The \code{LOG(TV...)} form cannot collide.
+
+Markers are only ever placed in \verb{$PK}, never in \verb{$THETA} / \verb{$OMEGA}, where
+\code{generateFremModel()} reads comments positionally and a standalone comment
+line would shift every subsequent parameter label.
 }
 \seealso{
 \code{\link[=addFremIIV]{addFremIIV()}}, \code{\link[=updateFREMmodel]{updateFREMmodel()}}

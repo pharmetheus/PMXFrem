@@ -131,11 +131,15 @@ test_that("addFremStructuralTheta with addEta + muReference wires MU_k = THETA(j
   expect_equal(res$numSkipOm, 3L)
 
   pk <- paste(.pkErr(res$model), collapse = "\n")
-  expect_match(pk, "MU_3 = THETA\\(8\\)")
+  # house style, as run31 writes CL/V/MAT: TV<par> / MU_k = LOG(TV<par>) / EXP()
+  expect_match(pk, "TVKANEW = THETA\\(8\\)")
+  expect_match(pk, "MU_3 = LOG\\(TVKANEW\\)")
   expect_match(pk, "KANEW = EXP\\(MU_3 \\+ ETA\\(3\\)\\)")
-  # the MU_3 = THETA(8) line comes before the FREM MU block
-  li  <- res$model
-  expect_lt(grep("MU_3 = THETA\\(8\\)", li), min(grep("MU_7 = THETA\\(9\\)", li)))
+  # the added block is delimited and sits before the FREM MU block
+  li <- res$model
+  expect_lt(grep(";; Begin added THETA", li), min(grep("MU_7 = THETA\\(9\\)", li)))
+  expect_length(grep(";; Begin added THETA", li), 1L)
+  expect_length(grep(";; End added THETA", li), 1L)
   # new $OMEGA for the IIV, before BLOCK(21)
   om <- grep("^\\s*\\$OMEGA", li, value = TRUE)
   expect_match(om[3], "0\\.09\\b.*IIV on KANEW")
@@ -145,6 +149,27 @@ test_that("addFremStructuralTheta with addEta + muReference wires MU_k = THETA(j
   expect_equal(.maxIdx(li, "THETA"), 26L)
 })
 
+test_that("the added definition survives generateFremModel()'s FREM-block splice", {
+  # generateFremModel() locates the FREM block as
+  #   min(grep("MU_\\d+ = THETA")) .. max(grep("COV\\d+ = MU_"))
+  # and replaces that whole range. Emitting `MU_k = THETA(j)` for the added
+  # parameter would match that grep, and - sitting before the FREM block - would
+  # make min() point at it, so a later updateFREMmodel() would splice the new
+  # parameter away. The LOG(TV) house-style form must not collide.
+  td <- withr::local_tempdir()
+  for (mu in c(TRUE, FALSE)) {
+    res <- addFremStructuralTheta(.run31(td), thetaInit = c(0, 0.5, 10),
+                                  parameter = "KANEW", addEta = TRUE,
+                                  muReference = mu, omegaInit = 0.09,
+                                  quiet = TRUE, bWriteMod = FALSE)
+    li  <- res$model
+    spliceFrom <- min(grep("MU_\\d+ = THETA", li))
+    spliceTo   <- max(grep("COV\\d+ = MU_", li))
+    expect_match(li[spliceFrom], "MU_7 = THETA\\(9\\)")            # the FREM block
+    expect_false(any(grepl("KANEW", li[spliceFrom:spliceTo])))     # not inside it
+  }
+})
+
 test_that("addFremStructuralTheta with addEta + muReference = FALSE emits a single-line def", {
   td  <- withr::local_tempdir()
   res <- addFremStructuralTheta(.run31(td), thetaInit = 0.5, parameter = "KANEW",
@@ -152,7 +177,30 @@ test_that("addFremStructuralTheta with addEta + muReference = FALSE emits a sing
                                 omegaInit = 0.09, quiet = TRUE)
   pk <- paste(.pkErr(res$model), collapse = "\n")
   expect_match(pk, "KANEW = THETA\\(8\\) \\* EXP\\(ETA\\(3\\)\\)")
-  expect_no_match(pk, "MU_3 = THETA\\(8\\)")
+  expect_no_match(pk, "MU_3 = ")
+})
+
+test_that("addEta = FALSE defines a new parameter rather than erroring", {
+  td  <- withr::local_tempdir()
+  res <- addFremStructuralTheta(.run31(td), thetaInit = c(0, 0.5, 10),
+                                parameter = "KANEW", addEta = FALSE, quiet = TRUE)
+  pk <- paste(.pkErr(res$model), collapse = "\n")
+  expect_match(pk, ";; Begin added THETA")
+  expect_match(pk, "KANEW = THETA\\(8\\)")
+  expect_true(is.na(res$etaIndex))
+  expect_equal(res$numSkipOm, 2L)          # no eta added
+  expect_equal(res$numNonFREMThetas, 8L)
+})
+
+test_that("an existing $PK parameter is modified in place, not redefined", {
+  td  <- withr::local_tempdir()
+  # FREL already exists in run31's $PK
+  res <- addFremStructuralTheta(.run31(td), thetaInit = 0.5, parameter = "FREL",
+                                addEta = FALSE, quiet = TRUE)
+  li <- res$model
+  expect_length(grep("^\\s*FREL\\s*=", li), 1L)          # still one assignment
+  expect_match(grep("^\\s*FREL\\s*=", li, value = TRUE), "THETA\\(8\\)")
+  expect_length(grep(";; Begin added THETA", li), 0L)    # nothing inserted
 })
 
 test_that("addFremStructuralTheta validates its inputs", {
