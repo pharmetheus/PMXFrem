@@ -71,15 +71,24 @@ generateFremModel <- function(final_df,
     }
   }
   
-  # Override with inline comments if they exist
+  # Override with inline comments if they exist.
+  #
+  # Advance the index by the number of THETA *values* a line actually carries,
+  # not by one per line. Counting lines assumes exactly one theta per line, so a
+  # standalone comment, a blank line, or a multi-value record ($THETA 1 2 3)
+  # silently shifted every later label onto the wrong parameter. A line with no
+  # values contributes nothing and keeps its generated default.
   th_lines <- safeFindRecord(line, "\\$THETA", replace = NULL)
   idx <- 1
   for (th_l in th_lines) {
     if (idx > iNumTHETA) break
-    if (grepl(";", th_l)) {
-      theta_comment[idx] <- paste0(" ; ", trimws(sub("^[^;]*;\\s*", "", th_l)))
+    n <- .fremCountThetaValues(th_l)
+    if (n > 0L) {
+      if (grepl(";", th_l)) {
+        theta_comment[idx] <- paste0(" ; ", trimws(sub("^[^;]*;\\s*", "", th_l)))
+      }
+      idx <- idx + n
     }
-    idx <- idx + 1
   }
   
   # --- Robust OMEGA Comment Extraction & Mapping ---
@@ -93,15 +102,47 @@ generateFremModel <- function(final_df,
     }
   }
   
-  in_omega <- FALSE
-  idx <- 1
+  # Advance on lines that actually carry OMEGA values, not on lines that merely
+  # contain a ";". Keying off the comment assumed every omega is commented and
+  # that nothing else in the record is: a standalone note consumed a slot and
+  # pushed every later label down, while an uncommented omega failed to consume
+  # one and pushed them up. A value line with no comment now keeps its generated
+  # default and still advances, so alignment holds either way.
+  in_omega  <- FALSE
+  in_block  <- FALSE
+  idx       <- 1L
+  blockVals <- 0L   # values seen so far in the current BLOCK
+  blockRows <- 0L   # complete lower-triangular rows those values make up
   for (l in line) {
-    if (grepl("^\\s*\\$[A-Za-z]+", l)) in_omega <- grepl("^\\s*\\$OMEGA", l, ignore.case = TRUE)
-    if (in_omega && grepl(";", l)) {
-      if (idx <= iNumOM) {
-        om_comment[idx] <- paste0(" ; ", trimws(sub("^[^;]*;\\s*", "", l)))
-        idx <- idx + 1
+    isRecord <- grepl("^\\s*\\$[A-Za-z]+", l)
+    if (isRecord) {
+      in_omega  <- grepl("^\\s*\\$OMEGA", l, ignore.case = TRUE)
+      in_block  <- in_omega && grepl("BLOCK\\s*\\(", l, ignore.case = TRUE)
+      blockVals <- 0L
+      blockRows <- 0L
+    }
+    if (!in_omega || idx > iNumOM) next
+    n <- .fremCountOmegaValues(l)
+    if (n == 0L) next
+    cmt <- if (grepl(";", l)) paste0(" ; ", trimws(sub("^[^;]*;\\s*", "", l))) else NA_character_
+
+    if (in_block) {
+      # A block row may wrap over several physical lines, and only the last of
+      # them carries the comment - so rows cannot be counted by line. Row j of a
+      # lower-triangular block holds j values, so j(j+1)/2 values complete row j;
+      # invert that to see how many rows the values so far account for.
+      blockVals <- blockVals + n
+      newRows   <- as.integer(floor((sqrt(8 * blockVals + 1) - 1) / 2))
+      done      <- newRows - blockRows
+      if (done > 0L) {
+        # the comment on the line that *completes* a row labels that row
+        if (!is.na(cmt) && idx + done - 1L <= iNumOM) om_comment[idx + done - 1L] <- cmt
+        idx       <- idx + done
+        blockRows <- newRows
       }
+    } else {
+      if (!is.na(cmt)) om_comment[idx] <- cmt
+      idx <- idx + n
     }
   }
   
@@ -229,4 +270,33 @@ generateFremModel <- function(final_df,
   }
   
   return(line)
+}
+
+#' Count the parameter values a $THETA line carries
+#'
+#' Comment text, the `$THETA` keyword and `FIX` / `FIXED` flags are stripped;
+#' a bounded record `(low, init, up)` counts as one value.
+#' @keywords internal
+#' @noRd
+.fremCountThetaValues <- function(l) {
+  b <- sub(";.*$", "", l)
+  b <- sub("^\\s*\\$THETA\\b", "", b, ignore.case = TRUE)
+  b <- gsub("\\bFIXED?\\b", "", b, ignore.case = TRUE)
+  length(regmatches(b, gregexpr("\\([^)]*\\)|[-+]?[0-9.][-+0-9.eE]*", b))[[1]])
+}
+
+
+#' Count the numeric values an $OMEGA line carries
+#'
+#' Comment text, the `$OMEGA` keyword, `BLOCK(k)` / `DIAGONAL(k)` sizes and the
+#' option flags are stripped, so the `k` of a `BLOCK(k)` header is never counted
+#' as a value.
+#' @keywords internal
+#' @noRd
+.fremCountOmegaValues <- function(l) {
+  b <- sub(";.*$", "", l)
+  b <- sub("^\\s*\\$OMEGA\\b", "", b, ignore.case = TRUE)
+  b <- gsub("BLOCK\\s*\\([^)]*\\)|DIAGONAL\\s*\\([^)]*\\)", "", b, ignore.case = TRUE)
+  b <- gsub("\\b(FIXED?|SAME|VALUES|CORRELATION|CHOLESKY|STANDARD)\\b", "", b, ignore.case = TRUE)
+  length(regmatches(b, gregexpr("[-+]?[0-9.][-+0-9.eE]*", b))[[1]])
 }

@@ -66,67 +66,74 @@ failure  renameVignettes2            2026-06-01
 ```
 
 This is the package's only real code check, so merges into `main` currently
-carry no automated verification at all. Two things to sort out:
+carry no automated verification at all.
 
-1. **Why it fails.** Not yet diagnosed; the GitHub log API truncates before the
-   failing step, so it needs looking at in the web UI or by reproducing the job
-   steps locally (`make test`, `styler`, `lintr@3.0.2`, `R CMD check`).
-2. **Dependency resolution.** `ci.yml:128` installs `pharmetheus/PMXForest` -
-   the *public* repo's default branch. Anything depending on unreleased
-   PMXForest work (e.g. `oneHotEncode()`, on `epic/v1.3.0` / 1.2.15.9007) will
-   fail there once `epic/2.1.1` opens a PR into `main`. Same class of problem as
-   `pkgdown.yml`, which reads `rpkgs.pmx.one/r4.2-*/latest` and so pulled
-   PMXForest 1.2.15 rather than the 1.2.15.9007 published to the *development*
-   source.
+Diagnosed on run `34234687979`. Note `gh run view --log` truncates before the
+failing step; the complete logs come from the zip endpoint:
+`gh api repos/<owner>/<repo>/actions/runs/<id>/logs > logs.zip`.
+
+Three independent failures, best fixed as separate PRs **in this order** (the
+styler pass reformats everything, so it must not be tangled with real edits):
+
+1. **`check-r-package` — `2 ERRORs, 5 WARNINGs, 6 NOTEs`.** Both ERRORs are one
+   line: the `calcFFEM` example uses `%>%` with nothing exporting it —
+   `dfPhi <- getPhi(phiFile) %>% select(starts_with("ETA"))` →
+   `could not find function "%>%"`. Add `library(dplyr)` to the example (or use
+   `|>`). Cheap WARNINGs worth taking at the same time: `::` imports not
+   declared (`PhRame`, `tidyr`); `readr` in Imports but unused; missing Rd links
+   (`getFileName`, apparently a typo for `getFileNames`, and `add_stamp` /
+   `ggplot2::ggsave` in `plotExplainedVar.Rd`); codoc mismatches where the man
+   pages are stale against `R/` (`getExplainedVar` gained `missVal` in code but
+   not in docs).
+2. **`format-check` — styler wants to reformat 93 files.** 43 `R/` files, ~38
+   test files, 8 vignettes, `README.Rmd`, even `SimNeb/bs31.dir/.Rprofile`. The
+   diffs are trivial whitespace (trailing spaces in roxygen), i.e. the check was
+   added after the code was written and never run. One `styler::style_pkg()`
+   commit fixes it, but it must be its own PR or it buries everything else.
+3. **`unit-test` — 4 snapshot failures** (`FAIL 4 | WARN 0 | SKIP 1 | PASS 604`),
+   not crashes: `test-fremParameterTable.R:117,137` (RSE %, e.g. 1.67→1.30,
+   45.0→43.8) and `test-getForestDFFREM.R:47,72` (POINT / quantiles differing in
+   the 3rd-4th significant figure), all under variant `4.2.2`. Both areas are
+   driven by `PMXForest::getSamples()` bootstrap sampling. **Suspected but not
+   proven:** the PMXForest version CI installs differs from the one the
+   snapshots were recorded against — the dev line changed `getSamples()` (the
+   SIR `raw_results` fix explicitly changes which parameter vectors come back).
+   Confirm the cause before re-recording, or the wrong dependency gets baked in;
+   this may be blocked on the dependency question below rather than fixable
+   inside PMXFrem.
+
+**Dependency resolution (separate, and it gates item 3).** `ci.yml:128` installs
+`pharmetheus/PMXForest` - the *public* repo's default branch. Anything depending
+on unreleased PMXForest work (e.g. `oneHotEncode()`, on `epic/v1.3.0` /
+1.2.15.9007) will fail there once `epic/2.1.1` opens a PR into `main`. Same
+class of problem as `pkgdown.yml`, which reads `rpkgs.pmx.one/r4.2-*/latest` and
+so pulled PMXForest 1.2.15 rather than the 1.2.15.9007 published to the
+*development* source.
 
 Note `ci.yml` only triggers on `pull_request` into `main`, so PRs into an epic
 branch are checked by `build-pkgdown` alone.
 
-## T16 — `generateFremModel()` should not trust user-written comments
-
-`generateFremModel()` computes **correct** `$THETA` / `$OMEGA` labels from
-`basenames_th` / `basenames_om` / `covnames$covNames`
-(`generateFremModel.R:63-72`, `85-94`) and then immediately **throws them away**,
-overwriting each one with whatever comment text happens to sit on the
-corresponding line of the input model (`73-83`, `96-106`). The re-emitted model
-therefore inherits the user's comments verbatim, including any that are stale
-or wrong.
-
-The two override loops are positional, and they break in **opposite**
-directions under ordinary formatting variation:
-
-- **`$THETA` (76-83):** `idx` increments for **every line** of the record, so it
-  assumes exactly one theta per line. A blank line, a standalone comment, or a
-  multi-value record (`$THETA 1 2 3`) misaligns every label after it.
-- **`$OMEGA` (96-106):** `idx` increments **only for lines containing `;`**, so
-  it assumes every omega carries a comment and nothing else in the region does.
-  A standalone note inside `$OMEGA` consumes a slot and shifts every later label
-  down; an omega with no comment shifts them up.
-
-Nothing parses these labels back (they are only pasted onto output lines at
-`190` / `202`), so today this is **cosmetic** - but they are what a human reads
-in the regenerated control stream, and they are wrong in a way that looks
-authoritative. There is no warning.
-
-Options:
-
-1. Drop the override entirely and always emit the generated labels - they are
-   already computed and are correct by construction.
-2. Keep the override but only accept a trailing comment on a line that actually
-   carries a parameter value, ignoring standalone comment lines and counting
-   values rather than lines.
-3. Leave as is and document the "one parameter per line, each commented"
-   assumption.
-
-Related: `addFremIIV()` / `addFremStructuralTheta()` (PR #62) insert a record in
-the middle of the block and leave the following `; N.` numbers stale for exactly
-this reason. Option 1 or 2 makes that self-correcting.
+Related, found while reading the same code: `plotExplainedVar()` calls
+`PhRame::add_stamp()` (`R/plotExplainedVar.R`) on its `add.stamp = TRUE` path,
+and `PhRame` is neither in `Imports` nor publicly installable - so that path can
+only error. Same category as the `save.script` block removed in v1.2.11.
 
 ---
 
 ## Done
 
 - **T5** — direct `getCovNames(createFREMmodel() output)` test — PR #40 (merged).
+- **T16** — `generateFremModel()` comment alignment. Kept the override (a
+  user's `; 3. IIV on CL` is better than the generated `BSV_BASE3` fallback)
+  but made the positional mapping robust: `$THETA` advances by the number of
+  values a line carries rather than one per line, and `$OMEGA` advances on
+  lines carrying values rather than on lines containing a `;`. Block rows are
+  counted by triangular number, not by line, because a row may wrap over
+  several physical lines with the comment only on the last — the case run31
+  itself exercises from `BSV_RACEL_3` on. A standalone note, an uncommented
+  record or a multi-value record no longer shifts every later label.
+  Well-formed input is unaffected (the round-trip and wrapped-row tests pass
+  against both the old and the new code).
 - **T3 / T4** — `addFremIIV()` and `addFremStructuralTheta()`, PR #62 (merged).
   Insert-in-place with a full `ETA` / `MU_` / `COV` / `THETA` renumber pass;
   `numSkipOm` / `numNonFREMThetas` derived via `fremModelInfo()`; `thetaInit` /
