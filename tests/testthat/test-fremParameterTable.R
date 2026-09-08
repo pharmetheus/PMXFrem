@@ -206,13 +206,25 @@ test_that("fremParameterTable produces a CI column when uncertainty = 'CI'", {
   )
 
   expect_true("90% CI" %in% names(res$parameterTable))
-  # the base-table CI cells are "lo - hi"
-  expect_match(res$parameterTable$`90% CI`[1], "-")
+  # The base-table CI cells are "[lo - hi]". Match the shape, not just "a hyphen
+  # somewhere": the sprintf separator is a literal " - ", so a looser pattern
+  # would pass even for "[NA - NA]" or a lo/lo copy-paste bug.
+  ciCells <- res$parameterTable$`90% CI`
+  expect_true(all(grepl("^\\[.+ - .+\\]$", ciCells)))
+  ciNums <- lapply(strsplit(gsub("^\\[|\\]$", "", ciCells), " - ", fixed = TRUE),
+                   as.numeric)
+  expect_true(all(lengths(ciNums) == 2L))
+  expect_false(any(vapply(ciNums, anyNA, logical(1))))
+  # every interval is ordered, and at least one is non-degenerate (THETA1 is
+  # `1 FIX`, so its bounds legitimately coincide)
+  expect_true(all(vapply(ciNums, function(x) x[1] <= x[2], logical(1))))
+  expect_true(any(vapply(ciNums, function(x) x[1] <  x[2], logical(1))))
+
   # the wide coefficient table splits into <Par> and "<Par> 90% CI"
   expect_true(all(c("CL", "CL 90% CI") %in% names(res$coefficientTable_wide)))
   # the CI cell carries a two-number bracketed interval, the estimate is a lone number
   expect_match(res$coefficientTable_wide$`CL 90% CI`[1], "\\[.*-.*\\]")
-  expect_false(grepl("[\\[\\(]", res$coefficientTable_wide$CL[1]))
+  expect_false(grepl("[[(]", res$coefficientTable_wide$CL[1]))
 })
 
 test_that("fremParameterTable appends a Shrinkage column when includeShrinkage = TRUE", {

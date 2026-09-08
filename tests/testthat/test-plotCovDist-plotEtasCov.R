@@ -50,7 +50,9 @@ test_that("plotCovDist maps the two missingness levels to the given fills", {
   p <- plotCovDist(indParams, covNames = "WT",
                    fillNonMissing = "#111111", fillMissing = "#222222")
   fills <- unique(ggplot2::ggplot_build(p)$data[[1]]$fill)
-  expect_true(all(fills %in% c("#111111", "#222222")))
+  # setequal, not %in%: both levels must actually be rendered, so an all-zero
+  # missingness flag or a dropped level fails rather than passing silently.
+  expect_setequal(fills, c("#111111", "#222222"))
 })
 
 test_that("plotCovDist errors on a non-data-frame", {
@@ -121,8 +123,15 @@ test_that("plotEtasCov excludes missing subjects unless showMissing = TRUE", {
                          etaTypes = "FREM")
   pAll <- plotEtasCov(indParams, covName = "WT", etaNames = "ETA3",
                       etaTypes = "FREM", showMissing = TRUE)
-  nStrict <- sum(ggplot2::ggplot_build(pStrict)$plot$data$Missingness == "Non-missing")
-  expect_true(nrow(ggplot2::ggplot_build(pAll)$plot$data) >= nStrict)
+  dStrict <- ggplot2::ggplot_build(pStrict)$plot$data
+  dAll    <- ggplot2::ggplot_build(pAll)$plot$data
+
+  # The default really drops the missing-covariate subjects ...
+  expect_true(all(dStrict$Missingness == "Non-missing"))
+  # ... and showMissing = TRUE really keeps more rows than that. A `>=` here
+  # would hold by construction and would not notice the filter disappearing.
+  expect_gt(nrow(dAll), nrow(dStrict))
+  expect_true(any(dAll$Missingness == "Missing"))
 })
 
 test_that("plotEtasCov errors on a non-data-frame", {
