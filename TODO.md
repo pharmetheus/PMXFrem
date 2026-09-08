@@ -180,6 +180,36 @@ Apply the same two fixes to all four. This is an **interim** measure: T12
 removes the need for it entirely (`future` detects globals/packages and manages
 the backend). Do T14 only if T12 is not going to land soon.
 
+## T15 — `ci.yml` has been failing on every branch for months
+
+`.github/workflows/ci.yml` (`lint-check`, `format-check`, `unit-test`,
+`check-r-package`) is red on **every** run in recent history - back to at least
+2026-06 - including `epic/2.1.0`, the branch that shipped the 2.1.0 release:
+
+```
+failure  epic/2.1.0                  2026-08-19
+failure  UpdateCalcFFEM              2026-08-11
+failure  fixDoc                      2026-06-08
+failure  renameVignettes2            2026-06-01
+```
+
+This is the package's only real code check, so merges into `main` currently
+carry no automated verification at all. Two things to sort out:
+
+1. **Why it fails.** Not yet diagnosed; the GitHub log API truncates before the
+   failing step, so it needs looking at in the web UI or by reproducing the job
+   steps locally (`make test`, `styler`, `lintr@3.0.2`, `R CMD check`).
+2. **Dependency resolution.** `ci.yml:128` installs `pharmetheus/PMXForest` -
+   the *public* repo's default branch. Anything depending on unreleased
+   PMXForest work (e.g. `oneHotEncode()`, on `epic/v1.3.0` / 1.2.15.9007) will
+   fail there once `epic/2.1.1` opens a PR into `main`. Same class of problem as
+   `pkgdown.yml`, which reads `rpkgs.pmx.one/r4.2-*/latest` and so pulled
+   PMXForest 1.2.15 rather than the 1.2.15.9007 published to the *development*
+   source.
+
+Note `ci.yml` only triggers on `pull_request` into `main`, so PRs into an epic
+branch are checked by `build-pkgdown` alone.
+
 ---
 
 ## Done
