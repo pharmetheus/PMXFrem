@@ -419,3 +419,47 @@ test_that("createFREMmodel derives numNonFREMThetas from the base model .ext", {
   expect_true(file.exists(res$model))
   expect_identical(readLines(res$model), readLines(ref$model))
 })
+
+test_that("createFREMmodel refuses to overwrite an existing output model / data file", {
+  modDevDir    <- system.file("extdata", "SimNeb", package = "PMXFrem")
+  ffemDataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+  outDir       <- withr::local_tempdir()
+  file.create(file.path(outDir, "collide.mod"))       # pre-existing output
+
+  expect_error(
+    suppressWarnings(createFREMmodel(
+      modName = "run30", modDevDir = modDevDir, ffemDataFile = ffemDataFile,
+      covariates = c("WT"), numNonFREMThetas = 7, numSkipOm = 2,
+      outputDir = outDir, fremModName = "collide", quiet = TRUE,
+      cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ"))),
+    "Protection Error: The output files"
+  )
+})
+
+test_that("createFREMmodel errors when numNonFREMThetas is omitted and the base .ext is absent", {
+  td <- withr::local_tempdir()
+  file.copy(system.file("extdata/SimNeb/run30.mod", package = "PMXFrem"), td)  # .mod only
+  ffemDataFile <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+
+  expect_error(
+    suppressWarnings(createFREMmodel(
+      modName = "run30", modDevDir = td, ffemDataFile = ffemDataFile,
+      covariates = c("WT"), numSkipOm = 2,
+      outputDir = file.path(td, "out"), fremModName = "fm", quiet = TRUE,
+      cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ"))),
+    "`numNonFREMThetas` was not supplied and the base .*\\.ext.* was not found"
+  )
+})
+
+test_that("createFREMmodel announces the derived numNonFREMThetas when quiet = FALSE", {
+  modDevDir    <- system.file("extdata", "SimNeb", package = "PMXFrem")
+  ffemDataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+  expect_message(
+    suppressWarnings(createFREMmodel(
+      modName = "run30", modDevDir = modDevDir, ffemDataFile = ffemDataFile,
+      covariates = c("WT"), numSkipOm = 2,
+      outputDir = withr::local_tempdir(), fremModName = "fm", quiet = FALSE,
+      cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ"))),
+    "createFREMmodel\\(\\): numNonFREMThetas = 7"
+  )
+})

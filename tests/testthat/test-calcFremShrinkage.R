@@ -35,14 +35,36 @@ test_that("calcFremShrinkage computes valid shrinkages and returns a strictly fo
 })
 
 test_that("calcFremShrinkage safely aborts if required files are missing", {
-  
+
   # Test with a non-existent model name to trigger missing .ext file error
   expect_error(
     calcFremShrinkage(
-      modName = "missing_phantom_model", 
-      modDevDir = modDevDir, 
+      modName = "missing_phantom_model",
+      modDevDir = modDevDir,
       quiet = TRUE
     ),
     "Cannot find .ext file at"
+  )
+})
+
+test_that("calcFremShrinkage aborts when the .ext is present but the .phi is not", {
+  td <- withr::local_tempdir()
+  file.copy(file.path(modDevDir, c("run31max1-2.mod", "run31max1-2.ext")), td)
+  expect_error(
+    calcFremShrinkage(modName = "run31max1-2", modDevDir = td, quiet = TRUE),
+    "Cannot find .phi file at"
+  )
+})
+
+test_that("calcFremShrinkage reports dropped uninformative subjects when quiet = FALSE", {
+  expect_message(
+    calcFremShrinkage(modName = modName, modDevDir = modDevDir,
+                      dropUninformative = TRUE, quiet = FALSE),
+    "uninformative subjects"
+  )
+  # keeping them is silent
+  expect_no_message(
+    calcFremShrinkage(modName = modName, modDevDir = modDevDir,
+                      dropUninformative = FALSE, quiet = FALSE)
   )
 })

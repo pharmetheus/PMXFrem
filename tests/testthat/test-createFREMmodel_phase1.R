@@ -102,6 +102,68 @@ test_that("createFREMmodel_phase1 handles polychotomous Y-1 expansion", {
   expect_true(any(grepl("OMEGA BLOCK\\(3\\)", mod_lines, ignore.case = TRUE)))
 })
 
+test_that("createFREMmodel_phase1 handles a binary (0/1) categorical covariate", {
+  td <- withr::local_tempdir()
+  files <- setup_dummy_frem_files(td)
+
+  # rewrite the model + data with a strict 0/1 binary covariate SEX
+  writeLines(c(
+    "$PROBLEM Base Model",
+    "$INPUT ID TIME AMT DV WT SEX",
+    "$DATA data.csv IGNORE=@",
+    "$PK", " CL = THETA(1) * EXP(ETA(1))",
+    "$ERROR", " Y = F + EPS(1)",
+    "$THETA 10", "$OMEGA BLOCK(1) 0.1", "$SIGMA 1 FIX"
+  ), file.path(td, "base.mod"))
+  write.csv(data.frame(
+    ID   = c(1, 1, 2, 2, 3, 3, 4, 4),
+    TIME = c(0, 1, 0, 1, 0, 1, 0, 1),
+    AMT  = c(100, 0, 100, 0, 100, 0, 100, 0),
+    DV   = c(0, 5, 0, 6, 0, 7, 0, 8),
+    WT   = c(70, 70, 80, 80, 90, 90, 100, 100),
+    SEX  = c(0, 0, 1, 1, 0, 0, 1, 1)
+  ), files$csv, row.names = FALSE, quote = FALSE)
+
+  result <- createFREMmodel_phase1(
+    modName      = files$modName,
+    modDevDir    = files$modDevDir,
+    ffemDataFile = files$csv,
+    covariates   = c("SEX"),
+    outputDir    = file.path(td, "out_bin"),
+    cstrKeepCols = c("ID", "TIME", "AMT", "DV"),
+    catCovs      = c("SEX"),
+    roundMeanTo  = 3,
+    quiet        = TRUE
+  )
+
+  mod_lines <- readLines(result$minimalModelFile)
+  # a single dummy for the higher level, and only one FREMTYPE for it
+  expect_true(any(grepl("TV_SEX_1", mod_lines)))
+  expect_true(any(grepl("FREMTYPE\\.EQ\\.100", mod_lines)))
+  expect_false(any(grepl("FREMTYPE\\.EQ\\.200", mod_lines)))
+})
+
+test_that("createFREMmodel_phase1 talks through its steps when quiet = FALSE", {
+  td <- withr::local_tempdir()
+  files <- setup_dummy_frem_files(td)
+
+  # no outputDir -> defaults to modDevDir; quiet = FALSE -> step messages.
+  # The IGNORE=@ single-char-IGNORE warning from filterDataFromModel is
+  # unrelated noise here.
+  expect_message(
+    suppressWarnings(createFREMmodel_phase1(
+      modName      = files$modName,
+      modDevDir    = files$modDevDir,
+      ffemDataFile = files$csv,
+      covariates   = c("WT"),
+      cstrKeepCols = c("ID", "TIME", "AMT", "DV"),
+      roundMeanTo  = 1,
+      quiet        = FALSE
+    )),
+    "Phase 1 complete"
+  )
+})
+
 test_that("createFREMmodel_phase1 safely applies log transformations", {
   td <- withr::local_tempdir()
   out_dir <- file.path(td, "out_log")

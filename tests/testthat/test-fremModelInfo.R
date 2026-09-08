@@ -104,6 +104,40 @@ test_that("fremModelInfo errors on a non-FREM model", {
   expect_error(fremModelInfo(modFile = base, dfext = getExt(extFile = ext)))
 })
 
+test_that("fremModelInfo rejects a dfext that is neither a data.frame nor a path", {
+  f <- fremFix("run31")
+  expect_error(fremModelInfo(modFile = f$mod, dfext = 42),
+               "must be a data.frame")
+})
+
+test_that("fremModelInfo errors when dfext has no THETA / OMEGA columns", {
+  f <- fremFix("run31")
+  expect_error(fremModelInfo(modFile = f$mod, dfext = data.frame(x = 1, y = 2)),
+               "Could not find THETA / OMEGA columns")
+})
+
+test_that("fremModelInfo errors when the OMEGA column count is not triangular", {
+  f  <- fremFix("run31")
+  de <- getExt(extFile = f$ext)
+  # drop a single OMEGA column so the remaining count is no longer k(k+1)/2
+  omCols <- grep("OMEGA", names(de), value = TRUE)
+  de2 <- de[, setdiff(names(de), omCols[1]), drop = FALSE]
+  expect_error(fremModelInfo(modFile = f$mod, dfext = de2),
+               "not a triangular number")
+})
+
+test_that("fremModelInfo errors when the model has no explicit $OMEGA BLOCK(N)", {
+  f  <- fremFix("run31")
+  de <- getExt(extFile = f$ext)
+  td  <- withr::local_tempdir()
+  mod <- readLines(f$mod)
+  mod <- sub("\\$OMEGA\\s+BLOCK\\(21\\)", "$OMEGA ; block removed", mod)
+  noBlock <- file.path(td, "noblock.mod")
+  writeLines(mod, noBlock)
+  expect_error(fremModelInfo(modFile = noBlock, dfext = de),
+               "Could not find a '\\$OMEGA BLOCK\\(N\\)' record")
+})
+
 # ---------------------------------------------------------------------------
 # getExplainedVar(): derive when the counts are omitted
 # ---------------------------------------------------------------------------

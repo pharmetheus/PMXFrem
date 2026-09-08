@@ -181,3 +181,96 @@ test_that("fremParameterTable orchestrates unified base and coefficient tables",
   # Check that the new isolated RSE column contains the parenthesis format "(X%)"
   expect_true(grepl("\\(", res_full$coefficientTable_wide$`CL_L_h RSE`[1]))
 })
+
+test_that("fremParameterTable produces a CI column when uncertainty = 'CI'", {
+  modDevDir <- system.file("extdata/SimNeb/", package = "PMXFrem")
+  bsFile    <- system.file("extdata/SimNeb/bs31.dir/raw_results_run31.csv", package = "PMXFrem")
+
+  res <- fremParameterTable(
+    runno            = 31,
+    modDevDir        = modDevDir,
+    thetaNum         = 1:7,
+    omegaNum         = 1:5,
+    sigmaNum         = 1:2,
+    parNames         = c("CL", "V", "MAT"),
+    numNonFREMThetas = 7,
+    numSkipOm        = 2,
+    availCov         = "all",
+    includeRSE       = TRUE,
+    uncertainty      = "CI",
+    ciLevel          = 0.90,
+    bsFile           = bsFile,
+    n                = 25,
+    seed             = 42,
+    quiet            = TRUE
+  )
+
+  expect_true("90% CI" %in% names(res$parameterTable))
+  # The base-table CI cells are "[lo - hi]". Match the shape, not just "a hyphen
+  # somewhere": the sprintf separator is a literal " - ", so a looser pattern
+  # would pass even for "[NA - NA]" or a lo/lo copy-paste bug.
+  ciCells <- res$parameterTable$`90% CI`
+  expect_true(all(grepl("^\\[.+ - .+\\]$", ciCells)))
+  ciNums <- lapply(strsplit(gsub("^\\[|\\]$", "", ciCells), " - ", fixed = TRUE),
+                   as.numeric)
+  expect_true(all(lengths(ciNums) == 2L))
+  expect_false(any(vapply(ciNums, anyNA, logical(1))))
+  # every interval is ordered, and at least one is non-degenerate (THETA1 is
+  # `1 FIX`, so its bounds legitimately coincide)
+  expect_true(all(vapply(ciNums, function(x) x[1] <= x[2], logical(1))))
+  expect_true(any(vapply(ciNums, function(x) x[1] <  x[2], logical(1))))
+
+  # the wide coefficient table splits into <Par> and "<Par> 90% CI"
+  expect_true(all(c("CL", "CL 90% CI") %in% names(res$coefficientTable_wide)))
+  # the CI cell carries a two-number bracketed interval, the estimate is a lone number
+  expect_match(res$coefficientTable_wide$`CL 90% CI`[1], "\\[.*-.*\\]")
+  expect_false(grepl("[[(]", res$coefficientTable_wide$CL[1]))
+})
+
+test_that("fremParameterTable appends a Shrinkage column when includeShrinkage = TRUE", {
+  modDevDir <- system.file("extdata/SimNeb/", package = "PMXFrem")
+
+  res <- fremParameterTable(
+    runno            = 31,
+    modDevDir        = modDevDir,
+    thetaNum         = 1:7,
+    omegaNum         = 1:5,
+    sigmaNum         = 1:2,
+    numNonFREMThetas = 7,
+    numSkipOm        = 2,
+    availCov         = c("SEX", "WT"),
+    includeShrinkage = TRUE,
+    ffemModName      = "run31max1-2",
+    shrinkageType    = "ETA_SD",
+    quiet            = TRUE
+  )
+
+  expect_true("Shrinkage (%)" %in% names(res$parameterTable))
+  # THETA / SIGMA rows are dashes; OMEGA rows carry a value
+  omegaRows <- res$parameterTable$Type == "OMEGA"
+  expect_true(all(res$parameterTable$`Shrinkage (%)`[!omegaRows] == "-"))
+  expect_true(any(res$parameterTable$`Shrinkage (%)`[omegaRows] != "-"))
+})
+
+test_that("fremParameterTable rejects bad shrinkage arguments", {
+  modDevDir <- system.file("extdata/SimNeb/", package = "PMXFrem")
+  base_args <- list(
+    runno = 31, modDevDir = modDevDir,
+    thetaNum = 1:7, omegaNum = 1:5, sigmaNum = 1:2,
+    numNonFREMThetas = 7, numSkipOm = 2, availCov = "all", quiet = TRUE
+  )
+
+  # includeShrinkage without an ffemModName
+  expect_error(
+    do.call(fremParameterTable, c(base_args, includeShrinkage = TRUE)),
+    "ffemModName must be provided"
+  )
+
+  # an unknown shrinkageType
+  expect_error(
+    do.call(fremParameterTable, c(base_args,
+      list(includeShrinkage = TRUE, ffemModName = "run31max1-2",
+           shrinkageType = "NOT_A_TYPE"))),
+    "Invalid shrinkageType"
+  )
+})
