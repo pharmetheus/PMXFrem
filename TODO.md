@@ -3,35 +3,14 @@
 Items parked for future consideration. Not a substitute for GitHub issues; move an
 item there when it becomes active work.
 
-## T3 — helper: add an IIV eta to an established FREM model
-
-The FREM `$OMEGA BLOCK(N)` must stay the trailing omega structure `[skip | par |
-cov]`. A new IIV eta can only go into the skip region (before the block), which
-increments `numSkipOm` and shifts every `ETA(k)` / `MU_k` index from the insertion
-point on (`$PK`, `$ERROR`, and the `COV_k = MU_k + ETA(k)` block). Helper: insert
-the `$OMEGA` record + run a systematic ETA/MU renumber pass. The covariate-add
-direction of this machinery already exists in `updateFREMmodel()` /
-`generateFremModel()`.
-
-**In review** — implemented as `addFremIIV()`, PMXFrem PR #62 (draft).
-
-## T4 — helper: add a structural `$THETA` to an established FREM model
-
-`calcFFEM()` assumes structural thetas `1..numNonFREMThetas` then FREM covariate
-means contiguously. A new structural theta must be inserted at position
-`<= numNonFREMThetas + 1`; that shifts every `MU_j = THETA(numNonFREMThetas + j)`
-reference in `$PK` and increments `numNonFREMThetas`. Helper: insert + renumber the
-`MU_j = THETA(...)` refs.
-
-**In review** — implemented as `addFremStructuralTheta()`, PMXFrem PR #62
-(draft), which calls `addFremIIV()` for the `addEta = TRUE` path.
-
 ## Deep-dive vignette — extending a FREM model with THETAs and IIVs
 
-Blocked on T3 / T4 landing: it needs the final signatures and output shape to
-document. Walk through adding a structural parameter with and without IIV,
-what the renumber pass does to `ETA` / `MU_` / `COV` / `THETA` indices, and why
-the `.ext` / `.phi` are not migrated (the model must be re-estimated).
+Now unblocked: T3 / T4 landed in PR #62, so the signatures and output shape are
+settled. Walk through `addFremStructuralTheta()` with `addEta` on and off,
+`addFremIIV()` used directly, what the renumber pass does to `ETA` / `MU_` /
+`COV` / `THETA` indices, why the added definition uses the `TV<par>` /
+`MU_k = LOG(TV<par>)` house form rather than a direct `MU_k = THETA(j)`, and
+why the `.ext` / `.phi` are not migrated (the model must be re-estimated).
 
 ## T9 — a small library of secondary-parameter files (PMXForest-private)
 
@@ -148,6 +127,16 @@ this reason. Option 1 or 2 makes that self-correcting.
 ## Done
 
 - **T5** — direct `getCovNames(createFREMmodel() output)` test — PR #40 (merged).
+- **T3 / T4** — `addFremIIV()` and `addFremStructuralTheta()`, PR #62 (merged).
+  Insert-in-place with a full `ETA` / `MU_` / `COV` / `THETA` renumber pass;
+  `numSkipOm` / `numNonFREMThetas` derived via `fremModelInfo()`; `thetaInit` /
+  `omegaInit` required (modelling choices, no default). A parameter absent from
+  `$PK` gets a delimited definition created, one already present is modified in
+  place. The MU-referenced form goes through `TV<par>` /
+  `MU_k = LOG(TV<par>)` rather than a direct `MU_k = THETA(j)`, which would
+  match the pattern `generateFremModel()` uses to locate the FREM block and so
+  be spliced away by a later `updateFREMmodel()`. `.ext` / `.phi` are **not**
+  migrated — the model must be re-estimated.
 - **T1** — `createFREMParamFunction()` / `verifyFREMParamFunction()`. v1:
   PMXForest PR #23 (exported `nmParsePK()` / `nmDeparse()` / `nmFormatNum()`) +
   PMXFrem PR #45. v2: non-log-normal parameters via `fremEtaScale`
