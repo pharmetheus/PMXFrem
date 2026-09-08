@@ -3,94 +3,14 @@
 Items parked for future consideration. Not a substitute for GitHub issues; move an
 item there when it becomes active work.
 
-## T1 — `createFREMParamFunction()` / `verifyFREMParamFunction()`  *(v1 delivered)*
+## Deep-dive vignette — extending a FREM model with THETAs and IIVs
 
-Named `createFREMParamFunction()` / `verifyFREMParamFunction()` (not
-`createParamFunction`) so there is no collision with `PMXForest::createParamFunction`.
-
-- PMXForest PR #23 (merged): exported `nmParsePK()` / `nmDeparse()` / `nmFormatNum()`
-  — the `$PK` parser front end.
-- PMXFrem PR #45 (this branch): `createFREMParamFunction(fremModel, parameters,
-  ...)` (or `runno` / `modName` / `modDevDir`) transliterates **the FREM model's**
-  `$PK`, deriving `numSkipOm` / `numNonFREMThetas` via `fremModelInfo()`. The
-  single `ETA()` of a FREM covariate parameter is replaced in place (whatever
-  encloses it) by `covthetas[k] + etas[numSkipOm + k]`. A parameter with no
-  `ETA()` is returned as-is (no covariate effect); more than one -> as-is + a
-  warning. The body is pruned to the transitive dependencies of `parameters`, so
-  the FREM covariate block drops and `basethetas` is the first
-  `numNonFREMThetas`. `verifyFREMParamFunction()` checks the structural part
-  against `PMXForest::createParamFunction()` on the same FREM model, plus the
-  `covthetas` / `etas` scaling.
-
-v2:
-- **Done** — non-log-normal parameters. `createFREMParamFunction()` records
-  `fremEtaScale` (`"exp"` vs `"other"`); `verifyFREMParamFunction()` reports
-  `COVSPLICE` / `ETASPLICE` / `PASS` as `NA` for a non-log-normal parameter
-  (structural check still runs). PR #53.
-- **Won't do** — a NONMEM `$TABLE`-based check. No bundled FREM model tables
-  `CL` / `V` / ...; not worth adding a fixture for it.
-
-## T2 — roll `fremModelInfo()` out to the remaining entry points
-
-Done so far:
-- PR #41 — `fremModelInfo()` + `getExplainedVar()` / `getForestDFFREM()`
-  (the latter via `runno` / `modName` / `modDevDir`).
-- PR #43 — `@examples` show both syntaxes.
-- PR #44 — `fremParameterTable()`, `createFFEMmodel()`, `createFFEMdata()`,
-  `calcEtas()` (+ derived-syntax `@examples`).
-
-Decided against:
-- `calcFFEM()` — **leave as is.** It has no notion of a model, is a low-level
-  workhorse with little direct user exposure, and every caller already resolves
-  `numNonFREMThetas` / `numSkipOm` before calling it. Wiring it in would need a
-  new model-file argument for marginal benefit. Revisit only if a concrete need
-  appears.
-
-Done:
-- `updateFREMmodel()` / `createFREMmodel()` (PR #54). `updateFREMmodel()`
-  derives `numNonFREMThetas` / `numSkipOm` from the FREM model + `.ext` via
-  `fremModelInfo()`, and **stops loudly** when the `;;;FREM CODE` markers /
-  `$OMEGA BLOCK(N)` disagree with the `.ext` (explicit values override).
-  `createFREMmodel()` reads `numNonFREMThetas` from the base model's `.ext`;
-  `numSkipOm` stays a required input (a base model has no FREM structure to
-  deduce it from) and is passed straight through to `updateFREMmodel()`.
-
-Not applicable:
-- `plotCovDist()`, `plotEtasCov()` (no such args),
-  `calcParameterEsts()` (low-level; its caller `fremParameterTable()` resolves),
-  `removeFremCovariates()` (operates on an already-resolved `currentState`),
-  `initializeModel()` / `initializeModelParameters()` (internal; fed resolved
-  values by callers).
-
-Derivation (verified on `run31` → 7/2/3 and `run22-3` → 13/2/4):
-
-```
-numFREMThetas    = length(getCovNames(modFile)$covNames)
-numNonFREMThetas = (#THETA columns in ext) - numFREMThetas
-numTotEta        = solve k(k+1)/2 = (#OMEGA columns in ext)
-blockN           = N in the final "$OMEGA BLOCK(N)" of modFile
-numParCov        = blockN - numFREMThetas
-numSkipOm        = numTotEta - blockN        # robust to a structural BLOCK before the FREM block
-numSigmas        = #SIGMA columns in ext
-```
-
-## T3 — helper: add an IIV eta to an established FREM model
-
-The FREM `$OMEGA BLOCK(N)` must stay the trailing omega structure `[skip | par |
-cov]`. A new IIV eta can only go into the skip region (before the block), which
-increments `numSkipOm` and shifts every `ETA(k)` / `MU_k` index from the insertion
-point on (`$PK`, `$ERROR`, and the `COV_k = MU_k + ETA(k)` block). Helper: insert
-the `$OMEGA` record + run a systematic ETA/MU renumber pass. The covariate-add
-direction of this machinery already exists in `updateFREMmodel()` /
-`generateFremModel()`.
-
-## T4 — helper: add a structural `$THETA` to an established FREM model
-
-`calcFFEM()` assumes structural thetas `1..numNonFREMThetas` then FREM covariate
-means contiguously. A new structural theta must be inserted at position
-`<= numNonFREMThetas + 1`; that shifts every `MU_j = THETA(numNonFREMThetas + j)`
-reference in `$PK` and increments `numNonFREMThetas`. Helper: insert + renumber the
-`MU_j = THETA(...)` refs.
+Now unblocked: T3 / T4 landed in PR #62, so the signatures and output shape are
+settled. Walk through `addFremStructuralTheta()` with `addEta` on and off,
+`addFremIIV()` used directly, what the renumber pass does to `ETA` / `MU_` /
+`COV` / `THETA` indices, why the added definition uses the `TV<par>` /
+`MU_k = LOG(TV<par>)` house form rather than a direct `MU_k = THETA(j)`, and
+why the `.ext` / `.phi` are not migrated (the model must be re-estimated).
 
 ## T9 — a small library of secondary-parameter files (PMXForest-private)
 
@@ -115,21 +35,6 @@ Document that non-standard models (transit absorption, TMDD, non-linear CL,
 time-varying regimens) need a hand-written file. Add exact tests for the
 closed-form ones; a slow mrgsolve-backed test behind `Suggests`.
 
-## T11 — test coverage audit
-
-Run `covr::package_coverage()` (both PMXFrem and PMXForest). If overall package
-coverage is **< 95%**, add tests to bring it up: prioritise exported functions
-and the branches most likely to regress (error paths, the derived-vs-explicit
-`fremModelInfo()` paths, the `secondary` / `verify` edge cases). Record the
-before/after number.
-
-**PMXForest: 97.43%** (2026-09-04) — above threshold, no new tests needed.
-The `covr` run exercises branches `devtools::test()` never reached in this
-whole development effort, and surfaced two real bugs along the way (both list-
-indexing bugs: `x[["name-not-present"]]` and `x[""]`, both throw/misbehave
-instead of returning nothing) — fixed, PMXForest PR #31 (open for review).
-PMXFrem coverage not yet run.
-
 ## T12 — modernise the `getForestDF*` parallel backend
 
 The `getForestDFSCM()` / `getForestDFFREM()` / `getForestDFemp()` family (and
@@ -147,46 +52,124 @@ an HPC scheduler via `future.batchtools`) instead of the package hard-coding it.
 Keep `ncores` as a convenience that sets up a transient `plan()` with an
 `on.exit()` restore; document `plan()` as the real control. Supersedes T14.
 
-## T13 — `getForestDF*` result assembly (backend-neutral, do first)
+## T15 — `ci.yml` has been failing on every branch for months
 
-The three `getForestDF*` functions build the result with a per-cell
-`data.frame()` + `dfres <- bind_rows(dfres, ...)` in a loop, at both the inner
-(`internalCalc`) and outer (combine) level. Rewrite to accumulate atomic
-vectors (or per-cell lists) and build the data frame **once**
-(`data.table::rbindlist` / a single `data.frame()`), as
-`utils-getExplainedVar.R` already does.
+`.github/workflows/ci.yml` (`lint-check`, `format-check`, `unit-test`,
+`check-r-package`) is red on **every** run in recent history - back to at least
+2026-06 - including `epic/2.1.0`, the branch that shipped the 2.1.0 release:
 
-Measured on a representative shape (300 parameter rows x 20 covariate rows x 2
-functions x 3 params -> ~36k result rows): **10.7 s -> 0.13-0.19 s, ~50-80x**
-for the assembly step. Only the assembly speeds up - if `functionList` is
-expensive (e.g. an `mrgsolve` sim per cell) total time barely moves - but for
-closed-form parameter functions it is most of the sequential runtime, and it
-also shrinks the payload returned from parallel workers. No dependency or API
-change; low risk.
+```
+failure  epic/2.1.0                  2026-08-19
+failure  UpdateCalcFFEM              2026-08-11
+failure  fixDoc                      2026-06-08
+failure  renameVignettes2            2026-06-01
+```
 
-## T14 — Windows / PSOCK robustness for the `getForestDF*` family (interim)
+This is the package's only real code check, so merges into `main` currently
+carry no automated verification at all. Two things to sort out:
 
-PMXFrem 2.0.0 fixed `getExplainedVar()`: `.export = c(ls(environment()), ...)`
-to bundle the local environment for `foreach` PSOCK workers (Windows "object
-not found" crashes), and `on.exit(doParallel::stopImplicitCluster(), add =
-TRUE)` for teardown on error. `getForestDFSCM()` / `getForestDFemp()`
-(PMXForest) and `getForestDFFREM()` (PMXFrem) still use bare
-`.export = cstrExports` (default `NULL`, relying on `foreach`'s shallow static
-analysis of the `internalCalc` closure) and a bare `stopImplicitCluster()` at
-the end (leaks the cluster if the function errors). `createFFEMdata()` is worse
-- `foreach(k = ...) %dopar% { ... }` with no `.export` / `.packages` at all.
+1. **Why it fails.** Not yet diagnosed; the GitHub log API truncates before the
+   failing step, so it needs looking at in the web UI or by reproducing the job
+   steps locally (`make test`, `styler`, `lintr@3.0.2`, `R CMD check`).
+2. **Dependency resolution.** `ci.yml:128` installs `pharmetheus/PMXForest` -
+   the *public* repo's default branch. Anything depending on unreleased
+   PMXForest work (e.g. `oneHotEncode()`, on `epic/v1.3.0` / 1.2.15.9007) will
+   fail there once `epic/2.1.1` opens a PR into `main`. Same class of problem as
+   `pkgdown.yml`, which reads `rpkgs.pmx.one/r4.2-*/latest` and so pulled
+   PMXForest 1.2.15 rather than the 1.2.15.9007 published to the *development*
+   source.
 
-Apply the same two fixes to all four. This is an **interim** measure: T12
-removes the need for it entirely (`future` detects globals/packages and manages
-the backend). Do T14 only if T12 is not going to land soon.
+Note `ci.yml` only triggers on `pull_request` into `main`, so PRs into an epic
+branch are checked by `build-pkgdown` alone.
+
+## T16 — `generateFremModel()` should not trust user-written comments
+
+`generateFremModel()` computes **correct** `$THETA` / `$OMEGA` labels from
+`basenames_th` / `basenames_om` / `covnames$covNames`
+(`generateFremModel.R:63-72`, `85-94`) and then immediately **throws them away**,
+overwriting each one with whatever comment text happens to sit on the
+corresponding line of the input model (`73-83`, `96-106`). The re-emitted model
+therefore inherits the user's comments verbatim, including any that are stale
+or wrong.
+
+The two override loops are positional, and they break in **opposite**
+directions under ordinary formatting variation:
+
+- **`$THETA` (76-83):** `idx` increments for **every line** of the record, so it
+  assumes exactly one theta per line. A blank line, a standalone comment, or a
+  multi-value record (`$THETA 1 2 3`) misaligns every label after it.
+- **`$OMEGA` (96-106):** `idx` increments **only for lines containing `;`**, so
+  it assumes every omega carries a comment and nothing else in the region does.
+  A standalone note inside `$OMEGA` consumes a slot and shifts every later label
+  down; an omega with no comment shifts them up.
+
+Nothing parses these labels back (they are only pasted onto output lines at
+`190` / `202`), so today this is **cosmetic** - but they are what a human reads
+in the regenerated control stream, and they are wrong in a way that looks
+authoritative. There is no warning.
+
+Options:
+
+1. Drop the override entirely and always emit the generated labels - they are
+   already computed and are correct by construction.
+2. Keep the override but only accept a trailing comment on a line that actually
+   carries a parameter value, ignoring standalone comment lines and counting
+   values rather than lines.
+3. Leave as is and document the "one parameter per line, each commented"
+   assumption.
+
+Related: `addFremIIV()` / `addFremStructuralTheta()` (PR #62) insert a record in
+the middle of the block and leave the following `; N.` numbers stale for exactly
+this reason. Option 1 or 2 makes that self-correcting.
 
 ---
 
 ## Done
 
 - **T5** — direct `getCovNames(createFREMmodel() output)` test — PR #40 (merged).
-- **T2 (first PR)** — `fremModelInfo()` + `getExplainedVar()` / `getForestDFFREM()`
-  wiring — PR #41 (merged). Rollout to the rest tracked above under T2.
+- **T3 / T4** — `addFremIIV()` and `addFremStructuralTheta()`, PR #62 (merged).
+  Insert-in-place with a full `ETA` / `MU_` / `COV` / `THETA` renumber pass;
+  `numSkipOm` / `numNonFREMThetas` derived via `fremModelInfo()`; `thetaInit` /
+  `omegaInit` required (modelling choices, no default). A parameter absent from
+  `$PK` gets a delimited definition created, one already present is modified in
+  place. The MU-referenced form goes through `TV<par>` /
+  `MU_k = LOG(TV<par>)` rather than a direct `MU_k = THETA(j)`, which would
+  match the pattern `generateFremModel()` uses to locate the FREM block and so
+  be spliced away by a later `updateFREMmodel()`. `.ext` / `.phi` are **not**
+  migrated — the model must be re-estimated.
+- **T1** — `createFREMParamFunction()` / `verifyFREMParamFunction()`. v1:
+  PMXForest PR #23 (exported `nmParsePK()` / `nmDeparse()` / `nmFormatNum()`) +
+  PMXFrem PR #45. v2: non-log-normal parameters via `fremEtaScale`
+  (`"exp"` vs `"other"`), with `COVSPLICE` / `ETASPLICE` / `PASS` reported as
+  `NA` where the splice check does not apply — PR #53. All merged. A NONMEM
+  `$TABLE`-based check was considered and **won't do** (no bundled FREM model
+  tables `CL` / `V` / ...; not worth a fixture).
+- **T2** — `fremModelInfo()` rolled out to every entry point that can derive:
+  `getExplainedVar()` / `getForestDFFREM()` (PR #41), `@examples` for both
+  syntaxes (PR #43), `fremParameterTable()` / `createFFEMmodel()` /
+  `createFFEMdata()` / `calcEtas()` (PR #44), and the model-mutation pair
+  `updateFREMmodel()` / `createFREMmodel()` (PR #54) — the latter stopping
+  loudly when the `;;;FREM CODE` markers / `$OMEGA BLOCK(N)` disagree with the
+  `.ext`. All merged. `calcFFEM()` deliberately left alone: no notion of a
+  model, low-level, and every caller already resolves the counts first. Not
+  applicable to `plotCovDist()` / `plotEtasCov()` / `calcParameterEsts()` /
+  `removeFremCovariates()` / `initializeModel*()`. Derivation (verified on
+  `run31` → 7/2/3 and `run22-3` → 13/2/4):
+  ```
+  numFREMThetas    = length(getCovNames(modFile)$covNames)
+  numNonFREMThetas = (#THETA columns in ext) - numFREMThetas
+  numTotEta        = solve k(k+1)/2 = (#OMEGA columns in ext)
+  blockN           = N in the final "$OMEGA BLOCK(N)" of modFile
+  numParCov        = blockN - numFREMThetas
+  numSkipOm        = numTotEta - blockN   # robust to a structural BLOCK first
+  numSigmas        = #SIGMA columns in ext
+  ```
+- **T11** — coverage audit. **PMXForest 97.43%** (already above the 95% bar, no
+  new tests needed) and **PMXFrem 86.64% → 95.01%** (PMXFrem PR #63). The
+  `covr` run also surfaced two real bugs that `devtools::test()` never reached
+  — `verifyParamFunction()` crashing on an explicitly named parameter, and
+  `nmResolveSecondary()` silently dropping an unnamed constant — fixed in
+  PMXForest PR #31. All merged.
 - **T8** — `secondary` config-list support (PMXForest PR #27, PMXFrem PR #48) +
   two-part `Part3-deep-dive-secondary-parameters.Rmd` vignette split
   (PMXForest PR #28). All merged.
