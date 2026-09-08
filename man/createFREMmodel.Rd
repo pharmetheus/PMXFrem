@@ -144,6 +144,8 @@ unlink(td, recursive = TRUE)
 }
 \seealso{
 Other FREM model management: 
+\code{\link{addFremIIV}()},
+\code{\link{addFremStructuralTheta}()},
 \code{\link{updateFREMmodel}()}
 }
 \concept{FREM model management}
