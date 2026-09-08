@@ -123,6 +123,13 @@ and the branches most likely to regress (error paths, the derived-vs-explicit
 `fremModelInfo()` paths, the `secondary` / `verify` edge cases). Record the
 before/after number.
 
+**PMXForest: 97.43%** (2026-09-04) — above threshold, no new tests needed.
+The `covr` run exercises branches `devtools::test()` never reached in this
+whole development effort, and surfaced two real bugs along the way (both list-
+indexing bugs: `x[["name-not-present"]]` and `x[""]`, both throw/misbehave
+instead of returning nothing) — fixed, PMXForest PR #31 (open for review).
+PMXFrem coverage not yet run.
+
 ## T12 — modernise the `getForestDF*` parallel backend
 
 The `getForestDFSCM()` / `getForestDFFREM()` / `getForestDFemp()` family (and
@@ -193,3 +200,10 @@ the backend). Do T14 only if T12 is not going to land soon.
 - **T6** — `chore/session-handoff` branch deleted from PMXForest-private
   (2026-09-04). `SESSION-HANDOFF.md` was never on `epic/v1.3.0`; its content
   was fully absorbed.
+- **T14** — Windows/PSOCK `.export` + `on.exit` teardown for `getForestDFSCM` /
+  `getForestDFemp` (PMXForest PR #29), `getForestDFFREM` / `createFFEMdata`
+  (PMXFrem PR #58). Both merged.
+- **T13** — result-assembly rewrite (typed vectors + single `data.frame()`
+  build, single `bind_rows()` instead of a pairwise-combine loop) for
+  `getForestDFSCM` / `getForestDFemp` (PMXForest PR #30) and `getForestDFFREM`
+  (PMXFrem PR #59). Both merged; output verified unchanged.
