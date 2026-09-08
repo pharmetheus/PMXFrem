@@ -210,6 +210,46 @@ carry no automated verification at all. Two things to sort out:
 Note `ci.yml` only triggers on `pull_request` into `main`, so PRs into an epic
 branch are checked by `build-pkgdown` alone.
 
+## T16 — `generateFremModel()` should not trust user-written comments
+
+`generateFremModel()` computes **correct** `$THETA` / `$OMEGA` labels from
+`basenames_th` / `basenames_om` / `covnames$covNames`
+(`generateFremModel.R:63-72`, `85-94`) and then immediately **throws them away**,
+overwriting each one with whatever comment text happens to sit on the
+corresponding line of the input model (`73-83`, `96-106`). The re-emitted model
+therefore inherits the user's comments verbatim, including any that are stale
+or wrong.
+
+The two override loops are positional, and they break in **opposite**
+directions under ordinary formatting variation:
+
+- **`$THETA` (76-83):** `idx` increments for **every line** of the record, so it
+  assumes exactly one theta per line. A blank line, a standalone comment, or a
+  multi-value record (`$THETA 1 2 3`) misaligns every label after it.
+- **`$OMEGA` (96-106):** `idx` increments **only for lines containing `;`**, so
+  it assumes every omega carries a comment and nothing else in the region does.
+  A standalone note inside `$OMEGA` consumes a slot and shifts every later label
+  down; an omega with no comment shifts them up.
+
+Nothing parses these labels back (they are only pasted onto output lines at
+`190` / `202`), so today this is **cosmetic** - but they are what a human reads
+in the regenerated control stream, and they are wrong in a way that looks
+authoritative. There is no warning.
+
+Options:
+
+1. Drop the override entirely and always emit the generated labels - they are
+   already computed and are correct by construction.
+2. Keep the override but only accept a trailing comment on a line that actually
+   carries a parameter value, ignoring standalone comment lines and counting
+   values rather than lines.
+3. Leave as is and document the "one parameter per line, each commented"
+   assumption.
+
+Related: `addFremIIV()` / `addFremStructuralTheta()` (PR #62) insert a record in
+the middle of the block and leave the following `; N.` numbers stale for exactly
+this reason. Option 1 or 2 makes that self-correcting.
+
 ---
 
 ## Done
