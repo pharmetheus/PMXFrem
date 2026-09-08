@@ -1,3 +1,12 @@
+# PMXFrem 1.2.11
+
+* **`plotExplainedVar()`**: Removed an internal `save.script` code path that was
+  not meant to ship. It short-circuited the function to
+  `do.call("save_script", ...)` whenever the undocumented `save.script` option
+  was set to `TRUE`; `save_script` is not part of the package. Normal use of
+  `plotExplainedVar()` is unaffected.
+
+
 # PMXFrem 1.2.10
 
 Defined the license to be GPL (>= 3)

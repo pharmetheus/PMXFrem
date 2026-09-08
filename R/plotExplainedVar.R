@@ -66,24 +66,6 @@ plotExplainedVar <- function(dfres,
     add.stamp
   }
 
-  #### REMOVE FROM PUBLIC RELEASE ####
-  # save.script functionality
-  if ((!is.null(rlang::peek_option("save.script")) &&
-       rlang::peek_option("save.script") == TRUE) &&
-    !str_detect(as.character(match.call()[1]), "_script")) {
-
-    argsList <- c(list(funcName = match.call()[1] %>%
-      as.character() %>%
-      str_remove(".+:+") %>%
-      str_c("PMXFrem:::", .) %>%
-      str_remove("\\(\\)")),
-    as.list(environment()), list(...))
-    return(do.call("save_script", argsList))
-  }
-  #### REMOVE FROM PUBLIC RELEASE end
-
-
-
   ## Input checks
   if (!(maxVar == 1 | maxVar == 2)) {
     stop("maxVar needs to be 1 or 2")
