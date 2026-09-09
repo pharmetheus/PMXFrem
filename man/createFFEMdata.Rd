@@ -96,8 +96,7 @@ $EST.}
 \item{omegaToData}{Logical. If \code{TRUE}, the variance-covariance matrix elements
 are appended to the output dataset as V-columns (e.g., V11, V21). Defaults to \code{FALSE}.}
 
-\item{...}{Additional arguments passed on to \code{getFileNames()} and
-\code{calcFFEM()}.}
+\item{...}{Additional arguments passed on to \code{getFileNames()}.}
 }
 \value{
 A list with objects:

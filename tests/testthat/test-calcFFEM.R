@@ -6,7 +6,10 @@ test_that("calcFFEM output is stable across R versions", {
   phiFile <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
 
   dfExt <- getExt(extFile = extFile)
-  dfPhi <- getPhi(phiFile = phiFile)
+  ## ETA columns only. getPhi() also returns SUBJECT_NO, ID, the whole ETC
+  ## covariance matrix and OBJ; passing those as fremETA feeds the subject
+  ## number and ID in as the first two etas.
+  dfPhi <- getPhi(phiFile = phiFile) %>% dplyr::select(dplyr::starts_with("ETA"))
 
   # --- Test Case 1: Basic usage ---
   calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE)
@@ -27,7 +30,15 @@ test_that("calcFFEM output is stable across R versions", {
 
   # --- Test Case 2: Compute eta_prim ---
   calcFFEMtestout2 <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
-                               etaFREM = as.numeric(dfPhi[1,]))
+                               fremETA = as.numeric(dfPhi[1,]))
+
+  ## The point of this case: with fremETA supplied, Eta_prim is computed.
+  ## It was previously passed as `etaFREM`, which calcFFEM()'s `...` silently
+  ## swallowed, so Eta_prim was NULL and nothing here noticed - the five
+  ## components snapshotted below are identical with or without it.
+  expect_false(is.null(calcFFEMtestout2$Eta_prim))
+  expect_true(is.null(calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2,
+                               quiet = TRUE)$Eta_prim))
 
   expect_snapshot_value(stabilize(calcFFEMtestout2$Coefficients), style = "serialize")
   expect_snapshot_value(stabilize(calcFFEMtestout2$FullVars), style = "serialize")
@@ -36,7 +47,7 @@ test_that("calcFFEM output is stable across R versions", {
   expect_snapshot_value(stabilize(calcFFEMtestout2$UpperVars), style = "serialize")
 
   expect_snapshot_value({
-    res <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE, etaFREM = as.numeric(dfPhi[1,])) # Changed to TRUE
+    res <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE, fremETA = as.numeric(dfPhi[1,]))
     stable_res <- stabilize(res)
     stable_res$Expr <- stabilize(res$Expr)
     stable_res
@@ -123,7 +134,10 @@ test_that("calcFFEM calculates eta_prim correctly with numSkipOm = 0", {
   dfPhi   <- getPhi(phiFile = phiFile, warn = FALSE)
 
   # Get a single individual's ETAs to pass to the function
-  fremETA_vector <- as.numeric(subset(dfPhi, ID == 1)[, -1])
+  ## ETA columns only - [, -1] drops SUBJECT_NO but leaves ID in place, which
+  ## shifts every eta one position.
+  fremETA_vector <- as.numeric(dplyr::select(subset(dfPhi, ID == 1),
+                                             dplyr::starts_with("ETA")))
   covNames <- getCovNames(modFile)$covNames
 
   # Test 1: numSkipOm = 0 with a subset of covariates
@@ -160,7 +174,10 @@ test_that("calcFFEM calculates eta_prim correctly with numSkipOm > 0", {
   dfPhi   <- getPhi(phiFile = phiFile, warn = FALSE)
 
   # Get a single individual's ETAs to pass to the function
-  fremETA_vector <- as.numeric(subset(dfPhi, ID == 1)[, -1])
+  ## ETA columns only - [, -1] drops SUBJECT_NO but leaves ID in place, which
+  ## shifts every eta one position.
+  fremETA_vector <- as.numeric(dplyr::select(subset(dfPhi, ID == 1),
+                                             dplyr::starts_with("ETA")))
   covNames <- getCovNames(modFile)$covNames
 
   # Test 1: numSkipOm > 0 with a subset of covariates

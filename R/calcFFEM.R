@@ -44,7 +44,6 @@
 #' @param quiet If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
 #'   STDOUT.
 #' @param fremETA NULL or a vector of individual ETAs from the FREM model.
-#' @param ... Additional arguments, passed on to the internal helpers.
 #' @param eqFile File name to save the FFEM equations in.
 #' @param omFile File name to save the omega prim matrix in.
 #'
@@ -79,7 +78,7 @@
 #' phiFile         <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
 #' dfPhi           <- getPhi(phiFile) %>% select(starts_with("ETA"))
 #' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
-#'   etaFREM = as.numeric(dfPhi[1, ]))
+#'   fremETA = as.numeric(dfPhi[1, ]))
 #'
 #' @family FFEM Conversion
 #' @concept ffem_conversion
@@ -95,8 +94,7 @@ calcFFEM <- function(dfext,
                      quiet         = FALSE,
                      fremETA       = NULL,
                      eqFile        = "",
-                     omFile        = "",
-                     ...) {
+                     omFile        = "") {
 
 
   # Calculate the number of parameters to include covariates on

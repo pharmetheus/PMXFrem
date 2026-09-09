@@ -36,7 +36,10 @@ model file.}
 FREM calculations. Such omegas has to come before the large FREM omega
 block in the FREM model file.}
 
-\item{...}{Additional arguments, passed on to the internal helpers.}
+\item{...}{Additional arguments, passed on to \code{calcFFEM()} (e.g.
+\code{covNames}, \code{availCov}, \code{quiet}). Unlike
+\code{calcFFEM()}'s former \code{...}, this one is genuinely forwarded -
+\code{fremParameterTable()} relies on it.}
 }
 \value{
 A vector of parameter estimates corresponding to \code{thetaNum},
