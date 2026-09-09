@@ -28,10 +28,9 @@ Imports:
     magrittr,
     MASS,
     rlang,
-    readr,
+    tidyr,
     stringr,
     tools,
-    withr,
     numDeriv,
     PMXForest (>= 1.2.15.9007)
 Suggests:
@@ -41,7 +40,7 @@ Suggests:
     purrr,
     rmarkdown,
     testthat (>= 3.0.0),
-    tidyr,
+    withr,
     R.rsp
 VignetteBuilder: R.rsp, knitr
 NeedsCompilation: no

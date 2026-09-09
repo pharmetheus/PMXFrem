@@ -38,7 +38,9 @@
 #' @param sigDigs An integer specifying the number of significant digits to use for formatting output estimates and uncertainties. Default is 3.
 #' @param bsFile The name of a PsNbootstrap or sir file raw_results file. To be used for RSE calculations based on bootstrap output.
 #' @param n The number of samples to use in the RSE calculations.
-#' @param ... Additional arguments passed directly to \code{PMXForest::getSamples()} (e.g., \code{seed} for reproducibility).
+#' @param seed Optional integer. Seed set before the uncertainty sampling, for
+#'   reproducible RSE / CI values. Default \code{NULL} (seed left alone).
+#' @param ... Additional arguments passed directly to \code{PMXForest::getSamples()}.
 #'
 #' @return A list of five components:
 #'

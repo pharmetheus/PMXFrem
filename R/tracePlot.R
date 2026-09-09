@@ -5,6 +5,9 @@
 #'
 #' @inheritParams getFileNames
 #' @inheritParams getExt
+#' @param extFileName Path to the NONMEM \code{.ext} file. Default \code{NULL},
+#'   in which case it is resolved from \code{runno} / \code{modName} /
+#'   \code{modDevDir} via \code{getFileNames()}.
 #' @param startIter The iteration to start the traceplot from. Default is 10.
 #' @param main The title to use in the generated plots. Default is NULL.
 #' @param includeOFV Logical (default is \code{TRUE}). Should the traceplot for OFV be included?

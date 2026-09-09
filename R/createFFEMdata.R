@@ -40,6 +40,8 @@
 #' @param dataFile The name of the data file used in the base model, i.e. the
 #'   original data file, or a data.frame with the same data.
 #' @param newDataFile The name of a new data file with the FFEM columns added.
+#' @param ... Additional arguments passed on to \code{getFileNames()} and
+#'   \code{calcFFEM()}.
 #'   Default is vpcData{runno}.csv. If NULL, will return a data frame with the
 #'   data instead of writing it to disk.
 #' @param idvar The name of the ID column,

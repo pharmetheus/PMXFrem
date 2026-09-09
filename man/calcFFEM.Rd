@@ -57,11 +57,13 @@ model. Should be covariate names used in the FREM model.}
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
 STDOUT.}
 
+\item{fremETA}{NULL or a vector of individual ETAs from the FREM model.}
+
 \item{eqFile}{File name to save the FFEM equations in.}
 
 \item{omFile}{File name to save the omega prim matrix in.}
 
-\item{fremEta}{NULL or a vector of individual ETAs from the FREM model.}
+\item{...}{Additional arguments, passed on to the internal helpers.}
 }
 \value{
 A list with components Coefficients, Vars and Expr:

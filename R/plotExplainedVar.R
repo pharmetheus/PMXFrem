@@ -18,31 +18,22 @@
 #' @param labelfun A label function compatible with \code{labeller}. Used to
 #'   format \code{parameterLabels} used as row facet labels in the plot.
 #' @param fill_col The fill color of the bars.
+#' @param x_scale Passed to \code{facet_wrap(scales = )}; one of
+#'   \code{"fixed"}, \code{"free"}, \code{"free_x"} (default) or
+#'   \code{"free_y"}.
 #' @param maxVar maxVar=1 (default): Visualize the explained part of the total
 #'   variability. maxVar=2: Visualize the explained part of the explainable
 #'   variability.
 #' @param xlb X-axis title.
 #' @param reordFun The function used for the main effects ordering of the bars
 #' in the plots. Default is mean.
-#' @param add.stamp if \strong{TRUE} adds a stamp with the source directory and
-#'   time of generation at the bottom of the plot using \code{\link{add_stamp}}
-#'   function. Default is \strong{FALSE}. If there is any variable defined in
-#'   the global environment with the same name, ie. \code{add.stamp}, this
-#'   argument will assume the globally defined value of \code{add.stamp}, unless
-#'   \code{add.stamp} argument is explicitly defined when this function is
-#'   called.
-#' @param ... is optional arguments that are passed tp \code{\link{add_stamp}}
-#'   and further to \code{\link{ggplot2::ggsave}}
-#'
 #'
 #' @return A plot that illustrates the explained variability
 #' @export
 #'
-#' @importFrom rlang peek_option
-#' @importFrom withr local_options
-#'
 #' @examples
-#' 
+#' library(dplyr)
+#'
 #' modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
 #' fremRunno <- 31
 #' modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))
@@ -95,15 +86,7 @@ plotExplainedVar <- function(dfres,
                              xlb             = ifelse(maxVar == 1,
                                "Explained part of total variability (%)",
                                "Explained part of explainable variability (%)"),
-                             reordFun = "mean",
-                             add.stamp       = FALSE,
-                             ...) {
-  # Adjust add.stamp if needed
-  if ("add.stamp" %in% ls(envir = .GlobalEnv) & missing(add.stamp)) {
-    add.stamp <- get("add.stamp", envir = .GlobalEnv)
-  } else {
-    add.stamp
-  }
+                             reordFun = "mean") {
 
   ## Input checks
   if (!(maxVar == 1 | maxVar == 2)) {
@@ -189,10 +172,6 @@ plotExplainedVar <- function(dfres,
       xlab(xlb) +
       ylab("")
   # }
-
-  if (add.stamp) {
-    p1 <- PhRame::add_stamp(p1, print = FALSE, ...)
-  }
 
   return(p1)
 }

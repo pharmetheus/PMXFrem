@@ -1,5 +1,8 @@
 # PMXFrem 2.1.0.9000
 
+## Breaking Changes
+* **`plotExplainedVar()` loses `add.stamp` and `...`.** The `add.stamp = TRUE` path called `PhRame::add_stamp()`, and `PhRame` is neither a declared dependency nor publicly installable — so that path could only error. It is removed along with the argument, the undocumented "pick `add.stamp` up from the global environment" behaviour, and `...`, whose only consumer was that call (keeping it would have silently swallowed mistyped arguments). Same category as the `save.script` block removed in 1.2.11. Plots are otherwise unchanged; add a stamp by post-processing the returned `ggplot` object.
+
 ## Under the Hood & Refactoring
 * **Shared one-hot encoder:** `addFREMcovariates()` now performs its binarisation through `PMXForest::oneHotEncode()` (requires PMXForest >= 1.2.15.9002) instead of a private implementation. The column names, order, values, and warnings are unchanged; a single implementation of the `<cov>_<level>` convention is now shared with PMXForest.
 * **Faster result assembly in `getForestDFFREM()`.** It built its per-parameter-vector result with a per-cell `data.frame()` plus a growing `bind_rows()` loop (inner and outer). It now fills typed column vectors and constructs the data frame once. Output is unchanged; the assembly step alone is roughly **50-80x** faster on a representative shape, with the effect on total runtime depending on how expensive `functionList` is.

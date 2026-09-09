@@ -36,6 +36,10 @@ ext, phi and cov to form the NONMEM file names, for example
 \item{modDevDir}{The directory where the files reside. Default is the current
 directory, i.e. ".".}
 
+\item{extFileName}{Path to the NONMEM \code{.ext} file. Default \code{NULL},
+in which case it is resolved from \code{runno} / \code{modName} /
+\code{modDevDir} via \code{getFileNames()}.}
+
 \item{set}{The TABLE in the file the iteration information should be
 extracted from. Will use the last TABLE if set to \code{NULL}. There is one
 TABLE for each \code{$ESTIMATION} in the \code{NONMEM} model file.}

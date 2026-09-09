@@ -65,6 +65,10 @@ in cstrCatCovsToAdd as well as cstrContCovsToAdd.}
 default=paste0(strFREMData_without_extension,"new",".",extension), (not
 used with strUpdateType "NoData").}
 
+\item{filterString}{Optional string with an R filter expression applied to
+the FFEM data before it is used, e.g. \code{"STUDYID == 1"}. Default
+\code{NULL} (no filtering).}
+
 \item{strUpdateType}{Update function to run: "DataAndModel" - Create new data
 and add/remove variables from the model (with updated inits). "NoData" - Do
 not create data or add variables to model, only update the frem model in
@@ -164,6 +168,7 @@ model file name will be 'stem'_new.mod).
 }
 
 \examples{
+library(dplyr)
 
 ## Example 1: Remove Covariates from a Model
 # This example removes "SEX" from the model and data set.
