@@ -17,8 +17,7 @@ calcFFEM(
   quiet = FALSE,
   fremETA = NULL,
   eqFile = "",
-  omFile = "",
-  ...
+  omFile = ""
 )
 }
 \arguments{
@@ -62,8 +61,6 @@ STDOUT.}
 \item{eqFile}{File name to save the FFEM equations in.}
 
 \item{omFile}{File name to save the omega prim matrix in.}
-
-\item{...}{Additional arguments, passed on to the internal helpers.}
 }
 \value{
 A list with components Coefficients, Vars and Expr:

@@ -16,7 +16,7 @@ test_that("createFFEMmodel works", {
   expect_error(createFFEMmodel(runno=6))
   expect_error(createFFEMmodel(modName="run6"))
   expect_error(createFFEMmodel(baserunno=6))
-  expect_error(createFFEMmodel(baseModdName="run6"))
+  expect_error(createFFEMmodel(baseModName = "run6"))
 
   # parNames validation
   expect_error(

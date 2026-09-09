@@ -5,6 +5,10 @@
 #' computing FFEM parameter estimates from FREM results.
 #'
 #' @inheritParams calcFFEM
+#' @param ... Additional arguments, passed on to \code{calcFFEM()} (e.g.
+#'   \code{covNames}, \code{availCov}, \code{quiet}). Unlike
+#'   \code{calcFFEM()}'s former \code{...}, this one is genuinely forwarded -
+#'   \code{fremParameterTable()} relies on it.
 #' @param parVector A vector of values corresponding to the line with final
 #'   parameter estimates from a NONMEM ext file.
 #' @param thetaNum The theta numbers to include in the output. This refers to

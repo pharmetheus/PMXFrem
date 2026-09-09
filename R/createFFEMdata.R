@@ -42,8 +42,7 @@
 #' @param newDataFile The name of a new data file with the FFEM columns added.
 #'   Default is vpcData{runno}.csv. If NULL, will return a data frame with the
 #'   data instead of writing it to disk.
-#' @param ... Additional arguments passed on to \code{getFileNames()} and
-#'   \code{calcFFEM()}.
+#' @param ... Additional arguments passed on to \code{getFileNames()}.
 #' @param idvar The name of the ID column,
 #' @param cores How many cores to use in the calculations of the FFEM
 #'   expressions.
@@ -177,7 +176,7 @@ createFFEMdata <- function(runno = NULL,
   ## Run this to get the omega matrix to use in the vpc
   if (length(availCov) == 1 && availCov == "all") availCov    <- covNames
 
-  tmp <- calcFFEM(dfext = dfext, numNonFREMThetas, covNames = covNames, parNames = parNames, availCov = availCov, quiet = quiet, numSkipOm = numSkipOm, ...)
+  tmp <- calcFFEM(dfext = dfext, numNonFREMThetas, covNames = covNames, parNames = parNames, availCov = availCov, quiet = quiet, numSkipOm = numSkipOm)
 
   ## Create the omega matrix information to put in the return value. This function
   ## takes the full omega, removes any skipped omega and sets the upper triangle to NA.
@@ -268,7 +267,7 @@ createFFEMdata <- function(runno = NULL,
       myCov    <- covNames[as.logical(dataMap[dataMap$ID == ID, -1])]
       availCov <- myCov[myCov %in% availCov]
     }
-    ffemObj <- calcFFEM(dfext = dfext, numNonFREMThetas, covNames = covNames, availCov = availCov, quiet = TRUE, parNames = parNames, numSkipOm = numSkipOm, ...)
+    ffemObj <- calcFFEM(dfext = dfext, numNonFREMThetas, covNames = covNames, availCov = availCov, quiet = TRUE, parNames = parNames, numSkipOm = numSkipOm)
 
     retDf <- data.frame(ID = ID)
     for (i in 1:length(parNames)) {
