@@ -94,13 +94,13 @@ styler pass reformats everything, so it must not be tangled with real edits):
    not crashes: `test-fremParameterTable.R:117,137` (RSE %, e.g. 1.67→1.30,
    45.0→43.8) and `test-getForestDFFREM.R:47,72` (POINT / quantiles differing in
    the 3rd-4th significant figure), all under variant `4.2.2`. Both areas are
-   driven by `PMXForest::getSamples()` bootstrap sampling. **Suspected but not
-   proven:** the PMXForest version CI installs differs from the one the
-   snapshots were recorded against — the dev line changed `getSamples()` (the
-   SIR `raw_results` fix explicitly changes which parameter vectors come back).
-   Confirm the cause before re-recording, or the wrong dependency gets baked in;
-   this may be blocked on the dependency question below rather than fixable
-   inside PMXFrem.
+   driven by `PMXForest::getSamples()` bootstrap sampling. **Cause not
+   determined** — see T17.
+
+   Do not re-record these until the cause is known: accepting whatever the
+   current environment produces is how a wrong value gets cemented. The
+   `Eta_prim` snapshots in `test-calcFFEM.R` did exactly that, defending a
+   vector with the subject `ID` in it (fixed in PR #72).
 
 **Dependency resolution (separate, and it gates item 3).** `ci.yml:128` installs
 `pharmetheus/PMXForest` - the *public* repo's default branch. Anything depending
@@ -117,6 +117,43 @@ Related, found while reading the same code: `plotExplainedVar()` calls
 `PhRame::add_stamp()` (`R/plotExplainedVar.R`) on its `add.stamp = TRUE` path,
 and `PhRame` is neither in `Imports` nor publicly installable - so that path can
 only error. Same category as the `save.script` block removed in v1.2.11.
+
+## T17 — establish the cause of the snapshot drift, then choose a policy
+
+Blocks item 3 of T15. Two candidate causes, not yet distinguished:
+
+1. **Dependency version.** CI installs `pharmetheus/PMXForest` (public default
+   branch); locally we run `epic/v1.3.0`. *Weaker than it first looked*: the
+   `getSamples()` change in the dev line is the **SIR `raw_results` fix**, which
+   only alters the SIR code path — and both failing tests pass a *bootstrap*
+   file (`bs31.dir/raw_results_run31.csv`), which takes the other branch. So
+   this may well not be it.
+2. **Environment.** Hardware / BLAS / library versions producing numerical
+   differences that `variant = r_version_variant` does not capture, since that
+   only keys on the R version.
+
+**The experiment that settles it** (deliberately not run yet — it replaces the
+installed PMXForest, so do it when convenient): install the *public* PMXForest,
+re-run `test-fremParameterTable.R` and `test-getForestDFFREM.R`, and see whether
+the values move. If they do, it is the dependency and the fix is pinning /
+publishing, not touching snapshots. If they do not, it is the environment.
+
+**Then pick a policy.** Options, in the order I would prefer them:
+
+- **Assert with tolerance instead of snapshotting.** `expect_equal(...,
+  tolerance = 1e-3)` on the actual numbers. Snapshots demand bit-identical
+  output for quantities that are inherently approximate; a tolerance is robust
+  across machines *and* still catches a real regression. Best fit for these four.
+- **Pin the dependency**, if the experiment says that is the cause.
+- **`skip` these tests off the reference environment** rather than letting them
+  fail and be ignored — an explicit skip shows in the test output; an ignored
+  failure trains everyone to disregard red.
+
+**Rejected:** "let CI generate the reference snapshots and ignore local
+failures". It removes the local signal entirely for these functions — and with
+`ci.yml` red for months, that means no signal at all — and routinely accepting
+whatever the reference environment emits is precisely how the `Eta_prim` bug
+survived.
 
 ---
 
