@@ -1,5 +1,11 @@
 # PMXFrem 2.1.0.9000
 
+## Breaking Changes
+* **`plotExplainedVar()` no longer takes `...`, and `add.stamp` no longer reads the global environment.** The `add.stamp = TRUE` path called `PhRame::add_stamp()`; `PhRame` is internal and PMXFrem is public, so that dependency breaks for external users and the path could only error. The stamp itself is kept — see below — but it now goes through `PMXForest::addStamp()`, which takes no extra arguments, so `...` (whose only consumer was the `PhRame` call) is gone with it. The undocumented behaviour of picking `add.stamp` up from a same-named variable in the global environment is also gone: a plot's output should not depend on an invisible global.
+
+## New Features
+* **`add.stamp` on the plotting functions.** `plotExplainedVar()`, `traceplot()`, `plotEtasCov()` and `plotCovDist()` gained `add.stamp = FALSE`. When `TRUE`, a caption recording the source directory and time of generation is added via the new `PMXForest::addStamp()` (requires PMXForest >= 1.2.15.9008) — a native reimplementation of the stamp `PhRame::add_stamp()` applies, written against `ggplot2` alone so the public packages can use it. `traceplot()` returns a list of plots and stamps each one.
+
 ## Under the Hood & Refactoring
 * **Shared one-hot encoder:** `addFREMcovariates()` now performs its binarisation through `PMXForest::oneHotEncode()` (requires PMXForest >= 1.2.15.9002) instead of a private implementation. The column names, order, values, and warnings are unchanged; a single implementation of the `<cov>_<level>` convention is now shared with PMXForest.
 * **Faster result assembly in `getForestDFFREM()`.** It built its per-parameter-vector result with a per-cell `data.frame()` plus a growing `bind_rows()` loop (inner and outer). It now fills typed column vectors and constructs the data frame once. Output is unchanged; the assembly step alone is roughly **50-80x** faster on a representative shape, with the effect on total runtime depending on how expensive `functionList` is.

@@ -18,6 +18,7 @@ plotCovDist(
   scales = "free_x",
   nrow = NULL,
   ncol = NULL,
+  add.stamp = FALSE,
   ...
 )
 }
@@ -57,6 +58,10 @@ Defaults to \code{30}.}
 \item{nrow}{Integer. Number of rows for the facet grid layout. Defaults to \code{NULL}.}
 
 \item{ncol}{Integer. Number of columns for the facet grid layout. Defaults to \code{NULL}.}
+
+\item{add.stamp}{Logical. If \code{TRUE}, adds a caption recording the
+source directory and time of generation via
+\code{PMXForest::addStamp()}. Default \code{FALSE}.}
 
 \item{...}{Additional arguments passed directly to \code{geom_histogram()} or
 \code{geom_density()} (e.g., \code{linewidth}, \code{bw}).}

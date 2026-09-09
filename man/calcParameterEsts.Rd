@@ -35,6 +35,8 @@ model file.}
 \item{numSkipOm}{Number of diagonal omegas that should not be part of the
 FREM calculations. Such omegas has to come before the large FREM omega
 block in the FREM model file.}
+
+\item{...}{Additional arguments, passed on to the internal helpers.}
 }
 \value{
 A vector of parameter estimates corresponding to \code{thetaNum},

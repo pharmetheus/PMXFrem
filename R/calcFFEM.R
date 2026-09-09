@@ -43,7 +43,8 @@
 #'   model. Should be covariate names used in the FREM model.
 #' @param quiet If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
 #'   STDOUT.
-#' @param fremEta NULL or a vector of individual ETAs from the FREM model.
+#' @param fremETA NULL or a vector of individual ETAs from the FREM model.
+#' @param ... Additional arguments, passed on to the internal helpers.
 #' @param eqFile File name to save the FFEM equations in.
 #' @param omFile File name to save the omega prim matrix in.
 #'

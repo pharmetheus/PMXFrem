@@ -234,7 +234,7 @@ ffemModDerived <- createFFEMmodel(
 
 }
 \seealso{
-\code{\link[=getFileName]{getFileName()}} \code{\link[=createFFEMdata]{createFFEMdata()}} \code{\link[=calcFFEM]{calcFFEM()}}]
+\code{\link[=getFileNames]{getFileNames()}} \code{\link[=createFFEMdata]{createFFEMdata()}} \code{\link[=calcFFEM]{calcFFEM()}}
 
 Other FFEM Conversion: 
 \code{\link{calcFFEM}()},

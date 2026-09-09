@@ -42,6 +42,8 @@
 #' @param newDataFile The name of a new data file with the FFEM columns added.
 #'   Default is vpcData{runno}.csv. If NULL, will return a data frame with the
 #'   data instead of writing it to disk.
+#' @param ... Additional arguments passed on to \code{getFileNames()} and
+#'   \code{calcFFEM()}.
 #' @param idvar The name of the ID column,
 #' @param cores How many cores to use in the calculations of the FFEM
 #'   expressions.

@@ -29,11 +29,12 @@ Find/replace a record in a NONMEM model file.
 
 modFile <- system.file("extdata/SimNeb/run30.mod", package = "PMXFrem")
 
+## internal, so reached with ::: outside the package
 ## Return the $PROBLEM record
-tmp <- findrecord(modFile, record = "\\\\$PROBLEM", quiet = TRUE)
+tmp <- PMXFrem:::findrecord(modFile, record = "\\\\$PROBLEM", quiet = TRUE)
 
 ## Return the new model with $PROBLEM set to FFEM model
-tmp <- findrecord(modFile, record = "\\\\$PROBLEM", replace = "$PROBLEM FFEM model", quiet = TRUE)
+tmp <- PMXFrem:::findrecord(modFile, record = "\\\\$PROBLEM", replace = "$PROBLEM FFEM model", quiet = TRUE)
 
 }
 \seealso{

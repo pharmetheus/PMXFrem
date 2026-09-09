@@ -123,7 +123,10 @@ ext, phi and cov to form the NONMEM file names, for example
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
 STDOUT.}
 
-\item{...}{Additional arguments passed directly to \code{PMXForest::getSamples()} (e.g., \code{seed} for reproducibility).}
+\item{seed}{Optional integer. Seed set before the uncertainty sampling, for
+reproducible RSE / CI values. Default \code{NULL} (seed left alone).}
+
+\item{...}{Additional arguments passed directly to \code{PMXForest::getSamples()}.}
 }
 \value{
 A list of five components:

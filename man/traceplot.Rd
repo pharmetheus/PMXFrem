@@ -20,7 +20,8 @@ traceplot(
   includeShapedOFV = TRUE,
   pvalue = 0.05,
   df = 1,
-  meanShapeLastIter = 30
+  meanShapeLastIter = 30,
+  add.stamp = FALSE
 )
 }
 \arguments{
@@ -35,6 +36,10 @@ ext, phi and cov to form the NONMEM file names, for example
 
 \item{modDevDir}{The directory where the files reside. Default is the current
 directory, i.e. ".".}
+
+\item{extFileName}{Path to the NONMEM \code{.ext} file. Default \code{NULL},
+in which case it is resolved from \code{runno} / \code{modName} /
+\code{modDevDir} via \code{getFileNames()}.}
 
 \item{set}{The TABLE in the file the iteration information should be
 extracted from. Will use the last TABLE if set to \code{NULL}. There is one
@@ -65,6 +70,11 @@ used to define the height of the shaded region. Must be between 0 and 1.}
 
 \item{meanShapeLastIter}{The number of final iterations (default is 30) used to
 calculate the mean OFV, which centers the shaded region.}
+
+\item{add.stamp}{Logical. If \code{TRUE}, adds a caption recording the
+source directory and time of generation via
+\code{PMXForest::addStamp()} to every returned plot. Default
+\code{FALSE}.}
 }
 \value{
 A list of ggplot objects, one for each of an object of OFV, \code{THETA}s and \code{OMEGA}s.

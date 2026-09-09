@@ -27,6 +27,7 @@ plotEtasCov(
   smoothMissingLinetype = "dashed",
   smoothSize = 1,
   smoothSe = FALSE,
+  add.stamp = FALSE,
   ...
 )
 }
@@ -89,6 +90,10 @@ Defaults to \code{"#E1A178"} (peach).}
 \item{smoothSize}{Numeric. The thickness of the smoothing line. Defaults to \code{1}.}
 
 \item{smoothSe}{Logical. Display confidence interval around smooth? Defaults to \code{FALSE}.}
+
+\item{add.stamp}{Logical. If \code{TRUE}, adds a caption recording the
+source directory and time of generation via
+\code{PMXForest::addStamp()}. Default \code{FALSE}.}
 
 \item{...}{Additional arguments passed directly to \code{ggplot2::geom_smooth()}.}
 }

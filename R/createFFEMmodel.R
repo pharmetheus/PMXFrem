@@ -83,7 +83,7 @@
 #'@section Side effects: The FFEM model will be written to a file with the name
 #'  `ffemModName` if it is non-`NULL`.
 #'
-#'@seealso [getFileName()] [createFFEMdata()] [calcFFEM()]]
+#'@seealso [getFileNames()] [createFFEMdata()] [calcFFEM()]
 #'@export
 #'
 #' @examples

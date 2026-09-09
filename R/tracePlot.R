@@ -5,6 +5,13 @@
 #'
 #' @inheritParams getFileNames
 #' @inheritParams getExt
+#' @param extFileName Path to the NONMEM \code{.ext} file. Default \code{NULL},
+#'   in which case it is resolved from \code{runno} / \code{modName} /
+#'   \code{modDevDir} via \code{getFileNames()}.
+#' @param add.stamp Logical. If \code{TRUE}, adds a caption recording the
+#'   source directory and time of generation via
+#'   \code{PMXForest::addStamp()} to every returned plot. Default
+#'   \code{FALSE}.
 #' @param startIter The iteration to start the traceplot from. Default is 10.
 #' @param main The title to use in the generated plots. Default is NULL.
 #' @param includeOFV Logical (default is \code{TRUE}). Should the traceplot for OFV be included?
@@ -68,7 +75,8 @@ traceplot <- function(runno        = NULL,
                       includeShapedOFV = TRUE,
                       pvalue = 0.05,
                       df = 1,
-                      meanShapeLastIter=30) {
+                      meanShapeLastIter=30,
+                      add.stamp = FALSE) {
 
   if (is.null(extFileName)) {
     fileNames   <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)
@@ -157,5 +165,8 @@ traceplot <- function(runno        = NULL,
   if(includeOFV) retList[["OFV"]]     <- p2
   if(includeTheta) retList[["Theta"]] <- p1
   if(includeOmega) retList[["Omegas"]]  <- p1a
+  ## traceplot returns a list of plots, so every one gets its own stamp
+  if (add.stamp) retList <- lapply(retList, PMXForest::addStamp)
+
   return(retList)
 }
