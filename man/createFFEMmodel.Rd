@@ -74,7 +74,9 @@ part of the FREM calculations. If \code{NULL} (default) it is derived via
 \item{dataFile}{The name of the data file used in the base model, i.e. the
 original data file, or a data.frame with the same data.}
 
-\item{newDataFile}{The name of a new data file with the FFEM columns added.}
+\item{newDataFile}{The name of a new data file with the FFEM columns added.
+Default is vpcData{runno}.csv. If NULL, will return a data frame with the
+data instead of writing it to disk.}
 
 \item{availCov}{Names of the covariates to use in the calculation of the FFEM
 model. Should be covariate names used in the FREM model.}

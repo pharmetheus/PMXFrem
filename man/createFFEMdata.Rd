@@ -65,7 +65,9 @@ part of the FREM calculations. If \code{NULL} (default) it is derived via
 \item{dataFile}{The name of the data file used in the base model, i.e. the
 original data file, or a data.frame with the same data.}
 
-\item{newDataFile}{The name of a new data file with the FFEM columns added.}
+\item{newDataFile}{The name of a new data file with the FFEM columns added.
+Default is vpcData{runno}.csv. If NULL, will return a data frame with the
+data instead of writing it to disk.}
 
 \item{filterString}{A character string with a filter expression to subset the
 amended FFEM data set so that the number of rows matches the original data
@@ -95,9 +97,7 @@ $EST.}
 are appended to the output dataset as V-columns (e.g., V11, V21). Defaults to \code{FALSE}.}
 
 \item{...}{Additional arguments passed on to \code{getFileNames()} and
-\code{calcFFEM()}.
-Default is vpcData{runno}.csv. If NULL, will return a data frame with the
-data instead of writing it to disk.}
+\code{calcFFEM()}.}
 }
 \value{
 A list with objects:
