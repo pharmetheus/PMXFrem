@@ -32,7 +32,7 @@ Imports:
     stringr,
     tools,
     numDeriv,
-    PMXForest (>= 1.2.15.9007)
+    PMXForest (>= 1.2.15.9008)
 Suggests:
     GGally,
     kableExtra,

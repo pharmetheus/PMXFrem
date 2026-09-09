@@ -48,6 +48,9 @@
 #' @param smoothMissingLinetype Character string for the missing data smoothing line type. Defaults to \code{"dashed"}.
 #' @param smoothSize Numeric. The thickness of the smoothing line. Defaults to \code{1}.
 #' @param smoothSe Logical. Display confidence interval around smooth? Defaults to \code{FALSE}.
+#' @param add.stamp Logical. If \code{TRUE}, adds a caption recording the
+#'   source directory and time of generation via
+#'   \code{PMXForest::addStamp()}. Default \code{FALSE}.
 #' @param ... Additional arguments passed directly to \code{ggplot2::geom_smooth()}.
 #'
 #' @return A \code{ggplot} object.
@@ -128,6 +131,7 @@ plotEtasCov <- function(
     smoothMissingLinetype = "dashed",
     smoothSize       = 1,
     smoothSe         = FALSE,
+    add.stamp        = FALSE,
     ...
 ) {
   
@@ -269,5 +273,7 @@ plotEtasCov <- function(
     }
   }
   
+  if (add.stamp) p <- PMXForest::addStamp(p)
+
   return(p)
 }

@@ -27,6 +27,9 @@
 #' @param xlb X-axis title.
 #' @param reordFun The function used for the main effects ordering of the bars
 #' in the plots. Default is mean.
+#' @param add.stamp Logical. If \code{TRUE}, adds a caption recording the
+#'   source directory and time of generation via
+#'   \code{PMXForest::addStamp()}. Default \code{FALSE}.
 #'
 #' @return A plot that illustrates the explained variability
 #' @export
@@ -86,7 +89,8 @@ plotExplainedVar <- function(dfres,
                              xlb             = ifelse(maxVar == 1,
                                "Explained part of total variability (%)",
                                "Explained part of explainable variability (%)"),
-                             reordFun = "mean") {
+                             reordFun = "mean",
+                             add.stamp       = FALSE) {
 
   ## Input checks
   if (!(maxVar == 1 | maxVar == 2)) {
@@ -172,6 +176,8 @@ plotExplainedVar <- function(dfres,
       xlab(xlb) +
       ylab("")
   # }
+
+  if (add.stamp) p1 <- PMXForest::addStamp(p1)
 
   return(p1)
 }

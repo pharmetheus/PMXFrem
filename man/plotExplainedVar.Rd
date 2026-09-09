@@ -15,7 +15,8 @@ plotExplainedVar(
   maxVar = 1,
   xlb = ifelse(maxVar == 1, "Explained part of total variability (\%)",
     "Explained part of explainable variability (\%)"),
-  reordFun = "mean"
+  reordFun = "mean",
+  add.stamp = FALSE
 )
 }
 \arguments{
@@ -49,6 +50,10 @@ variability.}
 
 \item{reordFun}{The function used for the main effects ordering of the bars
 in the plots. Default is mean.}
+
+\item{add.stamp}{Logical. If \code{TRUE}, adds a caption recording the
+source directory and time of generation via
+\code{PMXForest::addStamp()}. Default \code{FALSE}.}
 }
 \value{
 A plot that illustrates the explained variability

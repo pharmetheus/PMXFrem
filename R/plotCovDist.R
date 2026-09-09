@@ -35,6 +35,9 @@
 #'   \code{"fixed"}, \code{"free"}, \code{"free_x"} (default), or \code{"free_y"}.
 #' @param nrow Integer. Number of rows for the facet grid layout. Defaults to \code{NULL}.
 #' @param ncol Integer. Number of columns for the facet grid layout. Defaults to \code{NULL}.
+#' @param add.stamp Logical. If \code{TRUE}, adds a caption recording the
+#'   source directory and time of generation via
+#'   \code{PMXForest::addStamp()}. Default \code{FALSE}.
 #' @param ... Additional arguments passed directly to \code{geom_histogram()} or 
 #'   \code{geom_density()} (e.g., \code{linewidth}, \code{bw}).
 #'
@@ -92,6 +95,7 @@ plotCovDist <- function(
     scales           = "free_x",
     nrow             = NULL,
     ncol             = NULL,
+    add.stamp        = FALSE,
     ...
 ) {
   
@@ -180,5 +184,7 @@ plotCovDist <- function(
       strip.background = ggplot2::element_rect(fill = "gray95")
     )
   
+  if (add.stamp) p <- PMXForest::addStamp(p)
+
   return(p)
 }
