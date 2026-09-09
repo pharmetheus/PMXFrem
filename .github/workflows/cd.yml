@@ -130,14 +130,33 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Ensure tag commit is on main
+      - name: Ensure tag commit is on an allowed branch
+        id: release-policy
         run: |
-          git fetch origin "$TARGET_BRANCH" --prune
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" "origin/$TARGET_BRANCH"; then
-            echo "❌ Tag commit is not reachable from origin/$TARGET_BRANCH"
-            exit 1
+          set -euo pipefail
+
+          git fetch --prune origin '+refs/heads/*:refs/remotes/origin/*'
+
+          if git merge-base --is-ancestor "$GITHUB_SHA" "origin/$TARGET_BRANCH"; then
+            echo "✅ Tag commit is reachable from origin/$TARGET_BRANCH"
+            echo "make_latest=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
-          echo "✅ Tag commit is on $TARGET_BRANCH"
+
+          RELEASE_BRANCHES=$(git for-each-ref \
+            --contains="$GITHUB_SHA" \
+            --format='%(refname:short)' \
+            refs/remotes/origin/release/)
+
+          if [[ -n "$RELEASE_BRANCHES" ]]; then
+            echo "✅ Tag commit is reachable from:"
+            echo "$RELEASE_BRANCHES"
+            echo "make_latest=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "::error::Tag commit must be reachable from origin/$TARGET_BRANCH or an origin/release/ branch."
+          exit 1
 
       - name: Extract version from tag
         shell: bash
@@ -211,7 +230,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           prerelease: false
-          make_latest: true
+          make_latest: ${{ steps.release-policy.outputs.make_latest }}
           body: |
             Published to PPM: ${{ env.ENV }} repo
             Commit: ${{ github.sha }}
