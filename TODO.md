@@ -155,6 +155,25 @@ failures". It removes the local signal entirely for these functions — and with
 whatever the reference environment emits is precisely how the `Eta_prim` bug
 survived.
 
+## T18 — rename `additionalCovs` to `conditionalCovs` in `setupDfCovsEV()`
+
+PMXForest renamed its `additionalCovs` argument to `conditionalCovs` for 1.3.0,
+because the name did not say what the argument is for: these are the covariates
+the *other* covariates are conditioned on - fed state rather than fasted,
+patients rather than healthy volunteers - and they sit at their reference on
+every row that is not about them.
+
+`PMXFrem::setupDfCovsEV()` has an argument of the same old name. It is its own
+argument and is **not** forwarded to PMXForest, so nothing is broken today and
+this is purely about the two packages reading the same way. Worth doing in the
+same release as any other `setupDfCovsEV()` change rather than on its own.
+
+Not a deprecation: check first whether `setupDfCovsEV()` has appeared in a
+public PMXFrem release with that argument. If it has, forward the old name with
+a warning rather than removing it outright; if it has not, rename cleanly, as
+PMXForest did. An outdated call errors loudly on an unused argument either way,
+so nothing fails silently.
+
 ---
 
 ## Done
