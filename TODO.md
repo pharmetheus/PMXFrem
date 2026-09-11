@@ -174,6 +174,51 @@ a warning rather than removing it outright; if it has not, rename cleanly, as
 PMXForest did. An outdated call errors loudly on an unused argument either way,
 so nothing fails silently.
 
+## T19 — make mutation testing a routine rather than a hand exercise (both packages)
+
+Every claim in a commit message this release of the form "mutation-tested:
+removing X fails N" was produced by hand: copy the source file aside, break one
+line, run one test file, read the count, restore. It works, and it has been
+worth it — it found four tests that asserted nothing and would have gone on
+passing forever:
+
+- `**` right-associativity, asserted with `2`, `2`, `2`, where both
+  associativities give 16;
+- the unary-minus constant fold, asserted with `fold("-2") == "-2"`, which holds
+  with or without the fold;
+- `"NA in a covariate column is dropped"`, which used a categorical covariate,
+  where `sort()` drops `NA` on its own;
+- `"a malformed per-covariate setting is rejected"`, which used a length-1
+  logical that cannot reach the length check it was named for.
+
+Doing it by hand has one failure mode worth designing against. **A mutation
+whose pattern does not match silently does not apply, and the run then reports
+zero failures — which reads exactly like "the test is vacuous" when the test may
+be perfectly good.** That happened twice in this release: once on a `sed`
+pattern that did not match the real text, once on an operator table entry
+spelled differently from the guess. Both times the first reading was wrong and
+only a re-check caught it.
+
+So whatever is built, the harness must **assert the file actually changed**
+before running anything, and print the diff it applied. That single check is
+most of the value.
+
+Worth scoping before building:
+
+- Look for a maintained R mutation-testing package first; the ecosystem is thin
+  and the last time this came up nothing obvious was in use here. Do not write a
+  framework if one exists.
+- Otherwise a small `make mutate FILE= PATTERN= WITH= TESTS=` target is probably
+  enough: apply, assert changed, run that test file, report, restore from git.
+  It does not need to enumerate mutants automatically — the value so far has
+  come from targeted mutations chosen because a specific assertion looked weak.
+- Note that a mutation which legitimately changes no behaviour is a *result*,
+  not a gap. One in this release — dropping a lookbehind that the alternation
+  order already made redundant — correctly failed nothing, and the right
+  response was to fix the comment claiming it was load-bearing. A harness cannot
+  tell those apart, so its output still needs reading rather than gating CI on
+  it.
+
 ---
 
 ## Done
