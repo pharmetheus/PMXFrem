@@ -48,7 +48,7 @@ test_that("getForestDFFREM works", {
 
   covlabels  <- c("Age 25 y","Age 61 y","ALT 14 IU","ALT 43 IU", "AST 15 IU","AST 34 IU",
                   "Bilirubin 5 µmol/L", "Bilirubin 15 µmol/L", "BMI 23 kg/m^2","BMI 39 kg/m^2",
-                  "CRCL 83 mL/min","CRCL 150 mL/min", "Caucasian","Other",
+                  "CRCL 83 mL/min","CRCL 150 mL/min", "Other","Caucasian",
                   "HT 152 cm","HT 185 cm",
                   "NCI=0","NCI>0","White","Other",
                   "Male","Female")
