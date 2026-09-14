@@ -251,6 +251,42 @@ reverted when the warning became an error - there is nothing to muffle.
 
 Do this before PMXFrem 2.1.1 goes out, since PMXForest 1.3.0 ships first.
 
+## T21 — an FFEM covariate's reference value is 0, and nothing knows it
+
+`PMXForest::createParamFunction()` refuses an FFEM model until the FREM
+covariates are pinned:
+
+    No reference value could be derived from run1715ffem.mod for: CLFREMCOV,
+    V2FREMCOV, MATFREMCOV, V3FREMCOV.
+
+`covRef = list(CLFREMCOV = 0, V2FREMCOV = 0, MATFREMCOV = 0, V3FREMCOV = 0)`
+makes it work, and the result checks out - typical CL comes back as THETA(1)
+exactly. But 0 is not a guess there: it is what the parametrisation means. The
+covariate enters as a bare additive term inside the same `EXP()` as the ETA,
+
+    CL = EXP(MU_7 + (ETA(7) + CLFREMCOV))
+
+so the typical subject, carrying no covariate effect, has it at 0.
+
+PMXForest could derive that - "a covariate appearing only as a bare additive
+term inside an `EXP()` alongside an `ETA` has reference 0" - but this belongs
+here rather than there. PMXFrem generates these columns and names them, so it
+knows which they are without pattern-matching; and PMXForest has just been
+burned once by an inference rule that read a structure backwards, silently
+(T20's sibling: a branch assigning the identity value was taken as the
+reference category when it was the departure from one).
+
+Options:
+
+- `createFREMParamFunction()` supplies `covRef` for the FREM columns itself,
+  since it knows their names. Cheapest, and keeps the guessing out of
+  PMXForest.
+- A helper that builds the `covRef` list from a FREM model, for callers using
+  `PMXForest::createParamFunction()` directly on an FFEM model.
+
+Either way the user should not have to know that the reference is 0, or type
+four names to say so.
+
 ## Done
 
 - **T5** — direct `getCovNames(createFREMmodel() output)` test — PR #40 (merged).
