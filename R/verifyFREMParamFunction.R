@@ -100,18 +100,8 @@ verifyFREMParamFunction <- function(x,
   basethetas <- thetas[seq_len(nNonFREM)]           # what the FREM fn gets
 
   ## ---- SCM typical-value function from the same FREM model ----
-  ## PMXForest warns when it is handed a FREM model, because translating the
-  ## $PK of one usually means the caller reached for the wrong function. Here
-  ## it is deliberate - the $PK-only translation is exactly what we compare
-  ## against - so that one warning is muffled and no other.
-  scm   <- withCallingHandlers(
-    PMXForest::createParamFunction(x$fremModel, parameters = params,
-                                   extFile = extFile, quiet = TRUE),
-    warning = function(w) {
-      if (grepl("looks like a FREM model", conditionMessage(w), fixed = TRUE)) {
-        invokeRestart("muffleWarning")
-      }
-    })
+  scm   <- PMXForest::createParamFunction(x$fremModel, parameters = params,
+                                          extFile = extFile, quiet = TRUE)
   scmFn <- eval(parse(text = scm$code))
   scmTh <- thetas[seq_len(scm$noBaseThetas)]        # SCM fn gets all thetas
 

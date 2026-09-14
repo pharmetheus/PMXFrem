@@ -221,6 +221,36 @@ Worth scoping before building:
 
 ---
 
+## T20 — verifyFREMParamFunction()'s structural check no longer has a reference
+
+PMXForest 1.3.0 refuses a FREM model outright: `createParamFunction()` stops
+when `FREMTYPE` is in `$INPUT`, because a FREM model's `$PK` translates
+faithfully while describing none of the covariates the model was built for, and
+a plausible-looking wrong answer is worse than no answer.
+
+`verifyFREMParamFunction()` is the one caller that wanted exactly that
+translation. Its first check - "Structural match", comparing the FREM parameter
+function at `covthetas = 0, etas = 0` against the SCM-style typical-value
+function - has no reference to compare against any more, so it errors.
+
+Options, roughly in order of preference:
+
+- Build the comparison function from `PMXForest::nmParsePK()` directly. PMXFrem
+  already uses that parser in `createFREMParamFunction()`
+  (`R/createFREMParamFunction.R:199`), so the `$PK` tree is available without
+  going through `createParamFunction()` at all, and the refusal does not apply
+  to the parser.
+- Drop the structural check and keep the other two (covariate splice, random-
+  effect splice). Cheapest, but it is the check that catches a wrong `$PK`
+  transliteration, which is the thing most worth catching.
+- Ask PMXForest for an explicit opt-in argument. Least preferred: it reopens the
+  door the refusal was added to close, for one internal caller.
+
+Note the warning-muffling workaround committed on `fix/ethnic-label-order` was
+reverted when the warning became an error - there is nothing to muffle.
+
+Do this before PMXFrem 2.1.1 goes out, since PMXForest 1.3.0 ships first.
+
 ## Done
 
 - **T5** — direct `getCovNames(createFREMmodel() output)` test — PR #40 (merged).
