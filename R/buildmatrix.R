@@ -63,7 +63,7 @@ buildmatrix <- function(matrix,
   prevoffset <- 0
   numinblock <- 1
 
-  for (i in 1:nrow(matrix)) {
+  for (i in seq_len(nrow(matrix))) {
     if ((i - 1) > offset && matrix[1 + offset, i] != 0) numinblock <- numinblock + 1
     if ((i - 1) > offset && matrix[1 + offset, i] == 0) {
       strSAME <- checksame(matrix, numinblock, prevoffset, offset, i, assumesame)

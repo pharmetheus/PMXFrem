@@ -14,7 +14,7 @@ test_that("getExplainedVar works on main paths", {
   ## Set up dfCovs
   dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
     dplyr::filter(BLQ == 0) %>%
-    dplyr::distinct(ID, .keep_all = T)
+    dplyr::distinct(ID, .keep_all = TRUE)
 
   dfCovs <- setupDfCovsEV(modFile)
 
@@ -195,7 +195,7 @@ test_that("getExplainedVar input checks and edge cases", {
 
   dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
     dplyr::filter(BLQ == 0) %>%
-    dplyr::distinct(ID, .keep_all = T)
+    dplyr::distinct(ID, .keep_all = TRUE)
 
   dfCovs <- setupDfCovsEV(modFile)
 
@@ -247,7 +247,7 @@ test_that("getExplainedVar input checks and edge cases", {
   phiFile <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
   etas_from_file <- getPhi(phiFile)[, 3:9]
 
-  data_subset <- dfData[1:nrow(etas_from_file), ]
+  data_subset <- dfData[seq_len(nrow(etas_from_file)), ]
 
   res_with_etas <- getExplainedVar(
     type = 1, data = data_subset, etas = etas_from_file, dfCovs = dfCovs,

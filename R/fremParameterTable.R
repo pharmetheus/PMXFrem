@@ -218,7 +218,7 @@ fremParameterTable <- function(runno = NULL,
   if (!is.null(parNames) && length(parNames) != nrow(point_coeff)) {
     stop("parNames must match the number of structural parameters affected by covariates.")
   }
-  par_names_display <- if (!is.null(parNames)) parNames else paste0("Par", 1:nrow(point_coeff))
+  par_names_display <- if (!is.null(parNames)) parNames else paste0("Par", seq_len(nrow(point_coeff)))
 
   rownames(point_coeff) <- par_names_display
   colnames(point_coeff) <- cov_names_display
@@ -244,7 +244,7 @@ fremParameterTable <- function(runno = NULL,
     fremParRses <- data.frame(matrix(NA, nrow = nrow(dfSamplesBS), ncol = length(omegaNum) + length(thetaNum) + length(sigmaNum)))
     coeff_samples <- array(NA, dim = c(nrow(point_coeff), ncol(point_coeff), nrow(dfSamplesBS)))
 
-    for (i in 1:nrow(dfSamplesBS)) {
+    for (i in seq_len(nrow(dfSamplesBS))) {
       # Sample Base Parameters
       fremParRses[i, ] <- calcParameterEsts(dfSamplesBS[i, ], thetaNum, omegaNum, sigmaNum, numNonFREMThetas, numSkipOm,
         covNames = extractedCovNames, availCov = availCov, quiet = TRUE

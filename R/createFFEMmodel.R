@@ -224,12 +224,12 @@ createFFEMmodel <- function(runno = NULL,
   ## Start processing the model
 
   ## Replace $PROBLEM
-  tmp <- findrecord(basemodel, record = "\\$PROBLEM", replace = "$PROBLEM FFEM model", quiet = T)
+  tmp <- findrecord(basemodel, record = "\\$PROBLEM", replace = "$PROBLEM FFEM model", quiet = TRUE)
 
   ## Replace $INPUT
-  strInput <- findrecord(basemodel, record = "\\$INPUT", quiet = T)
+  strInput <- findrecord(basemodel, record = "\\$INPUT", quiet = TRUE)
   strInput <- c(strInput, paste0("         ", paste(FFEMdata$indCovEff, collapse = " ")))
-  tmp <- findrecord(tmp, record = "\\$INPUT", replace = strInput, quiet = T)
+  tmp <- findrecord(tmp, record = "\\$INPUT", replace = strInput, quiet = TRUE)
 
   ## Replace $DATA
   strData <- findrecord(basemodel, record = "\\$DATA", quiet = TRUE)
@@ -288,10 +288,10 @@ createFFEMmodel <- function(runno = NULL,
   SIGFULL <- SIGFULL[-nrow(SIGFULL), -ncol(SIGFULL)]
 
   # Replace $SIGMA
-  tmp <- findrecord(tmp, record = "\\$SIGMA", replace = buildmatrix(as.matrix(SIGFULL), strName = "$SIGMA"), quiet = T)
+  tmp <- findrecord(tmp, record = "\\$SIGMA", replace = buildmatrix(as.matrix(SIGFULL), strName = "$SIGMA"), quiet = TRUE)
 
   ## Replace FREM eta with ETA+Coefficients (or MYETA if omegaToData)
-  for (i in 1:nrow(FFEMdata$Coefficients)) {
+  for (i in seq_len(nrow(FFEMdata$Coefficients))) {
     eta_idx <- i + numSkipOm
     if (!omegaToData) {
       tmp <- gsub(

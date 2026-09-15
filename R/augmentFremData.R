@@ -64,7 +64,7 @@ augmentFremData <- function(dfFREM,
   dfAddList <- list()
   if (length(iFremtypeDV) > 0) {
     ### Add existing DVs for new individuals
-    for (i in 1:length(iFremtypeDV)) {
+    for (i in seq_along(iFremtypeDV)) {
       strDV <- cstrDV[i]
 
       keep_rows <- dataToAdd[[strDV]] != missVal
@@ -95,7 +95,7 @@ augmentFremData <- function(dfFREM,
   dfAddList <- list()
   if (length(iNewFremtypeDV) > 0) {
     ### Add new DVs for all individuals
-    for (i in 1:length(iNewFremtypeDV)) {
+    for (i in seq_along(iNewFremtypeDV)) {
       strDV <- cstrDV[length(iFremtypeDV) + i]
       dfDVData <- dfFFEM[dfFFEM[[strDV]] != missVal, unique(c(names(dfFFEM)[names(dfFFEM) %in% names(dfFREM)], strDV)), ]
       if (nrow(dfDVData) == 0) {
@@ -121,7 +121,7 @@ augmentFremData <- function(dfFREM,
   ### Add old FREM variables for new individuals
   dfAddList <- list()
   if (nrow(dataToAdd) > 0) {
-    for (i in 1:length(covnames$covNames)) {
+    for (i in seq_along(covnames$covNames)) {
       strCov <- covnames$covNames[i]
       iFremtype <- iFremTypeIncrease * i
       strCovClean <- stringr::str_replace(strCov, "_.*", "")
@@ -152,7 +152,7 @@ augmentFremData <- function(dfFREM,
   dfAddList <- list()
   dfFREMOne <- dfFREM[!duplicated(dfFREM[[strID]]), ]
   if (!is.null(addedList)) {
-    for (i in 1:length(addedList)) {
+    for (i in seq_along(addedList)) {
       strcov <- addedList[i]
       l <- covList[[strcov]]
       dftmp <- dfFREMOne

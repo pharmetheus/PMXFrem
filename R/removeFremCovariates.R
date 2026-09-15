@@ -47,8 +47,8 @@ removeFremCovariates <- function(currentState, cstrRemoveCov, quiet) {
   cOrgCovsToRemove <- c()
   cCovNamesToRemove <- c()
 
-  for (i in 1:length(cstrRemoveCov)) {
-    for (j in 1:length(covnames$covNames)) {
+  for (i in seq_along(cstrRemoveCov)) {
+    for (j in seq_along(covnames$covNames)) {
       strCov <- covnames$covNames[j]
       strCovClean <- stringr::str_replace(strCov, "_.*", "")
 
@@ -80,7 +80,7 @@ removeFremCovariates <- function(currentState, cstrRemoveCov, quiet) {
   remainingCovs <- covnames$covNames[which(!(covnames$covNames %in% cCovNamesToRemove))]
   iuniqueFREMTYPEs <- sort(unique(dfFREM[["FREMTYPE"]][dfFREM[["FREMTYPE"]] >= iFremTypeIncrease]))
 
-  for (i in 1:length(iuniqueFREMTYPEs)) {
+  for (i in seq_along(iuniqueFREMTYPEs)) {
     if (iuniqueFREMTYPEs[i] != i * iFremTypeIncrease) {
       printq(paste0("Updating ", nrow(dfFREM[dfFREM[["FREMTYPE"]] == iuniqueFREMTYPEs[i], ]), " rows with FREMTYPE=", iuniqueFREMTYPEs[i], " (", remainingCovs[i], ") to FREMTYPE=", i * iFremTypeIncrease), quiet = quiet)
       dfFREM[dfFREM[["FREMTYPE"]] == iuniqueFREMTYPEs[i], "FREMTYPE"] <- i * iFremTypeIncrease

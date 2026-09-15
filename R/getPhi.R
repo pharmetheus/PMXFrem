@@ -26,7 +26,7 @@
 #'
 #' @family NONMEM Parsers
 #' @concept nonmem_parsers
-getPhi <- function(phiFile, set = NULL, warn = T) {
+getPhi <- function(phiFile, set = NULL, warn = TRUE) {
   tmp <- scan(phiFile, what = "character", sep = "\n", quiet = TRUE)
   tabs <- grep("TABLE", tmp)
   if (is.null(set)) set <- length(tabs)

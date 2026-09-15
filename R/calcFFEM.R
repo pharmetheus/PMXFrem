@@ -152,8 +152,8 @@ calcFFEM <- function(dfext,
   OM_COV <- OM[(numParCov + 1):(numParCov + numFREMThetas), (numParCov + 1):(numParCov + numFREMThetas)] # The covariates covariance matrix
   OM_PAR_COV <- OM[1:numParCov, (numParCov + 1):(numParCov + numFREMThetas)] # The covariance between covariates and parameters matrix
 
-  if (length(availCov) != 0 & length(c(1:length(covNames))[!(covNames %in% availCov)]) != 0) {
-    missCov <- c(1:length(covNames))[!(covNames %in% availCov)]
+  if (length(availCov) != 0 & length(c(seq_along(covNames))[!(covNames %in% availCov)]) != 0) {
+    missCov <- c(seq_along(covNames))[!(covNames %in% availCov)]
 
     OM_COV <- OM_COV[-missCov, -missCov]
     inv <- solve(OM_COV)
@@ -171,7 +171,7 @@ calcFFEM <- function(dfext,
 
     COEFF <- OM_PAR_COV %*% inv # The parameter-covariate coefficients
     COEFF_VAR <- OM_PAR - OM_PAR_COV %*% inv %*% t(OM_PAR_COV) # The parameter variances
-  } else if (length(c(1:length(covNames))[!(covNames %in% availCov)]) == 0) {
+  } else if (length(c(seq_along(covNames))[!(covNames %in% availCov)]) == 0) {
     if (ncol(as.matrix(OM_PAR_COV)) == 1) {
       OM_PAR_COV <- t(as.matrix(OM_PAR_COV))
     } else {
@@ -190,8 +190,8 @@ calcFFEM <- function(dfext,
 
   ## Print the FFEM for inspection
   if (!quiet) {
-    for (p in 1:nrow(COEFF)) {
-      for (c in 1:ncol(COEFF)) {
+    for (p in seq_len(nrow(COEFF))) {
+      for (c in seq_len(ncol(COEFF))) {
         if (c == 1 & p == 1) cat(parNames[p], ":", sep = "", file = eqFile)
         if (c == 1 & p != 1) cat(parNames[p], ":", sep = "", file = eqFile, append = TRUE)
         if (length(availCov) == 0) {
@@ -207,9 +207,9 @@ calcFFEM <- function(dfext,
 
   ## Create evaluable expression
   myExpr <- c()
-  for (p in 1:nrow(COEFF)) {
+  for (p in seq_len(nrow(COEFF))) {
     myExpr[p] <- ""
-    for (c in 1:ncol(COEFF)) {
+    for (c in seq_len(ncol(COEFF))) {
       if (length(availCov) == 0) {
         myExpr[p] <- paste(myExpr[p], "0", "*", "(data$", covNames[c], "-", df_thm[c], ")", sep = "")
       } else {
@@ -222,7 +222,7 @@ calcFFEM <- function(dfext,
   if (!quiet) {
     cat(paste("\n$OMEGA BLOCK(", nrow(COEFF_VAR), ")", sep = ""), "\n", file = omFile)
 
-    for (v in 1:nrow(COEFF_VAR)) {
+    for (v in seq_len(nrow(COEFF_VAR))) {
       for (v2 in 1:v) {
         cat(round(COEFF_VAR[v, v2], 5), file = omFile, append = TRUE)
         if (v2 == v) cat("\n", append = TRUE, file = omFile)

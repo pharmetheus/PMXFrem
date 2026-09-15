@@ -257,7 +257,7 @@ getExplainedVar <- function(type = 1,
 
   ## Check that cstrCovariates has the same length as the number of rows in dfCovs
   if (is.null(cstrCovariates)) {
-    cstrCovariates <- paste0("COV", 1:nrow(dfCovs))
+    cstrCovariates <- paste0("COV", seq_len(nrow(dfCovs)))
   } else {
     if (length(cstrCovariates) != nrow(dfCovs)) {
       stop("cstrCovariates must have the same length as the number of rows in dfCovs")

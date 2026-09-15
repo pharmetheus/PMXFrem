@@ -248,7 +248,7 @@ getForestDFFREM <- function(dfCovs,
     cGroups <- c()
     cUnique <- c()
     iGroup <- 0
-    for (i in 1:nrow(df)) {
+    for (i in seq_len(nrow(df))) {
       tmp <- paste0(names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal], collapse = ",")
       if (tmp %in% cUnique) {
         tmpl <- which(tmp == cUnique)
@@ -291,7 +291,7 @@ getForestDFFREM <- function(dfCovs,
     VALUEBASE <- numeric(nRow)
     p <- 0L
 
-    for (i in 1:nrow(dfCovs)) {
+    for (i in seq_len(nrow(dfCovs))) {
       currentNames <- names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal]
 
       if (any(!currentNames %in% covNames) && !quiet) {
@@ -328,7 +328,7 @@ getForestDFFREM <- function(dfCovs,
       data47_jxrtp <- dfCovs[i, , drop = FALSE]
 
       ## Compute the ffem expressions
-      for (j in 1:length(parNames)) {
+      for (j in seq_along(parNames)) {
         ffem_expr <- str_replace_all(ffemObj$Expr[j], pattern = "data\\$", replacement = "data47_jxrtp$")
 
         if (length(names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal]) != 0) {
@@ -344,7 +344,7 @@ getForestDFFREM <- function(dfCovs,
 
       ## Send the expresssions to the functions in functionList
       n <- 1
-      for (j in 1:length(functionList)) {
+      for (j in seq_along(functionList)) {
         val <- functionList[[j]](thetas, coveffects, dfrow = dfCovs[i, , drop = FALSE], ...)
 
         ## Do it for the reference
@@ -385,7 +385,7 @@ getForestDFFREM <- function(dfCovs,
 
   if (ncores > 1) {
     parts <- foreach(
-      k = 1:nrow(dfParameters), .packages = cstrPackages,
+      k = seq_len(nrow(dfParameters)), .packages = cstrPackages,
       ## Bundle the local environment for PSOCK workers (Windows); foreach's
       ## static global detection does not reliably follow `internalCalc`'s free
       ## variables. `cstrExports` covers anything outside this frame.
@@ -396,7 +396,7 @@ getForestDFFREM <- function(dfCovs,
     }
   } else {
     parts <- vector("list", nrow(dfParameters))
-    for (k in 1:nrow(dfParameters)) parts[[k]] <- internalCalc(k)
+    for (k in seq_len(nrow(dfParameters))) parts[[k]] <- internalCalc(k)
   }
   dfres <- bind_rows(parts)
 
@@ -406,7 +406,7 @@ getForestDFFREM <- function(dfCovs,
     strName <- ""
     colnames <- names(dfrow)
 
-    for (i in 1:ncol(dfrow)) {
+    for (i in seq_len(ncol(dfrow))) {
       if (dfrow[1, i] != missVal) {
         if (strName == "") {
           strName <- paste0(colnames[i], "=", dfrow[1, i])
@@ -423,7 +423,7 @@ getForestDFFREM <- function(dfCovs,
   }
 
   dfret <- data.frame()
-  for (i in 1:nrow(dfCovs)) {
+  for (i in seq_len(nrow(dfCovs))) {
     if (is.null(cdfCovsNames)) {
       covname <- getCovNameString(dfCovs[i, , drop = FALSE])
     } else {
@@ -434,7 +434,7 @@ getForestDFFREM <- function(dfCovs,
     groupname <- group
     if (!is.null(groupnames)) groupname <- groupnames[i]
 
-    for (j in 1:length(functionListName)) {
+    for (j in seq_along(functionListName)) {
       dft <- dfres[dfres$COVS == i & dfres$NAME == functionListName[j], ]
       quant <- quantile(dft$VALUE, probs = probs, names = FALSE, na.rm = TRUE)
       # Calculate the point value of the forest plot
@@ -470,14 +470,14 @@ getForestDFFREM <- function(dfCovs,
         )
       )
 
-      for (k in 1:length(probs)) {
+      for (k in seq_along(probs)) {
         dfp <- data.frame(X1 = 1)
         dfp[[paste0("Q", k)]] <- quant[k]
         dfp[[paste0("Q", k, "_REL_REFFUNC")]] <- quant_reffunc[k]
         dfp[[paste0("Q", k, "_REL_REFFINAL")]] <- quant_reffinal[k]
         dfrow <- cbind(dfrow, dfp[, 2:4])
       }
-      for (k in 1:length(probs)) {
+      for (k in seq_along(probs)) {
         dfp <- data.frame(X1 = 1)
         dfp[[paste0("Q", k, "_NOVAR_REL_REFFUNC")]] <- quantrel[k]
         dfrow <- cbind(dfrow, dfp[, 2])

@@ -61,7 +61,7 @@ createMinimalFremModel <- function(baseModelInfo,
   new_size_omega <- baseModelInfo$numParCov + num_new_covs
   expanded_omega <- matrix(dDefaultCovValue, nrow = new_size_omega, ncol = new_size_omega)
   if (nrow(omega_matrix) > 0) {
-    expanded_omega[1:nrow(omega_matrix), 1:ncol(omega_matrix)] <- omega_matrix
+    expanded_omega[seq_len(nrow(omega_matrix)), seq_len(ncol(omega_matrix))] <- omega_matrix
   }
 
   for (i in seq_along(initialCovariateInfo)) {

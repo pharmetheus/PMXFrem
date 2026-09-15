@@ -182,7 +182,7 @@ generateFremModel <- function(final_df,
   strinput_frem <- c(";;;FREM CODE BEGIN COMPACT", ";;;DO NOT MODIFY")
 
   if (length(strNewCovNames) > 0) {
-    for (i in 1:length(strNewCovNames)) {
+    for (i in seq_along(strNewCovNames)) {
       strinput_frem <- c(strinput_frem, paste0("      IF(FREMTYPE.EQ.", fremTypes[i], ") THEN"))
       strinput_frem <- c(strinput_frem, paste0(";        ", strNewCovNames[i], " 1"))
       strinput_frem <- c(strinput_frem, paste0("         Y = COV", i + numSkipOm + numParCov, " + EPS(", covEpsNum, ")"))
@@ -198,7 +198,7 @@ generateFremModel <- function(final_df,
   if (!is.null(addedList) && length(addedList) > 0) {
     if (is.null(OM)) stop("OM missing, must provide .ext file when adding covariates")
     OMNEW <- matrix(dDefaultCovValue, ncol(OM) + length(addedList), nrow(OM) + length(addedList))
-    OMNEW[1:ncol(OM), 1:nrow(OM)] <- OM
+    OMNEW[seq_len(ncol(OM)), seq_len(nrow(OM))] <- OM
     OM <- OMNEW
   }
 

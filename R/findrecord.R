@@ -39,7 +39,7 @@ findrecord <- function(input,
   start <- NULL
   stop <- NULL
 
-  for (i in 1:length(line)) {
+  for (i in seq_along(line)) {
     tmp <- grep(paste0("^", record, ".*"), line[i])
     if (!is.null(start)) {
       if (length(tmp) == 0) {

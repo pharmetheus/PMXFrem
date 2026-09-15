@@ -238,7 +238,7 @@ createFFEMdata <- function(runno = NULL,
 
   if (cores > 1) {
     dataI <- foreach(
-      k = 1:nrow(dataI),
+      k = seq_len(nrow(dataI)),
       .export = ls(environment())
     ) %dopar% {
       mapFun(data = dataI[k, ], orgCovs = orgCovs)
@@ -246,7 +246,7 @@ createFFEMdata <- function(runno = NULL,
     dataI <- data.frame(data.table::rbindlist(dataI))
   } else {
     dataI2 <- data.frame()
-    for (k in 1:nrow(dataI)) {
+    for (k in seq_len(nrow(dataI))) {
       # REMOVED: cov = cov
       dataI2 <- rbind(dataI2, mapFun(data = dataI[k, ], orgCovs = orgCovs))
     }
@@ -273,7 +273,7 @@ createFFEMdata <- function(runno = NULL,
     ffemObj <- calcFFEM(dfext = dfext, numNonFREMThetas, covNames = covNames, availCov = availCov, quiet = TRUE, parNames = parNames, numSkipOm = numSkipOm)
 
     retDf <- data.frame(ID = ID)
-    for (i in 1:length(parNames)) {
+    for (i in seq_along(parNames)) {
       colName <- paste0(parNames[i], covSuffix)
       retDf[[colName]] <- as.numeric(eval(parse(text = ffemObj$Expr[i])))
     }
@@ -312,7 +312,7 @@ createFFEMdata <- function(runno = NULL,
 
   if (cores > 1) {
     covEff <- foreach(
-      k = 1:nrow(dataOne),
+      k = seq_len(nrow(dataOne)),
       .packages = "PMXFrem",
       .export = ls(environment())
     ) %dopar% {
@@ -321,7 +321,7 @@ createFFEMdata <- function(runno = NULL,
     covEff <- data.frame(rbindlist(covEff))
   } else {
     covEff2 <- data.frame()
-    for (k in 1:nrow(dataOne)) {
+    for (k in seq_len(nrow(dataOne))) {
       covEff2 <- bind_rows(covEff2, myFun(data = dataOne[k, ], parNames = parNames, dataMap = dataMap, availCov = availCov, covSuffix = covSuffix, omegaToData = omegaToData, numSkipOm = numSkipOm))
     }
     covEff <- covEff2

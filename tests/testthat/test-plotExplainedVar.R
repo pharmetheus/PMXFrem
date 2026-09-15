@@ -11,7 +11,7 @@ test_that("plotExplainedVar generates correct plot data", {
   ## Set up dfCovs
   dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
     dplyr::filter(BLQ == 0) %>%
-    dplyr::distinct(ID, .keep_all = T)
+    dplyr::distinct(ID, .keep_all = TRUE)
 
   dfCovs <- dfData %>%
     dplyr::select(covNames$orgCovNames) %>%

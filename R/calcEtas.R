@@ -174,7 +174,7 @@ calcEtas <- function(runno = NULL,
 
   etafrem <- dfphi[, 3:(2 + numSkipOm + nrow(FFEMData$Omega))]
   etaprim <- etafrem
-  for (i in 1:length(FFEMData$indCovEff)) {
+  for (i in seq_along(FFEMData$indCovEff)) {
     etaprim[, (i + numSkipOm)] <- etafrem[, (i + numSkipOm)] - dfone[, i + 1]
   }
   names(etaprim) <- paste0(names(etaprim), "_PRIM")
@@ -188,7 +188,7 @@ calcEtas <- function(runno = NULL,
   names(covariates) <- getCovNames(modFile = modFile)$covNames
 
   if (covmodel == "linear") {
-    for (i in 1:length(df_thm)) {
+    for (i in seq_along(df_thm)) {
       covariates[, i] <- covariates[, i] + df_thm[i]
     }
   }
