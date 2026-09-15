@@ -287,6 +287,31 @@ Options:
 Either way the user should not have to know that the reference is 0, or type
 four names to say so.
 
+## T22 — 211 lines over 120 characters, and the linter that would catch them
+
+`line_length_linter` is disabled in `.lintr`. PMXForest keeps it at 120 and
+passes; PMXFrem has 211 lines over, with a long tail — 100 in 120-139, but also
+11 over 200 and one at 306. No limit short of meaningless reaches green, and
+hand-wrapping 211 lines is a large mechanical diff with real risk of breaking an
+expression, which is not what to do immediately before an independent review.
+
+Reduce them in a dedicated PR, then re-enable the linter at 120 and converge
+with PMXForest. Worst offenders first: `awk 'length>200' R/*.R`.
+
+## T23 — a Suggests dependency is invisible to CI unless listed twice
+
+`ci.yml` installs `dependencies: '"hard"'`, which does not install `Suggests` at
+all. Test-only dependencies therefore have to be named **both** in `Suggests`
+and in the workflow's `extra-packages` block, and nothing enforces the pair.
+`readr` was dropped from `Imports` (correctly — `R/` does not use it) and seven
+tests died with "there is no package called 'readr'", taking a whole file with
+them, and it took a CI log to find out.
+
+Either set `dependencies: '"all"'` — which pulls in GGally, kableExtra, rmarkdown
+and R.rsp, so it is slower and has more failure surface — or add a check that
+every package a test calls with `::` appears in `extra-packages`. Worth deciding
+deliberately rather than remembering.
+
 ## Done
 
 - **T5** — direct `getCovNames(createFREMmodel() output)` test — PR #40 (merged).
