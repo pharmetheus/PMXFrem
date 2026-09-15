@@ -125,6 +125,7 @@ jobs:
           dependencies: '"hard"'
           extra-packages: |
             testthat@3.1.5
+            readr
             pharmetheus/PMXForest
           install-pandoc: false
           install-quarto: false

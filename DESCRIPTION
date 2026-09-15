@@ -38,6 +38,7 @@ Suggests:
     kableExtra,
     knitr,
     purrr,
+    readr,
     rmarkdown,
     testthat (>= 3.0.0),
     withr,
