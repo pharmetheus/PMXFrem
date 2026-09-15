@@ -26,10 +26,9 @@
 #'
 #' @family NONMEM Parsers
 #' @concept nonmem_parsers
-getPhi <- function(phiFile, set = NULL, warn=T) {
-
-  tmp   <- scan(phiFile, what = "character", sep = "\n", quiet = TRUE)
-  tabs  <- grep("TABLE", tmp)
+getPhi <- function(phiFile, set = NULL, warn = T) {
+  tmp <- scan(phiFile, what = "character", sep = "\n", quiet = TRUE)
+  tabs <- grep("TABLE", tmp)
   if (is.null(set)) set <- length(tabs)
 
   if (set == 1 & length(tabs) == 1) { # Only one set of results
@@ -47,8 +46,8 @@ getPhi <- function(phiFile, set = NULL, warn=T) {
   }
 
   ## Check to see if PHITYPE=1 has been used.
-  if(warn) {
-    if(any(!is.na(stringr::str_match(names(myphi),"PHI"))))  {
+  if (warn) {
+    if (any(!is.na(stringr::str_match(names(myphi), "PHI")))) {
       warning("The phi-file appears to have been generated without PHITYPE=1.")
     }
   }

@@ -89,87 +89,85 @@
 #'
 #' @examples
 #' \donttest{
-#'   # 1. Setup paths to model and bootstrap results
-#'   modDevDir <- system.file("extdata/SimNeb", package="PMXFrem")
-#'   modFile   <- file.path(modDevDir, "run31.mod")
-#'   extFile   <- file.path(modDevDir, "run31.ext")
-#'   bsFile    <- file.path(modDevDir, "bs31.dir/raw_results_run31.csv")
-#'   
-#'   # 2. Setup Covariates
-#'   dfCovs <- data.frame(
-#'     COVARIATEGROUPS = c("AGE", "AGE", "SEX", "SEX"),
-#'     AGE = c(30, 60, -99, -99),
-#'     SEX = c(-99, -99, 0, 1)
-#'   )
-#'   
-#'   # 3. Define a simple parameter function
-#'   paramFunction <- function(basethetas, covthetas, dfrow, ...) {
-#'     return(basethetas[1] * exp(covthetas[1]))
-#'   }
-#'   
-#'   # 4. Use PMXForest to extract 25 samples from bootstrap results
-#'   set.seed(123)
-#'   samples <- PMXForest::getSamples(bsFile, extFile = extFile, n = 25)
-#'   
-#'   # 5a. Generate Forest Plot Data -- covNames / numSkipOm / numNonFREMThetas
-#'   #     passed explicitly
-#'   dfresFREM <- getForestDFFREM(
-#'     dfCovs           = dfCovs,
-#'     covNames         = getCovNames(modFile)$covNames,
-#'     functionList     = list(paramFunction),
-#'     functionListName = "CL",
-#'     numSkipOm        = 2,
-#'     numNonFREMThetas = 7,
-#'     dfParameters     = samples,
-#'     quiet            = TRUE
-#'   )
+#' # 1. Setup paths to model and bootstrap results
+#' modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+#' modFile <- file.path(modDevDir, "run31.mod")
+#' extFile <- file.path(modDevDir, "run31.ext")
+#' bsFile <- file.path(modDevDir, "bs31.dir/raw_results_run31.csv")
 #'
-#'   # 5b. Same result -- covNames / numSkipOm / numNonFREMThetas omitted and
-#'   #     derived from the model file located via runno / modDevDir
-#'   #     (see fremModelInfo())
-#'   dfresFREM2 <- getForestDFFREM(
-#'     dfCovs           = dfCovs,
-#'     functionList     = list(paramFunction),
-#'     functionListName = "CL",
-#'     dfParameters     = samples,
-#'     runno            = 31,
-#'     modDevDir        = modDevDir,
-#'     quiet            = TRUE
-#'   )
+#' # 2. Setup Covariates
+#' dfCovs <- data.frame(
+#'   COVARIATEGROUPS = c("AGE", "AGE", "SEX", "SEX"),
+#'   AGE = c(30, 60, -99, -99),
+#'   SEX = c(-99, -99, 0, 1)
+#' )
 #'
-#'   print(head(dfresFREM))
+#' # 3. Define a simple parameter function
+#' paramFunction <- function(basethetas, covthetas, dfrow, ...) {
+#'   return(basethetas[1] * exp(covthetas[1]))
+#' }
+#'
+#' # 4. Use PMXForest to extract 25 samples from bootstrap results
+#' set.seed(123)
+#' samples <- PMXForest::getSamples(bsFile, extFile = extFile, n = 25)
+#'
+#' # 5a. Generate Forest Plot Data -- covNames / numSkipOm / numNonFREMThetas
+#' #     passed explicitly
+#' dfresFREM <- getForestDFFREM(
+#'   dfCovs           = dfCovs,
+#'   covNames         = getCovNames(modFile)$covNames,
+#'   functionList     = list(paramFunction),
+#'   functionListName = "CL",
+#'   numSkipOm        = 2,
+#'   numNonFREMThetas = 7,
+#'   dfParameters     = samples,
+#'   quiet            = TRUE
+#' )
+#'
+#' # 5b. Same result -- covNames / numSkipOm / numNonFREMThetas omitted and
+#' #     derived from the model file located via runno / modDevDir
+#' #     (see fremModelInfo())
+#' dfresFREM2 <- getForestDFFREM(
+#'   dfCovs           = dfCovs,
+#'   functionList     = list(paramFunction),
+#'   functionListName = "CL",
+#'   dfParameters     = samples,
+#'   runno            = 31,
+#'   modDevDir        = modDevDir,
+#'   quiet            = TRUE
+#' )
+#'
+#' print(head(dfresFREM))
 #' }
 #' @family Diagnostics & Plotting
 #' @concept diagnostics
 getForestDFFREM <- function(dfCovs,
-                            cdfCovsNames     = NULL,
-                            functionList     = list(function(basethetas, covthetas, dfrow, ...) {
+                            cdfCovsNames = NULL,
+                            functionList = list(function(basethetas, covthetas, dfrow, ...) {
                               return(basethetas[1] * exp(covthetas[1]))
                             }),
-                            covNames         = NULL,
+                            covNames = NULL,
                             functionListName = "PAR1",
-                            numSkipOm        = NULL,
+                            numSkipOm = NULL,
                             numNonFREMThetas = NULL,
                             dfParameters,
-                            runno            = NULL,
-                            modName          = NULL,
-                            modDevDir        = NULL,
-                            parNames         = paste("Par", 1:numParCov, sep = ""),
-                            availCov         = covNames,
-                            quiet            = FALSE,
-                            probs            = c(0.05, 0.95),
-                            pointFunction    = median,
-                            dfRefRow         = NULL,
-                            cGrouping        = NULL,
-                            ncores           = 1,
-                            cstrPackages     = NULL,
-                            cstrExports      = NULL,
-                            missVal            = -99,
-                            oneHot           = NULL,
-                            oneHotSep        = "_",
+                            runno = NULL,
+                            modName = NULL,
+                            modDevDir = NULL,
+                            parNames = paste("Par", 1:numParCov, sep = ""),
+                            availCov = covNames,
+                            quiet = FALSE,
+                            probs = c(0.05, 0.95),
+                            pointFunction = median,
+                            dfRefRow = NULL,
+                            cGrouping = NULL,
+                            ncores = 1,
+                            cstrPackages = NULL,
+                            cstrExports = NULL,
+                            missVal = -99,
+                            oneHot = NULL,
+                            oneHotSep = "_",
                             ...) {
-
-
   if (is.list(covNames)) stop("covNames should no longer be a list. Perhaps you want to use getCovNames(modFile)$covNames?")
 
   if (!is.null(dfRefRow) && nrow(dfRefRow) != 1 && nrow(dfRefRow) != nrow(dfCovs)) {
@@ -193,15 +191,19 @@ getForestDFFREM <- function(dfCovs,
   ## keep the explicit value). Without it, covNames and numNonFREMThetas are
   ## required and numSkipOm keeps its historical default of 0.
   if (!is.null(runno) || !is.null(modName)) {
-    modFile <- getFileNames(runno     = runno,
-                            modName   = modName,
-                            modDevDir = if (is.null(modDevDir)) "." else modDevDir)$mod
-    .info <- fremModelInfo(modFile = modFile, dfext = dfParameters,
-                           numNonFREMThetas = numNonFREMThetas,
-                           numSkipOm        = numSkipOm)
-    if (is.null(covNames))         covNames         <- .info$covNames
+    modFile <- getFileNames(
+      runno = runno,
+      modName = modName,
+      modDevDir = if (is.null(modDevDir)) "." else modDevDir
+    )$mod
+    .info <- fremModelInfo(
+      modFile = modFile, dfext = dfParameters,
+      numNonFREMThetas = numNonFREMThetas,
+      numSkipOm = numSkipOm
+    )
+    if (is.null(covNames)) covNames <- .info$covNames
     if (is.null(numNonFREMThetas)) numNonFREMThetas <- .info$numNonFREMThetas
-    if (is.null(numSkipOm))        numSkipOm        <- .info$numSkipOm
+    if (is.null(numSkipOm)) numSkipOm <- .info$numSkipOm
   }
   if (is.null(covNames)) {
     stop("`covNames` is required (or supply `runno` / `modName` (+ `modDevDir`) so it can be derived).")
@@ -214,12 +216,16 @@ getForestDFFREM <- function(dfCovs,
   ## Optionally one-hot encode raw multi-level categorical columns so dfCovs can
   ## be built without the FREM <cov>_<level> dummy columns.
   if (!is.null(oneHot)) {
-    dfCovs <- PMXForest::oneHotEncode(dfCovs, spec = oneHot, sep = oneHotSep,
-                                      missVal = missVal, dropOriginal = TRUE)
+    dfCovs <- PMXForest::oneHotEncode(dfCovs,
+      spec = oneHot, sep = oneHotSep,
+      missVal = missVal, dropOriginal = TRUE
+    )
     if (!is.null(dfRefRow) && is.data.frame(dfRefRow)) {
       dfRefRow <- suppressWarnings(
-        PMXForest::oneHotEncode(dfRefRow, spec = oneHot, sep = oneHotSep,
-                                missVal = missVal, dropOriginal = TRUE)
+        PMXForest::oneHotEncode(dfRefRow,
+          spec = oneHot, sep = oneHotSep,
+          missVal = missVal, dropOriginal = TRUE
+        )
       )
     }
   }
@@ -275,11 +281,14 @@ getForestDFFREM <- function(dfCovs,
   ## bind_rows() loop is markedly slower for closed-form parameter functions.
   nOut <- length(functionListName)
   internalCalc <- function(k) {
-    dfext  <- cbind(first = 0, dfParameters[k, ])
+    dfext <- cbind(first = 0, dfParameters[k, ])
     thetas <- as.numeric(dfext[2:(numNonFREMThetas + 1)])
-    nRow   <- nrow(dfCovs) * nOut
-    ITER <- integer(nRow); COVS <- integer(nRow); NAME <- character(nRow)
-    VALUE <- numeric(nRow); VALUEBASE <- numeric(nRow)
+    nRow <- nrow(dfCovs) * nOut
+    ITER <- integer(nRow)
+    COVS <- integer(nRow)
+    NAME <- character(nRow)
+    VALUE <- numeric(nRow)
+    VALUEBASE <- numeric(nRow)
     p <- 0L
 
     for (i in 1:nrow(dfCovs)) {
@@ -291,7 +300,6 @@ getForestDFFREM <- function(dfCovs,
 
       ## Calculate the ffemObj in case reference covariates have been specified
       if (!is.null(dfRefRow)) {
-
         indi <- min(i, nrow(dfRefRow))
 
         ffemObjRef <- calcFFEM(
@@ -306,18 +314,18 @@ getForestDFFREM <- function(dfCovs,
 
       ## Calculate the ffemObj for each set of parameters
       ffemObj <- calcFFEM(
-        numSkipOm        = numSkipOm,
+        numSkipOm = numSkipOm,
         numNonFREMThetas = numNonFREMThetas,
-        dfext        = dfext,
-        covNames     = covNames,
-        availCov     = names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal][names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal] %in% covNames],
-        quiet        = quiet
+        dfext = dfext,
+        covNames = covNames,
+        availCov = names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal][names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal] %in% covNames],
+        quiet = quiet
       )
 
 
-      coveffects      <- rep(0, length(parNames))
+      coveffects <- rep(0, length(parNames))
       coveffects_base <- rep(0, length(parNames))
-      data47_jxrtp    <- dfCovs[i, , drop = FALSE]
+      data47_jxrtp <- dfCovs[i, , drop = FALSE]
 
       ## Compute the ffem expressions
       for (j in 1:length(parNames)) {
@@ -337,7 +345,6 @@ getForestDFFREM <- function(dfCovs,
       ## Send the expresssions to the functions in functionList
       n <- 1
       for (j in 1:length(functionList)) {
-
         val <- functionList[[j]](thetas, coveffects, dfrow = dfCovs[i, , drop = FALSE], ...)
 
         ## Do it for the reference
@@ -352,22 +359,33 @@ getForestDFFREM <- function(dfCovs,
         ## Do it for the parameters
         for (l in seq_along(val)) {
           p <- p + 1L
-          ITER[p] <- k; COVS[p] <- i; NAME[p] <- functionListName[n]
-          VALUE[p] <- val[[l]]; VALUEBASE[p] <- valbase[[l]]
+          ITER[p] <- k
+          COVS[p] <- i
+          NAME[p] <- functionListName[n]
+          VALUE[p] <- val[[l]]
+          VALUEBASE[p] <- valbase[[l]]
           n <- n + 1L
         }
       }
     }
 
-    if (p != nRow) { idx <- seq_len(p)
-      ITER <- ITER[idx]; COVS <- COVS[idx]; NAME <- NAME[idx]
-      VALUE <- VALUE[idx]; VALUEBASE <- VALUEBASE[idx] }
-    data.frame(ITER = ITER, COVS = COVS, NAME = NAME, VALUE = VALUE,
-               VALUEBASE = VALUEBASE, stringsAsFactors = FALSE)
+    if (p != nRow) {
+      idx <- seq_len(p)
+      ITER <- ITER[idx]
+      COVS <- COVS[idx]
+      NAME <- NAME[idx]
+      VALUE <- VALUE[idx]
+      VALUEBASE <- VALUEBASE[idx]
+    }
+    data.frame(
+      ITER = ITER, COVS = COVS, NAME = NAME, VALUE = VALUE,
+      VALUEBASE = VALUEBASE, stringsAsFactors = FALSE
+    )
   }
 
   if (ncores > 1) {
-    parts <- foreach(k = 1:nrow(dfParameters), .packages = cstrPackages,
+    parts <- foreach(
+      k = 1:nrow(dfParameters), .packages = cstrPackages,
       ## Bundle the local environment for PSOCK workers (Windows); foreach's
       ## static global detection does not reliably follow `internalCalc`'s free
       ## variables. `cstrExports` covers anything outside this frame.
@@ -406,7 +424,6 @@ getForestDFFREM <- function(dfCovs,
 
   dfret <- data.frame()
   for (i in 1:nrow(dfCovs)) {
-
     if (is.null(cdfCovsNames)) {
       covname <- getCovNameString(dfCovs[i, , drop = FALSE])
     } else {
@@ -418,8 +435,8 @@ getForestDFFREM <- function(dfCovs,
     if (!is.null(groupnames)) groupname <- groupnames[i]
 
     for (j in 1:length(functionListName)) {
-      dft         <- dfres[dfres$COVS == i & dfres$NAME == functionListName[j], ]
-      quant       <- quantile(dft$VALUE, probs = probs, names = FALSE, na.rm = TRUE)
+      dft <- dfres[dfres$COVS == i & dfres$NAME == functionListName[j], ]
+      quant <- quantile(dft$VALUE, probs = probs, names = FALSE, na.rm = TRUE)
       # Calculate the point value of the forest plot
       FUNCVAL <- pointFunction(dft$VALUE)
 
@@ -431,29 +448,33 @@ getForestDFFREM <- function(dfCovs,
 
       # Calculate reference value based one the pointFunction
       func_base <- pointFunction(dft$VALUEBASE)
-      true_base   <- dft$VALUEBASE[dft$ITER == 1]
+      true_base <- dft$VALUEBASE[dft$ITER == 1]
 
       # Quantiles of the value relative to the reference. Computed on the ratio
       # directly (rather than dividing `quant` by the scalar base) so the endpoints
       # stay ordered as lower/upper even when the reference value is negative.
       # Fall back to quant/base when the base is NA so an all-NA reference yields
       # NA columns rather than erroring in quantile().
-      quant_reffunc  <- if (is.na(func_base)) quant / func_base else quantile(dft$VALUE / func_base, probs = probs, names = FALSE, na.rm = TRUE)
+      quant_reffunc <- if (is.na(func_base)) quant / func_base else quantile(dft$VALUE / func_base, probs = probs, names = FALSE, na.rm = TRUE)
       quant_reffinal <- if (is.na(true_base)) quant / true_base else quantile(dft$VALUE / true_base, probs = probs, names = FALSE, na.rm = TRUE)
 
-      dfrow       <- cbind(dfCovs[i, , drop = FALSE],
-        data.frame(GROUP = group,
+      dfrow <- cbind(
+        dfCovs[i, , drop = FALSE],
+        data.frame(
+          GROUP = group,
           GROUPNAME = groupname,
           COVNUM = i, COVNAME = covname, PARAMETER = functionListName[j],
           REFFUNC = func_base, REFFINAL = true_base, POINT = FUNCVAL, POINT_NOVAR_REL_REFFUNC = FUNCNOVAR,
           POINT_REL_REFFUNC = FUNCVAL / func_base, POINT_REL_REFFINAL = FUNCVAL / true_base,
-          COVEFF = !all(dft$RELINTERNAL == 1)))
+          COVEFF = !all(dft$RELINTERNAL == 1)
+        )
+      )
 
       for (k in 1:length(probs)) {
         dfp <- data.frame(X1 = 1)
         dfp[[paste0("Q", k)]] <- quant[k]
-        dfp[[paste0("Q", k, "_REL_REFFUNC")]] <-  quant_reffunc[k]
-        dfp[[paste0("Q", k, "_REL_REFFINAL")]] <-  quant_reffinal[k]
+        dfp[[paste0("Q", k, "_REL_REFFUNC")]] <- quant_reffunc[k]
+        dfp[[paste0("Q", k, "_REL_REFFINAL")]] <- quant_reffinal[k]
         dfrow <- cbind(dfrow, dfp[, 2:4])
       }
       for (k in 1:length(probs)) {
@@ -473,7 +494,7 @@ getForestDFFREM <- function(dfCovs,
 
   ## Make sure GROUPNAME, COVNAME, PARAMETER are factors
   dfret$GROUPNAME <- factor(dfret$GROUPNAME, levels = unique(dfret$GROUPNAME))
-  dfret$COVNAME   <- factor(dfret$COVNAME, levels = unique(dfret$COVNAME))
+  dfret$COVNAME <- factor(dfret$COVNAME, levels = unique(dfret$COVNAME))
   dfret$PARAMETER <- factor(dfret$PARAMETER, levels = unique(dfret$PARAMETER))
 
   return(dfret)

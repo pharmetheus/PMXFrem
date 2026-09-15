@@ -24,33 +24,32 @@
 #' @concept nonmem_parsers
 getCovNames <- function(modFile,
                         keepComment = FALSE) {
-
-  mod       <- scan(modFile, what = "character", sep = "\n", quiet = TRUE)
+  mod <- scan(modFile, what = "character", sep = "\n", quiet = TRUE)
   fremStart <- grep(";;;FREM CODE BEGIN COMPACT", mod)
-  fremEnd   <- grep(";;;FREM CODE END COMPACT", mod)
+  fremEnd <- grep(";;;FREM CODE END COMPACT", mod)
 
   if (length(fremStart) == 0) {
     stop(paste("Could not find", ";;;FREM CODE BEGIN COMPACT", "in the model file. Is this a FREM model?"))
   }
 
-  mod1      <- mod[(fremStart + 2):(fremEnd - 1)]
-  covNames  <- mod1[grep(";", mod1)]
+  mod1 <- mod[(fremStart + 2):(fremEnd - 1)]
+  covNames <- mod1[grep(";", mod1)]
 
-  covNames  <- str_replace(covNames, " 1", "") # Always remove " 1" in the end of the covNames
+  covNames <- str_replace(covNames, " 1", "") # Always remove " 1" in the end of the covNames
 
   if (!keepComment) {
-    covNames  <- str_replace(covNames, ";\\s*", "")
-    covNames  <- str_replace(covNames, " ", "")
+    covNames <- str_replace(covNames, ";\\s*", "")
+    covNames <- str_replace(covNames, " ", "")
   }
 
   orgCovNames <- sort(unique(str_replace(covNames, "_.*", "")))
 
   ## Figure out which ones that are poly-categorical, i.e. those with an '_' in the name
-  fremCovs  <- covNames[grep("_", x = covNames)]
+  fremCovs <- covNames[grep("_", x = covNames)]
 
-  return(list(covNames = covNames,
+  return(list(
+    covNames = covNames,
     polyCatCovs = fremCovs,
-    orgCovNames = orgCovNames)
-  )
-
+    orgCovNames = orgCovNames
+  ))
 }

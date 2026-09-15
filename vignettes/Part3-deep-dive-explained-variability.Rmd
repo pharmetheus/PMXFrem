@@ -35,7 +35,7 @@ The workflow is divided into five logical steps:
 Load the package and identify which NONMEM FREM run is going to be used.
 
 ```{r setup}
-library(PMXFrem) 
+library(PMXFrem)
 library(ggplot2)
 library(dplyr)
 library(data.table)
@@ -49,7 +49,7 @@ runname <- "run31"
 modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
 fremFiles <- getFileNames(modName = runname, modDevDir = modDevDir)
 
-dfData <- fread(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package="PMXFrem"), data.table = FALSE) %>%
+dfData <- fread(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"), data.table = FALSE) %>%
   distinct(ID, .keep_all = TRUE)
 ```
 
@@ -66,7 +66,7 @@ Because `FOOD` is a time-varying categorical FFEM covariate that our parameter f
 ```{r cov_setup}
 # Robustly generate the covariate matrix
 dfCovs <- setupDfCovsEV(
-  modFileName = fremFiles$mod, 
+  modFileName = fremFiles$mod,
   additionalCovs = c("FOOD")
 )
 
@@ -85,7 +85,6 @@ We must supply a function that mimics the structural relationships in the FFEM m
 
 ```{r define_function}
 paramFunctionExpVar <- function(basethetas, covthetas, dfrow, etas, ...) {
-
   # Defensive fallback logic for isolating FFEM covariate effects
   FRELFOOD <- 1
   if (any(names(dfrow) == "FOOD") && dfrow$FOOD != -99 && dfrow$FOOD == 0) {
@@ -98,10 +97,10 @@ paramFunctionExpVar <- function(basethetas, covthetas, dfrow, etas, ...) {
   }
 
   TVFREL <- basethetas[1]
-  TVCL   <- basethetas[2]
-  TVV    <- basethetas[3]
-  TVMAT  <- basethetas[4]
-  TVD1   <- basethetas[5]
+  TVCL <- basethetas[2]
+  TVV <- basethetas[3]
+  TVMAT <- basethetas[4]
+  TVD1 <- basethetas[5]
 
   MU_2 <- TVD1
   MU_3 <- log(TVFREL)
@@ -109,14 +108,14 @@ paramFunctionExpVar <- function(basethetas, covthetas, dfrow, etas, ...) {
   MU_5 <- log(TVV)
   MU_6 <- log(TVMAT)
 
-  D1FR  <- MU_2 + etas[2]
-  FREL  <- FRELFOOD * exp(MU_3)
-  CL    <- exp(MU_4 + covthetas[1] + etas[3])
-  V     <- exp(MU_5 + covthetas[2] + etas[4])
-  MAT   <- MATFOOD * exp(MU_6 + covthetas[3] + etas[5])
+  D1FR <- MU_2 + etas[2]
+  FREL <- FRELFOOD * exp(MU_3)
+  CL <- exp(MU_4 + covthetas[1] + etas[3])
+  V <- exp(MU_5 + covthetas[2] + etas[4])
+  MAT <- MATFOOD * exp(MU_6 + covthetas[3] + etas[5])
 
-  D1   <- MAT * (1 - TVD1)
-  KA   <- 1 / (MAT - D1)
+  D1 <- MAT * (1 - TVD1)
+  KA <- 1 / (MAT - D1)
 
   # Compute AUC after an 80 mg dose
   AUC <- 80 / (CL / FREL)
@@ -176,10 +175,10 @@ We plot the results using `plotExplainedVar()`. To ensure reproducibility and pr
 ```{r plot_var}
 # 1. Define robust label mappings
 label_map <- c(
-  "All" = "All Covariates", "AGE" = "Age", "ALT" = "ALT", "AST" = "AST", 
-  "BILI" = "Bilirubin", "BMI" = "BMI", "BSA" = "BSA", "CRCL" = "Creatinine Clearance", 
-  "ETHN" = "Ethnicity", "GENO2" = "Genotype", "HT" = "Height", "LBM" = "Lean Body Mass", 
-  "NCIL" = "NCI Grade", "RACEL" = "Race", "SEX" = "Sex", "SMOK" = "Smoking Status", 
+  "All" = "All Covariates", "AGE" = "Age", "ALT" = "ALT", "AST" = "AST",
+  "BILI" = "Bilirubin", "BMI" = "BMI", "BSA" = "BSA", "CRCL" = "Creatinine Clearance",
+  "ETHN" = "Ethnicity", "GENO2" = "Genotype", "HT" = "Height", "LBM" = "Lean Body Mass",
+  "NCIL" = "NCI Grade", "RACEL" = "Race", "SEX" = "Sex", "SMOK" = "Smoking Status",
   "WT" = "Weight", "FOOD" = "Food Status"
 )
 
@@ -191,18 +190,18 @@ mapped_labels <- unname(sapply(cstrCovariates, function(x) {
 # 3. Plot Total Explained Variability (maxVar = 1)
 # Visualizes the fraction: 100 * (COVVAR / TOTVAR)
 plotExplainedVar(
-  dfres, 
-  parameters = "AUC", 
-  maxVar = 1, 
+  dfres,
+  parameters = "AUC",
+  maxVar = 1,
   covariateLabels = mapped_labels
 ) + labs(title = "Explained Part of Total Variability (AUC)")
 
 # 4. Plot Proportion of Explainable Variability (maxVar = 2)
 # Visualizes the fraction: 100 * (COVVAR / TOTCOVVAR)
 plotExplainedVar(
-  dfres, 
-  parameters = "AUC", 
-  maxVar = 2, 
+  dfres,
+  parameters = "AUC",
+  maxVar = 2,
   covariateLabels = mapped_labels
 ) + labs(title = "Explained Part of Explainable Variability (AUC)")
 ```

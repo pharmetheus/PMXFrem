@@ -34,17 +34,16 @@ augmentFremData <- function(dfFREM,
                             cstrSetToZero,
                             missVal = -99,
                             quiet = FALSE) {
-  
   printq <- function(str, quiet) {
     if (!quiet) print(str)
   }
-  
+
   # --- This is the logic block moved from updateFREMmodel.R ---
-  
+
   ### Add new individuals to the FREM dataset
   dataToAdd <- dfFFEM[!(dfFFEM[[strID]] %in% dfFREM[[strID]]), ]
   printq(paste0("Found ", nrow(dataToAdd[!duplicated(dataToAdd[[strID]]), ]), " individuals that should be added to the FREM dataset"), quiet = quiet)
-  
+
   ### Add existing (and new) DVs
   iFremtypeDV <- unique(dfFREM[["FREMTYPE"]][dfFREM[["FREMTYPE"]] < iFremTypeIncrease])
   iNewFremtypeDV <- NULL
@@ -61,19 +60,19 @@ augmentFremData <- function(dfFREM,
       iNewFremtypeDV <- length(iFremtypeDV):(length(cstrDV) - 1)
     }
   }
-  
+
   dfAddList <- list()
   if (length(iFremtypeDV) > 0) {
     ### Add existing DVs for new individuals
     for (i in 1:length(iFremtypeDV)) {
       strDV <- cstrDV[i]
-      
+
       keep_rows <- dataToAdd[[strDV]] != missVal
       if ("EVID" %in% names(dataToAdd)) keep_rows <- keep_rows | dataToAdd$EVID != 0
       keep_rows[is.na(keep_rows)] <- FALSE
-      
+
       dfDVData <- dataToAdd[keep_rows, unique(c(names(dataToAdd)[names(dataToAdd) %in% names(dfFREM)], strDV)), drop = FALSE]
-      
+
       if (nrow(dfDVData) == 0) {
         printq(paste0("No observations for ", strDV, " (fremtype=", iFremtypeDV[i], "); not adding any observations!"), quiet = quiet)
       } else {
@@ -81,7 +80,7 @@ augmentFremData <- function(dfFREM,
         if (!(strDV %in% names(dfFREM))) dfDVData[[strDV]] <- NULL
         dfDVData$FREMTYPE <- iFremtypeDV[i]
         if (length(names(dfDVData)) == length(names(dfFREM)) && all(sort(names(dfDVData)) == sort(names(dfFREM)))) {
-          dfDVData       <- dfDVData[, names(dfFREM)]
+          dfDVData <- dfDVData[, names(dfFREM)]
           dfAddList[[i]] <- dfDVData
           printq(paste0("Adding ", nrow(dfDVData), " observations (", strDV, ") from ", nrow(dfDVData[!duplicated(dfDVData[[strID]]), ]), " individuals as fremtype ", iFremtypeDV[i]), quiet = quiet)
         } else {
@@ -92,7 +91,7 @@ augmentFremData <- function(dfFREM,
     }
     dfFREM <- rbind(dfFREM, as.data.frame(data.table::rbindlist(dfAddList)))
   }
-  
+
   dfAddList <- list()
   if (length(iNewFremtypeDV) > 0) {
     ### Add new DVs for all individuals
@@ -118,7 +117,7 @@ augmentFremData <- function(dfFREM,
     }
     dfFREM <- rbind(dfFREM, as.data.frame(data.table::rbindlist(dfAddList)))
   }
-  
+
   ### Add old FREM variables for new individuals
   dfAddList <- list()
   if (nrow(dataToAdd) > 0) {
@@ -133,14 +132,14 @@ augmentFremData <- function(dfFREM,
         dfData <- dfData[!duplicated(dfData[[strID]]), ]
         dfData$FREMTYPE <- iFremtype
         if (strCov == strCovClean) { # Continuous covariate
-          dfData$DV      <- dfData[[strCovClean]]
-          dfData         <- dfData[, names(dfFREM)]
+          dfData$DV <- dfData[[strCovClean]]
+          dfData <- dfData[, names(dfFREM)]
           dfAddList[[i]] <- dfData
           printq(paste0("Adding ", nrow(dfData), " continuous covariate values (", strCovClean, ") from ", nrow(dfData[!duplicated(dfData[[strID]]), ]), " individuals as fremtype ", iFremtype), quiet = quiet)
         } else { # Categorical covariate
-          iCategory      <- gsub(".+_([0-9]+)", "\\1", strCov)
-          dfData$DV      <- ifelse(dfData[[strCovClean]] == iCategory, 1, 0)
-          dfData         <- dfData[, names(dfFREM)]
+          iCategory <- gsub(".+_([0-9]+)", "\\1", strCov)
+          dfData$DV <- ifelse(dfData[[strCovClean]] == iCategory, 1, 0)
+          dfData <- dfData[, names(dfFREM)]
           dfAddList[[i]] <- dfData
           printq(paste0("Adding ", nrow(dfData), " categorical covariate values (", strCov, ") from ", nrow(dfData[!duplicated(dfData[[strID]]), ]), " individuals as fremtype ", iFremtype), quiet = quiet)
         }
@@ -148,48 +147,48 @@ augmentFremData <- function(dfFREM,
     }
     dfFREM <- rbind(dfFREM, as.data.frame(data.table::rbindlist(dfAddList)))
   }
-  
+
   ### Add the new FREM variables to the FREM dataset
   dfAddList <- list()
   dfFREMOne <- dfFREM[!duplicated(dfFREM[[strID]]), ]
   if (!is.null(addedList)) {
     for (i in 1:length(addedList)) {
-      strcov         <- addedList[i]
-      l              <- covList[[strcov]]
-      dftmp          <- dfFREMOne
-      dfnew          <- l[["Data"]]
-      
+      strcov <- addedList[i]
+      l <- covList[[strcov]]
+      dftmp <- dfFREMOne
+      dfnew <- l[["Data"]]
+
       # Stable inner join using match() instead of merge() to protect ID order
       shared_ids <- intersect(dftmp[[strID]], dfnew[[strID]])
       dftmp <- dftmp[dftmp[[strID]] %in% shared_ids, , drop = FALSE]
       dfnew <- dfnew[dfnew[[strID]] %in% shared_ids, , drop = FALSE]
-      
+
       idx <- match(dftmp[[strID]], dfnew[[strID]])
       dftmp$DV <- dfnew[[l[["Name"]]]][idx]
       dftmp$FREMTYPE <- l[["Fremtype"]]
-      
+
       # Zero out specified columns safely in base R (removing dplyr dependency)
       zero_cols <- intersect(names(dftmp), cstrSetToZero)
       if (length(zero_cols) > 0) dftmp[, zero_cols] <- 0
-      
+
       dfAddList[[i]] <- dftmp
       printq(paste0("Adding ", nrow(dftmp), " covariate values (", l[["Name"]], ") from ", nrow(dftmp[!duplicated(dftmp[[strID]]), ]), " individuals as fremtype ", l[["Fremtype"]]), quiet = quiet)
     }
   }
-  
+
   # --- SELF-HEALING COLUMN ALIGNMENT BEFORE BINDING ---
-  
+
   # Check if any new covariates were actually generated in Phase 2
   if (length(dfAddList) > 0) {
     # Convert the list of new rows into our data frame
     dfNewFREM <- as.data.frame(data.table::rbindlist(dfAddList))
-    
+
     cols_new <- names(dfNewFREM)
     cols_old <- names(dfFREM)
-    
+
     # Extract exactly one baseline row per ID from dfFFEM to safely map covariates
     ffem_unique <- dfFFEM[!duplicated(dfFFEM[[strID]]), ]
-    
+
     # 1. If Phase 2 generated a new keep_col (like SEX_2), back-fill it into Phase 1's data
     missing_in_old <- setdiff(cols_new, cols_old)
     if (length(missing_in_old) > 0) {
@@ -198,20 +197,20 @@ augmentFremData <- function(dfFREM,
         dfFREM[[col]] <- ffem_unique[[col]][idx]
       }
     }
-    
+
     # 2. If Phase 1 had a keep_col that Phase 2 somehow missed, back-fill it into Phase 2's data
-    missing_in_new <- setdiff(names(dfFREM), names(dfNewFREM)) 
+    missing_in_new <- setdiff(names(dfFREM), names(dfNewFREM))
     if (length(missing_in_new) > 0) {
       idx <- match(dfNewFREM[[strID]], ffem_unique[[strID]])
       for (col in missing_in_new) {
         dfNewFREM[[col]] <- ffem_unique[[col]][idx]
       }
     }
-    
+
     # Re-align column order and safely bind
     dfNewFREM <- dfNewFREM[, names(dfFREM), drop = FALSE]
     dfFREM <- rbind(dfFREM, dfNewFREM)
   }
-  
+
   return(dfFREM)
 }

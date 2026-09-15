@@ -21,9 +21,11 @@
 }
 
 .update <- function(path) {
-  updateFREMmodel(strFREMModel = path, numNonFREMThetas = 7, numSkipOm = 2,
-                  bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE,
-                  strUpdateType = "NoData")$model
+  updateFREMmodel(
+    strFREMModel = path, numNonFREMThetas = 7, numSkipOm = 2,
+    bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE,
+    strUpdateType = "NoData"
+  )$model
 }
 
 
@@ -46,49 +48,57 @@ test_that("value counting handles the NONMEM record forms", {
 })
 
 test_that("a well-formed model round-trips its labels unchanged", {
-  td  <- withr::local_tempdir()
+  td <- withr::local_tempdir()
   out <- .update(.run31Copy(td))
   lab <- .omegaLabels(out)
-  expect_equal(lab[1:5], c("1. IIV on RUV", "2. IIV on D1", "3. IIV on CL",
-                           "4. IIV on V", "5. IIV on MAT"))
+  expect_equal(lab[1:5], c(
+    "1. IIV on RUV", "2. IIV on D1", "3. IIV on CL",
+    "4. IIV on V", "5. IIV on MAT"
+  ))
   expect_equal(lab[6], "BSV_WT")
-  expect_equal(lab[23], "BSV_SMOK")     # the last, reached through wrapped rows
+  expect_equal(lab[23], "BSV_SMOK") # the last, reached through wrapped rows
   expect_length(lab, 23L)
 })
 
 test_that("a standalone comment inside $OMEGA does not shift the labels", {
   td <- withr::local_tempdir()
-  p  <- .run31Copy(td, function(L) {
-    at <- grep("^\\$OMEGA\\s+0\\.0001", L)[1]        # before the 2nd omega
+  p <- .run31Copy(td, function(L) {
+    at <- grep("^\\$OMEGA\\s+0\\.0001", L)[1] # before the 2nd omega
     append(L, "; tweaked this after run 27", after = at - 1L)
   })
   lab <- .omegaLabels(.update(p))
   # without the fix the note consumed a slot and pushed every later label down
-  expect_equal(lab[1:5], c("1. IIV on RUV", "2. IIV on D1", "3. IIV on CL",
-                           "4. IIV on V", "5. IIV on MAT"))
+  expect_equal(lab[1:5], c(
+    "1. IIV on RUV", "2. IIV on D1", "3. IIV on CL",
+    "4. IIV on V", "5. IIV on MAT"
+  ))
   expect_equal(lab[23], "BSV_SMOK")
 })
 
 test_that("an uncommented $OMEGA record does not shift the labels", {
   td <- withr::local_tempdir()
-  p  <- .run31Copy(td, function(L) {
-    i <- grep("^\\$OMEGA\\s+0\\.0542558", L)[1]      # drop the 1st omega's comment
+  p <- .run31Copy(td, function(L) {
+    i <- grep("^\\$OMEGA\\s+0\\.0542558", L)[1] # drop the 1st omega's comment
     L[i] <- sub(";.*$", "", L[i])
     L
   })
   lab <- .omegaLabels(.update(p))
   # eta 1 falls back to the generated label; everything after keeps its own
-  expect_equal(lab[2:5], c("2. IIV on D1", "3. IIV on CL", "4. IIV on V",
-                           "5. IIV on MAT"))
+  expect_equal(lab[2:5], c(
+    "2. IIV on D1", "3. IIV on CL", "4. IIV on V",
+    "5. IIV on MAT"
+  ))
   expect_equal(lab[23], "BSV_SMOK")
 })
 
 test_that("wrapped block rows keep their labels aligned", {
   # run31's later BLOCK(21) rows already wrap over two physical lines, with the
   # comment only on the second. Counting rows by line would over-count them.
-  td  <- withr::local_tempdir()
+  td <- withr::local_tempdir()
   lab <- .omegaLabels(.update(.run31Copy(td)))
-  expect_equal(lab[17:23], c("BSV_RACEL_3", "BSV_RACEL_2", "BSV_NCIL_2",
-                             "BSV_NCIL_1", "BSV_GENO2", "BSV_ETHNIC",
-                             "BSV_SMOK"))
+  expect_equal(lab[17:23], c(
+    "BSV_RACEL_3", "BSV_RACEL_2", "BSV_NCIL_2",
+    "BSV_NCIL_1", "BSV_GENO2", "BSV_ETHNIC",
+    "BSV_SMOK"
+  ))
 })

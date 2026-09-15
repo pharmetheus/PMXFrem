@@ -70,33 +70,33 @@
 #'
 #' @examples
 #' library(dplyr)
-#' extFile         <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
-#' dfExt           <- getExt(extFile = extFile)
+#' extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+#' dfExt <- getExt(extFile = extFile)
 #' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE)
 #'
 #' ## Use fremETA to also compute the ETA prim
-#' phiFile         <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
-#' dfPhi           <- getPhi(phiFile) %>% select(starts_with("ETA"))
-#' calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
-#'   fremETA = as.numeric(dfPhi[1, ]))
+#' phiFile <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
+#' dfPhi <- getPhi(phiFile) %>% select(starts_with("ETA"))
+#' calcFFEMtestout <- calcFFEM(dfExt,
+#'   numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
+#'   fremETA = as.numeric(dfPhi[1, ])
+#' )
 #'
 #' @family FFEM Conversion
 #' @concept ffem_conversion
 calcFFEM <- function(dfext,
                      numNonFREMThetas,
-                     numSkipOm     = 0,
+                     numSkipOm = 0,
                      numFREMThetas = length(grep("THETA", names(dfext))) - numNonFREMThetas,
-                     numSigmas     = length(grep("SIGMA", names(dfext))),
-                     numParCov     = NULL,
-                     parNames      = NULL, #paste("Par", 1:numParCov, sep = ""),
-                     covNames      = paste("Cov", 1:numFREMThetas, sep = ""),
-                     availCov      = covNames,
-                     quiet         = FALSE,
-                     fremETA       = NULL,
-                     eqFile        = "",
-                     omFile        = "") {
-
-
+                     numSigmas = length(grep("SIGMA", names(dfext))),
+                     numParCov = NULL,
+                     parNames = NULL, # paste("Par", 1:numParCov, sep = ""),
+                     covNames = paste("Cov", 1:numFREMThetas, sep = ""),
+                     availCov = covNames,
+                     quiet = FALSE,
+                     fremETA = NULL,
+                     eqFile = "",
+                     omFile = "") {
   # Calculate the number of parameters to include covariates on
   if (is.null(numParCov)) {
     numParCov <- calcNumParCov(dfext, numNonFREMThetas, numSkipOm)
@@ -109,54 +109,54 @@ calcFFEM <- function(dfext,
 
   if (length(parNames) != numParCov) {
     stop(sprintf(
-      "Validation Error: Length of `parNames` (%d) must exactly match the number of structural parameters affected by covariates `numParCov` (%d).", 
+      "Validation Error: Length of `parNames` (%d) must exactly match the number of structural parameters affected by covariates `numParCov` (%d).",
       length(parNames), numParCov
     ), call. = FALSE)
   }
-  
+
   if (length(covNames) != numFREMThetas) {
     stop(sprintf(
-      "Validation Error: Length of `covNames` (%d) must exactly match the number of FREM covariates `numFREMThetas` (%d).", 
+      "Validation Error: Length of `covNames` (%d) must exactly match the number of FREM covariates `numFREMThetas` (%d).",
       length(covNames), numFREMThetas
     ), call. = FALSE)
   }
-  
-  iNumFREMOM <- (numFREMThetas + numParCov) * (numFREMThetas + numParCov + 1) / 2
-  if (nrow(dfext) > 1) dfext  <- dfext[dfext$ITERATION == -1000000000, ]
 
-  df_th     <- as.numeric(dfext[, 2:(numNonFREMThetas + 1)])
-  df_thm    <- as.numeric(dfext[, (numNonFREMThetas + 2):(numNonFREMThetas + 1 + numFREMThetas)])
-  df_om     <- as.numeric(dfext[, (numNonFREMThetas + numSigmas + 2 + numFREMThetas):(ncol(dfext) - 1)])
-  num_om    <- -1 / 2 + sqrt(1 / 4 + 2 * iNumFREMOM) + numSkipOm # The col/row size of the full OM matrix (including all blocks)
+  iNumFREMOM <- (numFREMThetas + numParCov) * (numFREMThetas + numParCov + 1) / 2
+  if (nrow(dfext) > 1) dfext <- dfext[dfext$ITERATION == -1000000000, ]
+
+  df_th <- as.numeric(dfext[, 2:(numNonFREMThetas + 1)])
+  df_thm <- as.numeric(dfext[, (numNonFREMThetas + 2):(numNonFREMThetas + 1 + numFREMThetas)])
+  df_om <- as.numeric(dfext[, (numNonFREMThetas + numSigmas + 2 + numFREMThetas):(ncol(dfext) - 1)])
+  num_om <- -1 / 2 + sqrt(1 / 4 + 2 * iNumFREMOM) + numSkipOm # The col/row size of the full OM matrix (including all blocks)
   om_matrix <- as.numeric(df_om)
 
   # Get the om-matrix
-  OM                              <- matrix(0, nrow = num_om, ncol = num_om) # Define an empty matrix
+  OM <- matrix(0, nrow = num_om, ncol = num_om) # Define an empty matrix
 
   # <<< START OF BUG FIX for replacement length warning >>>
   # Ensure om_matrix has the correct number of elements to fill the OM matrix
   # This respects the user-provided numParCov argument. Should generate the same results as the original line (below) for cases when numParCov > 1.
   num_elements_needed <- sum(upper.tri(OM, diag = TRUE))
-  om_matrix_subset    <- om_matrix[1:num_elements_needed]
-  OM[upper.tri(OM, diag = TRUE)]  <- om_matrix_subset
+  om_matrix_subset <- om_matrix[1:num_elements_needed]
+  OM[upper.tri(OM, diag = TRUE)] <- om_matrix_subset
   # <<< END OF BUG FIX >>>
 
   # OM[upper.tri(OM, diag = TRUE)]  <- om_matrix # Assign upper triangular + diag
-  tOM                             <- t(OM) # Get a transposed matrix
+  tOM <- t(OM) # Get a transposed matrix
   OM[lower.tri(OM, diag = FALSE)] <- tOM[lower.tri(tOM, diag = FALSE)] # Assign the lower triangular except diag
-  OMFULL                          <- OM
+  OMFULL <- OM
 
   if (numSkipOm != 0) OM <- OM[-(1:numSkipOm), -(1:numSkipOm)] # Remove upper block
 
-  OM_PAR     <- OM[1:numParCov, 1:numParCov] # The parameter covariance matrix
-  OM_COV     <- OM[(numParCov + 1):(numParCov + numFREMThetas), (numParCov + 1):(numParCov + numFREMThetas)] # The covariates covariance matrix
+  OM_PAR <- OM[1:numParCov, 1:numParCov] # The parameter covariance matrix
+  OM_COV <- OM[(numParCov + 1):(numParCov + numFREMThetas), (numParCov + 1):(numParCov + numFREMThetas)] # The covariates covariance matrix
   OM_PAR_COV <- OM[1:numParCov, (numParCov + 1):(numParCov + numFREMThetas)] # The covariance between covariates and parameters matrix
 
   if (length(availCov) != 0 & length(c(1:length(covNames))[!(covNames %in% availCov)]) != 0) {
-    missCov    <- c(1:length(covNames))[!(covNames %in% availCov)]
+    missCov <- c(1:length(covNames))[!(covNames %in% availCov)]
 
     OM_COV <- OM_COV[-missCov, -missCov]
-    inv    <- solve(OM_COV)
+    inv <- solve(OM_COV)
 
     if (ncol(as.matrix(OM_PAR_COV)) == 1) {
       OM_PAR_COV <- t(as.matrix(OM_PAR_COV))[, -missCov]
@@ -166,25 +166,23 @@ calcFFEM <- function(dfext,
     }
 
     ## Fix the covariate names and means
-    covNames   <- covNames[-missCov]
-    df_thm     <- df_thm[-missCov]
+    covNames <- covNames[-missCov]
+    df_thm <- df_thm[-missCov]
 
-    COEFF     <- OM_PAR_COV %*% inv # The parameter-covariate coefficients
+    COEFF <- OM_PAR_COV %*% inv # The parameter-covariate coefficients
     COEFF_VAR <- OM_PAR - OM_PAR_COV %*% inv %*% t(OM_PAR_COV) # The parameter variances
-
   } else if (length(c(1:length(covNames))[!(covNames %in% availCov)]) == 0) {
-
     if (ncol(as.matrix(OM_PAR_COV)) == 1) {
       OM_PAR_COV <- t(as.matrix(OM_PAR_COV))
     } else {
       OM_PAR_COV <- as.matrix(OM_PAR_COV)
     }
 
-    inv       <- solve(OM_COV)
-    COEFF     <- OM_PAR_COV %*% inv # The parameter-covariate coefficients
+    inv <- solve(OM_COV)
+    COEFF <- OM_PAR_COV %*% inv # The parameter-covariate coefficients
     COEFF_VAR <- OM_PAR - OM_PAR_COV %*% inv %*% t(OM_PAR_COV) # The parameter variances
   } else {
-    COEFF     <- t(as.matrix(OM_PAR_COV))
+    COEFF <- t(as.matrix(OM_PAR_COV))
     COEFF_VAR <- OM_PAR
   }
 
@@ -264,12 +262,13 @@ calcFFEM <- function(dfext,
 
   return(
     invisible(
-      list(Coefficients = COEFF,
-        Vars            = COEFF_VAR,
-        Expr            = myExpr,
-        FullVars        = FULLVARS,
-        UpperVars       = UPPERVARS,
-        Eta_prim        = eta_prim
+      list(
+        Coefficients = COEFF,
+        Vars = COEFF_VAR,
+        Expr = myExpr,
+        FullVars = FULLVARS,
+        UpperVars = UPPERVARS,
+        Eta_prim = eta_prim
       )
     )
   )

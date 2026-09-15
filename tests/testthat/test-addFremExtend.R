@@ -9,13 +9,16 @@
 
 # largest ETA()/THETA() index actually referenced (guarded against THETA( -> ETA()
 .maxIdx <- function(lines, token) {
-  rx  <- sprintf("(?<![A-Za-z])%s\\([0-9]+\\)", token)
+  rx <- sprintf("(?<![A-Za-z])%s\\([0-9]+\\)", token)
   hit <- unlist(regmatches(lines, gregexpr(rx, lines, perl = TRUE)))
-  if (!length(hit)) return(0L)
+  if (!length(hit)) {
+    return(0L)
+  }
   max(as.integer(gsub("[^0-9]", "", hit)))
 }
 .pkErr <- function(lines) {
-  s <- grep("^\\s*\\$PK", lines); e <- grep("^\\s*\\$THETA", lines)[1] - 1L
+  s <- grep("^\\s*\\$PK", lines)
+  e <- grep("^\\s*\\$THETA", lines)[1] - 1L
   lines[s:e]
 }
 
@@ -25,33 +28,38 @@
 # ---------------------------------------------------------------------------
 
 test_that("addFremIIV inserts ETA(numSkipOm+1) and shifts everything at/after it", {
-  td  <- withr::local_tempdir()
+  td <- withr::local_tempdir()
   res <- addFremIIV(.run31(td), parameter = "FREL", omegaInit = 0.04, quiet = TRUE)
 
-  expect_equal(res$etaIndex, 3L)          # numSkipOm (2) + 1
+  expect_equal(res$etaIndex, 3L) # numSkipOm (2) + 1
   expect_equal(res$numSkipOm, 3L)
-  expect_equal(res$numNonFREMThetas, 7L)  # untouched
+  expect_equal(res$numNonFREMThetas, 7L) # untouched
 
   pk <- .pkErr(res$model)
   # skip-region etas ETA(1), ETA(2) untouched; old ETA(3..23) -> ETA(4..24)
   expect_match(paste(pk, collapse = "\n"), "D1FR\\s*=\\s*MU_2\\s*\\+\\s*ETA\\(2\\)")
   expect_match(paste(pk, collapse = "\n"), "CL\\s*=\\s*EXP\\(MU_4\\s*\\+\\s*ETA\\(4\\)\\)")
   # the new IIV on FREL, log-normal by default
-  expect_match(paste(pk, collapse = "\n"),
-               "FREL\\s*=\\s*\\(TVFREL\\*FRELCOVTIME\\) \\* EXP\\(ETA\\(3\\)\\)")
+  expect_match(
+    paste(pk, collapse = "\n"),
+    "FREL\\s*=\\s*\\(TVFREL\\*FRELCOVTIME\\) \\* EXP\\(ETA\\(3\\)\\)"
+  )
   # ETA indices are 1..24 with no gap
   etaIdx <- sort(unique(as.integer(gsub("[^0-9]", "", unlist(regmatches(
-    res$model, gregexpr("(?<![A-Za-z])ETA\\([0-9]+\\)", res$model, perl = TRUE)))))))
+    res$model, gregexpr("(?<![A-Za-z])ETA\\([0-9]+\\)", res$model, perl = TRUE)
+  ))))))
   expect_equal(etaIdx, 1:24)
 })
 
 test_that("addFremIIV leaves THETA() references and the FREM BLOCK(N) untouched", {
-  td  <- withr::local_tempdir()
+  td <- withr::local_tempdir()
   base <- readLines(.run31(td))
-  res  <- addFremIIV(file.path(td, "run31.mod"), parameter = "FREL",
-                     omegaInit = 0.04, quiet = TRUE)
+  res <- addFremIIV(file.path(td, "run31.mod"),
+    parameter = "FREL",
+    omegaInit = 0.04, quiet = TRUE
+  )
 
-  expect_equal(.maxIdx(res$model, "THETA"), .maxIdx(base, "THETA"))   # 25, unchanged
+  expect_equal(.maxIdx(res$model, "THETA"), .maxIdx(base, "THETA")) # 25, unchanged
   expect_match(paste(res$model, collapse = "\n"), "\\$OMEGA\\s+BLOCK\\(21\\)")
   # exactly one new simple $OMEGA, just before the block
   om <- grep("^\\s*\\$OMEGA", res$model, value = TRUE)
@@ -60,30 +68,37 @@ test_that("addFremIIV leaves THETA() references and the FREM BLOCK(N) untouched"
 })
 
 test_that("addFremIIV link = 'add' and link = 'none'", {
-  td <- withr::local_tempdir(); m <- .run31(td)
-  add  <- addFremIIV(m, parameter = "FREL", omegaInit = 0.01, link = "add", quiet = TRUE)
-  expect_match(paste(.pkErr(add$model), collapse = "\n"),
-               "FREL\\s*=\\s*TVFREL\\*FRELCOVTIME \\+ ETA\\(3\\)")
+  td <- withr::local_tempdir()
+  m <- .run31(td)
+  add <- addFremIIV(m, parameter = "FREL", omegaInit = 0.01, link = "add", quiet = TRUE)
+  expect_match(
+    paste(.pkErr(add$model), collapse = "\n"),
+    "FREL\\s*=\\s*TVFREL\\*FRELCOVTIME \\+ ETA\\(3\\)"
+  )
 
-  none  <- addFremIIV(m, omegaInit = 0.02, link = "none", quiet = TRUE)
+  none <- addFremIIV(m, omegaInit = 0.02, link = "none", quiet = TRUE)
   baseFrel <- grep("^FREL\\b", readLines(m), value = TRUE)
-  expect_identical(grep("^FREL\\b", none$model, value = TRUE), baseFrel)  # $PK line untouched
-  expect_true(any(grepl("\\$OMEGA\\s+0\\.02", none$model)))              # $OMEGA still added
+  expect_identical(grep("^FREL\\b", none$model, value = TRUE), baseFrel) # $PK line untouched
+  expect_true(any(grepl("\\$OMEGA\\s+0\\.02", none$model))) # $OMEGA still added
   # ETA / MU_ / COV renumber still happened
   expect_match(paste(none$model, collapse = "\n"), "CL\\s*=\\s*EXP\\(MU_4\\s*\\+\\s*ETA\\(4\\)\\)")
 })
 
 test_that("addFremIIV validates its inputs", {
-  td <- withr::local_tempdir(); m <- .run31(td)
+  td <- withr::local_tempdir()
+  m <- .run31(td)
   expect_error(addFremIIV(m, parameter = "FREL"), "`omegaInit` must be a single positive number")
   expect_error(addFremIIV(m, parameter = "FREL", omegaInit = -1), "positive number")
   expect_error(addFremIIV(m, omegaInit = 0.01), "`parameter`.*is required unless link")
-  expect_error(addFremIIV(m, parameter = "NOSUCH", omegaInit = 0.01),
-               "no \\$PK assignment of 'NOSUCH'")
+  expect_error(
+    addFremIIV(m, parameter = "NOSUCH", omegaInit = 0.01),
+    "no \\$PK assignment of 'NOSUCH'"
+  )
 })
 
 test_that("addFremIIV writes <mod>_iiv.mod and the result still parses as a FREM model", {
-  td <- withr::local_tempdir(); m <- .run31(td)
+  td <- withr::local_tempdir()
+  m <- .run31(td)
   res <- addFremIIV(m, parameter = "FREL", omegaInit = 0.04, quiet = TRUE)
   expect_true(file.exists(res$file))
   expect_match(res$file, "run31_iiv\\.mod$")
@@ -97,9 +112,11 @@ test_that("addFremIIV writes <mod>_iiv.mod and the result still parses as a FREM
 # ---------------------------------------------------------------------------
 
 test_that("addFremStructuralTheta (THETA only) inserts at numNonFREMThetas+1 and renumbers refs", {
-  td  <- withr::local_tempdir()
-  res <- addFremStructuralTheta(.run31(td), thetaInit = c(0, 0.5, 10),
-                                label = "TV_EXTRA", quiet = TRUE)
+  td <- withr::local_tempdir()
+  res <- addFremStructuralTheta(.run31(td),
+    thetaInit = c(0, 0.5, 10),
+    label = "TV_EXTRA", quiet = TRUE
+  )
 
   expect_equal(res$thetaIndex, 8L)
   expect_true(is.na(res$etaIndex))
@@ -107,23 +124,25 @@ test_that("addFremStructuralTheta (THETA only) inserts at numNonFREMThetas+1 and
 
   txt <- paste(res$model, collapse = "\n")
   # the new record sits between the last structural theta and the first FREM one
-  li      <- res$model
-  newRec  <- grep("\\(0,0.5,10\\) ; 8\\. TV_EXTRA", li)
+  li <- res$model
+  newRec <- grep("\\(0,0.5,10\\) ; 8\\. TV_EXTRA", li)
   expect_length(newRec, 1L)
   expect_match(li[newRec - 1L], "MATFOOD1")
   expect_match(li[newRec + 1L], "TV_WT")
   # structural refs THETA(1..7) untouched; FREM MU block THETA(8..25) -> THETA(9..26)
   expect_match(txt, "IF\\(FOOD\\.EQ\\.0\\) MATFOOD = \\( 1 \\+ THETA\\(6\\)\\)")
-  expect_match(txt, "MU_6 = THETA\\(9\\)")     # was MU_6 = THETA(8)
-  expect_match(txt, "MU_23 = THETA\\(26\\)")   # was MU_23 = THETA(25)
+  expect_match(txt, "MU_6 = THETA\\(9\\)") # was MU_6 = THETA(8)
+  expect_match(txt, "MU_23 = THETA\\(26\\)") # was MU_23 = THETA(25)
   expect_no_match(txt, "THETA\\(27\\)")
 })
 
 test_that("addFremStructuralTheta with addEta + muReference wires MU_k = THETA(j); param = EXP(MU_k + ETA(k))", {
-  td  <- withr::local_tempdir()
-  res <- addFremStructuralTheta(.run31(td), thetaInit = c(0, 0.5, 10),
-                                parameter = "KANEW", addEta = TRUE,
-                                omegaInit = 0.09, quiet = TRUE)
+  td <- withr::local_tempdir()
+  res <- addFremStructuralTheta(.run31(td),
+    thetaInit = c(0, 0.5, 10),
+    parameter = "KANEW", addEta = TRUE,
+    omegaInit = 0.09, quiet = TRUE
+  )
 
   expect_equal(res$thetaIndex, 8L)
   expect_equal(res$etaIndex, 3L)
@@ -158,66 +177,83 @@ test_that("the added definition survives generateFremModel()'s FREM-block splice
   # parameter away. The LOG(TV) house-style form must not collide.
   td <- withr::local_tempdir()
   for (mu in c(TRUE, FALSE)) {
-    res <- addFremStructuralTheta(.run31(td), thetaInit = c(0, 0.5, 10),
-                                  parameter = "KANEW", addEta = TRUE,
-                                  muReference = mu, omegaInit = 0.09,
-                                  quiet = TRUE, bWriteMod = FALSE)
-    li  <- res$model
+    res <- addFremStructuralTheta(.run31(td),
+      thetaInit = c(0, 0.5, 10),
+      parameter = "KANEW", addEta = TRUE,
+      muReference = mu, omegaInit = 0.09,
+      quiet = TRUE, bWriteMod = FALSE
+    )
+    li <- res$model
     spliceFrom <- min(grep("MU_\\d+ = THETA", li))
-    spliceTo   <- max(grep("COV\\d+ = MU_", li))
-    expect_match(li[spliceFrom], "MU_7 = THETA\\(9\\)")            # the FREM block
-    expect_false(any(grepl("KANEW", li[spliceFrom:spliceTo])))     # not inside it
+    spliceTo <- max(grep("COV\\d+ = MU_", li))
+    expect_match(li[spliceFrom], "MU_7 = THETA\\(9\\)") # the FREM block
+    expect_false(any(grepl("KANEW", li[spliceFrom:spliceTo]))) # not inside it
   }
 })
 
 test_that("addFremStructuralTheta with addEta + muReference = FALSE emits a single-line def", {
-  td  <- withr::local_tempdir()
-  res <- addFremStructuralTheta(.run31(td), thetaInit = 0.5, parameter = "KANEW",
-                                addEta = TRUE, muReference = FALSE,
-                                omegaInit = 0.09, quiet = TRUE)
+  td <- withr::local_tempdir()
+  res <- addFremStructuralTheta(.run31(td),
+    thetaInit = 0.5, parameter = "KANEW",
+    addEta = TRUE, muReference = FALSE,
+    omegaInit = 0.09, quiet = TRUE
+  )
   pk <- paste(.pkErr(res$model), collapse = "\n")
   expect_match(pk, "KANEW = THETA\\(8\\) \\* EXP\\(ETA\\(3\\)\\)")
   expect_no_match(pk, "MU_3 = ")
 })
 
 test_that("addEta = FALSE defines a new parameter rather than erroring", {
-  td  <- withr::local_tempdir()
-  res <- addFremStructuralTheta(.run31(td), thetaInit = c(0, 0.5, 10),
-                                parameter = "KANEW", addEta = FALSE, quiet = TRUE)
+  td <- withr::local_tempdir()
+  res <- addFremStructuralTheta(.run31(td),
+    thetaInit = c(0, 0.5, 10),
+    parameter = "KANEW", addEta = FALSE, quiet = TRUE
+  )
   pk <- paste(.pkErr(res$model), collapse = "\n")
   expect_match(pk, ";; Begin added THETA")
   expect_match(pk, "KANEW = THETA\\(8\\)")
   expect_true(is.na(res$etaIndex))
-  expect_equal(res$numSkipOm, 2L)          # no eta added
+  expect_equal(res$numSkipOm, 2L) # no eta added
   expect_equal(res$numNonFREMThetas, 8L)
 })
 
 test_that("an existing $PK parameter is modified in place, not redefined", {
-  td  <- withr::local_tempdir()
+  td <- withr::local_tempdir()
   # FREL already exists in run31's $PK
-  res <- addFremStructuralTheta(.run31(td), thetaInit = 0.5, parameter = "FREL",
-                                addEta = FALSE, quiet = TRUE)
+  res <- addFremStructuralTheta(.run31(td),
+    thetaInit = 0.5, parameter = "FREL",
+    addEta = FALSE, quiet = TRUE
+  )
   li <- res$model
-  expect_length(grep("^\\s*FREL\\s*=", li), 1L)          # still one assignment
+  expect_length(grep("^\\s*FREL\\s*=", li), 1L) # still one assignment
   expect_match(grep("^\\s*FREL\\s*=", li, value = TRUE), "THETA\\(8\\)")
-  expect_length(grep(";; Begin added THETA", li), 0L)    # nothing inserted
+  expect_length(grep(";; Begin added THETA", li), 0L) # nothing inserted
 })
 
 test_that("addFremStructuralTheta validates its inputs", {
-  td <- withr::local_tempdir(); m <- .run31(td)
+  td <- withr::local_tempdir()
+  m <- .run31(td)
   expect_error(addFremStructuralTheta(m), "`thetaInit` is required")
-  expect_error(addFremStructuralTheta(m, thetaInit = 0.5, addEta = TRUE),
-               "`parameter` is required when addEta")
-  expect_error(addFremStructuralTheta(m, thetaInit = 0.5, parameter = "X", addEta = TRUE),
-               "`omegaInit` is required when addEta")
+  expect_error(
+    addFremStructuralTheta(m, thetaInit = 0.5, addEta = TRUE),
+    "`parameter` is required when addEta"
+  )
+  expect_error(
+    addFremStructuralTheta(m, thetaInit = 0.5, parameter = "X", addEta = TRUE),
+    "`omegaInit` is required when addEta"
+  )
 })
 
 test_that("addFremStructuralTheta accepts a verbatim string thetaInit and writes <mod>_theta.mod", {
-  td  <- withr::local_tempdir()
-  res <- addFremStructuralTheta(.run31(td), thetaInit = "(0, 1.2) FIX",
-                                label = "TV_X", quiet = TRUE)
-  expect_match(paste(res$model, collapse = "\n"),
-               "\\$THETA\\s+\\(0, 1\\.2\\) FIX ; 8\\. TV_X")
+  td <- withr::local_tempdir()
+  res <- addFremStructuralTheta(.run31(td),
+    thetaInit = "(0, 1.2) FIX",
+    label = "TV_X", quiet = TRUE
+  )
+  expect_match(
+    paste(res$model, collapse = "\n"),
+    "\\$THETA\\s+\\(0, 1\\.2\\) FIX ; 8\\. TV_X"
+  )
   expect_match(res$file, "run31_theta\\.mod$")
   expect_true(file.exists(res$file))
 })

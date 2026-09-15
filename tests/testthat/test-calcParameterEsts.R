@@ -1,5 +1,4 @@
 test_that("calcParameterEsts correctly extracts and combines parameters", {
-
   # --- Setup ---
   extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
   parVector <- subset(getExt(extFile = extFile), ITERATION == "-1000000000")

@@ -57,114 +57,113 @@
 #'   includeShapedOFV = FALSE
 #' )
 #'
-#'   trace_plots_no_shape$OFV
+#' trace_plots_no_shape$OFV
 #' @family Diagnostics & Plotting
 #' @concept diagnostics
-traceplot <- function(runno        = NULL,
-                      modName      = NULL,
-                      modDevDir    = NULL,
-                      extFileName  = NULL,
-                      set          = 1,
-                      startIter    = 10,
-                      main         = NULL,
-                      includeOFV   = TRUE,
+traceplot <- function(runno = NULL,
+                      modName = NULL,
+                      modDevDir = NULL,
+                      extFileName = NULL,
+                      set = 1,
+                      startIter = 10,
+                      main = NULL,
+                      includeOFV = TRUE,
                       includeTheta = TRUE,
                       includeOmega = TRUE,
-                      thetaNum     = NULL,
-                      omegaNum     = NULL,
+                      thetaNum = NULL,
+                      omegaNum = NULL,
                       includeShapedOFV = TRUE,
                       pvalue = 0.05,
                       df = 1,
-                      meanShapeLastIter=30,
+                      meanShapeLastIter = 30,
                       add.stamp = FALSE) {
-
   if (is.null(extFileName)) {
-    fileNames   <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)
+    fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)
     extFileName <- fileNames$ext
   }
 
   if (set == "last") {
-    tmp  <- scan(extFileName, what = "character", sep = "\n", quiet = TRUE)
+    tmp <- scan(extFileName, what = "character", sep = "\n", quiet = TRUE)
     tabs <- grep("TABLE", tmp)
-    set  <- length(tabs)
+    set <- length(tabs)
   }
 
   myext <- getExt(extFile = extFileName, set = set)
 
   ## Get the starting parameters
-  Startpar <- subset(myext,ITERATION==0)
+  Startpar <- subset(myext, ITERATION == 0)
 
   # Get the finals
-  Finpar <- subset(myext,ITERATION==-1000000000)
+  Finpar <- subset(myext, ITERATION == -1000000000)
 
   # Get the intermediate
-  myext  <- subset(myext,ITERATION>0)
+  myext <- subset(myext, ITERATION > 0)
 
   myTrash <- c()
   if (ncol(myext) > 2) {
-    for(i in 2:(ncol(myext)-1)) {
-      if(sum(myext[,i])==0) myTrash <- c(myTrash,i)
+    for (i in 2:(ncol(myext) - 1)) {
+      if (sum(myext[, i]) == 0) myTrash <- c(myTrash, i)
     }
   }
-  #Error checks for dOFV shape arguments
+  # Error checks for dOFV shape arguments
   if (includeShapedOFV) {
-    if (pvalue<0 || pvalue>1) stop("Chi-square p-value (pvalue) should be in the interval [0-1]")
-    if (df<0) stop("Chi-square degreess of freedom should >0")
-    if (meanShapeLastIter<1) stop("The number of last iterations used for the mean OFV calculations > 0")
+    if (pvalue < 0 || pvalue > 1) stop("Chi-square p-value (pvalue) should be in the interval [0-1]")
+    if (df < 0) stop("Chi-square degreess of freedom should >0")
+    if (meanShapeLastIter < 1) stop("The number of last iterations used for the mean OFV calculations > 0")
   }
 
   # Select the parameters
-  if(!is.null(myTrash) && length(myTrash) > 0) {
-    myext <- myext[,-myTrash]
-    Finpar <- Finpar[,-myTrash]
-    Startpar <- Startpar[,-myTrash]
+  if (!is.null(myTrash) && length(myTrash) > 0) {
+    myext <- myext[, -myTrash]
+    Finpar <- Finpar[, -myTrash]
+    Startpar <- Startpar[, -myTrash]
   }
 
   myext2 <- myext
   if (length(Finpar) > 1) {
-    for (i in 2:(length(Finpar)-1)) {
-      myext2[,i] <- myext[,i]/as.numeric(Finpar[i])
+    for (i in 2:(length(Finpar) - 1)) {
+      myext2[, i] <- myext[, i] / as.numeric(Finpar[i])
     }
   }
 
-  if("SAEMOBJ" %in% names(myext2)) myext2 <- myext2 %>% dplyr::rename(OBJ =SAEMOBJ)
+  if ("SAEMOBJ" %in% names(myext2)) myext2 <- myext2 %>% dplyr::rename(OBJ = SAEMOBJ)
 
-  myextlong <- myext2 %>% tidyr::gather("Parameter","Value",-ITERATION)
+  myextlong <- myext2 %>% tidyr::gather("Parameter", "Value", -ITERATION)
 
-  thData <- subset(myextlong,Parameter!="OBJ" & ITERATION > startIter & grepl("THETA",myextlong$Parameter))
-  if(!is.null(thetaNum)) thData <- subset(thData,Parameter %in%paste("THETA",thetaNum,sep=""))
+  thData <- subset(myextlong, Parameter != "OBJ" & ITERATION > startIter & grepl("THETA", myextlong$Parameter))
+  if (!is.null(thetaNum)) thData <- subset(thData, Parameter %in% paste("THETA", thetaNum, sep = ""))
 
-  p1 <- ggplot2::ggplot(thData,ggplot2::aes(ITERATION,Value,color=Parameter,group=Parameter)) +
-    ggplot2::geom_line(show.legend=FALSE) +
+  p1 <- ggplot2::ggplot(thData, ggplot2::aes(ITERATION, Value, color = Parameter, group = Parameter)) +
+    ggplot2::geom_line(show.legend = FALSE) +
     ggplot2::geom_hline(yintercept = 1) +
     ggplot2::facet_wrap(~Parameter) +
     ggplot2::ggtitle(main)
 
-  omData <- subset(myextlong,Parameter!="OBJ" & ITERATION > startIter & grepl("OMEGA",myextlong$Parameter))
-  if(!is.null(omegaNum)) omData <- subset(omData,Parameter %in%paste0("OMEGA.",omegaNum,".",omegaNum,"."))
+  omData <- subset(myextlong, Parameter != "OBJ" & ITERATION > startIter & grepl("OMEGA", myextlong$Parameter))
+  if (!is.null(omegaNum)) omData <- subset(omData, Parameter %in% paste0("OMEGA.", omegaNum, ".", omegaNum, "."))
 
-  p1a <- ggplot2::ggplot(omData,ggplot2::aes(ITERATION,Value,color=Parameter,group=Parameter)) +
-    ggplot2::geom_line(show.legend=FALSE) +
+  p1a <- ggplot2::ggplot(omData, ggplot2::aes(ITERATION, Value, color = Parameter, group = Parameter)) +
+    ggplot2::geom_line(show.legend = FALSE) +
     ggplot2::facet_wrap(~Parameter)
 
-  dfofv<-subset(myextlong,Parameter=="OBJ" & ITERATION > startIter )
-  p2 <- ggplot2::ggplot(dfofv,ggplot2::aes(ITERATION,Value,color=Parameter,group=Parameter))
-  if (includeShapedOFV==TRUE) {
-    meanobj<-mean(dfofv[max(1,nrow(dfofv)-meanShapeLastIter+1):nrow(dfofv),]$Value)
-    chisq<-qchisq(df = df,p=pvalue,lower.tail = FALSE)
-    p2<-p2+ggplot2::annotate("rect", xmin = -Inf, xmax = Inf, ymax=meanobj+chisq/2,ymin=meanobj-chisq/2,alpha=0.2,color="lightgrey") 
+  dfofv <- subset(myextlong, Parameter == "OBJ" & ITERATION > startIter)
+  p2 <- ggplot2::ggplot(dfofv, ggplot2::aes(ITERATION, Value, color = Parameter, group = Parameter))
+  if (includeShapedOFV == TRUE) {
+    meanobj <- mean(dfofv[max(1, nrow(dfofv) - meanShapeLastIter + 1):nrow(dfofv), ]$Value)
+    chisq <- qchisq(df = df, p = pvalue, lower.tail = FALSE)
+    p2 <- p2 + ggplot2::annotate("rect", xmin = -Inf, xmax = Inf, ymax = meanobj + chisq / 2, ymin = meanobj - chisq / 2, alpha = 0.2, color = "lightgrey")
   }
-    
-  p2<-p2+ggplot2::geom_line(show.legend=FALSE) +
-  ggplot2::geom_point(show.legend=FALSE) +
-  ggplot2::ylab("OFV")+
-  ggplot2::ggtitle(main)
 
-  
+  p2 <- p2 + ggplot2::geom_line(show.legend = FALSE) +
+    ggplot2::geom_point(show.legend = FALSE) +
+    ggplot2::ylab("OFV") +
+    ggplot2::ggtitle(main)
+
+
   retList <- list()
-  if(includeOFV) retList[["OFV"]]     <- p2
-  if(includeTheta) retList[["Theta"]] <- p1
-  if(includeOmega) retList[["Omegas"]]  <- p1a
+  if (includeOFV) retList[["OFV"]] <- p2
+  if (includeTheta) retList[["Theta"]] <- p1
+  if (includeOmega) retList[["Omegas"]] <- p1a
   ## traceplot returns a list of plots, so every one gets its own stamp
   if (add.stamp) retList <- lapply(retList, PMXForest::addStamp)
 

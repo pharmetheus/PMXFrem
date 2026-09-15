@@ -68,25 +68,25 @@ Notice that we set `bRecodeDichotomous = TRUE`. In many standard datasets, dicho
 ```{r execute_create, warning=FALSE, message=FALSE}
 # Execute the creation of the FREM model and dataset
 generated_files <- createFREMmodel(
-  modName            = "run30",
-  modDevDir          = modDevDir,
-  ffemDataFile       = ffemDataFile,
-  outputDir          = td,
-  fremModName       = "run30_FREM",
-  
+  modName = "run30",
+  modDevDir = modDevDir,
+  ffemDataFile = ffemDataFile,
+  outputDir = td,
+  fremModName = "run30_FREM",
+
   # Covariate Instructions
-  covariates         = frem_covariates,
-  catCovs            = categorical_covs,
-  logtCovs           = log_transform_covs,
-  
+  covariates = frem_covariates,
+  catCovs = categorical_covs,
+  logtCovs = log_transform_covs,
+
   # Structural Architecture
-  numNonFREMThetas   = 7,
-  numSkipOm          = 2,
-  
+  numNonFREMThetas = 7,
+  numSkipOm = 2,
+
   # Dataset formatting
-  cstrKeepCols       = keep_cols,
+  cstrKeepCols = keep_cols,
   bRecodeDichotomous = TRUE,
-  quiet              = TRUE
+  quiet = TRUE
 )
 ```
 

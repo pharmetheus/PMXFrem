@@ -63,52 +63,60 @@
 #' @concept frem_model_management
 #' @export
 addFremIIV <- function(strFREMModel,
-                       parameter        = NULL,
+                       parameter = NULL,
                        omegaInit,
-                       link             = c("exp", "add", "none"),
+                       link = c("exp", "add", "none"),
                        numNonFREMThetas = NULL,
-                       numSkipOm        = NULL,
-                       extFile          = NULL,
-                       label            = NULL,
-                       newModel         = NULL,
-                       bWriteMod        = TRUE,
-                       quiet            = TRUE) {
-
+                       numSkipOm = NULL,
+                       extFile = NULL,
+                       label = NULL,
+                       newModel = NULL,
+                       bWriteMod = TRUE,
+                       quiet = TRUE) {
   link <- match.arg(link)
 
   if (missing(omegaInit) || length(omegaInit) != 1L || !is.numeric(omegaInit) ||
-      is.na(omegaInit) || omegaInit <= 0) {
+    is.na(omegaInit) || omegaInit <= 0) {
     stop("addFremIIV(): `omegaInit` must be a single positive number - the ",
-         "initial variance of the new $OMEGA (e.g. 0.01). It is required; a ",
-         "fresh IIV cannot be given a sensible default.", call. = FALSE)
+      "initial variance of the new $OMEGA (e.g. 0.01). It is required; a ",
+      "fresh IIV cannot be given a sensible default.",
+      call. = FALSE
+    )
   }
   if (link != "none" && (is.null(parameter) || !nzchar(parameter))) {
     stop("addFremIIV(): `parameter` (the $PK variable to attach the new ETA to) ",
-         "is required unless link = \"none\".", call. = FALSE)
+      "is required unless link = \"none\".",
+      call. = FALSE
+    )
   }
 
   isPath <- length(strFREMModel) == 1L && !grepl("\n", strFREMModel)
-  lines  <- if (isPath) readLines(strFREMModel, warn = FALSE) else strFREMModel
+  lines <- if (isPath) readLines(strFREMModel, warn = FALSE) else strFREMModel
 
   ## ---- structural integers -------------------------------------------------
   if (is.null(numNonFREMThetas) || is.null(numSkipOm)) {
     if (!isPath) {
       stop("addFremIIV(): pass `numNonFREMThetas` and `numSkipOm` when ",
-           "`strFREMModel` is a character vector.", call. = FALSE)
+        "`strFREMModel` is a character vector.",
+        call. = FALSE
+      )
     }
     if (is.null(extFile)) {
       extFile <- paste0(tools::file_path_sans_ext(strFREMModel), ".ext")
     }
     if (!file.exists(extFile)) {
       stop("addFremIIV(): supply `numNonFREMThetas` and `numSkipOm`, or place ",
-           basename(extFile), " next to the model so they can be derived.",
-           call. = FALSE)
+        basename(extFile), " next to the model so they can be derived.",
+        call. = FALSE
+      )
     }
-    .info <- fremModelInfo(modFile = strFREMModel, dfext = extFile,
-                           numNonFREMThetas = numNonFREMThetas,
-                           numSkipOm        = numSkipOm)
+    .info <- fremModelInfo(
+      modFile = strFREMModel, dfext = extFile,
+      numNonFREMThetas = numNonFREMThetas,
+      numSkipOm = numSkipOm
+    )
     if (is.null(numNonFREMThetas)) numNonFREMThetas <- .info$numNonFREMThetas
-    if (is.null(numSkipOm))        numSkipOm        <- .info$numSkipOm
+    if (is.null(numSkipOm)) numSkipOm <- .info$numSkipOm
     numTotEta <- .info$numTotEta
   } else {
     numTotEta <- .fremCountTotEta(lines)
@@ -121,8 +129,10 @@ addFremIIV <- function(strFREMModel,
 
   ## ---- inject the ETA() reference into the target $PK line ---------------
   if (link != "none") {
-    lines <- .fremAttachEta(lines, parameter = parameter, etaIdx = kNew,
-                            link = link)
+    lines <- .fremAttachEta(lines,
+      parameter = parameter, etaIdx = kNew,
+      link = link
+    )
   }
 
   ## ---- insert the new simple $OMEGA before the FREM BLOCK(N) -------------
@@ -133,33 +143,43 @@ addFremIIV <- function(strFREMModel,
   omBlockLine <- grep("^\\s*\\$OMEGA\\s+BLOCK\\s*\\(", lines, ignore.case = TRUE)
   if (length(omBlockLine) == 0L) {
     stop("addFremIIV(): could not find a '$OMEGA BLOCK(N)' record to insert ",
-         "the new $OMEGA before.", call. = FALSE)
+      "the new $OMEGA before.",
+      call. = FALSE
+    )
   }
-  at    <- omBlockLine[1] - 1L
+  at <- omBlockLine[1] - 1L
   lines <- c(lines[seq_len(at)], newOmLine, lines[(at + 1L):length(lines)])
 
   ## ---- write -----------------------------------------------------------
   outFile <- NULL
   if (isPath && bWriteMod) {
-    outFile <- if (!is.null(newModel)) newModel else {
-      paste0(tools::file_path_sans_ext(strFREMModel), "_iiv.",
-             tools::file_ext(strFREMModel))
+    outFile <- if (!is.null(newModel)) {
+      newModel
+    } else {
+      paste0(
+        tools::file_path_sans_ext(strFREMModel), "_iiv.",
+        tools::file_ext(strFREMModel)
+      )
     }
     writeLines(lines, outFile)
   }
 
   if (!quiet) {
-    message("addFremIIV(): inserted ETA(", kNew, ") (", label,
-            "), $OMEGA init ", format(omegaInit),
-            "; numSkipOm ", numSkipOm, " -> ", kNew,
-            if (!is.null(outFile)) paste0("; written to ", outFile) else "", ".")
+    message(
+      "addFremIIV(): inserted ETA(", kNew, ") (", label,
+      "), $OMEGA init ", format(omegaInit),
+      "; numSkipOm ", numSkipOm, " -> ", kNew,
+      if (!is.null(outFile)) paste0("; written to ", outFile) else "", "."
+    )
   }
 
-  invisible(list(model            = lines,
-                 etaIndex         = kNew,
-                 numSkipOm        = kNew,
-                 numNonFREMThetas = numNonFREMThetas,
-                 file             = outFile))
+  invisible(list(
+    model = lines,
+    etaIndex = kNew,
+    numSkipOm = kNew,
+    numNonFREMThetas = numNonFREMThetas,
+    file = outFile
+  ))
 }
 
 
@@ -181,10 +201,12 @@ addFremIIV <- function(strFREMModel,
 #' @keywords internal
 #' @noRd
 .fremRenumberEta <- function(lines, fromIdx, maxIdx) {
-  if (maxIdx < fromIdx) return(lines)
+  if (maxIdx < fromIdx) {
+    return(lines)
+  }
 
   recStart <- grep("^\\s*\\$[A-Za-z]", lines)
-  region   <- rep(FALSE, length(lines))
+  region <- rep(FALSE, length(lines))
   for (s in recStart) {
     if (grepl("^\\s*\\$(PK|ERROR|PRED)\\b", lines[s], ignore.case = TRUE)) {
       e <- recStart[recStart > s]
@@ -199,8 +221,8 @@ addFremIIV <- function(strFREMModel,
     kk <- k + 1L
     # (?<![A-Za-z]) so ETA( inside THETA( / BETA( / ZETA( is never matched
     seg <- gsub(sprintf("(?<![A-Za-z])ETA\\(\\s*%d\\s*\\)", k), sprintf("ETA(%d)", kk), seg, perl = TRUE)
-    seg <- gsub(sprintf("(?<![A-Za-z0-9_])MU_%d(?![0-9])", k),  sprintf("MU_%d", kk),  seg, perl = TRUE)
-    seg <- gsub(sprintf("(?<![A-Za-z0-9_])COV%d(?![0-9])", k),  sprintf("COV%d", kk),  seg, perl = TRUE)
+    seg <- gsub(sprintf("(?<![A-Za-z0-9_])MU_%d(?![0-9])", k), sprintf("MU_%d", kk), seg, perl = TRUE)
+    seg <- gsub(sprintf("(?<![A-Za-z0-9_])COV%d(?![0-9])", k), sprintf("COV%d", kk), seg, perl = TRUE)
   }
   lines[idx] <- seg
   lines
@@ -215,40 +237,47 @@ addFremIIV <- function(strFREMModel,
   hit <- grep(pat, lines)
   # keep only $PK hits (defensive: a same-named var could appear in $ERROR)
   recStart <- grep("^\\s*\\$[A-Za-z]", lines)
-  pkStart  <- recStart[grepl("^\\s*\\$PK\\b", lines[recStart], ignore.case = TRUE)]
+  pkStart <- recStart[grepl("^\\s*\\$PK\\b", lines[recStart], ignore.case = TRUE)]
   if (length(pkStart)) {
     pkEnd <- recStart[recStart > pkStart[1]]
     pkEnd <- if (length(pkEnd)) pkEnd[1] - 1L else length(lines)
-    hit   <- hit[hit >= pkStart[1] & hit <= pkEnd]
+    hit <- hit[hit >= pkStart[1] & hit <= pkEnd]
   }
   if (length(hit) == 0L) {
     stop("addFremIIV(): no $PK assignment of '", parameter, "' was found.",
-         call. = FALSE)
+      call. = FALSE
+    )
   }
   if (length(hit) > 1L) {
     stop("addFremIIV(): '", parameter, "' is assigned on more than one $PK line (",
-         paste(hit, collapse = ", "), "); cannot decide where the ETA goes.",
-         call. = FALSE)
+      paste(hit, collapse = ", "), "); cannot decide where the ETA goes.",
+      call. = FALSE
+    )
   }
 
-  i    <- hit[1]
-  m    <- regmatches(lines[i], regexec(pat, lines[i]))[[1]]
-  lead <- m[2]; rhsAll <- m[5]
+  i <- hit[1]
+  m <- regmatches(lines[i], regexec(pat, lines[i]))[[1]]
+  lead <- m[2]
+  rhsAll <- m[5]
   # split a trailing comment off the RHS
   cpos <- regexpr(";", rhsAll, fixed = TRUE)
   if (cpos > 0) {
-    rhs     <- sub("\\s+$", "", substr(rhsAll, 1, cpos - 1))
+    rhs <- sub("\\s+$", "", substr(rhsAll, 1, cpos - 1))
     comment <- substr(rhsAll, cpos, nchar(rhsAll))
   } else {
-    rhs <- sub("\\s+$", "", rhsAll); comment <- ""
+    rhs <- sub("\\s+$", "", rhsAll)
+    comment <- ""
   }
 
   newRhs <- switch(link,
     exp = sprintf("(%s) * EXP(ETA(%d))", rhs, etaIdx),
-    add = sprintf("%s + ETA(%d)", rhs, etaIdx))
+    add = sprintf("%s + ETA(%d)", rhs, etaIdx)
+  )
 
-  lines[i] <- sprintf("%s%s = %s%s", lead, parameter, newRhs,
-                      if (nzchar(comment)) paste0("  ", comment) else "")
+  lines[i] <- sprintf(
+    "%s%s = %s%s", lead, parameter, newRhs,
+    if (nzchar(comment)) paste0("  ", comment) else ""
+  )
   lines
 }
 

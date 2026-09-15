@@ -49,8 +49,7 @@
 fremModelInfo <- function(modFile,
                           dfext,
                           numNonFREMThetas = NULL,
-                          numSkipOm        = NULL) {
-
+                          numSkipOm = NULL) {
   ## ---- ext: accept a data.frame or a path -------------------------------
   if (is.character(dfext) && length(dfext) == 1L) {
     dfext <- getExt(extFile = dfext)
@@ -60,7 +59,7 @@ fremModelInfo <- function(modFile,
   }
 
   ## ---- FREM covariates from the model (stops if not a FREM model) -------
-  cn            <- getCovNames(modFile = modFile)
+  cn <- getCovNames(modFile = modFile)
   numFREMThetas <- length(cn$covNames)
 
   ## ---- counts from the ext columns (getExt and getSamples shapes both) --
@@ -72,40 +71,50 @@ fremModelInfo <- function(modFile,
   }
   numTotEta <- (-1 + sqrt(1 + 8 * nOmCol)) / 2
   if (abs(numTotEta - round(numTotEta)) > 1e-8) {
-    stop("The number of OMEGA columns in `dfext` (", nOmCol,
-         ") is not a triangular number; the .ext looks inconsistent.")
+    stop(
+      "The number of OMEGA columns in `dfext` (", nOmCol,
+      ") is not a triangular number; the .ext looks inconsistent."
+    )
   }
   numTotEta <- as.integer(round(numTotEta))
 
   ## ---- final $OMEGA BLOCK(N) from the model ----------------------------
-  omBlock  <- findrecord(modFile, record = "\\$OMEGA", quiet = TRUE)
+  omBlock <- findrecord(modFile, record = "\\$OMEGA", quiet = TRUE)
   blkLines <- grep("BLOCK\\s*\\(\\s*[0-9]+\\s*\\)", omBlock, value = TRUE, ignore.case = TRUE)
   if (length(blkLines) == 0) {
-    stop("Could not find a '$OMEGA BLOCK(N)' record in ", basename(modFile),
-         ". Auto-derivation needs the FREM omega block written as an explicit BLOCK(N).")
+    stop(
+      "Could not find a '$OMEGA BLOCK(N)' record in ", basename(modFile),
+      ". Auto-derivation needs the FREM omega block written as an explicit BLOCK(N)."
+    )
   }
   blockN <- as.integer(sub(".*BLOCK\\s*\\(\\s*([0-9]+)\\s*\\).*", "\\1",
-                           blkLines[length(blkLines)], ignore.case = TRUE))
+    blkLines[length(blkLines)],
+    ignore.case = TRUE
+  ))
 
   ## ---- derive ---------------------------------------------------------
   d_numNonFREMThetas <- nTheta - numFREMThetas
-  d_numSkipOm        <- numTotEta - blockN
-  d_numParCov        <- blockN - numFREMThetas
+  d_numSkipOm <- numTotEta - blockN
+  d_numParCov <- blockN - numFREMThetas
 
   if (d_numNonFREMThetas < 0 || d_numParCov < 1 || d_numSkipOm < 0) {
-    warning("Derived FREM structure looks inconsistent (numNonFREMThetas = ",
-            d_numNonFREMThetas, ", numParCov = ", d_numParCov,
-            ", numSkipOm = ", d_numSkipOm,
-            "). Check that `modFile` and `dfext` are from the same run.")
+    warning(
+      "Derived FREM structure looks inconsistent (numNonFREMThetas = ",
+      d_numNonFREMThetas, ", numParCov = ", d_numParCov,
+      ", numSkipOm = ", d_numSkipOm,
+      "). Check that `modFile` and `dfext` are from the same run."
+    )
   }
 
   ## ---- reconcile with explicit overrides: warn, keep the explicit value
   out_numNonFREMThetas <- d_numNonFREMThetas
   if (!is.null(numNonFREMThetas)) {
     if (!isTRUE(all.equal(as.numeric(numNonFREMThetas), as.numeric(d_numNonFREMThetas)))) {
-      warning("Supplied numNonFREMThetas (", numNonFREMThetas,
-              ") differs from the value derived from the model (", d_numNonFREMThetas,
-              "); using the supplied value.")
+      warning(
+        "Supplied numNonFREMThetas (", numNonFREMThetas,
+        ") differs from the value derived from the model (", d_numNonFREMThetas,
+        "); using the supplied value."
+      )
     }
     out_numNonFREMThetas <- numNonFREMThetas
   }
@@ -113,9 +122,11 @@ fremModelInfo <- function(modFile,
   out_numSkipOm <- d_numSkipOm
   if (!is.null(numSkipOm)) {
     if (!isTRUE(all.equal(as.numeric(numSkipOm), as.numeric(d_numSkipOm)))) {
-      warning("Supplied numSkipOm (", numSkipOm,
-              ") differs from the value derived from the model (", d_numSkipOm,
-              "); using the supplied value.")
+      warning(
+        "Supplied numSkipOm (", numSkipOm,
+        ") differs from the value derived from the model (", d_numSkipOm,
+        "); using the supplied value."
+      )
     }
     out_numSkipOm <- numSkipOm
   }

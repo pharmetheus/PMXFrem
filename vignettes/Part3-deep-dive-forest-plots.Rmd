@@ -47,7 +47,7 @@ library(data.table)
 
 # Enforce a clean global theme
 theme_set(theme_bw(base_size = 14))
-set.seed(865765) 
+set.seed(865765)
 
 # Identify the FREM run and collect file paths
 runname <- "run31"
@@ -55,8 +55,8 @@ modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
 fremFiles <- getFileNames(modName = runname, modDevDir = modDevDir)
 
 # Extract final parameter estimates and annotated covariate names
-dfExt <- subset(getExt(extFile = fremFiles$ext), ITERATION == "-1000000000") 
-covNames <- getCovNames(modFile = fremFiles$mod)                             
+dfExt <- subset(getExt(extFile = fremFiles$ext), ITERATION == "-1000000000")
+covNames <- getCovNames(modFile = fremFiles$mod)
 ```
 
 Next, we extract the uncertainty distribution. In this example, we draw 175 multivariate normal samples using the variance-covariance matrix from the NONMEM `.cov` file. 
@@ -81,8 +81,12 @@ $$COV = \theta_{COV} + \eta_{COV}$$
 ```{r define_functions}
 # The parameter function list for log-normal parameters
 functionList <- list(
-  function(basethetas, covthetas, ...) { return(basethetas[1] * exp(covthetas[1])) }, 
-  function(basethetas, covthetas, ...) { return(basethetas[2] * exp(covthetas[2])) }
+  function(basethetas, covthetas, ...) {
+    return(basethetas[1] * exp(covthetas[1]))
+  },
+  function(basethetas, covthetas, ...) {
+    return(basethetas[2] * exp(covthetas[2]))
+  }
 )
 
 functionListName <- c("CL", "V1")
@@ -98,7 +102,7 @@ While you can build this matrix manually, `PMXForest::getCovStats()` is the reco
 
 ```{r define_scenarios}
 # Load clinical data
-data <- fread(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package="PMXFrem"))
+data <- fread(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"))
 
 # Generate covariate matrix dynamically using the 5th and 90th percentiles
 dfCovs <- createInputForestData(
@@ -141,32 +145,32 @@ Hardcoding dozens of row labels is dangerous and non-reproducible. Instead, we u
 ```{r plot_forest, fig.height=14, fig.width=16, out.width="100%"}
 # 1. Define translation maps
 unit_map <- c(
-  AGE = "years", WT = "kg", BMI = "kg/m2", BSA = "m2", 
-  CRCL = "mL/min", BILI = "mg/dL", AST = "IU", ALT = "IU", 
+  AGE = "years", WT = "kg", BMI = "kg/m2", BSA = "m2",
+  CRCL = "mL/min", BILI = "mg/dL", AST = "IU", ALT = "IU",
   HT = "cm", LBM = "kg"
 )
 
 label_map <- c(
-  "SEX=0" = "Male", "SEX=1" = "Female", 
+  "SEX=0" = "Male", "SEX=1" = "Female",
   "RACEL=1" = "Caucasian", "RACEL=2" = "Black", "RACEL=3" = "Other", "RACEL=4" = "Hispanic",
-  "SMOK=0" = "Non-smoking", "SMOK=1" = "Smoking", 
-  "NCIL=0" = "NCI Grade 0", "NCIL=1" = "NCI Grade 1", "NCIL=2" = "NCI Grade 2", 
+  "SMOK=0" = "Non-smoking", "SMOK=1" = "Smoking",
+  "NCIL=0" = "NCI Grade 0", "NCIL=1" = "NCI Grade 1", "NCIL=2" = "NCI Grade 2",
   "GENO2=0" = "Poor Metabolizer", "GENO2=1" = "Extensive Metabolizer"
 )
 
 group_map <- c(
-  "AGE" = "Age", "ALT" = "ALT", "AST" = "AST", "BILI" = "Total Bilirubin", 
-  "BMI" = "BMI", "BSA" = "BSA", "CRCL" = "Creatinine Clearance", 
-  "ETHN" = "Ethnicity", "GENO2" = "Genotype", "HT" = "Height", 
-  "LBM" = "Lean Body Weight", "NCIL" = "NCI", "RACEL" = "Race", 
+  "AGE" = "Age", "ALT" = "ALT", "AST" = "AST", "BILI" = "Total Bilirubin",
+  "BMI" = "BMI", "BSA" = "BSA", "CRCL" = "Creatinine Clearance",
+  "ETHN" = "Ethnicity", "GENO2" = "Genotype", "HT" = "Height",
+  "LBM" = "Lean Body Weight", "NCIL" = "NCI", "RACEL" = "Race",
   "SEX" = "Sex", "SMOK" = "Smoking Status", "WT" = "Weight"
 )
 
 # 2. Programmatically generate and map robust labels and groups directly to the results
 dfres_formatted <- generateCovNames(
-  dfCovs, 
-  dfres = dfres, 
-  unit_map = unit_map, 
+  dfCovs,
+  dfres = dfres,
+  unit_map = unit_map,
   label_map = label_map,
   group_map = group_map
 )

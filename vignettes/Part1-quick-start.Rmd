@@ -29,15 +29,14 @@ theme_set(theme_bw())
 
 # Define paths to example data and models
 modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
-mod_path  <- file.path(modDevDir, "run31.mod")
-ffemData  <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+mod_path <- file.path(modDevDir, "run31.mod")
+ffemData <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 
 # Setup a temporary directory for outputs (CRO Standard Practice)
 td <- tempdir()
 
 # Dynamically extract actual covariate names from the model (e.g., AGE, SEX, etc.)
 cov_names <- getCovNames(mod_path)
-
 ```
 
 ## 2. Generate the FFEM Model
@@ -92,20 +91,20 @@ To visualize the covariate effects, we first set up the covariate dataframe usin
 # 1. Setup the covariate matrix for the forest plot
 data <- data.table::fread(ffemData)
 dfCovsForest <- PMXForest::createInputForestData(
-    PMXForest::getCovStats(data,cov_names$orgCovNames,probs=c(0.05,0.9),missVal= -99),
-    iMiss    = -99
-  )
+  PMXForest::getCovStats(data, cov_names$orgCovNames, probs = c(0.05, 0.9), missVal = -99),
+  iMiss = -99
+)
 
 # 2. Define the parameter function (No ETAs needed for the forest plot)
 funcList_forest <- list(
-  function(basethetas, covthetas, dfrow, ...) { 
-    basethetas[2] * exp(covthetas[1]) 
+  function(basethetas, covthetas, dfrow, ...) {
+    basethetas[2] * exp(covthetas[1])
   }
 )
 
 # 3. Get bootstrap samples for uncertainty
 extFile <- file.path(modDevDir, "run31.ext")
-bsFile  <- file.path(modDevDir, "bs31.dir/raw_results_run31.csv")
+bsFile <- file.path(modDevDir, "bs31.dir/raw_results_run31.csv")
 
 set.seed(123)
 samples <- PMXForest::getSamples(bsFile, extFile = extFile, n = 25)
@@ -139,21 +138,21 @@ dfCovsEV <- setupDfCovsEV(mod_path, fremCovs = cov_names$orgCovNames)
 
 # 1. Define the parameter function including ETAs for variability
 funcList_var <- list(
-  function(basethetas, covthetas, dfrow, etas, ...) { 
-    basethetas[2] * exp(covthetas[1] + etas[3]) 
+  function(basethetas, covthetas, dfrow, etas, ...) {
+    basethetas[2] * exp(covthetas[1] + etas[3])
   }
 )
 
 # 2. Calculate variability
 dfres_var <- getExplainedVar(
-  type             = 0,
-  dfCovs           = dfCovsEV,
-  cstrCovariates   =c("ALL",cov_names$orgCovNames),
-  functionList     = funcList_var,
+  type = 0,
+  dfCovs = dfCovsEV,
+  cstrCovariates = c("ALL", cov_names$orgCovNames),
+  functionList = funcList_var,
   functionListName = "CL",
-  modDevDir        = modDevDir,
-  runno            = 31,
-  quiet            = TRUE
+  modDevDir = modDevDir,
+  runno = 31,
+  quiet = TRUE
 )
 
 # 3. Plot results

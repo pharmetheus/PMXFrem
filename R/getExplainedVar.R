@@ -113,137 +113,144 @@
 #' of the maximum variability (TOTCOVVAR). If NULL (default), all covariates inteh frem model will be used for the derivation of TOTCOVVAR.
 #'
 #' @examples
-#' 
 #' \donttest{
 #' library(dplyr)
-#' 
-#' modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
+#'
+#' modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
 #' fremRunno <- 31
-#' modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))
-#' covNames  <- getCovNames(modFile = modFile)
+#' modFile <- file.path(modDevDir, paste0("run", fremRunno, ".mod"))
+#' covNames <- getCovNames(modFile = modFile)
 #'
 #' ## Set up dfCovs
 #' dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
 #'   filter(BLQ == 0) %>%
-#'   distinct(ID,.keep_all = TRUE)
+#'   distinct(ID, .keep_all = TRUE)
 #'
 #' dfCovs <- setupDfCovsEV(modFile)
 #'
-#' cstrCovariates <- c("All",names(dfCovs))
+#' cstrCovariates <- c("All", names(dfCovs))
 #'
 #' ## A list of functions
 #' functionList2 <- list(
-#'   function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[2]*exp(covthetas[1] + etas[3]))},
-#'   function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[3]*exp(covthetas[2] + etas[4]))}
+#'   function(basethetas, covthetas, dfrow, etas, ...) {
+#'     return(basethetas[2] * exp(covthetas[1] + etas[3]))
+#'   },
+#'   function(basethetas, covthetas, dfrow, etas, ...) {
+#'     return(basethetas[3] * exp(covthetas[2] + etas[4]))
+#'   }
 #' )
 #'
-#' functionListName2 <- c("CL","V")
+#' functionListName2 <- c("CL", "V")
 #'
 #' ## numNonFREMThetas / numSkipOm passed explicitly
-#' dfres1 <- getExplainedVar(type             = 1,
-#'                           data             = dfData,
-#'                           dfCovs           = dfCovs,
-#'                           numNonFREMThetas = 7,
-#'                           numSkipOm        = 2,
-#'                           functionList     = functionList2,
-#'                           functionListName = functionListName2,
-#'                           cstrCovariates   = cstrCovariates,
-#'                           modDevDir        = modDevDir,
-#'                           runno            = fremRunno,
-#'                           ncores           = 2,
-#'                           quiet            = TRUE,
-#'                           seed             = 123
+#' dfres1 <- getExplainedVar(
+#'   type = 1,
+#'   data = dfData,
+#'   dfCovs = dfCovs,
+#'   numNonFREMThetas = 7,
+#'   numSkipOm = 2,
+#'   functionList = functionList2,
+#'   functionListName = functionListName2,
+#'   cstrCovariates = cstrCovariates,
+#'   modDevDir = modDevDir,
+#'   runno = fremRunno,
+#'   ncores = 2,
+#'   quiet = TRUE,
+#'   seed = 123
 #' )
 #'
 #' ## A function that returns a vector of values
-#' vectorFunction <- function(basethetas,covthetas, dfrow, etas, ...) {
+#' vectorFunction <- function(basethetas, covthetas, dfrow, etas, ...) {
 #'   return(
-#'     c(basethetas[2]*exp(covthetas[1] + etas[3]),
-#'       basethetas[3]*exp(covthetas[2] + etas[4]))
-#' )
+#'     c(
+#'       basethetas[2] * exp(covthetas[1] + etas[3]),
+#'       basethetas[3] * exp(covthetas[2] + etas[4])
+#'     )
+#'   )
 #' }
 #'
 #' ## numNonFREMThetas / numSkipOm omitted: derived from the model file located
 #' ## via runno / modDevDir (see fremModelInfo())
-#' dfres12 <- getExplainedVar(type            = 0,
-#'                           data             = dfData,
-#'                           dfCovs           = dfCovs,
-#'                           functionList     = list(vectorFunction), # Need to enclose the function in list()
-#'                           functionListName = functionListName2,
-#'                           cstrCovariates   = cstrCovariates,
-#'                           modDevDir        = modDevDir,
-#'                           runno            = fremRunno,
-#'                           ncores           = 2,
-#'                           quiet            = TRUE,
-#'                           seed             = 123
+#' dfres12 <- getExplainedVar(
+#'   type = 0,
+#'   data = dfData,
+#'   dfCovs = dfCovs,
+#'   functionList = list(vectorFunction), # Need to enclose the function in list()
+#'   functionListName = functionListName2,
+#'   cstrCovariates = cstrCovariates,
+#'   modDevDir = modDevDir,
+#'   runno = fremRunno,
+#'   ncores = 2,
+#'   quiet = TRUE,
+#'   seed = 123
 #' )
 #' }
 #' @family Diagnostics & Plotting
 #' @concept diagnostics
 
 
-getExplainedVar <- function(
-    type             = 1,
-    data,
-    dfCovs,
-    dfext            = NULL,
-    strID            = "ID",
-    runno            = NULL,
-    modName          = NULL,
-    modDevDir        = ".",
-    cstrCovariates   = NULL,
-    functionList     = list(function(basethetas, covthetas, dfrow, etas, ...) {
-      return(basethetas[1] * exp(covthetas[1] + etas[1]))
-    }),
-    functionListName = "PAR1",
-    numNonFREMThetas = NULL,
-    numFREMThetas    = NULL,
-    numSigmas        = NULL,
-    numParCov        = NULL,
-    parNames         = NULL,
-    numSkipOm        = NULL,
-    availCov         = NULL,
-    etas             = NULL,
-    quiet            = FALSE,
-    ncores           = 1,
-    cstrPackages     = NULL,
-    cstrExports      = NULL,
-    numETASamples    = 100,
-    seed             = NULL,
-    missVal          = -99,
-    ...) {
-
+getExplainedVar <- function(type = 1,
+                            data,
+                            dfCovs,
+                            dfext = NULL,
+                            strID = "ID",
+                            runno = NULL,
+                            modName = NULL,
+                            modDevDir = ".",
+                            cstrCovariates = NULL,
+                            functionList = list(function(basethetas, covthetas, dfrow, etas, ...) {
+                              return(basethetas[1] * exp(covthetas[1] + etas[1]))
+                            }),
+                            functionListName = "PAR1",
+                            numNonFREMThetas = NULL,
+                            numFREMThetas = NULL,
+                            numSigmas = NULL,
+                            numParCov = NULL,
+                            parNames = NULL,
+                            numSkipOm = NULL,
+                            availCov = NULL,
+                            etas = NULL,
+                            quiet = FALSE,
+                            ncores = 1,
+                            cstrPackages = NULL,
+                            cstrExports = NULL,
+                            numETASamples = 100,
+                            seed = NULL,
+                            missVal = -99,
+                            ...) {
   if (type > 0 && is.null(data)) stop("data can not be missing with type 1-3.")
 
   if (type > 0 && !is.null(data)) {
     data <- as.data.frame(data)
   }
-  
+
   fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir, ...)
-  modFile   <- fileNames$mod
-  extFile   <- fileNames$ext
-  phiFile   <- fileNames$phi
+  modFile <- fileNames$mod
+  extFile <- fileNames$ext
+  phiFile <- fileNames$phi
 
   if (is.null(dfext)) {
-    dfext   <- getExt(extFile = extFile)
+    dfext <- getExt(extFile = extFile)
   }
 
   if (nrow(dfext) > 1) dfext <- dfext[dfext$ITERATION == -1000000000, ]
 
   ## Derive numNonFREMThetas / numSkipOm from the model when not supplied, and
   ## validate them (warn, keep the explicit value) when they are.
-  .info <- fremModelInfo(modFile = modFile, dfext = dfext,
-                         numNonFREMThetas = numNonFREMThetas,
-                         numSkipOm        = numSkipOm)
+  .info <- fremModelInfo(
+    modFile = modFile, dfext = dfext,
+    numNonFREMThetas = numNonFREMThetas,
+    numSkipOm = numSkipOm
+  )
   numNonFREMThetas <- .info$numNonFREMThetas
-  numSkipOm        <- .info$numSkipOm
+  numSkipOm <- .info$numSkipOm
 
   thetas <- as.numeric(dfext[2:(numNonFREMThetas + 1)])
 
   if (is.null(numFREMThetas)) {
     numFREMThetas <- length(grep("THETA", names(dfext))) - numNonFREMThetas
   }
-  
+
   if (is.null(numSigmas)) {
     numSigmas <- length(grep("SIGMA", names(dfext)))
   }
@@ -267,27 +274,28 @@ getExplainedVar <- function(
   }
 
   if (type == 1 && is.null(etas)) {
-    dfPhi   <- getPhi(phiFile)
-    etas    <- dfPhi[, 3:(2 + numParCov + numSkipOm)] # Include the structural model etas only
+    dfPhi <- getPhi(phiFile)
+    etas <- dfPhi[, 3:(2 + numParCov + numSkipOm)] # Include the structural model etas only
   }
 
-  if (!is.null(seed))
+  if (!is.null(seed)) {
     set.seed(seed)
+  }
 
-  CN       <- getCovNames(modFile)
+  CN <- getCovNames(modFile)
   fremCovs <- CN$polyCatCovs
-  orgCovs  <- CN$orgCovNames
+  orgCovs <- CN$orgCovNames
   covNames <- CN$covNames
 
   ## Sort out the logic for availCov. allCov will indicate the covariates to base TOTCOVVAR on
-  if(is.null(availCov)) {
+  if (is.null(availCov)) {
     allCov <- covNames
   } else {
     allCov <- availCov
   }
 
-  if (type==2) {
-    if (length(dfCovs)<=length(orgCovs)) {
+  if (type == 2) {
+    if (length(dfCovs) <= length(orgCovs)) {
       warning("Presence of FFEM covariates is indicated (trough type=2), make sure that all FFEM covariates are also available in dfCovs")
     }
   }
@@ -298,22 +306,21 @@ getExplainedVar <- function(
     return(.calc_fo_variance(
       dfCovs = dfCovs, functionList = functionList, functionListName = functionListName, cstrCovariates = cstrCovariates,
       thetas = thetas, dfext = dfext, numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas,
-      numParCov = numParCov, numSkipOm = numSkipOm, parNames = parNames, covNames = covNames, allCov = allCov, 
-      fremCovs = fremCovs, quiet = quiet, missVal = missVal,...
+      numParCov = numParCov, numSkipOm = numSkipOm, parNames = parNames, covNames = covNames, allCov = allCov,
+      fremCovs = fremCovs, quiet = quiet, missVal = missVal, ...
     ))
   }
-  
+
   if (type %in% c(1, 2, 3)) {
     return(.calc_empirical_variance(
-      type = type, data = data, dfCovs = dfCovs, dfext = dfext, strID = strID, runno = runno, modName = modName, 
-      modDevDir = modDevDir, cstrCovariates = cstrCovariates, functionList = functionList, functionListName = functionListName, 
-      numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas, numParCov = numParCov, 
-      parNames = parNames, numSkipOm = numSkipOm, allCov = allCov, etas = etas, quiet = quiet, ncores = ncores, 
-      cstrPackages = cstrPackages, cstrExports = cstrExports, numETASamples = numETASamples, seed = seed, 
-      thetas = thetas, covNames = covNames, fremCovs = fremCovs, orgCovs = orgCovs, missVal = missVal,...
+      type = type, data = data, dfCovs = dfCovs, dfext = dfext, strID = strID, runno = runno, modName = modName,
+      modDevDir = modDevDir, cstrCovariates = cstrCovariates, functionList = functionList, functionListName = functionListName,
+      numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas, numParCov = numParCov,
+      parNames = parNames, numSkipOm = numSkipOm, allCov = allCov, etas = etas, quiet = quiet, ncores = ncores,
+      cstrPackages = cstrPackages, cstrExports = cstrExports, numETASamples = numETASamples, seed = seed,
+      thetas = thetas, covNames = covNames, fremCovs = fremCovs, orgCovs = orgCovs, missVal = missVal, ...
     ))
-
   }
-  
+
   stop("Invalid 'type' specified. Must be 0, 1, 2, or 3.")
 }

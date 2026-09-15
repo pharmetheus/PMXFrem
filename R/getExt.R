@@ -30,9 +30,8 @@
 #' @family NONMEM Parsers
 #' @concept nonmem_parsers
 getExt <- function(extFile, set = NULL) {
-
-  tmp   <- scan(extFile, what = "character", sep = "\n", quiet = TRUE)
-  tabs  <- grep("TABLE", tmp)
+  tmp <- scan(extFile, what = "character", sep = "\n", quiet = TRUE)
+  tabs <- grep("TABLE", tmp)
   if (is.null(set)) set <- length(tabs)
 
   if (set == 1 & length(tabs) == 1) { # Only one set of results

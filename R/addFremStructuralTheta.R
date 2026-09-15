@@ -88,56 +88,66 @@
 #' @export
 addFremStructuralTheta <- function(strFREMModel,
                                    thetaInit,
-                                   parameter        = NULL,
-                                   addEta           = FALSE,
-                                   muReference      = TRUE,
-                                   omegaInit        = NULL,
-                                   label            = NULL,
+                                   parameter = NULL,
+                                   addEta = FALSE,
+                                   muReference = TRUE,
+                                   omegaInit = NULL,
+                                   label = NULL,
                                    numNonFREMThetas = NULL,
-                                   numSkipOm        = NULL,
-                                   extFile          = NULL,
-                                   newModel         = NULL,
-                                   bWriteMod        = TRUE,
-                                   quiet            = TRUE) {
-
+                                   numSkipOm = NULL,
+                                   extFile = NULL,
+                                   newModel = NULL,
+                                   bWriteMod = TRUE,
+                                   quiet = TRUE) {
   if (missing(thetaInit) || length(thetaInit) == 0L ||
-      (is.numeric(thetaInit) && any(is.na(thetaInit)))) {
+    (is.numeric(thetaInit) && any(is.na(thetaInit)))) {
     stop("addFremStructuralTheta(): `thetaInit` is required - a scalar, a ",
-         "length-3 c(low, init, up), or a verbatim string. No default: the ",
-         "initial value is a modelling choice.", call. = FALSE)
+      "length-3 c(low, init, up), or a verbatim string. No default: the ",
+      "initial value is a modelling choice.",
+      call. = FALSE
+    )
   }
   if (addEta) {
     if (is.null(parameter) || !nzchar(parameter)) {
       stop("addFremStructuralTheta(): `parameter` is required when addEta = TRUE.",
-           call. = FALSE)
+        call. = FALSE
+      )
     }
     if (is.null(omegaInit)) {
       stop("addFremStructuralTheta(): `omegaInit` is required when addEta = TRUE ",
-           "(the initial variance of the new $OMEGA, e.g. 0.01).", call. = FALSE)
+        "(the initial variance of the new $OMEGA, e.g. 0.01).",
+        call. = FALSE
+      )
     }
   }
 
   isPath <- length(strFREMModel) == 1L && !grepl("\n", strFREMModel)
-  lines  <- if (isPath) readLines(strFREMModel, warn = FALSE) else strFREMModel
+  lines <- if (isPath) readLines(strFREMModel, warn = FALSE) else strFREMModel
 
   ## ---- structural integers ---------------------------------------------
   if (is.null(numNonFREMThetas) || is.null(numSkipOm)) {
     if (!isPath) {
       stop("addFremStructuralTheta(): pass `numNonFREMThetas` and `numSkipOm` ",
-           "when `strFREMModel` is a character vector.", call. = FALSE)
+        "when `strFREMModel` is a character vector.",
+        call. = FALSE
+      )
     }
     if (is.null(extFile)) {
       extFile <- paste0(tools::file_path_sans_ext(strFREMModel), ".ext")
     }
     if (!file.exists(extFile)) {
       stop("addFremStructuralTheta(): supply `numNonFREMThetas` and `numSkipOm`, ",
-           "or place ", basename(extFile), " next to the model.", call. = FALSE)
+        "or place ", basename(extFile), " next to the model.",
+        call. = FALSE
+      )
     }
-    .info <- fremModelInfo(modFile = strFREMModel, dfext = extFile,
-                           numNonFREMThetas = numNonFREMThetas,
-                           numSkipOm        = numSkipOm)
+    .info <- fremModelInfo(
+      modFile = strFREMModel, dfext = extFile,
+      numNonFREMThetas = numNonFREMThetas,
+      numSkipOm = numSkipOm
+    )
     if (is.null(numNonFREMThetas)) numNonFREMThetas <- .info$numNonFREMThetas
-    if (is.null(numSkipOm))        numSkipOm        <- .info$numSkipOm
+    if (is.null(numSkipOm)) numSkipOm <- .info$numSkipOm
     numTotThetas <- .info$numTotThetas
   } else {
     numTotThetas <- .fremCountTotTheta(lines)
@@ -150,8 +160,11 @@ addFremStructuralTheta <- function(strFREMModel,
 
   ## ---- insert the new $THETA record ----------------------------------
   if (is.null(label)) {
-    label <- if (!is.null(parameter)) paste0("TV_", parameter) else
+    label <- if (!is.null(parameter)) {
+      paste0("TV_", parameter)
+    } else {
       "added structural THETA"
+    }
   }
   thetaTxt <- if (is.character(thetaInit)) {
     thetaInit
@@ -174,16 +187,17 @@ addFremStructuralTheta <- function(strFREMModel,
   ## ---- optionally add the IIV + wire it in ---------------------------
   if (addEta) {
     iiv <- addFremIIV(lines,
-                      parameter        = if (isNew) NULL else parameter,
-                      omegaInit        = omegaInit,
-                      link             = if (isNew) "none" else "exp",
-                      numNonFREMThetas = numNonFREMThetas,
-                      numSkipOm        = numSkipOm,
-                      label            = paste0("IIV on ", parameter),
-                      bWriteMod        = FALSE,
-                      quiet            = TRUE)
-    lines     <- iiv$model
-    etaIndex  <- iiv$etaIndex
+      parameter        = if (isNew) NULL else parameter,
+      omegaInit        = omegaInit,
+      link             = if (isNew) "none" else "exp",
+      numNonFREMThetas = numNonFREMThetas,
+      numSkipOm        = numSkipOm,
+      label            = paste0("IIV on ", parameter),
+      bWriteMod        = FALSE,
+      quiet            = TRUE
+    )
+    lines <- iiv$model
+    etaIndex <- iiv$etaIndex
     numSkipOm <- iiv$numSkipOm
 
     if (isNew) {
@@ -195,9 +209,11 @@ addFremStructuralTheta <- function(strFREMModel,
       ## point here, so a later updateFREMmodel() would splice this definition
       ## away. The LOG(TV) form cannot collide.
       pkDef <- if (muReference) {
-        c(sprintf("TV%s = THETA(%d)", parameter, jNew),
+        c(
+          sprintf("TV%s = THETA(%d)", parameter, jNew),
           sprintf("MU_%d = LOG(TV%s)", etaIndex, parameter),
-          sprintf("%s = EXP(MU_%d + ETA(%d))", parameter, etaIndex, etaIndex))
+          sprintf("%s = EXP(MU_%d + ETA(%d))", parameter, etaIndex, etaIndex)
+        )
       } else {
         sprintf("%s = THETA(%d) * EXP(ETA(%d))", parameter, jNew, etaIndex)
       }
@@ -205,8 +221,10 @@ addFremStructuralTheta <- function(strFREMModel,
     } else {
       ## existing parameter: addFremIIV() already attached the ETA; add the
       ## new THETA as a factor on the same assignment.
-      lines <- .fremAttachEta_thetaFactor(lines, parameter = parameter,
-                                          thetaIdx = jNew)
+      lines <- .fremAttachEta_thetaFactor(lines,
+        parameter = parameter,
+        thetaIdx = jNew
+      )
     }
   } else if (isNew) {
     ## A new structural parameter with no IIV.
@@ -218,27 +236,35 @@ addFremStructuralTheta <- function(strFREMModel,
   ## ---- write ---------------------------------------------------------
   outFile <- NULL
   if (isPath && bWriteMod) {
-    outFile <- if (!is.null(newModel)) newModel else {
-      paste0(tools::file_path_sans_ext(strFREMModel), "_theta.",
-             tools::file_ext(strFREMModel))
+    outFile <- if (!is.null(newModel)) {
+      newModel
+    } else {
+      paste0(
+        tools::file_path_sans_ext(strFREMModel), "_theta.",
+        tools::file_ext(strFREMModel)
+      )
     }
     writeLines(lines, outFile)
   }
 
   if (!quiet) {
-    message("addFremStructuralTheta(): inserted THETA(", jNew, ") (", label, ")",
-            if (addEta) paste0(" + ETA(", etaIndex, ")") else "",
-            "; numNonFREMThetas -> ", numNonFREMThetas,
-            if (addEta) paste0(", numSkipOm -> ", numSkipOm) else "",
-            if (!is.null(outFile)) paste0("; written to ", outFile) else "", ".")
+    message(
+      "addFremStructuralTheta(): inserted THETA(", jNew, ") (", label, ")",
+      if (addEta) paste0(" + ETA(", etaIndex, ")") else "",
+      "; numNonFREMThetas -> ", numNonFREMThetas,
+      if (addEta) paste0(", numSkipOm -> ", numSkipOm) else "",
+      if (!is.null(outFile)) paste0("; written to ", outFile) else "", "."
+    )
   }
 
-  invisible(list(model            = lines,
-                 thetaIndex       = jNew,
-                 etaIndex         = etaIndex,
-                 numNonFREMThetas = numNonFREMThetas,
-                 numSkipOm        = numSkipOm,
-                 file             = outFile))
+  invisible(list(
+    model = lines,
+    thetaIndex = jNew,
+    etaIndex = etaIndex,
+    numNonFREMThetas = numNonFREMThetas,
+    numSkipOm = numSkipOm,
+    file = outFile
+  ))
 }
 
 
@@ -256,10 +282,12 @@ addFremStructuralTheta <- function(strFREMModel,
 #' @keywords internal
 #' @noRd
 .fremRenumberTheta <- function(lines, fromIdx, maxIdx) {
-  if (maxIdx < fromIdx) return(lines)
+  if (maxIdx < fromIdx) {
+    return(lines)
+  }
 
   recStart <- grep("^\\s*\\$[A-Za-z]", lines)
-  region   <- rep(FALSE, length(lines))
+  region <- rep(FALSE, length(lines))
   for (s in recStart) {
     if (grepl("^\\s*\\$(PK|ERROR|PRED|THETA)\\b", lines[s], ignore.case = TRUE)) {
       e <- recStart[recStart > s]
@@ -272,7 +300,9 @@ addFremStructuralTheta <- function(strFREMModel,
   seg <- lines[idx]
   for (k in seq(maxIdx, fromIdx)) {
     seg <- gsub(sprintf("THETA\\(\\s*%d\\s*\\)", k), sprintf("THETA(%d)", k + 1L),
-                seg, perl = TRUE)
+      seg,
+      perl = TRUE
+    )
   }
   lines[idx] <- seg
   lines
@@ -296,7 +326,7 @@ addFremStructuralTheta <- function(strFREMModel,
   recAfter <- grep("^\\s*\\$[A-Za-z]", lines)
   recAfter <- recAfter[recAfter > first]
   nonTheta <- recAfter[!grepl("^\\s*\\$THETA\\b", lines[recAfter], ignore.case = TRUE)]
-  tEnd     <- if (length(nonTheta)) nonTheta[1] - 1L else length(lines)
+  tEnd <- if (length(nonTheta)) nonTheta[1] - 1L else length(lines)
 
   # count theta *values* across the whole region; insert after value (at-1)
   count <- 0L
@@ -304,13 +334,20 @@ addFremStructuralTheta <- function(strFREMModel,
   for (i in first:tEnd) {
     body <- sub(";.*$", "", lines[i])
     body <- sub("^\\s*\\$THETA\\b", "", body, ignore.case = TRUE)
-    n <- length(regmatches(body,
-           gregexpr("\\([^)]*\\)|[-+]?[0-9.][-+0-9.eE]*", body))[[1]])
+    n <- length(regmatches(
+      body,
+      gregexpr("\\([^)]*\\)|[-+]?[0-9.][-+0-9.eE]*", body)
+    )[[1]])
     count <- count + n
-    if (count >= at - 1L) { insertAfter <- i; break }
+    if (count >= at - 1L) {
+      insertAfter <- i
+      break
+    }
   }
-  c(lines[seq_len(insertAfter)], newLine,
-    lines[(insertAfter + 1L):length(lines)])
+  c(
+    lines[seq_len(insertAfter)], newLine,
+    lines[(insertAfter + 1L):length(lines)]
+  )
 }
 
 
@@ -319,11 +356,13 @@ addFremStructuralTheta <- function(strFREMModel,
 #' @noRd
 .fremPkAssigns <- function(lines, parameter) {
   recStart <- grep("^\\s*\\$[A-Za-z]", lines)
-  pkStart  <- recStart[grepl("^\\s*\\$PK\\b", lines[recStart], ignore.case = TRUE)]
-  if (length(pkStart) == 0L) return(FALSE)
+  pkStart <- recStart[grepl("^\\s*\\$PK\\b", lines[recStart], ignore.case = TRUE)]
+  if (length(pkStart) == 0L) {
+    return(FALSE)
+  }
   pkEnd <- recStart[recStart > pkStart[1]]
   pkEnd <- if (length(pkEnd)) pkEnd[1] - 1L else length(lines)
-  pat   <- sprintf("^\\s*%s\\s*=", .fremEscape(parameter))
+  pat <- sprintf("^\\s*%s\\s*=", .fremEscape(parameter))
   any(grepl(pat, lines[pkStart[1]:pkEnd]))
 }
 
@@ -353,12 +392,16 @@ addFremStructuralTheta <- function(strFREMModel,
   if (length(anchor) == 0L) {
     # no FREM MU block (unusual) - fall back to just before $ERROR
     anchor <- grep("^\\s*\\$ERROR\\b", lines, ignore.case = TRUE)
-    if (length(anchor) == 0L) stop("Could not find an anchor in $PK to insert ",
-                                   "the new parameter definition.", call. = FALSE)
+    if (length(anchor) == 0L) {
+      stop("Could not find an anchor in $PK to insert ",
+        "the new parameter definition.",
+        call. = FALSE
+      )
+    }
   }
-  a    <- anchor[1]
-  pad  <- sub("\\S.*$", "", lines[a])          # match the anchor's indentation
-  at   <- a - 1L
+  a <- anchor[1]
+  pad <- sub("\\S.*$", "", lines[a]) # match the anchor's indentation
+  at <- a - 1L
   # do not pad blank separator lines into whitespace-only lines
   padded <- ifelse(nzchar(newLines), paste0(pad, newLines), newLines)
   c(lines[seq_len(at)], padded, lines[(at + 1L):length(lines)])
@@ -371,27 +414,35 @@ addFremStructuralTheta <- function(strFREMModel,
 .fremAttachEta_thetaFactor <- function(lines, parameter, thetaIdx) {
   pat <- sprintf("^(\\s*)%s(\\s*)=(\\s*)(.*)$", .fremEscape(parameter))
   recStart <- grep("^\\s*\\$[A-Za-z]", lines)
-  pkStart  <- recStart[grepl("^\\s*\\$PK\\b", lines[recStart], ignore.case = TRUE)]
+  pkStart <- recStart[grepl("^\\s*\\$PK\\b", lines[recStart], ignore.case = TRUE)]
   hit <- grep(pat, lines)
   if (length(pkStart)) {
     pkEnd <- recStart[recStart > pkStart[1]]
     pkEnd <- if (length(pkEnd)) pkEnd[1] - 1L else length(lines)
-    hit   <- hit[hit >= pkStart[1] & hit <= pkEnd]
+    hit <- hit[hit >= pkStart[1] & hit <= pkEnd]
   }
   if (length(hit) != 1L) {
     stop("addFremStructuralTheta(): expected exactly one $PK assignment of '",
-         parameter, "' to attach THETA(", thetaIdx, ") to; found ", length(hit),
-         ".", call. = FALSE)
+      parameter, "' to attach THETA(", thetaIdx, ") to; found ", length(hit),
+      ".",
+      call. = FALSE
+    )
   }
   i <- hit[1]
   m <- regmatches(lines[i], regexec(pat, lines[i]))[[1]]
-  lead <- m[2]; rhsAll <- m[5]
+  lead <- m[2]
+  rhsAll <- m[5]
   cpos <- regexpr(";", rhsAll, fixed = TRUE)
   if (cpos > 0) {
     rhs <- sub("\\s+$", "", substr(rhsAll, 1, cpos - 1))
     comment <- substr(rhsAll, cpos, nchar(rhsAll))
-  } else { rhs <- sub("\\s+$", "", rhsAll); comment <- "" }
-  lines[i] <- sprintf("%s%s = (%s) * THETA(%d)%s", lead, parameter, rhs, thetaIdx,
-                      if (nzchar(comment)) paste0("  ", comment) else "")
+  } else {
+    rhs <- sub("\\s+$", "", rhsAll)
+    comment <- ""
+  }
+  lines[i] <- sprintf(
+    "%s%s = (%s) * THETA(%d)%s", lead, parameter, rhs, thetaIdx,
+    if (nzchar(comment)) paste0("  ", comment) else ""
+  )
   lines
 }

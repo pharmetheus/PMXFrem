@@ -130,35 +130,38 @@
 #' out2 <- createFREMParamFunction(
 #'   runno      = 31,
 #'   modDevDir  = system.file("extdata/SimNeb/", package = "PMXFrem"),
-#'   parameters = c("CL", "V", "MAT"))
+#'   parameters = c("CL", "V", "MAT")
+#' )
 #' stopifnot(identical(out$code, out2$code))
 #'
 #' @family Diagnostics & Plotting
 #' @concept diagnostics
-createFREMParamFunction <- function(fremModel        = NULL,
+createFREMParamFunction <- function(fremModel = NULL,
                                     parameters,
-                                    numSkipOm        = NULL,
+                                    numSkipOm = NULL,
                                     numNonFREMThetas = NULL,
-                                    runno            = NULL,
-                                    modName          = NULL,
-                                    modDevDir        = NULL,
-                                    dfext            = NULL,
-                                    extFile          = NULL,
-                                    numParCov        = NULL,
-                                    covRef           = NULL,
-                                    functionName     = "paramFunction",
-                                    file             = NULL,
-                                    missVal          = -99,
-                                    quiet            = FALSE,
-                                    secondary        = NULL) {
-
+                                    runno = NULL,
+                                    modName = NULL,
+                                    modDevDir = NULL,
+                                    dfext = NULL,
+                                    extFile = NULL,
+                                    numParCov = NULL,
+                                    covRef = NULL,
+                                    functionName = "paramFunction",
+                                    file = NULL,
+                                    missVal = -99,
+                                    quiet = FALSE,
+                                    secondary = NULL) {
   if (!requireNamespace("PMXForest", quietly = TRUE) ||
-      !exists("nmParsePK", where = asNamespace("PMXForest"), inherits = FALSE) ||
-      !exists("nmResolveSecondary", where = asNamespace("PMXForest"),
-              inherits = FALSE)) {
+    !exists("nmParsePK", where = asNamespace("PMXForest"), inherits = FALSE) ||
+    !exists("nmResolveSecondary",
+      where = asNamespace("PMXForest"),
+      inherits = FALSE
+    )) {
     stop("createFREMParamFunction() needs PMXForest (>= 1.2.15.9007), which ",
-         "exports nmParsePK() and nmResolveSecondary(); please update PMXForest.",
-         call. = FALSE)
+      "exports nmParsePK() and nmResolveSecondary(); please update PMXForest.",
+      call. = FALSE
+    )
   }
   if (missing(parameters) || length(parameters) < 1) {
     stop("`parameters` must name at least one $PK variable.", call. = FALSE)
@@ -168,10 +171,13 @@ createFREMParamFunction <- function(fremModel        = NULL,
   if (is.null(fremModel)) {
     if (is.null(runno) && is.null(modName)) {
       stop("Supply `fremModel`, or `runno` / `modName` (+ `modDevDir`).",
-           call. = FALSE)
+        call. = FALSE
+      )
     }
-    fn        <- getFileNames(runno = runno, modName = modName,
-                              modDevDir = if (is.null(modDevDir)) "." else modDevDir)
+    fn <- getFileNames(
+      runno = runno, modName = modName,
+      modDevDir = if (is.null(modDevDir)) "." else modDevDir
+    )
     fremModel <- fn$mod
     if (is.null(extFile)) extFile <- fn$ext
   }
@@ -184,25 +190,33 @@ createFREMParamFunction <- function(fremModel        = NULL,
       }
       if (!file.exists(extFile)) {
         stop("Need `numSkipOm` and `numNonFREMThetas`, or an ext ",
-             "(`dfext` / `extFile` / `runno`) to derive them.", call. = FALSE)
+          "(`dfext` / `extFile` / `runno`) to derive them.",
+          call. = FALSE
+        )
       }
       dfext <- getExt(extFile = extFile)
     }
-    .info            <- fremModelInfo(modFile = fremModel, dfext = dfext,
-                                      numNonFREMThetas = numNonFREMThetas,
-                                      numSkipOm = numSkipOm)
-    numSkipOm        <- .info$numSkipOm
+    .info <- fremModelInfo(
+      modFile = fremModel, dfext = dfext,
+      numNonFREMThetas = numNonFREMThetas,
+      numSkipOm = numSkipOm
+    )
+    numSkipOm <- .info$numSkipOm
     numNonFREMThetas <- .info$numNonFREMThetas
   }
 
   ## ---- parse the FREM model's $PK ----
-  p <- PMXForest::nmParsePK(fremModel, parameters = parameters, covRef = covRef,
-                            missVal = missVal)
+  p <- PMXForest::nmParsePK(fremModel,
+    parameters = parameters, covRef = covRef,
+    missVal = missVal
+  )
 
   ## ---- classify the requested parameters by ETA count in their $PK line ----
   etaCounts <- vapply(parameters, function(nm) {
-    a <- Find(function(s) identical(s$type, "assign") && identical(s$lhs, nm),
-              p$statements)
+    a <- Find(
+      function(s) identical(s$type, "assign") && identical(s$lhs, nm),
+      p$statements
+    )
     length(.fremEtaIndices(a$rhs))
   }, integer(1))
   fremParams <- parameters[etaCounts == 1L]
@@ -211,17 +225,21 @@ createFREMParamFunction <- function(fremModel        = NULL,
   ## "exp"   -> P = C * exp(<linear-in-ETA>)      (log-normal; splice is exp())
   ## "other" -> additive, logit, exp(theta*ETA), ... (verify skips the splice)
   fremEtaScale <- vapply(fremParams, function(nm) {
-    a <- Find(function(s) identical(s$type, "assign") && identical(s$lhs, nm),
-              p$statements)
+    a <- Find(
+      function(s) identical(s$type, "assign") && identical(s$lhs, nm),
+      p$statements
+    )
     .fremEtaScale(a$rhs)
   }, character(1))
   names(fremEtaScale) <- fremParams
 
   if (!is.null(numParCov) && numParCov != length(fremParams)) {
     warning("numParCov (", numParCov, ") does not match the ",
-            length(fremParams), " parameter(s) in `parameters` that carry a ",
-            "single ETA() in $PK (", paste(fremParams, collapse = ", "),
-            "). Using the derived count.", call. = FALSE)
+      length(fremParams), " parameter(s) in `parameters` that carry a ",
+      "single ETA() in $PK (", paste(fremParams, collapse = ", "),
+      "). Using the derived count.",
+      call. = FALSE
+    )
   }
   numParCov <- length(fremParams)
 
@@ -242,48 +260,61 @@ createFREMParamFunction <- function(fremModel        = NULL,
   maxTheta <- max(0L, .fremMaxTheta(kept))
   if (maxTheta > numNonFREMThetas) {
     warning("A retained $PK statement references THETA(", maxTheta, "), beyond ",
-            "numNonFREMThetas = ", numNonFREMThetas, ". `basethetas` only holds ",
-            "the structural thetas, so that index will be out of range - check ",
-            "`parameters` and `numNonFREMThetas`.", call. = FALSE)
+      "numNonFREMThetas = ", numNonFREMThetas, ". `basethetas` only holds ",
+      "the structural thetas, so that index will be out of range - check ",
+      "`parameters` and `numNonFREMThetas`.",
+      call. = FALSE
+    )
   }
 
-  sec      <- PMXForest::nmResolveSecondary(secondary, quiet = quiet)
+  sec <- PMXForest::nmResolveSecondary(secondary, quiet = quiet)
   secNames <- unname(vapply(sec, `[[`, "", "name"))
 
   code <- .fremEmit(kept, covs, p$covRef, parameters, fremParams, numSkipOm,
-                    functionName, fremModel, missVal, quiet, secondary = sec)
+    functionName, fremModel, missVal, quiet,
+    secondary = sec
+  )
   class(code) <- c("pmxFREMParamFunction", "character")
 
   if (!is.null(file)) writeLines(code, file)
 
   if (!quiet) {
-    message("Translated $PK of ", basename(fremModel), " for FREM: ",
-            length(fremParams), " FREM covariate parameter(s) (",
-            paste(fremParams, collapse = ", "), "), ",
-            length(parameters) - length(fremParams), " returned as-is; ",
-            "numSkipOm = ", numSkipOm, ", numNonFREMThetas = ", numNonFREMThetas,
-            ", ", length(covs), " structural covariate(s)",
-            if (length(secNames))
-              paste0(", ", length(secNames), " secondary parameter(s)") else "",
-            ".")
+    message(
+      "Translated $PK of ", basename(fremModel), " for FREM: ",
+      length(fremParams), " FREM covariate parameter(s) (",
+      paste(fremParams, collapse = ", "), "), ",
+      length(parameters) - length(fremParams), " returned as-is; ",
+      "numSkipOm = ", numSkipOm, ", numNonFREMThetas = ", numNonFREMThetas,
+      ", ", length(covs), " structural covariate(s)",
+      if (length(secNames)) {
+        paste0(", ", length(secNames), " secondary parameter(s)")
+      } else {
+        ""
+      },
+      "."
+    )
     for (cov in covs) {
-      message("  ", cov, " reference ",
-              PMXForest::nmFormatNum(p$covRef[[cov]]$value), " - ",
-              p$covRef[[cov]]$source)
+      message(
+        "  ", cov, " reference ",
+        PMXForest::nmFormatNum(p$covRef[[cov]]$value), " - ",
+        p$covRef[[cov]]$source
+      )
     }
     if (!is.null(file)) message("Written to ", file)
   }
 
-  list(code = code,
-       functionListName = c(parameters, secNames),
-       primaryNames     = parameters,
-       secondaryNames   = secNames,
-       fremParameters = fremParams,
-       fremEtaScale   = fremEtaScale,
-       noBaseThetas = numNonFREMThetas, covRef = p$covRef[covs],
-       numParCov = numParCov, numSkipOm = numSkipOm,
-       numNonFREMThetas = numNonFREMThetas, fremModel = fremModel,
-       missVal = missVal)
+  list(
+    code = code,
+    functionListName = c(parameters, secNames),
+    primaryNames = parameters,
+    secondaryNames = secNames,
+    fremParameters = fremParams,
+    fremEtaScale = fremEtaScale,
+    noBaseThetas = numNonFREMThetas, covRef = p$covRef[covs],
+    numParCov = numParCov, numSkipOm = numSkipOm,
+    numNonFREMThetas = numNonFREMThetas, fremModel = fremModel,
+    missVal = missVal
+  )
 }
 
 ## ---------------------------------------------------------------------------
@@ -294,13 +325,16 @@ createFREMParamFunction <- function(fremModel        = NULL,
 #' @keywords internal
 #' @noRd
 .fremEtaIndices <- function(node) {
-  if (is.null(node)) return(integer(0))
+  if (is.null(node)) {
+    return(integer(0))
+  }
   switch(node$type,
     eta   = as.integer(node$index),
     call  = unlist(lapply(node$args, .fremEtaIndices)),
     unop  = .fremEtaIndices(node$arg),
     binop = c(.fremEtaIndices(node$lhs), .fremEtaIndices(node$rhs)),
-    integer(0))
+    integer(0)
+  )
 }
 
 #' How the single ETA() of a FREM parameter is enclosed in its $PK line
@@ -315,34 +349,56 @@ createFREMParamFunction <- function(fremModel        = NULL,
 #' @noRd
 .fremEtaScale <- function(node) {
   rec <- function(nd, inExp) {
-    if (is.null(nd)) return(NA_character_)
+    if (is.null(nd)) {
+      return(NA_character_)
+    }
     switch(nd$type,
       eta = if (inExp) "exp" else "other",
-      num = , sym = , theta = NA_character_,
+      num = ,
+      sym = ,
+      theta = NA_character_,
       call = {
         kids <- vapply(nd$args, function(a) {
-          v <- rec(a, inExp || identical(nd$fn, "exp")); if (is.na(v)) "" else v
+          v <- rec(a, inExp || identical(nd$fn, "exp"))
+          if (is.na(v)) "" else v
         }, character(1))
         kids <- kids[nzchar(kids)]
-        if (length(kids) == 0L) NA_character_
-        else if (!inExp && identical(nd$fn, "exp") && all(kids == "exp")) "exp"
-        else "other"
+        if (length(kids) == 0L) {
+          NA_character_
+        } else if (!inExp && identical(nd$fn, "exp") && all(kids == "exp")) {
+          "exp"
+        } else {
+          "other"
+        }
       },
       unop = {
         v <- rec(nd$arg, inExp)
-        if (is.na(v)) NA_character_
-        else if (identical(nd$op, "+")) v
-        else "other"                       # negation (either side of exp) -> other
+        if (is.na(v)) {
+          NA_character_
+        } else if (identical(nd$op, "+")) {
+          v
+        } else {
+          "other"
+        } # negation (either side of exp) -> other
       },
       binop = {
-        lv <- rec(nd$lhs, inExp); rv <- rec(nd$rhs, inExp)
-        v  <- if (!is.na(lv)) lv else rv
-        if (is.na(v)) NA_character_
-        else if (!inExp && nd$op %in% c("*", "/")) v   # C * exp(...) : multiplicative
-        else if ( inExp && nd$op == "+")            v   # exp(mu + ETA) : additive in ETA
-        else "other"
+        lv <- rec(nd$lhs, inExp)
+        rv <- rec(nd$rhs, inExp)
+        v <- if (!is.na(lv)) lv else rv
+        if (is.na(v)) {
+          NA_character_
+        } else if (!inExp && nd$op %in% c("*", "/")) {
+          v
+        } # C * exp(...) : multiplicative
+        else if (inExp && nd$op == "+") {
+          v
+        } # exp(mu + ETA) : additive in ETA
+        else {
+          "other"
+        }
       },
-      "other")
+      "other"
+    )
   }
   v <- rec(node, FALSE)
   if (is.na(v)) "other" else v
@@ -352,48 +408,66 @@ createFREMParamFunction <- function(fremModel        = NULL,
 #' @keywords internal
 #' @noRd
 .fremSyms <- function(node) {
-  if (is.null(node)) return(character(0))
+  if (is.null(node)) {
+    return(character(0))
+  }
   switch(node$type,
     sym   = node$name,
     call  = unlist(lapply(node$args, .fremSyms)),
     unop  = .fremSyms(node$arg),
     binop = c(.fremSyms(node$lhs), .fremSyms(node$rhs)),
-    character(0))
+    character(0)
+  )
 }
 
 #' Highest THETA() index in an expression node
 #' @keywords internal
 #' @noRd
 .fremMaxThetaNode <- function(node) {
-  if (is.null(node)) return(0L)
+  if (is.null(node)) {
+    return(0L)
+  }
   switch(node$type,
     theta = as.integer(node$index),
     call  = max(0L, vapply(node$args, .fremMaxThetaNode, integer(1))),
     unop  = .fremMaxThetaNode(node$arg),
     binop = max(.fremMaxThetaNode(node$lhs), .fremMaxThetaNode(node$rhs)),
-    0L)
+    0L
+  )
 }
 
 #' Variables assigned anywhere inside a statement (an assign, or an if block)
 #' @keywords internal
 #' @noRd
 .fremStmtAssigns <- function(s) {
-  if (identical(s$type, "assign")) return(s$lhs)
-  c(unlist(lapply(s$then, .fremStmtAssigns)),
+  if (identical(s$type, "assign")) {
+    return(s$lhs)
+  }
+  c(
+    unlist(lapply(s$then, .fremStmtAssigns)),
     unlist(lapply(s$elifs, function(e) unlist(lapply(e$stmts, .fremStmtAssigns)))),
-    if (!is.null(s$else_)) unlist(lapply(s$else_, .fremStmtAssigns)))
+    if (!is.null(s$else_)) unlist(lapply(s$else_, .fremStmtAssigns))
+  )
 }
 
 #' Symbols used anywhere inside a statement (conditions + right-hand sides)
 #' @keywords internal
 #' @noRd
 .fremStmtUses <- function(s) {
-  if (identical(s$type, "assign")) return(.fremSyms(s$rhs))
-  c(.fremSyms(s$cond),
+  if (identical(s$type, "assign")) {
+    return(.fremSyms(s$rhs))
+  }
+  c(
+    .fremSyms(s$cond),
     unlist(lapply(s$then, .fremStmtUses)),
-    unlist(lapply(s$elifs, function(e) c(.fremSyms(e$cond),
-                                         unlist(lapply(e$stmts, .fremStmtUses))))),
-    if (!is.null(s$else_)) unlist(lapply(s$else_, .fremStmtUses)))
+    unlist(lapply(s$elifs, function(e) {
+      c(
+        .fremSyms(e$cond),
+        unlist(lapply(e$stmts, .fremStmtUses))
+      )
+    })),
+    if (!is.null(s$else_)) unlist(lapply(s$else_, .fremStmtUses))
+  )
 }
 
 #' Highest THETA() index anywhere in a list of statements
@@ -407,7 +481,10 @@ createFREMParamFunction <- function(fremModel        = NULL,
     } else {
       m <<- max(m, .fremMaxThetaNode(s$cond))
       lapply(s$then, walk)
-      lapply(s$elifs, function(e) { m <<- max(m, .fremMaxThetaNode(e$cond)); lapply(e$stmts, walk) })
+      lapply(s$elifs, function(e) {
+        m <<- max(m, .fremMaxThetaNode(e$cond))
+        lapply(e$stmts, walk)
+      })
       if (!is.null(s$else_)) lapply(s$else_, walk)
     }
   }
@@ -424,9 +501,8 @@ createFREMParamFunction <- function(fremModel        = NULL,
 .fremEmit <- function(stmts, covs, covRef, parameters, fremParams, numSkipOm,
                       functionName, fremModel, missVal, quiet,
                       secondary = list()) {
-
   nEtas <- numSkipOm + length(fremParams)
-  dep   <- function(node, etaVal = "0") {
+  dep <- function(node, etaVal = "0") {
     PMXForest::nmDeparse(node, thetaVar = "basethetas", etaValue = etaVal)
   }
 
@@ -435,39 +511,44 @@ createFREMParamFunction <- function(fremModel        = NULL,
     out <- character(0)
     for (s in sl) {
       if (identical(s$type, "assign")) {
-        k    <- match(s$lhs, fremParams)
+        k <- match(s$lhs, fremParams)
         eIdx <- .fremEtaIndices(s$rhs)
         if (!is.na(k)) {
           fremEta <- sprintf("(covthetas[%d] + .eta(etas, %d))", k, numSkipOm + k)
           if (eIdx != numSkipOm + k) {
             warning("Parameter '", s$lhs, "' (FREM parameter ", k, ") uses ETA(",
-                    eIdx, ") in $PK, but ETA(", numSkipOm + k, ") was expected ",
-                    "for numSkipOm = ", numSkipOm, ". Proceeding by parameter ",
-                    "position; check numSkipOm and the order of `parameters`.",
-                    call. = FALSE)
+              eIdx, ") in $PK, but ETA(", numSkipOm + k, ") was expected ",
+              "for numSkipOm = ", numSkipOm, ". Proceeding by parameter ",
+              "position; check numSkipOm and the order of `parameters`.",
+              call. = FALSE
+            )
           }
-          out <- c(out, paste0(pad, s$lhs, " <- ", dep(s$rhs, fremEta),
-                               "   # FREM parameter ", k, ": ETA(", eIdx,
-                               ") -> covthetas[", k, "] + etas[", numSkipOm + k, "]"))
+          out <- c(out, paste0(
+            pad, s$lhs, " <- ", dep(s$rhs, fremEta),
+            "   # FREM parameter ", k, ": ETA(", eIdx,
+            ") -> covthetas[", k, "] + etas[", numSkipOm + k, "]"
+          ))
         } else if (s$lhs %in% parameters) {
           note <- if (length(eIdx) == 0L) {
             "   # returned as-is (no IIV / no FREM covariate effect)"
           } else {
             warning("Parameter '", s$lhs, "' references ETA() ", length(eIdx),
-                    " times in its $PK assignment (ETA ",
-                    paste(eIdx, collapse = ", "), "); it is not treated as a ",
-                    "FREM covariate parameter. If it should carry a covariate ",
-                    "effect, write it by hand.", call. = FALSE)
+              " times in its $PK assignment (ETA ",
+              paste(eIdx, collapse = ", "), "); it is not treated as a ",
+              "FREM covariate parameter. If it should carry a covariate ",
+              "effect, write it by hand.",
+              call. = FALSE
+            )
             "   # returned as-is; ETA() -> 0"
           }
           out <- c(out, paste0(pad, s$lhs, " <- ", dep(s$rhs), note))
         } else {
-          txt  <- dep(s$rhs)
+          txt <- dep(s$rhs)
           note <- if (length(eIdx) > 0L) "   # ETA() -> 0" else ""
-          out  <- c(out, paste0(pad, s$lhs, " <- ", txt, note))
+          out <- c(out, paste0(pad, s$lhs, " <- ", txt, note))
         }
-      } else {  # if block
-        cond      <- dep(s$cond)
+      } else { # if block
+        cond <- dep(s$cond)
         simpleOne <- isTRUE(s$oneline) && length(s$then) == 1L &&
           identical(s$then[[1]]$type, "assign") &&
           length(s$elifs) == 0L && is.null(s$else_)
@@ -476,8 +557,10 @@ createFREMParamFunction <- function(fremModel        = NULL,
         } else {
           out <- c(out, paste0(pad, "if (", cond, ") {"), emit(s$then, indent + 1L))
           for (e in s$elifs) {
-            out <- c(out, paste0(pad, "} else if (", dep(e$cond), ") {"),
-                          emit(e$stmts, indent + 1L))
+            out <- c(
+              out, paste0(pad, "} else if (", dep(e$cond), ") {"),
+              emit(e$stmts, indent + 1L)
+            )
           }
           if (!is.null(s$else_)) {
             out <- c(out, paste0(pad, "} else {"), emit(s$else_, indent + 1L))
@@ -495,7 +578,8 @@ createFREMParamFunction <- function(fremModel        = NULL,
     preamble <- c(preamble, sprintf(
       "  %s <- if (!is.null(dfrow$%s) && dfrow$%s != %s) dfrow$%s else %s   # %s",
       cov, cov, cov, PMXForest::nmFormatNum(missVal), cov,
-      PMXForest::nmFormatNum(r$value), r$source))
+      PMXForest::nmFormatNum(r$value), r$source
+    ))
   }
 
   body <- emit(stmts, 1L)
@@ -505,38 +589,53 @@ createFREMParamFunction <- function(fremModel        = NULL,
   ## mrgsolve model block) is not re-indented.
   secblock <- character(0)
   for (s in secondary) {
-    loc <- if (is.na(s$src)) "inline snippet"
-           else paste0("inlined from ", basename(s$src))
+    loc <- if (is.na(s$src)) {
+      "inline snippet"
+    } else {
+      paste0("inlined from ", basename(s$src))
+    }
     secblock <- c(secblock, paste0("  ## ", s$name, "  (", loc, ")"))
     consts <- if (is.null(s$consts)) character(0) else s$consts
     if (length(s$lines) == 1L && nzchar(trimws(s$lines)) &&
-        length(consts) == 0L) {
-      secblock <- c(secblock,
-                    paste0("  ", s$name, " <- local({ ", trimws(s$lines), " })"))
+      length(consts) == 0L) {
+      secblock <- c(
+        secblock,
+        paste0("  ", s$name, " <- local({ ", trimws(s$lines), " })")
+      )
     } else {
-      secblock <- c(secblock, paste0("  ", s$name, " <- local({"),
-                    if (length(consts) > 0L) paste0("    ", consts),
-                    s$lines, "  })")
+      secblock <- c(
+        secblock, paste0("  ", s$name, " <- local({"),
+        if (length(consts) > 0L) paste0("    ", consts),
+        s$lines, "  })"
+      )
     }
   }
 
   retNames <- c(parameters, unname(vapply(secondary, `[[`, "", "name")))
-  retval   <- c("  list(",
-                paste0("    ", retNames, " = ", retNames,
-                       c(rep(",", length(retNames) - 1L), "")),
-                "  )")
+  retval <- c(
+    "  list(",
+    paste0(
+      "    ", retNames, " = ", retNames,
+      c(rep(",", length(retNames) - 1L), "")
+    ),
+    "  )"
+  )
 
   c(
-    paste0("## Generated by PMXFrem::createFREMParamFunction() from ",
-           basename(fremModel), "."),
+    paste0(
+      "## Generated by PMXFrem::createFREMParamFunction() from ",
+      basename(fremModel), "."
+    ),
     "## $PK pruned to what the returned parameters depend on. For the FREM",
     "## covariate parameters the single ETA() reference is replaced in place",
     "## (whatever encloses it) by  covthetas[k] + etas[numSkipOm + k]; every",
     "## other ETA() -> 0. Review against the control stream before use.",
     "",
-    paste0(functionName,
-           " <- function(basethetas, covthetas, dfrow, etas = rep(0, ", nEtas,
-           "), ...) {"),
+    paste0(
+      functionName,
+      " <- function(basethetas, covthetas, dfrow, etas = rep(0, ", nEtas,
+      "), ...) {"
+    ),
     "",
     "  .eta <- function(e, i) if (length(e) >= i) e[i] else 0",
     if (length(secondary)) c("  df <- dfrow   # alias for secondary code") else NULL,

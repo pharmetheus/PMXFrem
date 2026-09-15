@@ -1,5 +1,4 @@
 test_that("calcFFEM output is stable across R versions", {
-
   # --- Setup (remains the same) ---
   modFile <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
   extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
@@ -21,24 +20,31 @@ test_that("calcFFEM output is stable across R versions", {
   expect_snapshot_value(stabilize(calcFFEMtestout$UpperVars), style = "serialize")
   expect_snapshot_value(stabilize(calcFFEMtestout$Eta_prim), style = "serialize")
 
-  expect_snapshot_value({
-    res <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE) # Changed to TRUE
-    stable_res <- stabilize(res)
-    stable_res$Expr <- stabilize(res$Expr)
-    stable_res
-  }, style = "serialize")
+  expect_snapshot_value(
+    {
+      res <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE) # Changed to TRUE
+      stable_res <- stabilize(res)
+      stable_res$Expr <- stabilize(res$Expr)
+      stable_res
+    },
+    style = "serialize"
+  )
 
   # --- Test Case 2: Compute eta_prim ---
-  calcFFEMtestout2 <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
-                               fremETA = as.numeric(dfPhi[1,]))
+  calcFFEMtestout2 <- calcFFEM(dfExt,
+    numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
+    fremETA = as.numeric(dfPhi[1, ])
+  )
 
   ## The point of this case: with fremETA supplied, Eta_prim is computed.
   ## It was previously passed as `etaFREM`, which calcFFEM()'s `...` silently
   ## swallowed, so Eta_prim was NULL and nothing here noticed - the five
   ## components snapshotted below are identical with or without it.
   expect_false(is.null(calcFFEMtestout2$Eta_prim))
-  expect_true(is.null(calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2,
-                               quiet = TRUE)$Eta_prim))
+  expect_true(is.null(calcFFEM(dfExt,
+    numNonFREMThetas = 7, numSkipOm = 2,
+    quiet = TRUE
+  )$Eta_prim))
 
   expect_snapshot_value(stabilize(calcFFEMtestout2$Coefficients), style = "serialize")
   expect_snapshot_value(stabilize(calcFFEMtestout2$FullVars), style = "serialize")
@@ -46,17 +52,22 @@ test_that("calcFFEM output is stable across R versions", {
   expect_snapshot_value(stabilize(calcFFEMtestout2$Vars), style = "serialize")
   expect_snapshot_value(stabilize(calcFFEMtestout2$UpperVars), style = "serialize")
 
-  expect_snapshot_value({
-    res <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE, fremETA = as.numeric(dfPhi[1,]))
-    stable_res <- stabilize(res)
-    stable_res$Expr <- stabilize(res$Expr)
-    stable_res
-  }, style = "serialize")
+  expect_snapshot_value(
+    {
+      res <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE, fremETA = as.numeric(dfPhi[1, ]))
+      stable_res <- stabilize(res)
+      stable_res$Expr <- stabilize(res$Expr)
+      stable_res
+    },
+    style = "serialize"
+  )
 
   # --- Test Case 3: Specify availCov with named covariates ---
   covNames <- getCovNames(modFile)$covNames
-  calcFFEMtestout3 <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
-                               covNames = covNames, availCov = c("SEX", "WT"))
+  calcFFEMtestout3 <- calcFFEM(dfExt,
+    numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
+    covNames = covNames, availCov = c("SEX", "WT")
+  )
 
   expect_snapshot_value(stabilize(calcFFEMtestout3$Coefficients), style = "serialize")
   expect_snapshot_value(stabilize(calcFFEMtestout3$FullVars), style = "serialize")
@@ -65,17 +76,22 @@ test_that("calcFFEM output is stable across R versions", {
   expect_snapshot_value(stabilize(calcFFEMtestout3$UpperVars), style = "serialize")
   expect_snapshot_value(stabilize(calcFFEMtestout3$Eta_prim), style = "serialize")
 
-  expect_snapshot_value({
-    res <- calcFFEMtestout3
-    stable_res <- stabilize(res)
-    stable_res$Expr <- stabilize(res$Expr)
-    stable_res
-  }, style = "serialize")
+  expect_snapshot_value(
+    {
+      res <- calcFFEMtestout3
+      stable_res <- stabilize(res)
+      stable_res$Expr <- stabilize(res$Expr)
+      stable_res
+    },
+    style = "serialize"
+  )
 
 
   # --- Test Case 4: Specify availCov with generic covariate names ---
-  calcFFEMtestout4 <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
-                               availCov = c("Cov1", "Cov2"))
+  calcFFEMtestout4 <- calcFFEM(dfExt,
+    numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
+    availCov = c("Cov1", "Cov2")
+  )
 
   expect_snapshot_value(stabilize(calcFFEMtestout4$Coefficients), style = "serialize")
   expect_snapshot_value(stabilize(calcFFEMtestout4$FullVars), style = "serialize")
@@ -84,43 +100,48 @@ test_that("calcFFEM output is stable across R versions", {
   expect_snapshot_value(stabilize(calcFFEMtestout4$UpperVars), style = "serialize")
   expect_snapshot_value(stabilize(calcFFEMtestout4$Eta_prim), style = "serialize")
 
-  expect_snapshot_value({
-    res <- calcFFEMtestout4
-    stable_res <- stabilize(res)
-    stable_res$Expr <- stabilize(res$Expr)
-    stable_res
-  }, style = "serialize")
+  expect_snapshot_value(
+    {
+      res <- calcFFEMtestout4
+      stable_res <- stabilize(res)
+      stable_res$Expr <- stabilize(res$Expr)
+      stable_res
+    },
+    style = "serialize"
+  )
 })
 
 
 test_that("calcFFEM handles the numParCov = 1 edge case", {
   # Setup: Use the standard run31 ext file
   extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
-  dfExt   <- getExt(extFile = extFile)
+  dfExt <- getExt(extFile = extFile)
   modFile <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
   covNames <- getCovNames(modFile)$covNames
 
   # Test 1: numParCov = 1 with a subset of available covariates
   # This covers the red lines in the first block (lines 130-134)
   result_partial <- calcFFEM(dfExt,
-                             numNonFREMThetas = 7,
-                             numSkipOm = 2,
-                             numParCov = 1, # Force the edge case
-                             covNames = covNames,
-                             availCov = c("SEX", "WT"),
-                             quiet = TRUE)
+    numNonFREMThetas = 7,
+    numSkipOm = 2,
+    numParCov = 1, # Force the edge case
+    covNames = covNames,
+    availCov = c("SEX", "WT"),
+    quiet = TRUE
+  )
 
   expect_snapshot_value(stabilize(result_partial), style = "serialize")
 
   # Test 2: numParCov = 1 with all available covariates
   # This covers the red lines in the second block (lines 146-148)
   result_all <- calcFFEM(dfExt,
-                         numNonFREMThetas = 7,
-                         numSkipOm = 2,
-                         numParCov = 1, # Force the edge case
-                         covNames = covNames,
-                         availCov = covNames,
-                         quiet = TRUE)
+    numNonFREMThetas = 7,
+    numSkipOm = 2,
+    numParCov = 1, # Force the edge case
+    covNames = covNames,
+    availCov = covNames,
+    quiet = TRUE
+  )
 
   expect_snapshot_value(stabilize(result_all), style = "serialize")
 })
@@ -128,39 +149,43 @@ test_that("calcFFEM handles the numParCov = 1 edge case", {
 test_that("calcFFEM calculates eta_prim correctly with numSkipOm = 0", {
   # Setup: Use the standard run31 ext and phi files
   extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
-  dfExt   <- getExt(extFile = extFile)
+  dfExt <- getExt(extFile = extFile)
   modFile <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
   phiFile <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
-  dfPhi   <- getPhi(phiFile = phiFile, warn = FALSE)
+  dfPhi <- getPhi(phiFile = phiFile, warn = FALSE)
 
   # Get a single individual's ETAs to pass to the function
   ## ETA columns only - [, -1] drops SUBJECT_NO but leaves ID in place, which
   ## shifts every eta one position.
-  fremETA_vector <- as.numeric(dplyr::select(subset(dfPhi, ID == 1),
-                                             dplyr::starts_with("ETA")))
+  fremETA_vector <- as.numeric(dplyr::select(
+    subset(dfPhi, ID == 1),
+    dplyr::starts_with("ETA")
+  ))
   covNames <- getCovNames(modFile)$covNames
 
   # Test 1: numSkipOm = 0 with a subset of covariates
   # This covers the `if (exists("missCov"))` branch
   result_partial <- calcFFEM(dfExt,
-                             numNonFREMThetas = 7,
-                             numSkipOm = 0, # Target for this test
-                             fremETA = fremETA_vector, # Trigger eta_prim calculation
-                             covNames = covNames,
-                             availCov = c("SEX", "WT"),
-                             quiet = TRUE)
+    numNonFREMThetas = 7,
+    numSkipOm = 0, # Target for this test
+    fremETA = fremETA_vector, # Trigger eta_prim calculation
+    covNames = covNames,
+    availCov = c("SEX", "WT"),
+    quiet = TRUE
+  )
 
   expect_snapshot_value(stabilize(result_partial), style = "serialize")
 
   # Test 2: numSkipOm = 0 with all available covariates
   # This covers the `else` branch
   result_all <- calcFFEM(dfExt,
-                         numNonFREMThetas = 7,
-                         numSkipOm = 0, # Target for this test
-                         fremETA = fremETA_vector, # Trigger eta_prim calculation
-                         covNames = covNames,
-                         availCov = covNames,
-                         quiet = TRUE)
+    numNonFREMThetas = 7,
+    numSkipOm = 0, # Target for this test
+    fremETA = fremETA_vector, # Trigger eta_prim calculation
+    covNames = covNames,
+    availCov = covNames,
+    quiet = TRUE
+  )
 
   expect_snapshot_value(stabilize(result_all), style = "serialize")
 })
@@ -168,39 +193,43 @@ test_that("calcFFEM calculates eta_prim correctly with numSkipOm = 0", {
 test_that("calcFFEM calculates eta_prim correctly with numSkipOm > 0", {
   # Setup: Use the standard run31 ext and phi files
   extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
-  dfExt   <- getExt(extFile = extFile)
+  dfExt <- getExt(extFile = extFile)
   modFile <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
   phiFile <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
-  dfPhi   <- getPhi(phiFile = phiFile, warn = FALSE)
+  dfPhi <- getPhi(phiFile = phiFile, warn = FALSE)
 
   # Get a single individual's ETAs to pass to the function
   ## ETA columns only - [, -1] drops SUBJECT_NO but leaves ID in place, which
   ## shifts every eta one position.
-  fremETA_vector <- as.numeric(dplyr::select(subset(dfPhi, ID == 1),
-                                             dplyr::starts_with("ETA")))
+  fremETA_vector <- as.numeric(dplyr::select(
+    subset(dfPhi, ID == 1),
+    dplyr::starts_with("ETA")
+  ))
   covNames <- getCovNames(modFile)$covNames
 
   # Test 1: numSkipOm > 0 with a subset of covariates
   # This covers the `if (exists("missCov"))` branch
   result_partial <- calcFFEM(dfExt,
-                             numNonFREMThetas = 7,
-                             numSkipOm = 2, # Target for this test
-                             fremETA = fremETA_vector, # Trigger eta_prim calculation
-                             covNames = covNames,
-                             availCov = c("SEX", "WT"),
-                             quiet = TRUE)
+    numNonFREMThetas = 7,
+    numSkipOm = 2, # Target for this test
+    fremETA = fremETA_vector, # Trigger eta_prim calculation
+    covNames = covNames,
+    availCov = c("SEX", "WT"),
+    quiet = TRUE
+  )
 
   expect_snapshot_value(stabilize(result_partial), style = "serialize")
 
   # Test 2: numSkipOm > 0 with all available covariates
   # This covers the `else` branch
   result_all <- calcFFEM(dfExt,
-                         numNonFREMThetas = 7,
-                         numSkipOm = 2, # Target for this test
-                         fremETA = fremETA_vector, # Trigger eta_prim calculation
-                         covNames = covNames,
-                         availCov = covNames,
-                         quiet = TRUE)
+    numNonFREMThetas = 7,
+    numSkipOm = 2, # Target for this test
+    fremETA = fremETA_vector, # Trigger eta_prim calculation
+    covNames = covNames,
+    availCov = covNames,
+    quiet = TRUE
+  )
 
   expect_snapshot_value(stabilize(result_all), style = "serialize")
 })
@@ -208,7 +237,7 @@ test_that("calcFFEM calculates eta_prim correctly with numSkipOm > 0", {
 test_that("calcFFEM covers final quiet=FALSE and empty availCov paths", {
   # Setup: Use the standard run31 ext file
   extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
-  dfExt   <- getExt(extFile = extFile)
+  dfExt <- getExt(extFile = extFile)
   modFile <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
   covNames <- getCovNames(modFile)$covNames
 
@@ -223,8 +252,10 @@ test_that("calcFFEM covers final quiet=FALSE and empty availCov paths", {
   eq_path <- file.path(td, "eq.txt")
   om_path <- file.path(td, "om.txt")
 
-  calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = FALSE,
-           eqFile = eq_path, omFile = om_path)
+  calcFFEM(dfExt,
+    numNonFREMThetas = 7, numSkipOm = 2, quiet = FALSE,
+    eqFile = eq_path, omFile = om_path
+  )
 
   expect_true(file.exists(eq_path))
   expect_true(file.info(eq_path)$size > 0)
@@ -233,11 +264,12 @@ test_that("calcFFEM covers final quiet=FALSE and empty availCov paths", {
 
   # Test 3: Empty availCov vector
   result_empty_cov <- calcFFEM(dfExt,
-                               numNonFREMThetas = 7,
-                               numSkipOm = 2,
-                               covNames = covNames,
-                               availCov = character(0), # Test the empty set case
-                               quiet = TRUE)
+    numNonFREMThetas = 7,
+    numSkipOm = 2,
+    covNames = covNames,
+    availCov = character(0), # Test the empty set case
+    quiet = TRUE
+  )
 
   expect_snapshot_value(stabilize(result_empty_cov), style = "serialize")
 })
@@ -245,45 +277,53 @@ test_that("calcFFEM covers final quiet=FALSE and empty availCov paths", {
 test_that("calcFFEM strictly validates parNames and covNames dimensions", {
   # --- Setup ---
   extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
-  dfExt   <- getExt(extFile = extFile)
+  dfExt <- getExt(extFile = extFile)
   modFile <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
-  
+
   # Extract the dynamically valid covariate names for run31
   covNames_valid <- getCovNames(modFile)$covNames
-  
-  # Note: For run31 (numNonFREMThetas = 7, numSkipOm = 2), 
+
+  # Note: For run31 (numNonFREMThetas = 7, numSkipOm = 2),
   # the calculated numParCov is exactly 3.
-  
+
   # --- 1. parNames Dimension Tests ---
-  
+
   # Test 1A: parNames too short
   expect_error(
-    calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, 
-             parNames = c("CL", "V"), quiet = TRUE),
+    calcFFEM(dfExt,
+      numNonFREMThetas = 7, numSkipOm = 2,
+      parNames = c("CL", "V"), quiet = TRUE
+    ),
     regexp = "Validation Error: Length of `parNames` \\(2\\) must exactly match"
   )
-  
+
   # Test 1B: parNames too long
   expect_error(
-    calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, 
-             parNames = c("CL", "V", "MAT", "KA"), quiet = TRUE),
+    calcFFEM(dfExt,
+      numNonFREMThetas = 7, numSkipOm = 2,
+      parNames = c("CL", "V", "MAT", "KA"), quiet = TRUE
+    ),
     regexp = "Validation Error: Length of `parNames` \\(4\\) must exactly match"
   )
-  
+
   # --- 2. covNames Dimension Tests ---
-  
+
   # Test 2A: covNames too short
   expect_error(
-    calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, 
-             covNames = c("WT", "AGE"), quiet = TRUE),
+    calcFFEM(dfExt,
+      numNonFREMThetas = 7, numSkipOm = 2,
+      covNames = c("WT", "AGE"), quiet = TRUE
+    ),
     regexp = "Validation Error: Length of `covNames` \\(2\\) must exactly match"
   )
-  
+
   # Test 2B: covNames too long
   # We dynamically append an extra string to the valid vector to ensure a length mismatch
   expect_error(
-    calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, 
-             covNames = c(covNames_valid, "EXTRA_COV"), quiet = TRUE),
+    calcFFEM(dfExt,
+      numNonFREMThetas = 7, numSkipOm = 2,
+      covNames = c(covNames_valid, "EXTRA_COV"), quiet = TRUE
+    ),
     regexp = "Validation Error: Length of `covNames` \\(\\d+\\) must exactly match"
   )
 })

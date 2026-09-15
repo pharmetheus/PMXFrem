@@ -89,7 +89,7 @@ The two parts below are independent:
 ## 1.1 Locate the FREM model
 
 ```{r locate}
-runname   <- "run31"
+runname <- "run31"
 modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
 fremFiles <- getFileNames(modName = runname, modDevDir = modDevDir)
 ```
@@ -102,16 +102,16 @@ supplied at the call site. For a linear model the single-dose `AUC` is
 
 ```{r genfun}
 out <- createFREMParamFunction(
-  fremModel  = fremFiles$mod,
+  fremModel = fremFiles$mod,
   parameters = c("CL", "V", "MAT"),
-  secondary  = list(
+  secondary = list(
     AUC   = list(source = "dose / CL", dose = 100),
     THALF = "log(2) * V / CL"
   ),
   quiet = TRUE
 )
 
-out$functionListName   # CL, V, MAT, then the secondaries
+out$functionListName # CL, V, MAT, then the secondaries
 out$primaryNames
 out$secondaryNames
 ```
@@ -129,13 +129,15 @@ tail(out$code, 16)
 ## 1.3 Sanity-check at the final estimates
 
 ```{r sanity}
-fun    <- eval(parse(text = out$code))
-dfExt  <- subset(getExt(extFile = fremFiles$ext), ITERATION == "-1000000000")
+fun <- eval(parse(text = out$code))
+dfExt <- subset(getExt(extFile = fremFiles$ext), ITERATION == "-1000000000")
 thetas <- as.numeric(dfExt[1, grep("^THETA", names(dfExt))])
-base   <- thetas[seq_len(out$noBaseThetas)]
+base <- thetas[seq_len(out$noBaseThetas)]
 
-fun(basethetas = base, covthetas = rep(0, out$numParCov), dfrow = data.frame(),
-    etas = rep(0, out$numSkipOm + out$numParCov))
+fun(
+  basethetas = base, covthetas = rep(0, out$numParCov), dfrow = data.frame(),
+  etas = rep(0, out$numSkipOm + out$numParCov)
+)
 ```
 
 ## 1.4 The Forest plot
@@ -149,7 +151,7 @@ built the usual way. The model is located by `runno` / `modDevDir`, so
 ```{r forest}
 covNames <- getCovNames(modFile = fremFiles$mod)
 
-data   <- fread(
+data <- fread(
   system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 )
 dfCovs <- createInputForestData(
@@ -176,8 +178,8 @@ unique(dfres$PARAMETER)
 forestPlot(
   dfres[dfres$PARAMETER == "AUC", ],
   plotRelative = TRUE,
-  keepYlabs    = TRUE,
-  rightStrip   = FALSE
+  keepYlabs = TRUE,
+  rightStrip = FALSE
 ) +
   ggtitle("AUC vs. reference")
 ```

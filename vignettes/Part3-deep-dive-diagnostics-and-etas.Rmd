@@ -32,10 +32,10 @@ library(data.table)
 theme_set(theme_bw(base_size = 14))
 
 # Setup Paths
-modDevDir <- system.file("extdata/SimNeb", package="PMXFrem")
-dataFile  <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package="PMXFrem")
-fremRun   <- 31
-baseRun   <- 30
+modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+dataFile <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+fremRun <- 31
+baseRun <- 30
 ```
 
 ## 1. Comparison of Diagnostics: Base, FREM, and FFEM
@@ -44,17 +44,20 @@ To understand why we generate an FFEM model for diagnostics, we extract the stru
 
 ```{r compare_data}
 xptabBase <- fread(paste0(modDevDir, "/xptabmax0", baseRun), data.table = FALSE, check.names = TRUE) %>%
-  filter(BLQ == 0, EVID == 0) %>% arrange(ID, TAD)
+  filter(BLQ == 0, EVID == 0) %>%
+  arrange(ID, TAD)
 
 xptabFFEM <- fread(paste0(modDevDir, "/xptabmax0", fremRun), data.table = FALSE, check.names = TRUE) %>%
-  filter(BLQ == 0, EVID == 0) %>% arrange(ID, TAD)
+  filter(BLQ == 0, EVID == 0) %>%
+  arrange(ID, TAD)
 
 xptabFREM <- fread(paste0(modDevDir, "/xptab", fremRun), data.table = FALSE, check.names = TRUE) %>%
-  filter(BLQ == 0, EVID == 0, FREMTYPE == 0) %>% arrange(ID, TAD)
+  filter(BLQ == 0, EVID == 0, FREMTYPE == 0) %>%
+  arrange(ID, TAD)
 
-cwresData <- bind_cols(Base = xptabBase$CWRES, FREM = xptabFREM$CWRES, FFEM = xptabFFEM$CWRES) 
+cwresData <- bind_cols(Base = xptabBase$CWRES, FREM = xptabFREM$CWRES, FFEM = xptabFFEM$CWRES)
 iwresData <- bind_cols(Base = xptabBase$CIWRES, FREM = xptabFREM$CIWRES, FFEM = xptabFFEM$CIWRES)
-predData  <- bind_cols(Base = xptabBase$CPRED, FREM = xptabFREM$CPRED, FFEM = xptabFFEM$CPRED)
+predData <- bind_cols(Base = xptabBase$CPRED, FREM = xptabFREM$CPRED, FFEM = xptabFFEM$CPRED)
 ipredData <- bind_cols(Base = xptabBase$CIPREDI, FREM = xptabFREM$CIPREDI, FFEM = xptabFFEM$CIPREDI)
 ```
 
@@ -132,32 +135,36 @@ Because the FFEM provides the correct conditional metrics, we use its output (`x
 ```{r gof_plots, fig.height=8}
 ## DV vs PRED
 p1 <- ggplot(xptabFFEM, aes(exp(CPRED), exp(DV))) +
-  geom_point(color="#005B65", alpha = 0.6) +
-  geom_abline(slope = 1, intercept = 0, size=1, linetype="dashed") +
-  geom_smooth(se = FALSE, color="#E1A178", method="loess") +
-  xlab("Population Predictions") + ylab("Observations")
+  geom_point(color = "#005B65", alpha = 0.6) +
+  geom_abline(slope = 1, intercept = 0, size = 1, linetype = "dashed") +
+  geom_smooth(se = FALSE, color = "#E1A178", method = "loess") +
+  xlab("Population Predictions") +
+  ylab("Observations")
 
 ## DV vs IPRED
 p2 <- ggplot(xptabFFEM, aes(exp(CIPREDI), exp(DV))) +
-  geom_point(color="#005B65", alpha = 0.6) +
-  geom_abline(slope = 1, intercept = 0, size=1, linetype="dashed") +
-  geom_smooth(se = FALSE, color="#E1A178", method="loess") +
-  xlab("Individual Predictions") + ylab("Observations")
+  geom_point(color = "#005B65", alpha = 0.6) +
+  geom_abline(slope = 1, intercept = 0, size = 1, linetype = "dashed") +
+  geom_smooth(se = FALSE, color = "#E1A178", method = "loess") +
+  xlab("Individual Predictions") +
+  ylab("Observations")
 
 ## abs(IWRES) vs IPRED
 p3 <- ggplot(xptabFFEM, aes(abs(CIWRES), exp(CIPREDI))) +
-  geom_point(color="#005B65", alpha = 0.6) +
-  geom_smooth(se = FALSE, color="#E1A178", method="loess") +
-  xlab("Individual Predictions") + ylab("Absolute IWRES")
+  geom_point(color = "#005B65", alpha = 0.6) +
+  geom_smooth(se = FALSE, color = "#E1A178", method = "loess") +
+  xlab("Individual Predictions") +
+  ylab("Absolute IWRES")
 
 ## CWRES vs PRED
 p4 <- ggplot(xptabFFEM, aes(exp(CPRED), CWRES)) +
-  geom_point(color="#005B65", alpha = 0.6) +
-  geom_abline(slope = 0, intercept = 0, size=1, linetype="dashed") +
-  geom_smooth(se = FALSE, color="#E1A178", method="loess") +
-  xlab("Population Predictions") + ylab("Conditional Weighted Residuals")
+  geom_point(color = "#005B65", alpha = 0.6) +
+  geom_abline(slope = 0, intercept = 0, size = 1, linetype = "dashed") +
+  geom_smooth(se = FALSE, color = "#E1A178", method = "loess") +
+  xlab("Population Predictions") +
+  ylab("Conditional Weighted Residuals")
 
-gridExtra::grid.arrange(p1, p2, p3, p4, ncol=2, nrow=2)
+gridExtra::grid.arrange(p1, p2, p3, p4, ncol = 2, nrow = 2)
 ```
 
 ## 3. Creating ETA Diagnostics
@@ -166,7 +173,7 @@ Similarly to the standard diagnostic variables, ETAs must also be adjusted to re
 
 ```{r calc_etas}
 # Load clinical data
-clin_data <- read.csv(dataFile) %>% 
+clin_data <- read.csv(dataFile) %>%
   filter(BLQ != 1)
 
 # Calculate ETAs, ETA Prims, and EBEs. With the FREM model located through
@@ -189,8 +196,8 @@ By default, this function plots only the observed covariates, giving a clear vie
 
 ```{r eta_vs_cov_observed, fig.height=8}
 plotEtasCov(
-  df         = ind_params, 
-  covName    = "WT", 
+  df         = ind_params,
+  covName    = "WT",
   etaNames   = c("ETA3", "ETA4"),
   etaTypes   = c("FREM", "Prim", "EBE"),
   etaLabels  = c("Clearance (CL)", "Volume (V)"),
@@ -203,8 +210,8 @@ FREM handles missing data by integrating it out of the likelihood. We can visual
 
 ```{r eta_vs_cov_missing, fig.height=8}
 plotEtasCov(
-  df                    = ind_params, 
-  covName               = "WT", 
+  df                    = ind_params,
+  covName               = "WT",
   etaNames              = c("ETA3", "ETA4"),
   etaTypes              = c("FREM", "EBE"),
   etaLabels             = c("Clearance (CL)", "Volume (V)"),
@@ -220,8 +227,8 @@ Finally, the marginal distributions of the estimated covariates can be visualize
 
 ```{r cov_dist, fig.height=5}
 plotCovDist(
-  df       = ind_params, 
-  covNames = c("WT", "AGE"), 
+  df       = ind_params,
+  covNames = c("WT", "AGE"),
   plotType = "histogram",
   scales   = "free_x",
   ncol     = 2

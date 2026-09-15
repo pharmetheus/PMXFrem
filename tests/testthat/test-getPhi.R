@@ -1,6 +1,6 @@
 test_that("getPhi works with real data files", {
   # Keep original tests
-  phiData <- getPhi(system.file("extdata","SimNeb/run30.phi",package="PMXFrem"), warn = FALSE)
+  phiData <- getPhi(system.file("extdata", "SimNeb/run30.phi", package = "PMXFrem"), warn = FALSE)
   expect_s3_class(phiData, "data.frame")
 
   # expect_warning(getPhi(system.file("extdata","SimNeb/CopyOfrun30.phi",package="PMXFrem")))

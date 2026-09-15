@@ -26,19 +26,18 @@
 #' @concept nonmem_parsers
 #' @keywords internal
 findrecord <- function(input,
-                       record  = "\\$OMEGA",
+                       record = "\\$OMEGA",
                        replace = NULL,
-                       quiet   = TRUE) {
-
+                       quiet = TRUE) {
   if (length(input) == 1) {
-    con  <- file(input, open = "r")
+    con <- file(input, open = "r")
     line <- readLines(con)
   } else {
     line <- input
   }
 
   start <- NULL
-  stop  <- NULL
+  stop <- NULL
 
   for (i in 1:length(line)) {
     tmp <- grep(paste0("^", record, ".*"), line[i])

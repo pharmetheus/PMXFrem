@@ -8,16 +8,15 @@
 #'
 #' @examples
 #' extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
-#' dfExt   <- getExt(extFile = extFile)
+#' dfExt <- getExt(extFile = extFile)
 #' ## internal, so reached with ::: outside the package
-#' n       <- PMXFrem:::calcNumParCov(dfExt, numNonFREMThetas = 7, numSkipOm = 2)
+#' n <- PMXFrem:::calcNumParCov(dfExt, numNonFREMThetas = 7, numSkipOm = 2)
 #' @family NONMEM Parsers Internal
 #' @concept nonmem_parsers
 #' @keywords internal
 calcNumParCov <- function(dfext,
                           numNonFREMThetas,
                           numSkipOm = 0) {
-
   numFREMThetas <- length(grep("THETA", names(dfext))) - numNonFREMThetas
 
   iNumOmega <- length(grep("OMEGA", names(dfext)))

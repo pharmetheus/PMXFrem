@@ -1,39 +1,39 @@
-#'Create an FFEM version of a FREM model together with an appropriate data file.
+#' Create an FFEM version of a FREM model together with an appropriate data file.
 #'
-#'Create FFEM versions of a FREM model and data set to be used for generating
-#'GOF plots and VPC analyses.
+#' Create FFEM versions of a FREM model and data set to be used for generating
+#' GOF plots and VPC analyses.
 #'
-#'To create GOF plots and VPC analysies for a FREM model it is necessary to
-#'convert it to a FFEM model, with the appropriate covariate effects and omega
-#'prim.
+#' To create GOF plots and VPC analysies for a FREM model it is necessary to
+#' convert it to a FFEM model, with the appropriate covariate effects and omega
+#' prim.
 #'
-#'There are two ways the FREM covariate effects can be included in the FFEM
-#'model. The first is to amend the FFEM code with the full covariate model
-#'expressions (these expressions can be obtained from the [createFFEMdata()]
-#'function. This may be practically possible for one or a few covariates, but
-#'will quickly run into NONMEM related issues regarding the number of allowed
-#'constants, and similar. The second and recommended approach, is to precompute
-#'the total impact of the covariates for each individual, and to add these
-#'*individual covariate coefficients* to the original data set. They can then be
-#'added as constants in the the FFEM code additatively to the corresponding ETA:
+#' There are two ways the FREM covariate effects can be included in the FFEM
+#' model. The first is to amend the FFEM code with the full covariate model
+#' expressions (these expressions can be obtained from the [createFFEMdata()]
+#' function. This may be practically possible for one or a few covariates, but
+#' will quickly run into NONMEM related issues regarding the number of allowed
+#' constants, and similar. The second and recommended approach, is to precompute
+#' the total impact of the covariates for each individual, and to add these
+#'* individual covariate coefficients* to the original data set. They can then be
+#' added as constants in the the FFEM code additatively to the corresponding ETA:
 #'
-#'Change the FFEM code from:
+#' Change the FFEM code from:
 #'
-#'`PAR = TVPAR * EXP(ETA)`
+#' `PAR = TVPAR * EXP(ETA)`
 #'
-#'to
+#' to
 #'
-#'`PAR = TVPAR * EXP(ETA + PARCOV)`
+#' `PAR = TVPAR * EXP(ETA + PARCOV)`
 #'
-#'where PARCOV is the individual covariate coefficient. (The PARCOV term
+#' where PARCOV is the individual covariate coefficient. (The PARCOV term
 #'
-#'The addition of the individual covariate coefficients to the original data set
-#'is done by麓 the [createFFEMdata()] function. However, `createFFEMdata()` is
-#'called by `createFFEMmodel()` so there is no need to do this as a separate
-#'step.
+#' The addition of the individual covariate coefficients to the original data set
+#' is done by麓 the [createFFEMdata()] function. However, `createFFEMdata()` is
+#' called by `createFFEMmodel()` so there is no need to do this as a separate
+#' step.
 #'
-#'The are also other changes to the original model file to be suitable for
-#'generating GOF diagnostics for the FREM model:
+#' The are also other changes to the original model file to be suitable for
+#' generating GOF diagnostics for the FREM model:
 #' * Replace the data file name on $DATA with name of the file with the individual covariate coefficients. (Note! It is assumed that the data files name follows directly after $DATA. If there are other commands on the same line as $DATA and the data file name, they should follow after the data file name.)
 #' * Append column names to $INPUT to match the new data file.
 #' * Update the initial estimates for $THETA and $SIGMA with the corresponding estimates from the FREM run.
@@ -42,59 +42,59 @@
 #' * Replace the options on $EST with MAX=1 METHOD=1 INTER. If more that one $EST is present in the file, the second, third, etc are removed.
 #' * Update any table file name with `ffemTabName`
 #'
-#'`createFFEMmodel()` implements these changes to the model automatically.
+#' `createFFEMmodel()` implements these changes to the model automatically.
 #'
-#'The individual covariate coefficients will take missing covariates into
-#'account while the omega prim will assume that all covariates are non-missing.
+#' The individual covariate coefficients will take missing covariates into
+#' account while the omega prim will assume that all covariates are non-missing.
 #'
-#'The resulting model is not intended for estimation of the population
-#'parameters, only for EBE estimation and generation of predictions in a
-#'MAXEVAL=0 run. The the tabulated output is suitable for the generation of
-#'regular GOF plots. The model file can easily be modified to perform
-#'simulations for a VPC analysis.
+#' The resulting model is not intended for estimation of the population
+#' parameters, only for EBE estimation and generation of predictions in a
+#' MAXEVAL=0 run. The the tabulated output is suitable for the generation of
+#' regular GOF plots. The model file can easily be modified to perform
+#' simulations for a VPC analysis.
 #'
 #'
-#'@inheritParams getFileNames
-#'@inheritParams createFFEMdata
-#'@inheritParams calcFFEM
-#'@param numNonFREMThetas Number of structural (non-FREM-covariate) THETAs in the
+#' @inheritParams getFileNames
+#' @inheritParams createFFEMdata
+#' @inheritParams calcFFEM
+#' @param numNonFREMThetas Number of structural (non-FREM-covariate) THETAs in the
 #'  FREM model. If `NULL` (default) it is derived from the FREM model file (found
 #'  via `runno` / `modName` / `modDevDir`) and the ext via [fremModelInfo()]; a
 #'  supplied value that disagrees with the derived one triggers a warning and is
 #'  kept.
-#'@param numSkipOm Number of diagonal OMEGAs before the FREM block that are not
+#' @param numSkipOm Number of diagonal OMEGAs before the FREM block that are not
 #'  part of the FREM calculations. If `NULL` (default) it is derived via
 #'  [fremModelInfo()] (warn-and-keep on a disagreeing explicit value).
-#'@param baserunno The run number of the base model.
-#'@param baseModName The name of the base model. If NULL (default) no model file
+#' @param baserunno The run number of the base model.
+#' @param baseModName The name of the base model. If NULL (default) no model file
 #'  will be printed to file.
-#'@param baseModDevDir The directory name in which the base model files can be
+#' @param baseModDevDir The directory name in which the base model files can be
 #'  found. Default the same as modDevDir.
-#'@param ffemTabName The table file name to insert into the FFEM model. Default
+#' @param ffemTabName The table file name to insert into the FFEM model. Default
 #'  is 'ffemtab'.
-#'@param ffemModName The name of the file to write the ffem model to, or NULL.
+#' @param ffemModName The name of the file to write the ffem model to, or NULL.
 #'  NULL is the default
-#'@param omegaToData Logical. If \code{TRUE}, writes an identity matrix for the FREM 
+#' @param omegaToData Logical. If \code{TRUE}, writes an identity matrix for the FREM
 #'  OMEGA block and implements a Cholesky decomposition in the model code. Defaults to \code{FALSE}.
-#'@param ... Arguments passed to `createFFEMdata`
+#' @param ... Arguments passed to `createFFEMdata`
 #'
-#'@return A character vector with the code for the FFEM model.
+#' @return A character vector with the code for the FFEM model.
 #'
-#'@section Side effects: The FFEM model will be written to a file with the name
+#' @section Side effects: The FFEM model will be written to a file with the name
 #'  `ffemModName` if it is non-`NULL`.
 #'
-#'@seealso [getFileNames()] [createFFEMdata()] [calcFFEM()]
-#'@export
+#' @seealso [getFileNames()] [createFFEMdata()] [calcFFEM()]
+#' @export
 #'
 #' @examples
-#' 
-#' #Setup paths using package extdata
+#'
+#' # Setup paths using package extdata
 #' modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
-#' dataFile  <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+#' dataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
 #'
 #' # Isolate outputs to a temporary directory
 #' td <- tempdir()
-#' 
+#'
 #' # Example 1: Standard FFEM model creation
 #' out_data <- file.path(td, "testFileName.csv")
 #'
@@ -104,12 +104,12 @@
 #'   modDevDir        = modDevDir,
 #'   numNonFREMThetas = 7,
 #'   numSkipOm        = 2,
-#'   parNames         = c("CL","V","MAT"),
+#'   parNames         = c("CL", "V", "MAT"),
 #'   dataFile         = dataFile,
 #'   newDataFile      = out_data,
 #'   quiet            = TRUE
 #' )
-#' 
+#'
 #' # Example 2: FFEM model creation using Cholesky Decomposition
 #' out_data_chol <- file.path(td, "testFileNameChol.csv")
 #' ffemModChol <- createFFEMmodel(
@@ -118,7 +118,7 @@
 #'   modDevDir        = modDevDir,
 #'   numNonFREMThetas = 7,
 #'   numSkipOm        = 2,
-#'   parNames         = c("CL","V","MAT"),
+#'   parNames         = c("CL", "V", "MAT"),
 #'   dataFile         = dataFile,
 #'   newDataFile      = out_data_chol,
 #'   quiet            = TRUE,
@@ -132,7 +132,7 @@
 #'   runno       = 31,
 #'   baserunno   = 30,
 #'   modDevDir   = modDevDir,
-#'   parNames    = c("CL","V","MAT"),
+#'   parNames    = c("CL", "V", "MAT"),
 #'   dataFile    = dataFile,
 #'   newDataFile = out_data_derived,
 #'   quiet       = TRUE
@@ -140,46 +140,44 @@
 #'
 #' @family FFEM Conversion
 #' @concept ffem_conversion
-createFFEMmodel <- function(
-    runno         = NULL,
-    numNonFREMThetas = NULL,
-    modName       = NULL,
-    modExt        = ".mod",
-    lstExt        = ".lst",
-    numFREMThetas = length(grep("THETA",names(dfext)))-numNonFREMThetas,
-    covSuffix     = "FREMCOV",
-    parNames      = NULL,
-    numParCov     = NULL,
-    numSkipOm     = NULL,
-    dataFile,
-    newDataFile   = paste("vpcData",runno,".csv",sep=""),
-    availCov      = "all",
-    idvar         = "ID",
-    modDevDir     = NULL,
-    quiet         = FALSE,
-    cores         = 1,
-    dfext         = NULL,
-    baserunno     = NULL,
-    baseModName   = NULL,
-    baseModDevDir = modDevDir,
-    ffemTabName   = "ffemtab",
-    ffemModName   = NULL,
-    omegaToData   = FALSE,
-    ...) {
-  
+createFFEMmodel <- function(runno = NULL,
+                            numNonFREMThetas = NULL,
+                            modName = NULL,
+                            modExt = ".mod",
+                            lstExt = ".lst",
+                            numFREMThetas = length(grep("THETA", names(dfext))) - numNonFREMThetas,
+                            covSuffix = "FREMCOV",
+                            parNames = NULL,
+                            numParCov = NULL,
+                            numSkipOm = NULL,
+                            dataFile,
+                            newDataFile = paste("vpcData", runno, ".csv", sep = ""),
+                            availCov = "all",
+                            idvar = "ID",
+                            modDevDir = NULL,
+                            quiet = FALSE,
+                            cores = 1,
+                            dfext = NULL,
+                            baserunno = NULL,
+                            baseModName = NULL,
+                            baseModDevDir = modDevDir,
+                            ffemTabName = "ffemtab",
+                            ffemModName = NULL,
+                            omegaToData = FALSE,
+                            ...) {
   ## Check input
   # if(is.null(newDataFile)) stop("newDataFile must be a character string.")
-  if(is.null(runno) & is.null(modName)) stop("Either runno or modName has to be specified")
-  if(is.null(baserunno) & is.null(baseModName)) stop("Either baserunno or baseModName has to be specified")
-  
-  baseModNames <- getFileNames(runno=baserunno,modName=baseModName,modDevDir=baseModDevDir,...)
-  basemodel    <- baseModNames$mod
-  
-  fremModNames <- getFileNames(runno=runno,modName=modName,modDevDir=modDevDir,...)
-  extFile      <- fremModNames$ext
-  
+  if (is.null(runno) & is.null(modName)) stop("Either runno or modName has to be specified")
+  if (is.null(baserunno) & is.null(baseModName)) stop("Either baserunno or baseModName has to be specified")
+
+  baseModNames <- getFileNames(runno = baserunno, modName = baseModName, modDevDir = baseModDevDir, ...)
+  basemodel <- baseModNames$mod
+
+  fremModNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir, ...)
+  extFile <- fremModNames$ext
+
   # Only read it from file if it isn't passed via dfext
-  if(is.null(dfext)) {
+  if (is.null(dfext)) {
     dfExt <- getExt(extFile)
   } else {
     dfExt <- dfext
@@ -187,73 +185,77 @@ createFFEMmodel <- function(
 
   ## Derive numNonFREMThetas / numSkipOm from the FREM model when not supplied,
   ## and validate them (warn, keep the explicit value) when they are.
-  .info <- fremModelInfo(modFile = fremModNames$mod, dfext = dfExt,
-                         numNonFREMThetas = numNonFREMThetas, numSkipOm = numSkipOm)
+  .info <- fremModelInfo(
+    modFile = fremModNames$mod, dfext = dfExt,
+    numNonFREMThetas = numNonFREMThetas, numSkipOm = numSkipOm
+  )
   numNonFREMThetas <- .info$numNonFREMThetas
-  numSkipOm        <- .info$numSkipOm
+  numSkipOm <- .info$numSkipOm
 
   ## Check the parNames argument
-  if(is.null(parNames)) stop("parNames should specify a vector of names for the parameters related to frem covariates.")
+  if (is.null(parNames)) stop("parNames should specify a vector of names for the parameters related to frem covariates.")
   if (is.null(numParCov)) {
-    numParCov <- calcNumParCov(dfExt,numNonFREMThetas, numSkipOm)
+    numParCov <- calcNumParCov(dfExt, numNonFREMThetas, numSkipOm)
   }
-  
-  if(numParCov != length(parNames)) stop("parNames should have the same length as numParCov")
-  
-  FFEMdata <- createFFEMdata(runno         = runno,
-                             numNonFREMThetas,
-                             modName       = modName,
-                             numFREMThetas = numFREMThetas,
-                             covSuffix     = covSuffix,
-                             parNames      = parNames,
-                             numParCov     = numParCov,
-                             numSkipOm     = numSkipOm,
-                             dataFile      = dataFile,
-                             newDataFile   = newDataFile,
-                             availCov      = availCov,
-                             idvar         = idvar,
-                             modDevDir     = modDevDir,
-                             quiet         = quiet,
-                             cores         = cores,
-                             dfext         = dfext,
-                             omegaToData   = omegaToData,
-                             ...)
-  
+
+  if (numParCov != length(parNames)) stop("parNames should have the same length as numParCov")
+
+  FFEMdata <- createFFEMdata(
+    runno = runno,
+    numNonFREMThetas,
+    modName = modName,
+    numFREMThetas = numFREMThetas,
+    covSuffix = covSuffix,
+    parNames = parNames,
+    numParCov = numParCov,
+    numSkipOm = numSkipOm,
+    dataFile = dataFile,
+    newDataFile = newDataFile,
+    availCov = availCov,
+    idvar = idvar,
+    modDevDir = modDevDir,
+    quiet = quiet,
+    cores = cores,
+    dfext = dfext,
+    omegaToData = omegaToData,
+    ...
+  )
+
   ## Start processing the model
-  
+
   ## Replace $PROBLEM
-  tmp <- findrecord(basemodel,record="\\$PROBLEM",replace="$PROBLEM FFEM model",quiet=T)
-  
+  tmp <- findrecord(basemodel, record = "\\$PROBLEM", replace = "$PROBLEM FFEM model", quiet = T)
+
   ## Replace $INPUT
-  strInput <- findrecord(basemodel,record="\\$INPUT",quiet=T)
-  strInput <- c(strInput,paste0("         ",paste(FFEMdata$indCovEff,collapse=" ")))
-  tmp      <- findrecord(tmp,record="\\$INPUT",replace=strInput,quiet=T)
-  
+  strInput <- findrecord(basemodel, record = "\\$INPUT", quiet = T)
+  strInput <- c(strInput, paste0("         ", paste(FFEMdata$indCovEff, collapse = " ")))
+  tmp <- findrecord(tmp, record = "\\$INPUT", replace = strInput, quiet = T)
+
   ## Replace $DATA
   strData <- findrecord(basemodel, record = "\\$DATA", quiet = TRUE)
-  
+
   if (grepl("^(\\$DATA )(.*)(\\s+.+)$", strData[1]) == FALSE) { # Only filename
     strData[1] <- gsub("^(\\$DATA )(.*)$", paste0("\\1", newDataFile, "\\3"), strData[1])
-  } else if(grepl("IGNORE",strData[1]) == TRUE)  { # There is one or more IGNOREs
+  } else if (grepl("IGNORE", strData[1]) == TRUE) { # There is one or more IGNOREs
     strData[1] <- gsub("^(\\$DATA )(.*)(\\s+.+)$", paste0("\\1", newDataFile, "\\3"), strData[1])
   } else { # There are no IGNOREs
     strData[1] <- gsub("^(\\$DATA )(.*)(\\s+.+)$", paste0("\\1", newDataFile, "\\2"), strData[1])
   }
-  
+
   tmp <- findrecord(tmp, record = "\\$DATA", replace = strData, quiet = TRUE)
-  
+
   ## Replace $OMEGA
   if (!omegaToData) {
-    tmp <- findrecord(tmp, record="\\$OMEGA", replace=buildmatrix(FFEMdata$FullVars), quiet=TRUE)
+    tmp <- findrecord(tmp, record = "\\$OMEGA", replace = buildmatrix(FFEMdata$FullVars), quiet = TRUE)
   } else {
     n_ffem_par <- nrow(FFEMdata$Coefficients)
     omg_lines <- c()
-    
+
     # Write the skipped OMEGA lines (if any)
     if (numSkipOm > 0) {
       omg_lines <- c(omg_lines, buildmatrix(FFEMdata$FullVars[1:numSkipOm, 1:numSkipOm]))
     }
-    
+
     # Build the Cholesky block (Identity matrix)
     omg_lines <- c(omg_lines, paste0("$OMEGA BLOCK(", n_ffem_par, ") FIX"))
     for (i in seq_len(n_ffem_par)) {
@@ -261,88 +263,91 @@ createFFEMmodel <- function(
       row_vals[i] <- "1.0"
       omg_lines <- c(omg_lines, paste(row_vals, collapse = " "))
     }
-    
-    tmp <- findrecord(tmp, record="\\$OMEGA", replace=omg_lines, quiet=TRUE)
+
+    tmp <- findrecord(tmp, record = "\\$OMEGA", replace = omg_lines, quiet = TRUE)
   }
-  
+
   ## Replace $THETA
-  thvalues <- dfExt[dfExt$ITERATION==-1000000000,names(dfExt)[grepl("THETA.*",names(dfExt))]][1:numNonFREMThetas]
-  tmp      <- findrecord(tmp,record="\\$THETA",replace=paste0("$THETA"," ",thvalues, " ; TH",1:numNonFREMThetas))
-  
+  thvalues <- dfExt[dfExt$ITERATION == -1000000000, names(dfExt)[grepl("THETA.*", names(dfExt))]][1:numNonFREMThetas]
+  tmp <- findrecord(tmp, record = "\\$THETA", replace = paste0("$THETA", " ", thvalues, " ; TH", 1:numNonFREMThetas))
+
   ## Replace $SIGMA
-  nosigma    <- length(dfExt[dfExt$ITERATION == -1000000000, names(dfExt)[grepl("SIGMA.*", names(dfExt))]])
-  df_sig     <- as.numeric(dfExt[dfExt$ITERATION == -1000000000, names(dfExt)[grepl("SIGMA.*", names(dfExt))]])
-  num_sig    <- -1 / 2 + sqrt(1 / 4 + 2 * nosigma) # The col/row size of the full SIG matrix (including all blocks), remove last sigma
+  nosigma <- length(dfExt[dfExt$ITERATION == -1000000000, names(dfExt)[grepl("SIGMA.*", names(dfExt))]])
+  df_sig <- as.numeric(dfExt[dfExt$ITERATION == -1000000000, names(dfExt)[grepl("SIGMA.*", names(dfExt))]])
+  num_sig <- -1 / 2 + sqrt(1 / 4 + 2 * nosigma) # The col/row size of the full SIG matrix (including all blocks), remove last sigma
   sig_matrix <- as.numeric(df_sig)
-  
-  #Get the sig-matrix
-  SIG                              <- matrix(0, nrow=num_sig, ncol=num_sig) #Define an empty matrix
-  SIG[upper.tri(SIG,diag = TRUE)]  <- sig_matrix #Assign upper triangular + diag
-  tSIG                             <- t(SIG) #Get a transposed matrix
-  SIG[lower.tri(SIG,diag = FALSE)] <- tSIG[lower.tri(tSIG,diag = FALSE)] #Assign the lower triangular except diag
-  SIGFULL                          <- SIG
-  
+
+  # Get the sig-matrix
+  SIG <- matrix(0, nrow = num_sig, ncol = num_sig) # Define an empty matrix
+  SIG[upper.tri(SIG, diag = TRUE)] <- sig_matrix # Assign upper triangular + diag
+  tSIG <- t(SIG) # Get a transposed matrix
+  SIG[lower.tri(SIG, diag = FALSE)] <- tSIG[lower.tri(tSIG, diag = FALSE)] # Assign the lower triangular except diag
+  SIGFULL <- SIG
+
   # remove last sigma (FREM sigma)
-  SIGFULL <- SIGFULL[-nrow(SIGFULL),-ncol(SIGFULL)]
-  
+  SIGFULL <- SIGFULL[-nrow(SIGFULL), -ncol(SIGFULL)]
+
   # Replace $SIGMA
-  tmp <- findrecord(tmp,record="\\$SIGMA",replace=buildmatrix(as.matrix(SIGFULL),strName = "$SIGMA"),quiet=T)
-  
+  tmp <- findrecord(tmp, record = "\\$SIGMA", replace = buildmatrix(as.matrix(SIGFULL), strName = "$SIGMA"), quiet = T)
+
   ## Replace FREM eta with ETA+Coefficients (or MYETA if omegaToData)
   for (i in 1:nrow(FFEMdata$Coefficients)) {
     eta_idx <- i + numSkipOm
     if (!omegaToData) {
-      tmp <- gsub(pattern = paste0("^(.*)(([^TH]|\\s*)\\bETA\\(", eta_idx, "\\))(.*)$"),
-                  replace = paste0("\\1(ETA(", eta_idx, ")+", FFEMdata$indCovEff[i], ")\\4"),
-                  x = tmp)
+      tmp <- gsub(
+        pattern = paste0("^(.*)(([^TH]|\\s*)\\bETA\\(", eta_idx, "\\))(.*)$"),
+        replace = paste0("\\1(ETA(", eta_idx, ")+", FFEMdata$indCovEff[i], ")\\4"),
+        x = tmp
+      )
     } else {
-      tmp <- gsub(pattern = paste0("^(.*)(([^TH]|\\s*)\\bETA\\(", eta_idx, "\\))(.*)$"),
-                  replace = paste0("\\1(MYETA", eta_idx, " + ", FFEMdata$indCovEff[i], ")\\4"),
-                  x = tmp)
+      tmp <- gsub(
+        pattern = paste0("^(.*)(([^TH]|\\s*)\\bETA\\(", eta_idx, "\\))(.*)$"),
+        replace = paste0("\\1(MYETA", eta_idx, " + ", FFEMdata$indCovEff[i], ")\\4"),
+        x = tmp
+      )
     }
   }
-  
+
   ## Inject Cholesky Code
   if (omegaToData) {
-    n_ffem_par <- nrow(FFEMdata$Coefficients) 
+    n_ffem_par <- nrow(FFEMdata$Coefficients)
     cholesky_lines <- generate_cholesky_lines(n_ffem_par, eta_offset = numSkipOm)
-    
+
     pk_idx <- grep("\\$PK", tmp)
-    if(length(pk_idx) > 0) {
-      tmp <- c(tmp[1:pk_idx], cholesky_lines, tmp[(pk_idx+1):length(tmp)])
-    } else { 
+    if (length(pk_idx) > 0) {
+      tmp <- c(tmp[1:pk_idx], cholesky_lines, tmp[(pk_idx + 1):length(tmp)])
+    } else {
       # Fallback: check for $PRED
       pred_idx <- grep("\\$PRED", tmp)
-      if(length(pred_idx) > 0) {
-        tmp <- c(tmp[1:pred_idx], cholesky_lines, tmp[(pred_idx+1):length(tmp)])
+      if (length(pred_idx) > 0) {
+        tmp <- c(tmp[1:pred_idx], cholesky_lines, tmp[(pred_idx + 1):length(tmp)])
       } else {
         warning("Could not find $PK or $PRED block. Cholesky equations were not injected.")
       }
     }
   }
-  
+
   ## Replace $EST
-  tmp <- findrecord(tmp,record="\\$EST",replace="$ESTIMATION METHOD=1 INTER MAX=0")
-  
+  tmp <- findrecord(tmp, record = "\\$EST", replace = "$ESTIMATION METHOD=1 INTER MAX=0")
+
   ## Change table file name
-  tabString <- findrecord(tmp,record="\\$TAB")
-  
+  tabString <- findrecord(tmp, record = "\\$TAB")
+
   ## If there is no $TAB in the base model file, skip to the next step
-  if(length(tabString)!=0) {
-    
+  if (length(tabString) != 0) {
     ## Change the table file name to ffemtab
-    tabString <- gsub(x=tabString,pattern = "FILE=.*",replace=paste0("FILE=",ffemTabName))
-    tmp <- findrecord(tmp,record="\\$TAB",replace=tabString)
+    tabString <- gsub(x = tabString, pattern = "FILE=.*", replace = paste0("FILE=", ffemTabName))
+    tmp <- findrecord(tmp, record = "\\$TAB", replace = tabString)
   }
-  
+
   ## Write the ffem model to disk unless ffemModName is NULL
-  if(!is.null(ffemModName)) {
-    writeLines(tmp,ffemModName)
+  if (!is.null(ffemModName)) {
+    writeLines(tmp, ffemModName)
   }
-  
-  if(quiet) {
+
+  if (quiet) {
     return(invisible(tmp))
-  } else{
+  } else {
     return(tmp)
   }
 }

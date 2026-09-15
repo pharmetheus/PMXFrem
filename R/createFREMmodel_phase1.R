@@ -1,11 +1,11 @@
 #' Bootstrap the Minimal FREM Model (Phase 1)
 #'
 #' @description
-#' This is the internal bootstrapper function for the FREM generation pipeline. It reads 
-#' the base NONMEM model and the Full Fixed Effects Model (FFEM) dataset, processes strictly 
-#' the first covariate from the provided list, and generates a minimal FREM data file, 
-#' `.mod` file, and a mock `.ext` file. It inherently handles dynamic Y-1 categorical 
-#' expansions (e.g., splitting a 3-level categorical variable into two dummy variables) 
+#' This is the internal bootstrapper function for the FREM generation pipeline. It reads
+#' the base NONMEM model and the Full Fixed Effects Model (FFEM) dataset, processes strictly
+#' the first covariate from the provided list, and generates a minimal FREM data file,
+#' `.mod` file, and a mock `.ext` file. It inherently handles dynamic Y-1 categorical
+#' expansions (e.g., splitting a 3-level categorical variable into two dummy variables)
 #' and establishes the initial `FREMTYPE` sequencing.
 #'
 #' @param runno Standard PMX run number.
@@ -25,14 +25,14 @@
 #' @param catCovs Character vector. Names of the covariates that should be treated as categorical.
 #' @param logtCovs Character vector. Names of continuous covariates that should be log-transformed.
 #' @param useMuModeling Logical. Should MU-referencing be utilized when generating the NONMEM $PK and $ERROR blocks? Defaults to `TRUE`.
-#' @param bRecodeDichotomous Logical. Should dichotomous covariates be automatically 
+#' @param bRecodeDichotomous Logical. Should dichotomous covariates be automatically
 #'   recoded to 0/1? Defaults to FALSE. If FALSE, inputs must be strictly 0/1.
-#' @param allowNon01 Logical. If TRUE, allows non-0/1 dichotomous covariates (like 1/2) 
+#' @param allowNon01 Logical. If TRUE, allows non-0/1 dichotomous covariates (like 1/2)
 #'   to pass through untouched for PsN compatibility. Defaults to FALSE.
 #' @param quiet Logical. Should the function execute silently without console messages? Defaults to `FALSE`.
 #' @param ... Additional arguments passed down to internal helper functions (e.g., `createFREMData`, `prepareAndValidateData`).
-#' @param keepDoseOnlySubjects Logical. If \code{FALSE} (default), subjects without any valid PK observations (e.g., 
-#' only dosing records) are completely excluded from the generated dataset. If \code{TRUE}, 
+#' @param keepDoseOnlySubjects Logical. If \code{FALSE} (default), subjects without any valid PK observations (e.g.,
+#' only dosing records) are completely excluded from the generated dataset. If \code{TRUE},
 #' these subjects are retained and their covariates are included as observations.
 #'
 #' @return An invisible list containing:
@@ -43,79 +43,78 @@
 #'   \item \code{keepMinimalModel}: Boolean flag passed back to the master wrapper for cleanup logic.
 #'   \item \code{validatedData}: The filtered and validated FFEM dataset as a \code{data.frame}.
 #' }
-#' 
+#'
 #' @seealso \code{\link{createFREMmodel}}, \code{\link{updateFREMmodel}}
 #' @family FREM model management Internal
 #' @concept frem_model_management
 #' @keywords internal
-createFREMmodel_phase1 <- function(runno                = NULL,
-                                   modName              = NULL,
-                                   modDevDir            = NULL,
+createFREMmodel_phase1 <- function(runno = NULL,
+                                   modName = NULL,
+                                   modDevDir = NULL,
                                    ffemDataFile,
                                    covariates,
-                                   outputDir            = NULL,
-                                   minModName           = "minimal_model",
-                                   keepMinimalModel     = FALSE,
-                                   cstrKeepCols         = c("ID", "TIME", "AMT", "II", "EVID", "SS", "RATE"),
-                                   numSkipOm            = 0,
-                                   IDvar                = "ID",
-                                   missVal              = -99,
-                                   fixTheta             = TRUE,
-                                   roundMeanTo          = 1,
-                                   catCovs              = NULL,
-                                   logtCovs             = NULL,
-                                   useMuModeling        = TRUE,
-                                   bRecodeDichotomous   = FALSE,
-                                   allowNon01           = FALSE,
+                                   outputDir = NULL,
+                                   minModName = "minimal_model",
+                                   keepMinimalModel = FALSE,
+                                   cstrKeepCols = c("ID", "TIME", "AMT", "II", "EVID", "SS", "RATE"),
+                                   numSkipOm = 0,
+                                   IDvar = "ID",
+                                   missVal = -99,
+                                   fixTheta = TRUE,
+                                   roundMeanTo = 1,
+                                   catCovs = NULL,
+                                   logtCovs = NULL,
+                                   useMuModeling = TRUE,
+                                   bRecodeDichotomous = FALSE,
+                                   allowNon01 = FALSE,
                                    keepDoseOnlySubjects = FALSE,
-                                   quiet                = FALSE, 
+                                   quiet = FALSE,
                                    ...) {
-  
   # --- 1. Resolve Paths via Standard PMX Utilities ---
-  fileNames     <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)
+  fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)
   baseModelFile <- fileNames$mod
-  baseExtFile   <- fileNames$ext
-  
+  baseExtFile <- fileNames$ext
+
   if (is.null(outputDir)) {
     outputDir <- if (!is.null(modDevDir)) modDevDir else getwd()
   }
-  
+
   if (!dir.exists(outputDir)) {
     if (!quiet) message("Output directory not found. Creating it: ", outputDir)
     dir.create(outputDir, recursive = TRUE)
   }
-  
+
   # Set up minimal files dynamically using minModName
   minimalModelPath <- file.path(outputDir, paste0(minModName, ".mod"))
-  minimalDataPath  <- file.path(outputDir, paste0(minModName, "_data.csv"))
-  mockExtPath      <- file.path(outputDir, paste0(minModName, ".ext"))
-  
+  minimalDataPath <- file.path(outputDir, paste0(minModName, "_data.csv"))
+  mockExtPath <- file.path(outputDir, paste0(minModName, ".ext"))
+
   validationResult <- prepareAndValidateData(
-    ffemDataFile         = ffemDataFile, 
-    baseModelFile        = baseModelFile, 
-    covariates           = covariates, 
+    ffemDataFile         = ffemDataFile,
+    baseModelFile        = baseModelFile,
+    covariates           = covariates,
     quiet                = quiet,
     keepDoseOnlySubjects = keepDoseOnlySubjects,
     strID                = IDvar
   )
-  wideData         <- validationResult$validatedData
-  
+  wideData <- validationResult$validatedData
+
   # --- 2. Extract First Covariate Info & Expand if Categorical ---
   firstCovariateName <- covariates[1]
   is_cat <- firstCovariateName %in% catCovs
-  
+
   firstRecs <- wideData[!duplicated(wideData[[IDvar]]), ]
   validRecs <- firstRecs[firstRecs[[firstCovariateName]] != missVal, ]
-  
-  initialCovariateInfo <- list() 
+
+  initialCovariateInfo <- list()
   frem_counter <- 100
-  
+
   if (is_cat) {
     valid_vals <- unique(validRecs[[firstCovariateName]])
     valid_vals <- valid_vals[!is.na(valid_vals)]
-    
+
     if (length(valid_vals) > 2) {
-      covVal <- sort(valid_vals)[-1] 
+      covVal <- sort(valid_vals)[-1]
       for (val in covVal) {
         dummy_data <- as.numeric(validRecs[[firstCovariateName]] == val)
         initialCovariateInfo[[length(initialCovariateInfo) + 1]] <- list(
@@ -150,16 +149,16 @@ createFREMmodel_phase1 <- function(runno                = NULL,
     initialCovariateInfo[[length(initialCovariateInfo) + 1]] <- list(
       name           = firstCovariateName,
       mean           = round(mean(covData, na.rm = TRUE), digits = roundMeanTo),
-      variance       = ifelse(is.na(var(covData, na.rm=TRUE)) || var(covData, na.rm=TRUE) == 0, 1E-04, var(covData, na.rm=TRUE)),
+      variance       = ifelse(is.na(var(covData, na.rm = TRUE)) || var(covData, na.rm = TRUE) == 0, 1E-04, var(covData, na.rm = TRUE)),
       shouldFixTheta = fixTheta && !any(firstRecs[[firstCovariateName]] == missVal),
       fremType       = 100
     )
   }
-  
+
   # --- 3. Generate Minimal FREM Dataset ---
   if (!quiet) message("Generating minimal FREM dataset for covariate: ", firstCovariateName)
   createFREMData(
-    strFFEMData          = wideData, 
+    strFFEMData          = wideData,
     strFREMDataFileName  = minimalDataPath,
     strID                = IDvar,
     cstrKeepCols         = cstrKeepCols,
@@ -169,11 +168,11 @@ createFREMmodel_phase1 <- function(runno                = NULL,
     bRecodeDichotomous   = bRecodeDichotomous,
     allowNon01           = allowNon01,
     keepDoseOnlySubjects = keepDoseOnlySubjects,
-    quiet                = quiet, 
-    ... 
+    quiet                = quiet,
+    ...
   )
-  minimalDataHeaders <- names(data.table::fread(minimalDataPath, header=TRUE, nrows=0))
-  
+  minimalDataHeaders <- names(data.table::fread(minimalDataPath, header = TRUE, nrows = 0))
+
   # --- 4. Generate Minimal FREM Model ---
   if (!quiet) message("Generating minimal FREM model file...")
   baseModelInfo <- parseBaseModel(baseModelFile, numSkipOm = numSkipOm)
@@ -182,7 +181,7 @@ createFREMmodel_phase1 <- function(runno                = NULL,
   } else {
     0
   }
-  
+
   minimalModelLines <- createMinimalFremModel(
     baseModelInfo        = baseModelInfo,
     initialCovariateInfo = initialCovariateInfo,
@@ -192,7 +191,7 @@ createFREMmodel_phase1 <- function(runno                = NULL,
     useMuModeling        = useMuModeling
   )
   writeLines(minimalModelLines, minimalModelPath)
-  
+
   # --- 5. Generate Mock .ext File ---
   if (!quiet) message("Generating mock .ext file...")
   if (file.exists(baseExtFile)) {
@@ -205,9 +204,9 @@ createFREMmodel_phase1 <- function(runno                = NULL,
   } else {
     warning("Base .ext file not found at: ", baseExtFile, "\nCannot generate mock .ext.")
   }
-  
+
   if (!quiet) message("\nPhase 1 complete.")
-  
+
   # Pass keepMinimalModel back to the wrapper so it knows what to do!
   return(invisible(list(
     minimalModelFile = minimalModelPath,

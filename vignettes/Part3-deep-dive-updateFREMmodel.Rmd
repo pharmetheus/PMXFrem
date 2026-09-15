@@ -43,9 +43,9 @@ td <- tempdir()
 
 # Define paths to validated example files
 frem_model_path <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
-frem_ext_path   <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
-frem_data_path  <- system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem")
-ffem_data_path  <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+frem_ext_path <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+frem_data_path <- system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem")
+ffem_data_path <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 
 # Copy base model and ext files into the temporary directory for safe manipulation
 file.copy(frem_model_path, td)
@@ -70,8 +70,8 @@ result_remove <- updateFREMmodel(
   strNewFREMData    = file.path(td, "frem_data_simplified.csv"),
   numNonFREMThetas  = 7,
   numSkipOm         = 2,
-  bWriteData        = TRUE,   # Generate the updated dataset
-  bWriteMod         = TRUE,   # Generate the updated control stream
+  bWriteData        = TRUE, # Generate the updated dataset
+  bWriteMod         = TRUE, # Generate the updated control stream
   quiet             = TRUE,
   cstrKeepCols      = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
 )
@@ -94,7 +94,7 @@ Next, we take the simplified model generated above and insert a new covariate (`
 ```{r add_covariates}
 # Utilize the newly generated model and dataset as our baseline
 model_to_add_to <- new_model_path_remove
-data_to_add_to  <- file.path(td, "frem_data_simplified.csv")
+data_to_add_to <- file.path(td, "frem_data_simplified.csv")
 
 # The function requires the corresponding .ext file for the input model
 file.copy(file.path(td, "run31.ext"), file.path(td, "run31_new.ext"))
@@ -103,7 +103,7 @@ result_add <- updateFREMmodel(
   strFREMModel       = model_to_add_to,
   strFREMData        = data_to_add_to,
   strFFEMData        = ffem_data_path,
-  cstrContCovsToAdd  = "AGE", 
+  cstrContCovsToAdd  = "AGE",
   strNewFREMData     = file.path(td, "frem_data_with_age.csv"),
   numNonFREMThetas   = 7,
   numSkipOm          = 2,
@@ -134,19 +134,19 @@ frem_df <- fread(frem_data_path, data.table = FALSE) %>% select(-ODV)
 ffem_df <- fread(ffem_data_path, data.table = FALSE)
 
 # 2. Simulate 10 new individuals by shifting IDs
-ffem_new_ids <- ffem_df[ffem_df$ID <= 10, ] 
+ffem_new_ids <- ffem_df[ffem_df$ID <= 10, ]
 ffem_new_ids$ID <- ffem_new_ids$ID + max(frem_df$ID)
 
 # 3. Append the individuals to the dataset
 result_new_ids <- updateFREMmodel(
   strFREMModel      = model_in_td,
-  strFREMData       = frem_df,        # Pass dataset directly via memory
-  strFFEMData       = ffem_new_ids,   # Include the new IDs
+  strFREMData       = frem_df, # Pass dataset directly via memory
+  strFFEMData       = ffem_new_ids, # Include the new IDs
   strNewFREMData    = file.path(td, "frem_data_appended.csv"),
   numNonFREMThetas  = 7,
   numSkipOm         = 2,
-  bWriteData        = TRUE, 
-  bWriteMod         = FALSE,          # The NONMEM model logic does not change
+  bWriteData        = TRUE,
+  bWriteMod         = FALSE, # The NONMEM model logic does not change
   quiet             = TRUE,
   cstrKeepCols      = c("ID", "TIME", "AMT", "DV", "EVID", "RATE", "FREMTYPE"),
   cstrSetToZero     = c("AMT", "EVID", "RATE")
@@ -168,14 +168,14 @@ Due to the size of typical FREM models, it is not feasible to update initial est
 ```{r update_inits}
 result_inits <- updateFREMmodel(
   strFREMModel       = model_in_td,
-  strUpdateType      = "NoData",     # Skip dataset processing entirely
+  strUpdateType      = "NoData", # Skip dataset processing entirely
   basenames_th       = c("CL", "V", "MAT", "D1", "FRELFOOD", "MATFOOD"),
   basenames_om       = c("RUV", "D1", "CL", "V", "MAT"),
   numNonFREMThetas   = 7,
   numSkipOm          = 2,
   bWriteData         = FALSE,
   bWriteMod          = TRUE,
-  bWriteFIX          = TRUE,         # Explicitly carry over FIX flags
+  bWriteFIX          = TRUE, # Explicitly carry over FIX flags
   quiet              = TRUE
 )
 
