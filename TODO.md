@@ -221,6 +221,72 @@ Worth scoping before building:
 
 ---
 
+## T20 — verifyFREMParamFunction()'s structural check no longer has a reference
+
+PMXForest 1.3.0 refuses a FREM model outright: `createParamFunction()` stops
+when `FREMTYPE` is in `$INPUT`, because a FREM model's `$PK` translates
+faithfully while describing none of the covariates the model was built for, and
+a plausible-looking wrong answer is worse than no answer.
+
+`verifyFREMParamFunction()` is the one caller that wanted exactly that
+translation. Its first check - "Structural match", comparing the FREM parameter
+function at `covthetas = 0, etas = 0` against the SCM-style typical-value
+function - has no reference to compare against any more, so it errors.
+
+Options, roughly in order of preference:
+
+- Build the comparison function from `PMXForest::nmParsePK()` directly. PMXFrem
+  already uses that parser in `createFREMParamFunction()`
+  (`R/createFREMParamFunction.R:199`), so the `$PK` tree is available without
+  going through `createParamFunction()` at all, and the refusal does not apply
+  to the parser.
+- Drop the structural check and keep the other two (covariate splice, random-
+  effect splice). Cheapest, but it is the check that catches a wrong `$PK`
+  transliteration, which is the thing most worth catching.
+- Ask PMXForest for an explicit opt-in argument. Least preferred: it reopens the
+  door the refusal was added to close, for one internal caller.
+
+Note the warning-muffling workaround committed on `fix/ethnic-label-order` was
+reverted when the warning became an error - there is nothing to muffle.
+
+Do this before PMXFrem 2.1.1 goes out, since PMXForest 1.3.0 ships first.
+
+## T21 — an FFEM covariate's reference value is 0, and nothing knows it
+
+`PMXForest::createParamFunction()` refuses an FFEM model until the FREM
+covariates are pinned:
+
+    No reference value could be derived from run1715ffem.mod for: CLFREMCOV,
+    V2FREMCOV, MATFREMCOV, V3FREMCOV.
+
+`covRef = list(CLFREMCOV = 0, V2FREMCOV = 0, MATFREMCOV = 0, V3FREMCOV = 0)`
+makes it work, and the result checks out - typical CL comes back as THETA(1)
+exactly. But 0 is not a guess there: it is what the parametrisation means. The
+covariate enters as a bare additive term inside the same `EXP()` as the ETA,
+
+    CL = EXP(MU_7 + (ETA(7) + CLFREMCOV))
+
+so the typical subject, carrying no covariate effect, has it at 0.
+
+PMXForest could derive that - "a covariate appearing only as a bare additive
+term inside an `EXP()` alongside an `ETA` has reference 0" - but this belongs
+here rather than there. PMXFrem generates these columns and names them, so it
+knows which they are without pattern-matching; and PMXForest has just been
+burned once by an inference rule that read a structure backwards, silently
+(T20's sibling: a branch assigning the identity value was taken as the
+reference category when it was the departure from one).
+
+Options:
+
+- `createFREMParamFunction()` supplies `covRef` for the FREM columns itself,
+  since it knows their names. Cheapest, and keeps the guessing out of
+  PMXForest.
+- A helper that builds the `covRef` list from a FREM model, for callers using
+  `PMXForest::createParamFunction()` directly on an FFEM model.
+
+Either way the user should not have to know that the reference is 0, or type
+four names to say so.
+
 ## Done
 
 - **T5** — direct `getCovNames(createFREMmodel() output)` test — PR #40 (merged).
