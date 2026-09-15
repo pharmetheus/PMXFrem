@@ -113,7 +113,7 @@ jobs:
   deploy-github-pages:
     needs: [ "build-pkgdown" ]
     runs-on: ubuntu-slim
-    if: github.event_name != 'pull_request' && endsWith(github.repository, '-private')
+    if: endsWith(github.repository, '-private') && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
 
     permissions:
       contents: write
