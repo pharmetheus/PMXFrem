@@ -1,6 +1,7 @@
 test_that("createFFEMdata works", {
-  data <- readr::read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"), show_col_types = FALSE) %>%
-    dplyr::filter(BLQ != 1)
+  data <- utils::read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
+    dplyr::filter(BLQ != 1) %>%
+    dplyr::as_tibble() # the class assertion below is that createFFEMdata() preserves it
 
   ## Check with specified parameter names
   vpcData <- createFFEMdata(
@@ -60,8 +61,9 @@ test_that("createFFEMdata works", {
 })
 
 test_that("createFFEMdata works with parallel processing", {
-  data <- readr::read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"), show_col_types = FALSE) %>%
-    dplyr::filter(BLQ != 1)
+  data <- utils::read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
+    dplyr::filter(BLQ != 1) %>%
+    dplyr::as_tibble() # the class assertion below is that createFFEMdata() preserves it
 
   ## Check with specified parameter names and cores > 1
   vpcData <- createFFEMdata(
@@ -82,8 +84,9 @@ test_that("createFFEMdata works with parallel processing", {
 })
 
 test_that("createFFEMdata shifts V-column indices correctly when numSkipOm > 0", {
-  data <- readr::read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"), show_col_types = FALSE) %>%
-    dplyr::filter(BLQ != 1)
+  data <- utils::read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
+    dplyr::filter(BLQ != 1) %>%
+    dplyr::as_tibble() # the class assertion below is that createFFEMdata() preserves it
 
   ## Execute with Cholesky data toggle active and 2 skipped omegas
   vpcData <- createFFEMdata(

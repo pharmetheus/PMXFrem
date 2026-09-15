@@ -252,10 +252,7 @@ test_that("getForestDFFREM derives covNames / counts from runno / modName when o
 .simNeb <- function() system.file("extdata/SimNeb/", package = "PMXFrem")
 
 .ffemInputData <- function() {
-  readr::read_csv(
-    system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
-    show_col_types = FALSE
-  ) %>% dplyr::filter(BLQ != 1)
+  utils::read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>% dplyr::filter(BLQ != 1)
 }
 
 test_that("fremParameterTable derives the counts when they are omitted", {

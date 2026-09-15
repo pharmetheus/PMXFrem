@@ -3,9 +3,7 @@ test_that("the correct columns are added", {
   # to support mock data generation and argument passing.
   missVal <- -99
 
-  data <- readr::read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
-    show_col_types = FALSE
-  ) %>%
+  data <- utils::read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
     dplyr::filter(BLQ != 1)
 
   expect_error(addFREMcovariates())

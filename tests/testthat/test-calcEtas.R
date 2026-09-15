@@ -1,8 +1,5 @@
 # --- Setup test data once to avoid repetition ---
-test_data <- readr::read_csv(
-  system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
-  show_col_types = FALSE
-) %>%
+test_data <- utils::read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
   dplyr::filter(BLQ != 1)
 
 # --- Test Group 1: Original functionality (backward compatibility) ---
@@ -79,7 +76,7 @@ test_that("calcEtas throws an error if data is not provided for internal creatio
   )
 })
 test_that("calEtas works", {
-  data <- readr::read_csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"), show_col_types = FALSE) %>%
+  data <- utils::read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
     dplyr::filter(BLQ != 1)
 
   ## Check with specified parameter names
