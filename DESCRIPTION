@@ -41,8 +41,7 @@ Suggests:
     rmarkdown,
     testthat (>= 3.0.0),
     tibble,
-    withr,
-    R.rsp
-VignetteBuilder: R.rsp, knitr
+    withr
+VignetteBuilder: knitr
 NeedsCompilation: no
 Config/testthat/edition: 3
