@@ -13,6 +13,13 @@
 #'       parameter `k` by `exp(etas[numSkipOm + k])` and nothing else - this also
 #'       checks the `numSkipOm` offset is right.
 #'   }
+#'   **Where the probe indices come from.** `k` and `numSkipOm + k` are taken
+#'   from `PMXForest`'s own parse of the FFEM reference model (`etaMap`), keyed
+#'   by parameter name - not from `x`, and not from a parameter's position in
+#'   the request. A check that shares the generator's indexing convention
+#'   cannot detect the generator using the wrong one, which is how this
+#'   function once reported `PASS` on a subset request whose parameters had
+#'   taken another parameter's covariate coefficient and eta.
 #'   Checks 2 and 3 assume the parameter is **log-normal** (`P = C * exp(<linear
 #'   in ETA>)`). For a parameter whose `$PK` encloses its `ETA()` differently -
 #'   additive, logit, `exp(THETA * ETA)`, ... - the splice is not `exp()` scaling,
@@ -194,7 +201,30 @@ verifyFREMParamFunction <- function(x,
     }
   }
   np <- length(params)
-  nEtas <- numSkipOm + np
+
+  ## ---- probe indices, derived independently of the generated function ----
+  ## PMXForest's own parse of the FFEM reference reports which ETA() each
+  ## parameter carries in $PK (scm$etaMap), keyed by name. Taking the indices
+  ## from `x`, or from position in `params`, would mean probing with whatever
+  ## convention .fremEmit() used - and a check that shares the emitter's
+  ## convention cannot detect the emitter using the wrong one. That is exactly
+  ## how this function once reported PASS on a generated function that took
+  ## another parameter's covariate coefficient and eta.
+  etaIdx <- stats::setNames(rep(NA_integer_, np), params)
+  known <- intersect(params, names(scm$etaMap))
+  etaIdx[known] <- as.integer(scm$etaMap[known])
+  covIdx <- etaIdx - numSkipOm
+  spliceable <- !is.na(covIdx) & covIdx >= 1L
+
+  ## The probe vector has to be long enough for every ETA() the function
+  ## references, not only the ones being probed - a parameter whose eta the
+  ## reference could not place is still spliced in the generated code. Its own
+  ## declared default says how long that is.
+  funEtas <- tryCatch(length(eval(formals(fun)$etas)),
+    error = function(e) 0L
+  )
+  nEtas <- max(c(numSkipOm + 1L, etaIdx, funEtas), na.rm = TRUE)
+  nCov <- max(c(1L, covIdx, x$numParCov), na.rm = TRUE)
 
   ## Which parameters are log-normal (P = C * exp(<linear in ETA>))? Only those
   ## can be checked with the exp() splice; the rest get NA. `fremEtaScale` is
@@ -206,7 +236,9 @@ verifyFREMParamFunction <- function(x,
     s[is.na(s)] <- "exp" # not a FREM covariate parameter
     stats::setNames(s, params)
   }
-  isExp <- scale == "exp"
+  ## A parameter whose eta the reference could not place is not spliceable
+  ## either: there is no index to probe at.
+  isExp <- scale == "exp" & spliceable
 
   structD <- covD <- etaD <- rep(0, np)
   covD[!isExp] <- etaD[!isExp] <- NA_real_
@@ -216,7 +248,7 @@ verifyFREMParamFunction <- function(x,
     dfrow <- dfrows[i, , drop = FALSE]
 
     base0 <- fun(basethetas,
-      covthetas = rep(0, np), dfrow = dfrow,
+      covthetas = rep(0, nCov), dfrow = dfrow,
       etas = rep(0, nEtas)
     )
     scm0 <- scmFn(thetas = scmTh, df = dfrow)
@@ -228,11 +260,16 @@ verifyFREMParamFunction <- function(x,
       )
     }
 
-    ct <- seq_len(np) / 7
+    ## A distinct coefficient per parameter, placed at the parameter's own
+    ## FREM index. If the function picked up a different parameter's
+    ## coefficient it would scale by the wrong one of these, which is what
+    ## makes the cross-talk visible.
+    ct <- rep(0, nCov)
+    ct[covIdx[isExp]] <- seq_len(sum(isExp)) / 7
     covV <- fun(basethetas, covthetas = ct, dfrow = dfrow, etas = rep(0, nEtas))
     for (k in which(isExp)) {
       exp_k <- unlist(base0)
-      exp_k[k] <- exp_k[k] * exp(ct[k])
+      exp_k[k] <- exp_k[k] * exp(ct[covIdx[k]])
       covD[k] <- max(
         covD[k],
         abs((covV[[k]] - exp_k[k]) /
@@ -242,8 +279,8 @@ verifyFREMParamFunction <- function(x,
 
     for (k in which(isExp)) {
       e <- rep(0, nEtas)
-      e[numSkipOm + k] <- 0.3
-      etaV <- fun(basethetas, covthetas = rep(0, np), dfrow = dfrow, etas = e)
+      e[etaIdx[k]] <- 0.3
+      etaV <- fun(basethetas, covthetas = rep(0, nCov), dfrow = dfrow, etas = e)
       exp_k <- unlist(base0)
       exp_k[k] <- exp_k[k] * exp(0.3)
       # only parameter k should move; a non-exp parameter j is left out of the

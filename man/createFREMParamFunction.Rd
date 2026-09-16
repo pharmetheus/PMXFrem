@@ -112,8 +112,9 @@ as allometric weight kept). A parameter in \code{parameters} that carries IIV in
 \verb{$PK} (exactly one \code{ETA()} in its assignment) is a \strong{FREM covariate
 parameter}: its \code{ETA()} reference is replaced \strong{in place} - whatever
 encloses it, \code{exp(mu + ETA)}, \code{TV * exp(ETA)}, \code{TV + ETA}, ... - by
-\code{covthetas[k] + etas[numSkipOm + k]}, because the FREM covariate coefficient
-is additive on the same (eta) scale. A parameter with no \code{ETA()} is returned
+\code{covthetas[k] + etas[i]}, where \code{ETA(i)} is the reference \verb{$PK} makes and
+\code{k = i - numSkipOm}, because the FREM covariate coefficient is additive on
+the same (eta) scale. A parameter with no \code{ETA()} is returned
 as \verb{$PK} computes it (no covariate effect - not an error). Every other
 \code{ETA(n)} is set to 0.
 
@@ -134,15 +135,26 @@ for a \code{getForestDFFREM()} forest plot, and with non-zero \code{etas} for a
 If the FREM model was edited after it was built (extra \verb{$THETA}s or \verb{$OMEGA}s
 added), the base model no longer describes it; the FREM model always does.
 
-\strong{What \code{covthetas} and \code{etas} are.} \code{covthetas[k]} is the FFEM-projected
-covariate coefficient for the k-th FREM covariate parameter (the k-th entry
-of \code{parameters} that carries an \code{ETA()}), as computed by \code{\link[=calcFFEM]{calcFFEM()}} and
-passed in by \code{getForestDFFREM()} / \code{getExplainedVar()}. \code{etas} carries the
-random effects with the \code{numSkipOm} leading non-FREM omegas in front, so the
-k-th parameter's structural eta is \code{etas[numSkipOm + k]}; the generated
-function indexes it with a small \code{.eta()} helper that returns 0 when \code{etas}
-is shorter (the explained-variability reference calls pass a long zero
-vector).
+\strong{What \code{covthetas} and \code{etas} are, and how they are indexed.}
+\code{covthetas[k]} is the FFEM-projected covariate coefficient for the \strong{model's}
+k-th FREM covariate parameter, as computed by \code{\link[=calcFFEM]{calcFFEM()}} and passed in by
+\code{getForestDFFREM()} / \code{getExplainedVar()}. \code{etas} carries the model's random
+effects, with the \code{numSkipOm} leading non-FREM omegas in front, so the k-th
+FREM parameter's structural eta is \code{etas[numSkipOm + k]}.
+
+Both are indexed by the \strong{model's} numbering, never by position in
+\code{parameters}: \code{k} is read from the \code{ETA(i)} the parameter's \verb{$PK}
+assignment makes, as \code{i - numSkipOm}. Asking for two parameters instead of
+three therefore emits exactly the code the three-parameter request emitted
+for those two, and the same \code{covthetas} / \code{etas} vectors serve either call.
+(Before PMXFrem 2.1.1 the index was the parameter's position in
+\code{parameters}, so a subset or reordered request silently took another
+parameter's covariate coefficient and eta.)
+
+The generated function reads \code{etas} through a small \code{.eta()} helper that
+\strong{stops} when the vector is too short for the \code{ETA()} the model
+references - that used to be a silent zero, which reads as "this subject
+has no random effect" rather than as a missing argument.
 
 \strong{Structural covariate references.} A covariate named in \verb{$INPUT} and used
 but not assigned in \verb{$PK} needs a value for the rows where it is inactive
@@ -153,10 +165,9 @@ override or supply through \code{covRef}.
 \strong{Which parameters get the covariate splice.} Exactly one \code{ETA()} -> the
 parameter is spliced. None -> returned as-is (no covariate effect). More
 than one -> returned as-is with a warning (which eta is "the" structural one
-is ambiguous). \code{covthetas} and \code{etas[numSkipOm + ...]} are indexed by
-position \strong{among the spliced parameters}, in \code{parameters} order. If the eta
-index found for a spliced parameter is not \code{numSkipOm + k}, its position is
-used anyway and a warning is issued.
+is ambiguous). A spliced parameter whose \code{ETA()} falls inside the skipped
+omegas is an error: either \code{numSkipOm} is wrong or it is not a FREM
+covariate parameter, and neither can give a correct \code{covthetas} index.
 }
 \examples{
 fremModel <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")

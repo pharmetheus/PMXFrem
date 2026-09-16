@@ -73,6 +73,13 @@ compared with the SCM-style typical-value function that
 parameter \code{k} by \code{exp(etas[numSkipOm + k])} and nothing else - this also
 checks the \code{numSkipOm} offset is right.
 }
+\strong{Where the probe indices come from.} \code{k} and \code{numSkipOm + k} are taken
+from \code{PMXForest}'s own parse of the FFEM reference model (\code{etaMap}), keyed
+by parameter name - not from \code{x}, and not from a parameter's position in
+the request. A check that shares the generator's indexing convention
+cannot detect the generator using the wrong one, which is how this
+function once reported \code{PASS} on a subset request whose parameters had
+taken another parameter's covariate coefficient and eta.
 Checks 2 and 3 assume the parameter is \strong{log-normal} (\verb{P = C * exp(<linear in ETA>)}). For a parameter whose \verb{$PK} encloses its \code{ETA()} differently -
 additive, logit, \code{exp(THETA * ETA)}, ... - the splice is not \code{exp()} scaling,
 so \code{COVSPLICE} / \code{ETASPLICE} and \code{PASS} are reported as \code{NA} for that

@@ -9,8 +9,9 @@
 #'   `$PK` (exactly one `ETA()` in its assignment) is a **FREM covariate
 #'   parameter**: its `ETA()` reference is replaced **in place** - whatever
 #'   encloses it, `exp(mu + ETA)`, `TV * exp(ETA)`, `TV + ETA`, ... - by
-#'   `covthetas[k] + etas[numSkipOm + k]`, because the FREM covariate coefficient
-#'   is additive on the same (eta) scale. A parameter with no `ETA()` is returned
+#'   `covthetas[k] + etas[i]`, where `ETA(i)` is the reference `$PK` makes and
+#'   `k = i - numSkipOm`, because the FREM covariate coefficient is additive on
+#'   the same (eta) scale. A parameter with no `ETA()` is returned
 #'   as `$PK` computes it (no covariate effect - not an error). Every other
 #'   `ETA(n)` is set to 0.
 #'
@@ -31,15 +32,26 @@
 #'   If the FREM model was edited after it was built (extra `$THETA`s or `$OMEGA`s
 #'   added), the base model no longer describes it; the FREM model always does.
 #'
-#'   **What `covthetas` and `etas` are.** `covthetas[k]` is the FFEM-projected
-#'   covariate coefficient for the k-th FREM covariate parameter (the k-th entry
-#'   of `parameters` that carries an `ETA()`), as computed by [calcFFEM()] and
-#'   passed in by `getForestDFFREM()` / `getExplainedVar()`. `etas` carries the
-#'   random effects with the `numSkipOm` leading non-FREM omegas in front, so the
-#'   k-th parameter's structural eta is `etas[numSkipOm + k]`; the generated
-#'   function indexes it with a small `.eta()` helper that returns 0 when `etas`
-#'   is shorter (the explained-variability reference calls pass a long zero
-#'   vector).
+#'   **What `covthetas` and `etas` are, and how they are indexed.**
+#'   `covthetas[k]` is the FFEM-projected covariate coefficient for the **model's**
+#'   k-th FREM covariate parameter, as computed by [calcFFEM()] and passed in by
+#'   `getForestDFFREM()` / `getExplainedVar()`. `etas` carries the model's random
+#'   effects, with the `numSkipOm` leading non-FREM omegas in front, so the k-th
+#'   FREM parameter's structural eta is `etas[numSkipOm + k]`.
+#'
+#'   Both are indexed by the **model's** numbering, never by position in
+#'   `parameters`: `k` is read from the `ETA(i)` the parameter's `$PK`
+#'   assignment makes, as `i - numSkipOm`. Asking for two parameters instead of
+#'   three therefore emits exactly the code the three-parameter request emitted
+#'   for those two, and the same `covthetas` / `etas` vectors serve either call.
+#'   (Before PMXFrem 2.1.1 the index was the parameter's position in
+#'   `parameters`, so a subset or reordered request silently took another
+#'   parameter's covariate coefficient and eta.)
+#'
+#'   The generated function reads `etas` through a small `.eta()` helper that
+#'   **stops** when the vector is too short for the `ETA()` the model
+#'   references - that used to be a silent zero, which reads as "this subject
+#'   has no random effect" rather than as a missing argument.
 #'
 #'   **Structural covariate references.** A covariate named in `$INPUT` and used
 #'   but not assigned in `$PK` needs a value for the rows where it is inactive
@@ -50,10 +62,9 @@
 #'   **Which parameters get the covariate splice.** Exactly one `ETA()` -> the
 #'   parameter is spliced. None -> returned as-is (no covariate effect). More
 #'   than one -> returned as-is with a warning (which eta is "the" structural one
-#'   is ambiguous). `covthetas` and `etas[numSkipOm + ...]` are indexed by
-#'   position **among the spliced parameters**, in `parameters` order. If the eta
-#'   index found for a spliced parameter is not `numSkipOm + k`, its position is
-#'   used anyway and a warning is issued.
+#'   is ambiguous). A spliced parameter whose `ETA()` falls inside the skipped
+#'   omegas is an error: either `numSkipOm` is wrong or it is not a FREM
+#'   covariate parameter, and neither can give a correct `covthetas` index.
 #'
 #' @param fremModel Path to the FREM NONMEM control stream (`.mod` / `.ctl`).
 #'   Optional if `runno` / `modName` (+ `modDevDir`) are given.
@@ -233,15 +244,67 @@ createFREMParamFunction <- function(fremModel = NULL,
   }, character(1))
   names(fremEtaScale) <- fremParams
 
-  if (!is.null(numParCov) && numParCov != length(fremParams)) {
-    warning("numParCov (", numParCov, ") does not match the ",
-      length(fremParams), " parameter(s) in `parameters` that carry a ",
-      "single ETA() in $PK (", paste(fremParams, collapse = ", "),
-      "). Using the derived count.",
+  ## ---- the model's own FREM numbering -------------------------------------
+  ## covthetas and etas are indexed by the model's FREM parameter and eta
+  ## numbering. Nothing below may be derived from `parameters`: asking for a
+  ## subset, or asking in a different order, must not renumber the model.
+  ## The k-th FREM parameter of the model is the one whose $PK assignment
+  ## carries ETA(numSkipOm + k), so the index comes from the parsed eta.
+  fremEtaIdx <- vapply(fremParams, function(nm) {
+    a <- Find(
+      function(s) identical(s$type, "assign") && identical(s$lhs, nm),
+      p$statements
+    )
+    .fremEtaIndices(a$rhs)[1]
+  }, integer(1))
+  names(fremEtaIdx) <- fremParams
+  bad <- fremEtaIdx <= numSkipOm
+  if (any(bad)) {
+    stop("Parameter(s) ", paste(fremParams[bad], collapse = ", "),
+      " carry ETA(", paste(fremEtaIdx[bad], collapse = ", "),
+      "), which is inside the ", numSkipOm, " skipped omega(s). A FREM ",
+      "covariate parameter's eta must come after them, so either numSkipOm ",
+      "is wrong or these are not FREM covariate parameters.",
       call. = FALSE
     )
   }
-  numParCov <- length(fremParams)
+
+  numTotEta <- .fremCountTotEta(readLines(fremModel, warn = FALSE))
+  ## numParCov = the FREM block's size less the FREM covariates, which is what
+  ## fremModelInfo() derives. A non-FREM model (getCovNames() stops on one) has
+  ## no such block; there, the largest FREM index seen is the honest answer.
+  nFremCov <- tryCatch(length(getCovNames(modFile = fremModel)$covNames),
+    error = function(e) NA_integer_
+  )
+  modelParCov <- numTotEta - numSkipOm - nFremCov
+  if (is.na(modelParCov)) modelParCov <- max(0L, fremEtaIdx - numSkipOm)
+
+  ## Cross-check numSkipOm against the control stream. The FREM block is the
+  ## last $OMEGA record, so everything before it is skipped; that is
+  ## fremModelInfo()'s numTotEta - blockN, arrived at without the .ext. The
+  ## emitter itself no longer needs numSkipOm to be right - it reads each
+  ## parameter's eta index from $PK - but numParCov and the caller's own
+  ## covthetas do, so a disagreement is worth saying out loud.
+  omRecs <- .fremOmegaRecords(readLines(fremModel, warn = FALSE))
+  if (!is.na(nFremCov) && nrow(omRecs) > 1L) {
+    modelSkip <- sum(omRecs$n) - omRecs$n[nrow(omRecs)]
+    if (modelSkip != numSkipOm) {
+      warning("numSkipOm is ", numSkipOm, ", but ", basename(fremModel),
+        " has ", modelSkip, " eta(s) before its FREM $OMEGA block. ",
+        "covthetas is indexed from the FREM block, so check numSkipOm.",
+        call. = FALSE
+      )
+    }
+  }
+
+  if (!is.null(numParCov) && numParCov != modelParCov) {
+    warning("numParCov (", numParCov, ") does not match the ", modelParCov,
+      " FREM covariate parameter(s) the model itself has. Using the ",
+      "derived count.",
+      call. = FALSE
+    )
+  }
+  numParCov <- modelParCov
 
   ## ---- prune to the transitive dependencies of `parameters` ----
   need <- parameters
@@ -272,7 +335,7 @@ createFREMParamFunction <- function(fremModel = NULL,
 
   code <- .fremEmit(kept, covs, p$covRef, parameters, fremParams, numSkipOm,
     functionName, fremModel, missVal, quiet,
-    secondary = sec
+    secondary = sec, numTotEta = numTotEta
   )
   class(code) <- c("pmxFREMParamFunction", "character")
 
@@ -500,8 +563,8 @@ createFREMParamFunction <- function(fremModel = NULL,
 #' @noRd
 .fremEmit <- function(stmts, covs, covRef, parameters, fremParams, numSkipOm,
                       functionName, fremModel, missVal, quiet,
-                      secondary = list()) {
-  nEtas <- numSkipOm + length(fremParams)
+                      secondary = list(), numTotEta = NULL) {
+  nEtas <- if (is.null(numTotEta)) numSkipOm + length(fremParams) else numTotEta
   dep <- function(node, etaVal = "0") {
     PMXForest::nmDeparse(node, thetaVar = "basethetas", etaValue = etaVal)
   }
@@ -511,22 +574,20 @@ createFREMParamFunction <- function(fremModel = NULL,
     out <- character(0)
     for (s in sl) {
       if (identical(s$type, "assign")) {
-        k <- match(s$lhs, fremParams)
+        isFrem <- s$lhs %in% fremParams
         eIdx <- .fremEtaIndices(s$rhs)
-        if (!is.na(k)) {
-          fremEta <- sprintf("(covthetas[%d] + .eta(etas, %d))", k, numSkipOm + k)
-          if (eIdx != numSkipOm + k) {
-            warning("Parameter '", s$lhs, "' (FREM parameter ", k, ") uses ETA(",
-              eIdx, ") in $PK, but ETA(", numSkipOm + k, ") was expected ",
-              "for numSkipOm = ", numSkipOm, ". Proceeding by parameter ",
-              "position; check numSkipOm and the order of `parameters`.",
-              call. = FALSE
-            )
-          }
+        if (isFrem) {
+          ## The FREM index comes from the model: the parameter whose $PK line
+          ## carries ETA(numSkipOm + k) is the model's k-th FREM parameter.
+          ## Never from match(s$lhs, fremParams), which is a rank within the
+          ## *request* and silently hands a subset another parameter's
+          ## covariate coefficient and eta.
+          k <- eIdx[1] - numSkipOm
+          fremEta <- sprintf("(covthetas[%d] + .eta(etas, %d))", k, eIdx[1])
           out <- c(out, paste0(
             pad, s$lhs, " <- ", dep(s$rhs, fremEta),
-            "   # FREM parameter ", k, ": ETA(", eIdx,
-            ") -> covthetas[", k, "] + etas[", numSkipOm + k, "]"
+            "   # FREM parameter ", k, ": ETA(", eIdx[1],
+            ") -> covthetas[", k, "] + etas[", eIdx[1], "]"
           ))
         } else if (s$lhs %in% parameters) {
           note <- if (length(eIdx) == 0L) {
@@ -628,8 +689,11 @@ createFREMParamFunction <- function(fremModel = NULL,
     ),
     "## $PK pruned to what the returned parameters depend on. For the FREM",
     "## covariate parameters the single ETA() reference is replaced in place",
-    "## (whatever encloses it) by  covthetas[k] + etas[numSkipOm + k]; every",
-    "## other ETA() -> 0. Review against the control stream before use.",
+    "## (whatever encloses it) by  covthetas[k] + etas[i], where ETA(i) is the",
+    "## reference $PK makes and k = i - numSkipOm is the parameter's FREM index",
+    "## in the model. Both are the model's own numbering, so covthetas and etas",
+    "## are model-length however few parameters were requested. Every other",
+    "## ETA() -> 0. Review against the control stream before use.",
     "",
     paste0(
       functionName,
@@ -637,7 +701,15 @@ createFREMParamFunction <- function(fremModel = NULL,
       "), ...) {"
     ),
     "",
-    "  .eta <- function(e, i) if (length(e) >= i) e[i] else 0",
+    "  .eta <- function(e, i) {",
+    "    if (length(e) < i) {",
+    "      stop(\"etas has \", length(e), \" element(s), but ETA(\", i,",
+    "        \") is referenced. Pass the model's full eta vector.\",",
+    "        call. = FALSE",
+    "      )",
+    "    }",
+    "    e[i]",
+    "  }",
     if (length(secondary)) c("  df <- dfrow   # alias for secondary code") else NULL,
     "",
     if (length(preamble)) {

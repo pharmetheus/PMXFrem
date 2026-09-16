@@ -61,8 +61,11 @@ test_that("numSkipOm / numNonFREMThetas are derived, or validated when given", {
       extFile = .fremExt(), quiet = TRUE
     )
   )
-  # a wrong numSkipOm: fremModelInfo() warns, and the eta index no longer
-  # matches numSkipOm + k so the emitter warns too
+  # A wrong numSkipOm: fremModelInfo() warns, and so does the cross-check
+  # against the control stream - run31.mod has two etas before its FREM
+  # $OMEGA block, not one. The emitter itself does not depend on numSkipOm
+  # being right (it reads each parameter's eta index from $PK), but the
+  # caller's covthetas does, so the disagreement must be said out loud.
   w <- capture_warnings(
     createFREMParamFunction(.fremMod(),
       parameters = c("CL", "V", "MAT"),
@@ -70,7 +73,9 @@ test_that("numSkipOm / numNonFREMThetas are derived, or validated when given", {
     )
   )
   expect_true(any(grepl("numSkipOm", w)))
-  expect_true(any(grepl("was expected for numSkipOm = 1", w)))
+  expect_true(any(grepl(
+    "has 2 eta\\(s\\) before its FREM \\$OMEGA block", w
+  )))
 })
 
 test_that("createFREMParamFunction warns when a kept $PK statement references a THETA beyond numNonFREMThetas", {
@@ -179,7 +184,9 @@ test_that("the body is pruned: the FREM covariate block is dropped", {
     extFile = .fremExt(), quiet = TRUE
   )
   code <- paste(out$code, collapse = "\n")
-  expect_match(code, "function\\(basethetas, covthetas, dfrow, etas = rep\\(0, 5\\)")
+  # 23 etas: the model's, not the request's. etas is indexed by the model's
+  # own numbering, so the default zero vector has to span all of them.
+  expect_match(code, "function\\(basethetas, covthetas, dfrow, etas = rep\\(0, 23\\)")
   expect_match(code, "CL <- exp\\(MU_3 \\+ \\(covthetas\\[1\\] \\+ .eta\\(etas, 3\\)\\)\\)")
   expect_match(code, "MAT <- MATCOVTIME \\* exp\\(MU_5 \\+ \\(covthetas\\[3\\] \\+ .eta\\(etas, 5\\)\\)\\)")
   # the appended MU_j = THETA(8..25) / COVj block is not needed by CL/V/MAT
@@ -297,18 +304,32 @@ test_that("a $PK assignment referencing ETA() more than once is returned as-is w
   )
 })
 
-test_that("an unexpected ETA index warns but still emits by parameter position", {
+test_that("the ETA index in $PK decides the FREM index, not the request order", {
+  # CL is the only requested parameter, but it carries ETA(4). With
+  # numSkipOm = 0 that makes it the model's 4th FREM parameter, so it takes
+  # covthetas[4] and etas[4] - not covthetas[1] and etas[1], which is what
+  # indexing by position in `parameters` used to produce.
   bm <- .stubMod(c("  TVCL = THETA(1)", "  CL = TVCL * EXP(ETA(4))"))
-  expect_warning(
+  expect_no_warning(
     out <- createFREMParamFunction(bm,
       parameters = "CL", numSkipOm = 0,
       numNonFREMThetas = 4, quiet = TRUE
-    ),
-    "ETA\\(4\\).*ETA\\(1\\) was expected"
+    )
   )
   expect_match(
     paste(out$code, collapse = "\n"),
-    "CL <- TVCL \\* exp\\(\\(covthetas\\[1\\] \\+ .eta\\(etas, 1\\)\\)\\)"
+    "CL <- TVCL \\* exp\\(\\(covthetas\\[4\\] \\+ .eta\\(etas, 4\\)\\)\\)"
+  )
+})
+
+test_that("a FREM parameter whose eta falls inside the skipped omegas is an error", {
+  bm <- .stubMod(c("  TVCL = THETA(1)", "  CL = TVCL * EXP(ETA(1))"))
+  expect_error(
+    createFREMParamFunction(bm,
+      parameters = "CL", numSkipOm = 2,
+      numNonFREMThetas = 4, quiet = TRUE
+    ),
+    "inside the 2 skipped omega"
   )
 })
 
@@ -366,7 +387,13 @@ test_that("covthetas[k] / etas[numSkipOm+k] scale only parameter k, by exp()", {
     exp_k[k] <- exp_k[k] * exp(0.25)
     expect_equal(unname(g), unname(exp_k), tolerance = 1e-10)
   }
-  expect_silent(fn(bth, covthetas = c(0, 0, 0), dfrow = dfrow, etas = numeric(0)))
+  # An etas vector too short for the ETA() the model references used to become
+  # a silent zero, which reads as "this subject has no random effect" - a wrong
+  # number rather than a missing one. It is an error now.
+  expect_error(
+    fn(bth, covthetas = c(0, 0, 0), dfrow = dfrow, etas = numeric(0)),
+    "etas has 0 element\\(s\\), but ETA\\(3\\) is referenced"
+  )
 })
 
 # ---------------------------------------------------------------------------
@@ -647,4 +674,132 @@ test_that("a generated function works inside getExplainedVar() (etas != 0 path)"
   )
   expect_s3_class(ev, "data.frame")
   expect_true(all(is.finite(ev$TOTVAR)))
+})
+
+# ---------------------------------------------------------------------------
+# covthetas / etas are indexed by the MODEL, not by the request
+#
+# `covthetas` is the FFEM-projected coefficient vector for the model's FREM
+# parameters, and `etas` carries the model's random effects - both of them
+# model-length, whatever subset of parameters was asked for. See the
+# hand-written functions in getExplainedVar()'s own documentation:
+# basethetas[2] * exp(covthetas[1] + etas[3]) with numSkipOm = 2.
+# ---------------------------------------------------------------------------
+
+.paramLine <- function(x, p) {
+  grep(paste0("^\\s*", p, " <- "), x$code, value = TRUE)
+}
+
+test_that("a subset or reordered request emits the same code as the full request", {
+  m <- .fremMod()
+  e <- .fremExt()
+
+  full <- createFREMParamFunction(m,
+    parameters = c("CL", "V", "MAT"), extFile = e, quiet = TRUE
+  )
+  sub <- createFREMParamFunction(m,
+    parameters = c("V", "MAT"), extFile = e, quiet = TRUE
+  )
+  rev <- createFREMParamFunction(m,
+    parameters = c("MAT", "V"), extFile = e, quiet = TRUE
+  )
+
+  for (p in c("V", "MAT")) {
+    expect_identical(.paramLine(sub, p), .paramLine(full, p))
+    expect_identical(.paramLine(rev, p), .paramLine(full, p))
+  }
+
+  # V carries ETA(4) in run31.mod, so it is the model's 2nd FREM parameter
+  # (numSkipOm = 2) however few parameters were requested.
+  expect_match(.paramLine(sub, "V"), "covthetas\\[2\\]")
+  expect_match(.paramLine(sub, "V"), "\\.eta\\(etas, 4\\)")
+  expect_match(.paramLine(rev, "MAT"), "covthetas\\[3\\]")
+  expect_match(.paramLine(rev, "MAT"), "\\.eta\\(etas, 5\\)")
+
+  # and the recorded shape describes the model, not the request
+  expect_equal(sub$numParCov, full$numParCov)
+  expect_equal(rev$numParCov, full$numParCov)
+})
+
+test_that("a subset request evaluates to the same numbers as the full request", {
+  m <- .fremMod()
+  e <- .fremExt()
+  th <- as.numeric(getExt(extFile = e)[1, grep(
+    "^THETA", names(getExt(extFile = e))
+  ), drop = TRUE])
+
+  full <- createFREMParamFunction(m,
+    parameters = c("CL", "V", "MAT"), extFile = e, quiet = TRUE
+  )
+  sub <- createFREMParamFunction(m,
+    parameters = c("V", "MAT"), extFile = e, quiet = TRUE
+  )
+  fFull <- eval(parse(text = full$code))
+  fSub <- eval(parse(text = sub$code))
+
+  base <- th[seq_len(full$noBaseThetas)]
+  ct <- c(0.11, 0.22, 0.33) # model FREM order: CL, V, MAT
+  et <- rep(0, 23)
+  et[4] <- 0.3 # V's eta in the model
+  dfrow <- as.data.frame(
+    stats::setNames(
+      as.list(rep(full$missVal, length(full$covRef))),
+      names(full$covRef)
+    )
+  )
+
+  a <- fFull(base, covthetas = ct, dfrow = dfrow, etas = et)
+  b <- fSub(base, covthetas = ct, dfrow = dfrow, etas = et)
+  expect_equal(b$V, a$V)
+  expect_equal(b$MAT, a$MAT)
+  # and the eta actually moved V, not something else
+  expect_equal(b$V / fSub(base,
+    covthetas = ct, dfrow = dfrow,
+    etas = rep(0, 23)
+  )$V, exp(0.3))
+})
+
+test_that("verifyFREMParamFunction passes on a subset request, and probes the model's indices", {
+  m <- .fremMod()
+  e <- .fremExt()
+  ffem <- system.file("extdata/SimNeb/run31max1-2.mod", package = "PMXFrem")
+
+  sub <- createFREMParamFunction(m,
+    parameters = c("V", "MAT"), extFile = e, quiet = TRUE
+  )
+  v <- verifyFREMParamFunction(sub, ffemModel = ffem, extFile = e, quiet = TRUE)
+  expect_true(isTRUE(unclass(v)[1]))
+  d <- attr(v, "checks")
+  expect_true(all(d$STRUCTURAL < 1e-8))
+  expect_true(all(d$COVSPLICE < 1e-8))
+  expect_true(all(d$ETASPLICE < 1e-8))
+})
+
+test_that("verifyFREMParamFunction catches a function that indexes by request position", {
+  # The defect this check exists for: emit covthetas/etas by rank within
+  # `parameters` instead of by the model's own FREM numbering. Built here by
+  # hand so the check is exercised even if the emitter never regresses.
+  m <- .fremMod()
+  e <- .fremExt()
+  ffem <- system.file("extdata/SimNeb/run31max1-2.mod", package = "PMXFrem")
+
+  good <- createFREMParamFunction(m,
+    parameters = c("V", "MAT"), extFile = e, quiet = TRUE
+  )
+  bad <- good
+  # V's splice first, then MAT's, so the second does not re-hit the first
+  bad$code <- sub("covthetas[2] + .eta(etas, 4)",
+    "covthetas[1] + .eta(etas, 3)", bad$code,
+    fixed = TRUE
+  )
+  bad$code <- sub("covthetas[3] + .eta(etas, 5)",
+    "covthetas[2] + .eta(etas, 4)", bad$code,
+    fixed = TRUE
+  )
+  # the mutation has to have applied, or a PASS below would mean nothing
+  expect_false(identical(bad$code, good$code))
+  expect_match(paste(bad$code, collapse = "\n"), "V <- exp\\(MU_4 \\+ \\(covthetas\\[1\\]")
+
+  v <- verifyFREMParamFunction(bad, ffemModel = ffem, extFile = e, quiet = TRUE)
+  expect_false(isTRUE(unclass(v)[1]))
 })
