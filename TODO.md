@@ -312,6 +312,23 @@ and R.rsp, so it is slower and has more failure surface — or add a check that
 every package a test calls with `::` appears in `extra-packages`. Worth deciding
 deliberately rather than remembering.
 
+## T24 — `createFREMData()` needs to filter and sort the way NONMEM would
+
+Carried over from a handover note that shipped in the package as a top-level
+`README.txt` (now deleted — it was stale, and every file at the top level goes
+out with the tarball and the public mirror).
+
+`createFREMmodel()` can already generate a minimal model equivalent to PsN's.
+`createFREMData()` still needs to be more careful with the data:
+
+- apply the base model's `IGNORE` / `ACCEPT` statements before anything else.
+  `utils-filter_data` implements this and is not wired in.
+- drop subjects with no observations *before* computing the covariate means and
+  variances — they contribute nothing and currently shift both.
+- keep the original data set's sort order in the FREM data set.
+
+The work was done on a `create_FREMmodel` branch off `refactor_updateFREMmodel3`.
+
 ## Done
 
 - **T5** — direct `getCovNames(createFREMmodel() output)` test — PR #40 (merged).
