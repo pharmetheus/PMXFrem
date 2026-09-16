@@ -67,7 +67,7 @@ Because `FOOD` is a time-varying categorical FFEM covariate that our parameter f
 # Robustly generate the covariate matrix
 dfCovs <- setupDfCovsEV(
   modFileName = fremFiles$mod,
-  additionalCovs = c("FOOD")
+  conditionalCovs = c("FOOD")
 )
 
 # Lock the time-varying FFEM covariate state

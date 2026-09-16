@@ -1,6 +1,14 @@
 # PMXFrem 2.1.0.9000
 
 ## Breaking Changes
+
+* **`setupDfCovsEV()`'s `additionalCovs` is renamed `conditionalCovs`.** The old
+  name says when the argument was added rather than what it does: the covariates
+  it carries are the ones `getExplainedVar()` conditions on when computing the
+  variability each FREM covariate explains. `additionalCovs` still works and
+  gives an identical result, with a deprecation warning; supplying both is an
+  error rather than a silent precedence rule.
+
 * **`plotExplainedVar()` no longer takes `...`, and `add.stamp` no longer reads the global environment.** The `add.stamp = TRUE` path called `PhRame::add_stamp()`; `PhRame` is internal and PMXFrem is public, so that dependency breaks for external users and the path could only error. The stamp itself is kept — see below — but it now goes through `PMXForest::addStamp()`, which takes no extra arguments, so `...` (whose only consumer was the `PhRame` call) is gone with it. The undocumented behaviour of picking `add.stamp` up from a same-named variable in the global environment is also gone: a plot's output should not depend on an invisible global.
 * **`calcFFEM()` no longer takes `...`.** It was never used in the body — a silent sink that swallowed mistyped argument names. `createFFEMdata()` correspondingly stops forwarding its `...` into `calcFFEM()`, since it already passes every argument explicitly; its `...` now goes to `getFileNames()` alone. (`calcParameterEsts()` keeps its `...`, which *is* forwarded to `calcFFEM()` and which `fremParameterTable()` relies on.)
 
