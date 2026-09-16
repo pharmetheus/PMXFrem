@@ -217,15 +217,46 @@ forestSampledCols <- c(
   "Q2", "Q2_REL_REFFUNC", "Q2_REL_REFFINAL", "Q2_NOVAR_REL_REFFUNC"
 )
 
-#' Assert what a sampled Forest-plot column must satisfy on any machine
+#' Assert what a sampled Forest-plot result must satisfy on any machine
 #'
-#' The exact values are not reproducible (see [forestSampledCols]), but their
-#' shape is: every quantile finite, and the interval bracketing the point
-#' estimate. That catches NaN, sign errors, an order-of-magnitude slip, or the
-#' quantiles coming back the wrong way round - which is what these assertions
-#' are actually for.
-expect_forest_sampling_sane <- function(x, lo = "Q1", point = "POINT", hi = "Q2") {
-  for (cc in intersect(forestSampledCols, names(x))) {
+#' The exact values are not reproducible (see [forestSampledCols]), but several
+#' things about them are. An earlier version of this asserted only the quantile
+#' ordering, and asserted it with `x[["Q1"]] <= x[["POINT"]]` - which on a frame
+#' missing those columns is `NULL <= numeric(0)`, i.e. `logical(0)`, and
+#' `all(logical(0))` is `TRUE`. It therefore passed on a frame with none of the
+#' columns, on a zero-row frame, and on one whose every value had been
+#' multiplied by 1000. The preconditions below exist so that cannot happen
+#' again: nothing is asserted until the columns are known to be there and to
+#' hold rows.
+#'
+#' @param x A `getForestDFFREM()` / `getForestDFSCM()` result.
+#' @param lo,point,hi Names of the quantile and point-estimate columns.
+#' @param rows The number of rows the caller expects. Required - a truncated
+#'   result is exactly the failure a shape check should catch, and it cannot be
+#'   inferred from the object itself.
+#' @param relBand The band a `_REL_` column has to lie in. These are ratios to
+#'   a reference, so they are of order 1; a result whose units have slipped
+#'   leaves the band while the quantile ordering stays intact.
+expect_forest_sampling_sane <- function(x, lo = "Q1", point = "POINT",
+                                        hi = "Q2", rows,
+                                        relBand = c(1e-3, 1e3)) {
+  testthat::expect_s3_class(x, "data.frame")
+  testthat::expect_equal(nrow(x), rows)
+
+  need <- c(lo, point, hi)
+  missing <- setdiff(need, names(x))
+  testthat::expect_true(length(missing) == 0L,
+    info = paste("missing column(s):", paste(missing, collapse = ", "))
+  )
+  present <- intersect(forestSampledCols, names(x))
+  testthat::expect_true(length(present) >= length(need),
+    info = paste(
+      "expected the sampled columns to be present; found",
+      length(present), "of", length(forestSampledCols)
+    )
+  )
+
+  for (cc in present) {
     testthat::expect_true(all(is.finite(x[[cc]])),
       info = paste(cc, "should be finite everywhere")
     )
@@ -236,8 +267,20 @@ expect_forest_sampling_sane <- function(x, lo = "Q1", point = "POINT", hi = "Q2"
   testthat::expect_true(all(x[[point]] <= x[[hi]] + 1e-8),
     info = "the point estimate should not exceed the upper quantile"
   )
+
+  ## A ratio-to-reference column is of order 1 whatever the parameter's units.
+  for (cc in grep("_REL_", present, value = TRUE)) {
+    testthat::expect_true(
+      all(x[[cc]] > relBand[1] & x[[cc]] < relBand[2]),
+      info = sprintf(
+        "%s ranges %.3g .. %.3g, outside the [%g, %g] a ratio to a reference
+         should occupy", cc, min(x[[cc]]), max(x[[cc]]), relBand[1], relBand[2]
+      )
+    )
+  }
   invisible(x)
 }
+
 
 #' Reduce a fremParameterTable() result to the part that is reproducible
 #'
@@ -271,20 +314,132 @@ dropSampledRSE <- function(x) {
 #' Assert the sampled parts of a fremParameterTable() result are well formed
 #'
 #' The exact numbers are not reproducible off one machine; these properties are.
-expect_rse_sane <- function(x) {
+#' The previous version accepted a 900% RSE and a `Samples` frame holding two
+#' rows when 175 had been requested, so it is worth being explicit about what
+#' each assertion is for.
+#'
+#' @param x A `fremParameterTable()` result.
+#' @param n The number of parameter vectors that were requested. The draws are
+#'   the whole basis of the RSE, so a short `Samples` means the number reported
+#'   was computed from something other than what was asked for.
+#' @param maxRSE The largest RSE that is plausible for these models, in percent.
+expect_rse_sane <- function(x, n, maxRSE = 100) {
   rse <- suppressWarnings(as.numeric(as.character(x$parameterTable[["RSE (%)"]])))
+  testthat::expect_true(length(rse) > 0L,
+    info = "the parameter table should have an RSE column with values in it"
+  )
   testthat::expect_true(all(is.finite(rse)), info = "every RSE should be finite")
   testthat::expect_true(all(rse >= 0), info = "an RSE cannot be negative")
-  testthat::expect_true(all(rse < 1000), info = "an RSE of >1000% is not plausible")
+  testthat::expect_true(all(rse <= maxRSE),
+    info = sprintf(
+      "largest RSE is %.1f%%, over the %g%% that is plausible here",
+      max(rse), maxRSE
+    )
+  )
   testthat::expect_true(any(rse > 0), info = "not every RSE should be zero")
 
-  ## the draws themselves: present, finite, and more than just the estimates row
-  testthat::expect_true(nrow(x$Samples) > 1,
-    info = "the sampled parameter vectors should be more than the estimates row"
-  )
+  ## the draws themselves: as many as were asked for, and all finite
+  testthat::expect_s3_class(x$Samples, "data.frame")
+  testthat::expect_equal(nrow(x$Samples), n)
   num <- vapply(x$Samples, is.numeric, logical(1))
   testthat::expect_true(all(vapply(x$Samples[num], function(c) all(is.finite(c)), TRUE)),
     info = "every sampled parameter value should be finite"
   )
+  invisible(x)
+}
+
+
+#' A small, readable stand-in for snapshotting a whole data frame
+#'
+#' `expect_snapshot_value(df, style = "serialize")` writes base64 - 28 MB of it
+#' in one case here - and nobody can read a diff in that, so accepting a
+#' changed snapshot is an unconditional yes. This returns instead a per-column
+#' summary that fits on a screen: enough to notice a change anywhere in the
+#' frame, and legible enough that noticing one means something.
+#'
+#' The summary moves if any value moves (mean and sd), if a value is added or
+#' removed (n, nDistinct), if the range shifts (min, max), or if a column
+#' changes type or name. It does not pin every cell - the head snapshotted
+#' alongside it covers the shape of the rows, and the point is a diff a person
+#' will actually read.
+#'
+#' @param x A data frame.
+#' @param digits Significant figures for the numeric summaries.
+#' @return A data frame with one row per column of `x`.
+columnDigest <- function(x, digits = 6) {
+  x <- as.data.frame(x)
+  sig <- function(v) if (is.finite(v)) signif(v, digits) else v
+  rows <- lapply(names(x), function(nm) {
+    col <- x[[nm]]
+    num <- is.numeric(col)
+    data.frame(
+      column = nm,
+      type = class(col)[1],
+      n = length(col),
+      nMissing = sum(is.na(col)),
+      nDistinct = length(unique(col)),
+      mean = if (num) sig(mean(col, na.rm = TRUE)) else NA_real_,
+      sd = if (num) sig(stats::sd(col, na.rm = TRUE)) else NA_real_,
+      min = if (num) sig(min(col, na.rm = TRUE)) else NA_real_,
+      max = if (num) sig(max(col, na.rm = TRUE)) else NA_real_,
+      stringsAsFactors = FALSE
+    )
+  })
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
+
+#' Snapshot a data frame as something a reviewer can read
+#'
+#' The per-column digest plus the first few rows, both in `json2` style so the
+#' `_snaps` file is text rather than base64.
+#'
+#' @param x A data frame.
+#' @param head Number of leading rows to include.
+expect_frame_snapshot <- function(x, head = 8) {
+  x <- as.data.frame(x)
+  ## cran = TRUE: these snapshot deterministic things - a control stream and a
+  ## per-column digest - so there is no reason to skip them outside
+  ## test_local(). Skipping also aborts the block, which silently drops every
+  ## assertion after the snapshot under test_dir() and R CMD check.
+  testthat::expect_snapshot_value(columnDigest(x), style = "json2", cran = TRUE)
+  testthat::expect_snapshot_value(
+    stabilize(utils::head(x, head)),
+    style = "json2", cran = TRUE
+  )
+  invisible(x)
+}
+
+
+#' Snapshot an updateFREMmodel() result so the control stream is readable
+#'
+#' The result carries `$model`, a character vector of the rewritten control
+#' stream - which is the thing these tests are about and is small enough to
+#' read - and `$data`, a FREM data set of tens of thousands of rows, which is
+#' what made the serialized snapshot 26 MB. The model goes in as text; the data
+#' goes in as [columnDigest()] plus its first rows.
+expect_model_snapshot <- function(x, head = 8) {
+  ## The model goes in as written. stabilize() rewrites every number-like
+  ## substring, which turns NM-TRAN's IF(FOOD.EQ.1) into IF(FOOD.EQ0.1) - a
+  ## snapshot of something the function never produced, and a confusing thing
+  ## to hand a reviewer. Only the $DATA path needs neutralising, and it is a
+  ## temporary directory rather than a number.
+  model <- x$model
+  if (!is.null(model)) {
+    i <- grep("^\\$DATA", model)
+    if (length(i)) {
+      model[i] <- sub("(\\$DATA\\s+)\\S+", "\\1[placeholder_path]", model[i])
+    }
+    testthat::expect_snapshot_value(model, style = "json2", cran = TRUE)
+  }
+  if (!is.null(x$data)) {
+    testthat::expect_snapshot_value(columnDigest(x$data), style = "json2", cran = TRUE)
+    testthat::expect_snapshot_value(
+      stabilize(utils::head(as.data.frame(x$data), head)),
+      style = "json2", cran = TRUE
+    )
+  }
   invisible(x)
 }

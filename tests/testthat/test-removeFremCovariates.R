@@ -41,7 +41,7 @@ test_that("removeFremCovariates correctly removes a continuous covariate", {
   expect_equal(dim(resultState$omegaMatrix), c(5, 5))
 
   # Snapshot the entire result for comprehensive checking
-  expect_snapshot_value(resultState, style = "serialize")
+  expect_snapshot_value(resultState, style = "serialize", cran = TRUE)
 })
 
 test_that("removeFremCovariates does nothing if cstrRemoveCov is NULL", {

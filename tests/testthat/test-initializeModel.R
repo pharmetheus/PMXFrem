@@ -17,7 +17,7 @@ test_that("initializeModelParameters works when .ext file exists", {
   )
 
   # The output is a structured list, which is stable for snapshotting
-  expect_snapshot_value(modelState, style = "serialize")
+  expect_snapshot_value(modelState, style = "serialize", cran = TRUE)
 })
 
 test_that("initializeModelParameters works by parsing .mod when .ext is missing", {
@@ -38,7 +38,7 @@ test_that("initializeModelParameters works by parsing .mod when .ext is missing"
 
   # The snapshot should reflect that theta/omega values are NULL,
   # but the parameter counts are correctly parsed.
-  expect_snapshot_value(modelState, style = "serialize")
+  expect_snapshot_value(modelState, style = "serialize", cran = TRUE)
 })
 
 test_that("initializeModelParameters stops correctly when .ext is missing and numParCov is NULL", {

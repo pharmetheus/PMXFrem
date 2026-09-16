@@ -56,7 +56,7 @@ test_that("getExplainedVar works on main paths", {
     quiet = TRUE,
     seed = 123
   )
-  expect_snapshot_value(stabilize(as.data.frame(dfres0)), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(dfres0)), style = "serialize", cran = TRUE)
 
   ## Test that the delta rule can handle 2 return values
   dfres02 <- getExplainedVar(
@@ -74,7 +74,7 @@ test_that("getExplainedVar works on main paths", {
     quiet = TRUE,
     seed = 123
   )
-  expect_snapshot_value(stabilize(as.data.frame(dfres02)), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(dfres02)), style = "serialize", cran = TRUE)
 
 
   dfres1 <- getExplainedVar(
@@ -92,7 +92,7 @@ test_that("getExplainedVar works on main paths", {
     quiet = TRUE,
     seed = 123
   )
-  expect_snapshot_value(stabilize(as.data.frame(dfres1)), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(dfres1)), style = "serialize", cran = TRUE)
 
   ## Check that you can base the calculations on a subset of the covariates
   dfres1a <- getExplainedVar(
@@ -111,7 +111,7 @@ test_that("getExplainedVar works on main paths", {
     quiet = TRUE,
     seed = 123
   )
-  expect_snapshot_value(stabilize(as.data.frame(dfres1a)), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(dfres1a)), style = "serialize", cran = TRUE)
   expect_gt(dfres1 %>% dplyr::select(TOTCOVVAR) %>% dplyr::slice(1), dfres1a %>% dplyr::select(TOTCOVVAR) %>% dplyr::slice(1))
   val1 <- dfres1 %>%
     dplyr::select(TOTVAR) %>%
@@ -139,7 +139,7 @@ test_that("getExplainedVar works on main paths", {
     quiet = TRUE,
     seed = 123
   )
-  expect_snapshot_value(stabilize(as.data.frame(dfres1b)), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(dfres1b)), style = "serialize", cran = TRUE)
   val1 <- as.numeric(dfres1b %>% dplyr::select(TOTCOVVAR) %>% dplyr::slice(1))
   val2 <- as.numeric(dfres1b %>% dplyr::select(COVVAR) %>% dplyr::slice(1))
   expect_equal(val1, val2)
@@ -164,7 +164,7 @@ test_that("getExplainedVar works on main paths", {
     ),
     regexp = "Presence of FFEM covariates is indicated"
   )
-  expect_snapshot_value(stabilize(as.data.frame(dfres2)), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(dfres2)), style = "serialize", cran = TRUE)
 
   dfres3 <- getExplainedVar(
     type = 3,
@@ -182,7 +182,7 @@ test_that("getExplainedVar works on main paths", {
     quiet = TRUE,
     seed = 123
   )
-  expect_snapshot_value(stabilize(as.data.frame(dfres3)), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(dfres3)), style = "serialize", cran = TRUE)
 })
 
 

@@ -96,7 +96,7 @@ test_that("plotExplainedVar generates correct plot data", {
     # Assuming standardize_plot_data expects a list of data frames
     std_data <- standardize_plot_data(list(selected_data))
     stable_data <- stabilize(std_data)
-    expect_snapshot_value(stable_data, style = "serialize")
+    expect_snapshot_value(stable_data, style = "serialize", cran = TRUE)
   }
 
 

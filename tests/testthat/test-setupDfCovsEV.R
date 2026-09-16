@@ -5,12 +5,12 @@ test_that("setupDfCovsEV works", {
 
   dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"))
 
-  expect_snapshot_value(stabilize(setupDfCovsEV(modFile)), style = "serialize")
+  expect_snapshot_value(stabilize(setupDfCovsEV(modFile)), style = "serialize", cran = TRUE)
   expect_error(setupDfCovsEV(modFile, fremCovs = "tmp"))
 
-  expect_snapshot_value(stabilize(setupDfCovsEV(modFile, fremCovs = c("AGE", "SEX"))), style = "serialize")
-  expect_snapshot_value(stabilize(setupDfCovsEV(modFile, conditionalCovs = "FORM")), style = "serialize")
-  expect_snapshot_value(stabilize(setupDfCovsEV(modFile, fremCovs = c("AGE", "SEX"), conditionalCovs = "FORM")), style = "serialize")
+  expect_snapshot_value(stabilize(setupDfCovsEV(modFile, fremCovs = c("AGE", "SEX"))), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(setupDfCovsEV(modFile, conditionalCovs = "FORM")), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(setupDfCovsEV(modFile, fremCovs = c("AGE", "SEX"), conditionalCovs = "FORM")), style = "serialize", cran = TRUE)
 })
 
 test_that("additionalCovs is deprecated in favour of conditionalCovs", {

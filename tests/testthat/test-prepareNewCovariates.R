@@ -40,7 +40,7 @@ test_that("prepareNewCovariates handles continuous and polychotomous categorical
   expect_equal(result$lastFremType, 300)
 
   # Use a snapshot for a comprehensive check of the returned list
-  expect_snapshot_value(result, style = "serialize")
+  expect_snapshot_value(result, style = "serialize", cran = TRUE)
 })
 
 test_that("prepareNewCovariates fails fast on 1/2 covariates when bRecodeDichotomous is FALSE", {

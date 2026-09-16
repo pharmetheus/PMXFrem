@@ -3,11 +3,13 @@ test_that("findrecord works", {
 
   expect_snapshot_value(
     stabilize(findrecord(basemodel, record = "\\$PROBLEM", replace = "$PROBLEM FFEM model", quiet = TRUE)),
-    style = "serialize"
+    style = "serialize",
+    cran = TRUE
   )
 
   expect_snapshot_value(
     stabilize(findrecord(basemodel, record = "\\$INPUT", quiet = TRUE)),
-    style = "serialize"
+    style = "serialize",
+    cran = TRUE
   )
 })

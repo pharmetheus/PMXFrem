@@ -60,7 +60,7 @@ test_that("generateFremModel generates correct model text and OMEGA structure", 
   expect_true(any(grepl("\\$THETA 10 ; 1 TV_BASE", model_lines)))
 
   # 4. Snapshot
-  expect_snapshot_value(stabilize(model_lines), style = "serialize")
+  expect_snapshot_value(stabilize(model_lines), style = "serialize", cran = TRUE)
 })
 
 test_that("generateFremModel handles NoData update type correctly", {

@@ -46,7 +46,7 @@ test_that("createMinimalFremModel correctly injects code with MU-modeling", {
     x = minimalModelLines
   )
 
-  expect_snapshot_value(stabilize(stabilized_lines), style = "serialize")
+  expect_snapshot_value(stabilize(stabilized_lines), style = "serialize", cran = TRUE)
 })
 
 test_that("createMinimalFremModel works without MU-modeling", {
@@ -184,7 +184,7 @@ test_that("createMinimalFremModel handles a real-world user model (run30.mod)", 
     x = minimalModelLines
   )
 
-  expect_snapshot_value(stabilize(stabilized_lines), style = "serialize")
+  expect_snapshot_value(stabilize(stabilized_lines), style = "serialize", cran = TRUE)
 })
 
 test_that("createMinimalFremModel perfectly preserves base OMEGA comments", {

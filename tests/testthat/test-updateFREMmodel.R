@@ -34,7 +34,7 @@ test_that("updateFREMmodel can remove covariates from FREM models", {
   expect_true(file.exists(new_data_path))
   expect_true(file.exists(new_model_path))
 
-  expect_snapshot_value(stabilize_model_paths(tmp), style = "serialize")
+  expect_model_snapshot(tmp)
 })
 
 test_that("refactored updateFREMmodel output is self-consistent and parsable", {
@@ -147,7 +147,7 @@ test_that("updateFREMmodel can add covariates to FREM models", {
     cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
   )
 
-  expect_snapshot_value(stabilize_model_paths(tmp), style = "serialize")
+  expect_model_snapshot(tmp)
 })
 
 test_that("updateFREMmodel can update initial estimates in FREM models", {
@@ -171,7 +171,7 @@ test_that("updateFREMmodel can update initial estimates in FREM models", {
     strUpdateType = "NoData"
   )
 
-  expect_snapshot_value(stabilize(tmp), style = "serialize")
+  expect_model_snapshot(tmp)
 })
 
 test_that("updateFREMmodel handles missing files correctly", {
@@ -248,7 +248,7 @@ test_that("updateFREMmodel correctly removes a polycotomous covariate", {
 
   # A snapshot is the best way to verify the complex changes to both
   # the data and the model text
-  expect_snapshot_value(stabilize_model_paths(result), style = "serialize")
+  expect_model_snapshot(result)
 })
 
 test_that("updateFREMmodel correctly adds a polycotomous covariate", {
@@ -291,7 +291,7 @@ test_that("updateFREMmodel correctly adds a polycotomous covariate", {
   )
 
   # A snapshot is the best way to verify the complex changes to the model text
-  expect_snapshot_value(stabilize_model_paths(result), style = "serialize")
+  expect_model_snapshot(result)
 })
 
 test_that("updateFREMmodel is robust to data.table inputs", {
@@ -390,7 +390,7 @@ test_that("updateFREMmodel correctly adds new individuals", {
   expect_true(max(result$data$ID) > max(frem_df$ID))
 
   # A snapshot is the best way to verify the complex changes to the data
-  expect_snapshot_value(stabilize_model_paths(result), style = "serialize")
+  expect_model_snapshot(result)
 })
 
 
@@ -440,7 +440,7 @@ test_that("updateFREMmodel correctly adds a new DV type", {
   expect_true(any(result$data$FREMTYPE == 1))
 
   # Snapshot the result to verify the new data structure
-  expect_snapshot_value(stabilize_model_paths(result), style = "serialize")
+  expect_model_snapshot(result)
 })
 
 

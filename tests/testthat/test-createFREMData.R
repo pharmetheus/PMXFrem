@@ -18,7 +18,7 @@ test_that("createFREMdata works", {
 
   ## Check that it works with the minimal number of arguments
   tmp1 <- createFREMData(strFFEMData = strFFEMData, quiet = TRUE, cstrKeepCols = "ID")
-  expect_snapshot_value(stabilize(as.data.frame(head(tmp1))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(tmp1))), style = "serialize", cran = TRUE)
 
   ## Check that it works with continuous covariates
 
@@ -28,7 +28,7 @@ test_that("createFREMdata works", {
     quiet = TRUE,
     cstrContCovs = "WT", cstrKeepCols = "ID"
   )
-  expect_snapshot_value(stabilize(as.data.frame(head(tmp2_a))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(tmp2_a))), style = "serialize", cran = TRUE)
 
   # One continuous covariate with other arguments
   tmp2_b <- createFREMData(
@@ -38,7 +38,7 @@ test_that("createFREMdata works", {
     cSortCols = c("ID", "TIME", "FREMTYPE"),
     cstrContCovs = "WT"
   )
-  expect_snapshot_value(stabilize(as.data.frame(head(tmp2_b))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(tmp2_b))), style = "serialize", cran = TRUE)
 
   # Two continuous covariates
   tmp3 <- createFREMData(
@@ -46,7 +46,7 @@ test_that("createFREMdata works", {
     quiet = TRUE,
     cstrContCovs = c("WT", "BMI"), cstrKeepCols = "ID"
   )
-  expect_snapshot_value(stabilize(as.data.frame(head(tmp3))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(tmp3))), style = "serialize", cran = TRUE)
 
   # When one continuous covariate does not exist
   tmp4 <- createFREMData(
@@ -54,7 +54,7 @@ test_that("createFREMdata works", {
     quiet = TRUE,
     cstrContCovs = c("WT", "BMI", "TEST"), cstrKeepCols = "ID"
   )
-  expect_snapshot_value(stabilize(as.data.frame(head(tmp4))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(tmp4))), style = "serialize", cran = TRUE)
 
   ## Check that it works with categorical covariates
 
@@ -65,7 +65,7 @@ test_that("createFREMdata works", {
     bRecodeDichotomous = TRUE, # <-- Added to override strict validation
     cstrCatCovs = "SEX", cstrKeepCols = "ID"
   )
-  expect_snapshot_value(stabilize(as.data.frame(head(tmp5))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(tmp5))), style = "serialize", cran = TRUE)
 
   # Two categorical covariates
   tmp6 <- createFREMData(
@@ -74,7 +74,7 @@ test_that("createFREMdata works", {
     bRecodeDichotomous = TRUE, # <-- Added
     cstrCatCovs = c("SEX", "SMOK"), cstrKeepCols = "ID"
   )
-  expect_snapshot_value(stabilize(as.data.frame(head(tmp6))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(tmp6))), style = "serialize", cran = TRUE)
 
   # When one categorical covariate does not exist
   tmp7 <- createFREMData(
@@ -83,7 +83,7 @@ test_that("createFREMdata works", {
     bRecodeDichotomous = TRUE, # <-- Added
     cstrCatCovs = c("SEX", "SMOK", "TEST"), cstrKeepCols = "ID"
   )
-  expect_snapshot_value(stabilize(as.data.frame(head(tmp7))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(tmp7))), style = "serialize", cran = TRUE)
 
   # Polycothomous categorical covariate
   tmp8 <- createFREMData(
@@ -91,7 +91,7 @@ test_that("createFREMdata works", {
     quiet = TRUE,
     cstrCatCovs = c("NCIL"), cstrKeepCols = "ID"
   )
-  expect_snapshot_value(stabilize(as.data.frame(head(tmp8))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(tmp8))), style = "serialize", cran = TRUE)
 
   ## Check a combination of covariate types
   tmp10 <- createFREMData(
@@ -101,7 +101,7 @@ test_that("createFREMdata works", {
     cstrCatCovs = c("SEX", "SMOK", "NCIL"),
     cstrContCovs = c("WT", "BMI", "AGE"), cstrKeepCols = "ID"
   )
-  expect_snapshot_value(stabilize(as.data.frame(head(tmp10))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(tmp10))), style = "serialize", cran = TRUE)
 
   ## Check the multiple DV feature
   tmp9 <- createFREMData(
@@ -109,7 +109,7 @@ test_that("createFREMdata works", {
     quiet = TRUE,
     cstrDV = c("DV", "LNDV"), cstrKeepCols = "ID"
   )
-  expect_snapshot_value(stabilize(as.data.frame(head(tmp9))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(tmp9))), style = "serialize", cran = TRUE)
 
   ## Check the multiple DV feature with many covariates
   tmp11 <- createFREMData(
@@ -120,7 +120,7 @@ test_that("createFREMdata works", {
     cstrCatCovs = c("SEX", "SMOK", "NCIL"),
     cstrContCovs = c("WT", "BMI", "AGE"), cstrKeepCols = "ID"
   )
-  expect_snapshot_value(stabilize(as.data.frame(head(tmp11))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(tmp11))), style = "serialize", cran = TRUE)
 })
 
 ################################################################################
@@ -171,7 +171,7 @@ test_that("createFREMData handles edge cases and errors", {
     bRecodeDichotomous = FALSE,
     cstrKeepCols = "ID"
   )
-  expect_snapshot_value(stabilize(as.data.frame(head(dichot_no_recode, 15))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(dichot_no_recode, 15))), style = "serialize", cran = TRUE)
 
   # Test providing only categorical covariates (no continuous)
   cat_only <- createFREMData(
@@ -181,7 +181,7 @@ test_that("createFREMData handles edge cases and errors", {
     bRecodeDichotomous = TRUE, # <-- Added because SEX is 1/2 in the raw file
     cstrKeepCols = "ID"
   )
-  expect_snapshot_value(stabilize(as.data.frame(head(cat_only, 15))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(cat_only, 15))), style = "serialize", cran = TRUE)
 
 
   # Test scenario where covariates exist but have only missing (-99) values (L184 & L231)

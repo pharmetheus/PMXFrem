@@ -39,14 +39,14 @@ test_that("the correct columns are added", {
     result1 <- addFREMcovariates(data %>% dplyr::filter(NCIL != 2), covariates = c("RACEL", "NCIL"))
   })
   expect_match(warnings1[[1]], "NCIL has only two non-missing levels", fixed = TRUE)
-  expect_snapshot_value(stabilize(as.data.frame(result1)), style = "serialize")
+  expect_frame_snapshot(as.data.frame(result1))
 
   # Test case 2: This call also produces a warning and a data frame.
   warnings2 <- testthat::capture_warnings({
     result2 <- addFREMcovariates(data %>% dplyr::filter(NCIL != 2), covariates = c("RACEL", "NCIL", "RACE"))
   })
   expect_match(warnings2[[1]], "NCIL has only two non-missing levels", fixed = TRUE)
-  expect_snapshot_value(stabilize(as.data.frame(result2)), style = "serialize")
+  expect_frame_snapshot(as.data.frame(result2))
 
 
   # Test cases that throw both a warning and then an error
@@ -73,7 +73,7 @@ test_that("the correct columns are added", {
       regexp = "No binarised covariates to add"
     )
   )
-  expect_snapshot_value(warnings3, style = "serialize")
+  expect_snapshot_value(warnings3, style = "json2", cran = TRUE)
 
 
   # Only warnings

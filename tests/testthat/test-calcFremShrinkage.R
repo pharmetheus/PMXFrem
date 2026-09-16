@@ -31,6 +31,33 @@ test_that("calcFremShrinkage computes valid shrinkages and returns a strictly fo
 
   # Verify specific structural ETAs were parsed
   expect_true("ETA1" %in% shrinkages$Parameter)
+
+  # ---- the values, which nothing above constrains -------------------------
+  # Without these the test's name is a claim it does not check: NaN, -500 and
+  # 1e6 all satisfy "is a double" and "has these columns".
+  num <- shrinkages[, c("ETA_Var", "ETA_SD", "EBV_Var", "EBV_SD")]
+  expect_true(all(vapply(num, function(c) all(is.finite(c)), TRUE)))
+  expect_true(all(vapply(num, function(c) all(c >= 0 & c <= 100), TRUE)),
+    info = "a shrinkage is a percentage"
+  )
+  expect_equal(nrow(shrinkages), 5) # run31max1-2 has five etas
+
+  # An SD shrinkage is an exact function of the variance shrinkage:
+  #   sd = 100 * (1 - sqrt(1 - var/100))
+  # so this pins the arithmetic rather than its plausibility.
+  expect_equal(
+    shrinkages$ETA_SD, 100 * (1 - sqrt(1 - shrinkages$ETA_Var / 100)),
+    tolerance = 1e-4
+  )
+  expect_equal(
+    shrinkages$EBV_SD, 100 * (1 - sqrt(1 - shrinkages$EBV_Var / 100)),
+    tolerance = 1e-4
+  )
+
+  # and one value anchored outright, so a wholesale change cannot pass
+  expect_equal(shrinkages$ETA_Var[shrinkages$Parameter == "ETA1"], 60.8814,
+    tolerance = 1e-4
+  )
 })
 
 test_that("calcFremShrinkage safely aborts if required files are missing", {

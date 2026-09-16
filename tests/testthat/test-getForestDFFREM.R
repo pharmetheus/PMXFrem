@@ -46,9 +46,11 @@ test_that("getForestDFFREM works", {
   ## checked for shape instead.
   expect_snapshot_value(
     stabilizeRows(dfresFREM[, setdiff(names(dfresFREM), forestSampledCols)]),
-    style = "serialize"
+    style = "serialize",
+    cran = TRUE
   )
-  expect_forest_sampling_sane(dfresFREM)
+  # 66 rows: one per covariate level in dfCovs, per returned parameter
+  expect_forest_sampling_sane(dfresFREM, rows = 66)
 
   covlabels <- c(
     "Age 25 y", "Age 61 y", "ALT 14 IU", "ALT 43 IU", "AST 15 IU", "AST 34 IU",
@@ -80,9 +82,10 @@ test_that("getForestDFFREM works", {
   ## checked for shape instead.
   expect_snapshot_value(
     stabilizeRows(dfresFREM2[, setdiff(names(dfresFREM2), forestSampledCols)]),
-    style = "serialize"
+    style = "serialize",
+    cran = TRUE
   )
-  expect_forest_sampling_sane(dfresFREM2)
+  expect_forest_sampling_sane(dfresFREM2, rows = 66)
 })
 
 
@@ -243,9 +246,25 @@ test_that("getForestDFFREM oneHot matches a manually pre-encoded dfCovs", {
     getForestDFFREM, c(list(dfCovs = dfCovsRaw, oneHot = spec), common)
   ))
 
-  dfCovsPre <- PMXForest::oneHotEncode(dfCovsRaw,
-    spec = spec, sep = "_",
-    dropOriginal = TRUE
+  ## Written out, not produced by PMXForest::oneHotEncode() - that is the call
+  ## getForestDFFREM(oneHot = ) makes internally, so building the expectation
+  ## with it would only prove that calling it twice agrees with itself.
+  ## NCIL 0 and RACEL 1 are the reference levels, so they get no column; -99
+  ## is the missing marker createInputForestData() puts in the other group's
+  ## columns.
+  dfCovsPre <- data.frame(
+    NCIL_1 = c(0, 1, 0, -99, -99, -99),
+    NCIL_2 = c(0, 0, 1, -99, -99, -99),
+    RACEL_2 = c(-99, -99, -99, 0, 1, 0),
+    RACEL_3 = c(-99, -99, -99, 0, 0, 1),
+    COVARIATEGROUPS = c("NCIL", "NCIL", "NCIL", "RACEL", "RACEL", "RACEL"),
+    stringsAsFactors = FALSE
+  )
+  ## and confirm the encoder still agrees with it, so a deliberate change to
+  ## the convention shows up here rather than silently passing
+  expect_equal(
+    PMXForest::oneHotEncode(dfCovsRaw, spec = spec, sep = "_", dropOriginal = TRUE),
+    dfCovsPre
   )
   res_pre <- suppressWarnings(do.call(
     getForestDFFREM, c(list(dfCovs = dfCovsPre), common)

@@ -64,7 +64,7 @@ test_that("augmentFremData correctly adds new individuals, DVs, and covariates",
   expect_true(all(result_df$EVID[result_df$FREMTYPE == 200] == 0))
 
   # Snapshot the resulting data frame for a comprehensive check
-  expect_snapshot_value(result_df, style = "serialize")
+  expect_snapshot_value(result_df, style = "serialize", cran = TRUE)
 })
 
 test_that("augmentFremData preserves row order and prevents Cartesian explosion using match()", {

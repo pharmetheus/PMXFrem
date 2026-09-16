@@ -55,7 +55,7 @@ test_that("createFFEMmodel works", {
   expect_true(file.exists(new_data_path))
   # Use the generic stabilize() for a character vector, but replace the temp path first
   ffemMod1_stabilized <- gsub(td, "[placeholder_path]", ffemMod1, fixed = TRUE)
-  expect_snapshot_value(stabilize(ffemMod1_stabilized), style = "serialize")
+  expect_snapshot_value(stabilize(ffemMod1_stabilized), style = "serialize", cran = TRUE)
 
   ffemMod2 <- createFFEMmodel(
     runno = fremRun,
@@ -70,7 +70,7 @@ test_that("createFFEMmodel works", {
   )
   # Use the generic stabilize() for a character vector, but replace the temp path first
   ffemMod2_stabilized <- gsub(td, "[placeholder_path]", ffemMod2, fixed = TRUE)
-  expect_snapshot_value(stabilize(ffemMod2_stabilized), style = "serialize")
+  expect_snapshot_value(stabilize(ffemMod2_stabilized), style = "serialize", cran = TRUE)
 })
 
 test_that("createFFEMmodel generates Cholesky code when omegaToData = TRUE", {
@@ -118,5 +118,5 @@ test_that("createFFEMmodel generates Cholesky code when omegaToData = TRUE", {
 
   # 4. Snapshot the final output to lock in the structural state
   cholesky_stabilized <- gsub(td, "[placeholder_path]", cholesky_model_lines, fixed = TRUE)
-  expect_snapshot_value(stabilize(cholesky_stabilized), style = "serialize")
+  expect_snapshot_value(stabilize(cholesky_stabilized), style = "serialize", cran = TRUE)
 })

@@ -104,7 +104,7 @@ test_that("calEtas works", {
 
   expect_equal(class(ind_params), "data.frame")
   # Use the robust value snapshot instead of the text-based one
-  expect_snapshot_value(stabilize(ind_params), style = "serialize")
+  expect_snapshot_value(stabilize(ind_params), style = "serialize", cran = TRUE)
 })
 
 # --- Test Group 4: Argument-specific tests for createFFEMdata ---
@@ -163,22 +163,53 @@ test_that("calcEtas correctly routes arguments to all internal functions", {
   # 'availCov' is for createFFEMdata.
   # 'modExt' is for getFileNames.
 
-  # expect_no_error() confirms that the function runs without crashing.
-  expect_no_error(
-    etas_result <- calcEtas(
+  # "No error" is not evidence that an argument was routed: a `...` that
+  # silently swallows its contents produces no error either, which is exactly
+  # the shape of the etaFREM/fremETA bug found in test-calcFFEM.R. Each
+  # argument below is therefore checked by its effect.
+
+  call <- function(...) {
+    calcEtas(
       modName          = "run31",
       modDevDir        = system.file("extdata/SimNeb/", package = "PMXFrem"),
       numNonFREMThetas = 7,
       numSkipOm        = 2,
       dataFile         = test_data,
       parNames         = c("CL", "V", "MAT"),
-      availCov         = "WT", # Argument ONLY for createFFEMdata
-      modExt           = ".mod" # Argument ONLY for getFileNames
+      ...
     )
+  }
+
+  etas_result <- call(availCov = "WT", modExt = ".mod")
+  expect_s3_class(etas_result, "data.frame")
+
+  # availCov reaches createFFEMdata(): conditioning on WT alone gives
+  # different individual covariate effects from conditioning on all of them.
+  allCov <- call(availCov = "all", modExt = ".mod")
+  numeric_cols <- vapply(etas_result, is.numeric, logical(1))
+  expect_false(
+    identical(etas_result[numeric_cols], allCov[numeric_cols]),
+    info = "availCov = 'WT' should not give the same etas as availCov = 'all'"
   )
 
-  # A secondary check to ensure it not only ran, but produced the expected output type.
-  expect_s3_class(etas_result, "data.frame")
+  # modExt reaches getFileNames(): the failure has to name the file that
+  # extension produces, rather than the argument being swallowed.
+  msgs <- character(0)
+  err <- tryCatch(
+    withCallingHandlers(call(availCov = "WT", modExt = ".nosuchext"),
+      warning = function(w) {
+        msgs <<- c(msgs, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }
+    ),
+    error = function(e) conditionMessage(e)
+  )
+  expect_true(any(grepl("run31\\.nosuchext", c(msgs, err))),
+    info = paste(
+      "expected the failure to name run31.nosuchext; saw:",
+      paste(c(msgs, err), collapse = " | ")
+    )
+  )
 })
 
 # --- Test Group 6: Diagnostic Plotting Additions (EBEs and Missing Flags) ---

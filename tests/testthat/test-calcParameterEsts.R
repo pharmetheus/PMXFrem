@@ -25,7 +25,7 @@ test_that("calcParameterEsts correctly extracts and combines parameters", {
 
   expect_type(ests_full, "double")
   expect_length(ests_full, 13) # 6 thetas + 5 omegas + 2 sigmas
-  expect_snapshot_value(stabilize(ests_full), style = "serialize")
+  expect_snapshot_value(stabilize(ests_full), style = "serialize", cran = TRUE)
 
 
   # 2. Edge Case: Test with `sigmaNum = NULL`.
@@ -40,7 +40,7 @@ test_that("calcParameterEsts correctly extracts and combines parameters", {
   )
 
   expect_length(ests_no_sigma, 11) # 6 thetas + 5 omegas
-  expect_snapshot_value(stabilize(ests_no_sigma), style = "serialize")
+  expect_snapshot_value(stabilize(ests_no_sigma), style = "serialize", cran = TRUE)
 
 
   # 3. Edge Case: Test with no external (non-FREM) omegas.
@@ -55,7 +55,7 @@ test_that("calcParameterEsts correctly extracts and combines parameters", {
   )
 
   expect_length(ests_frem_only_omega, 11) # 6 thetas + 3 omegas + 2 sigmas
-  expect_snapshot_value(stabilize(ests_frem_only_omega), style = "serialize")
+  expect_snapshot_value(stabilize(ests_frem_only_omega), style = "serialize", cran = TRUE)
 
 
   # 4. Input Validation: Test that it warns if a requested column is missing.

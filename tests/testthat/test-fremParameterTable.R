@@ -96,7 +96,7 @@ test_that("fremParameterTable works for standard outputs", {
     numSkipOm = numSkipOm,
     availCov = "all",
     quiet = TRUE
-  )), style = "serialize")
+  )), style = "serialize", cran = TRUE)
 
   # Selection of covariates - NO RSE
   expect_snapshot_value(stabilize(fremParameterTable(
@@ -109,7 +109,7 @@ test_that("fremParameterTable works for standard outputs", {
     numSkipOm = numSkipOm,
     availCov = c("SEX", "WT"),
     quiet = TRUE
-  )), style = "serialize")
+  )), style = "serialize", cran = TRUE)
 
   # Test providing a pre-read ext file
   pre_read_ext <- getExt(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"))
@@ -126,7 +126,8 @@ test_that("fremParameterTable works for standard outputs", {
       availCov = "all",
       quiet = TRUE
     )),
-    style = "serialize"
+    style = "serialize",
+    cran = TRUE
   )
 
   # Test RSE calculation with default SD transformations.
@@ -147,13 +148,15 @@ test_that("fremParameterTable works for standard outputs", {
       availCov = "all",
       quiet = TRUE
     ))),
-    style = "serialize"
+    style = "serialize",
+    cran = TRUE
   )
+  # 176 = the 175 sampled parameter vectors plus the estimates row
   expect_rse_sane(fremParameterTable(
     runno = runno, modDevDir = modDevDir, bsFile = bsFile, includeRSE = TRUE,
     numNonFREMThetas = numNonFREMThetas, numSkipOm = numSkipOm,
     thetaNum = 1:7, omegaNum = 1:5, sigmaNum = 1:2, availCov = "all", quiet = TRUE
-  ))
+  ), n = 176)
 
   # No SD transformation (Existing test, keep for regression)
   # The expect_warning is removed, as the function is now robust and does not warn.
@@ -172,7 +175,8 @@ test_that("fremParameterTable works for standard outputs", {
       availCov = "all",
       quiet = TRUE
     ))),
-    style = "serialize"
+    style = "serialize",
+    cran = TRUE
   )
 })
 

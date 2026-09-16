@@ -23,7 +23,7 @@ test_that("createFFEMdata works", {
   expect_equal(length(vpcData$indCovEff), 3)
   expect_equal(class(vpcData$newData)[1], "tbl_df")
 
-  expect_snapshot_value(stabilize(as.data.frame(head(vpcData$newData, 20))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(vpcData$newData, 20))), style = "json2", cran = TRUE)
 
   ## Check without specified parameter names
   vpcData2 <- createFFEMdata(
@@ -43,7 +43,7 @@ test_that("createFFEMdata works", {
   expect_equal(class(vpcData2$indCovEff), "character")
   expect_equal(length(vpcData2$indCovEff), 3)
 
-  expect_snapshot_value(stabilize(as.data.frame(head(vpcData2$newData, 20))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(vpcData2$newData, 20))), style = "json2", cran = TRUE)
 
   ## Check when availCov = "all"
   vpcData3 <- createFFEMdata(
@@ -57,7 +57,7 @@ test_that("createFFEMdata works", {
     quiet = TRUE
   )
 
-  expect_snapshot_value(stabilize(as.data.frame(head(vpcData3$newData, 20))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(vpcData3$newData, 20))), style = "json2", cran = TRUE)
 })
 
 test_that("createFFEMdata works with parallel processing", {
@@ -80,7 +80,7 @@ test_that("createFFEMdata works with parallel processing", {
 
   # The result should be numerically identical to the sequential run,
   # so a snapshot is a good way to verify correctness.
-  expect_snapshot_value(stabilize(vpcData), style = "serialize")
+  expect_frame_snapshot(vpcData$newData)
 })
 
 test_that("createFFEMdata shifts V-column indices correctly when numSkipOm > 0", {
@@ -116,5 +116,5 @@ test_that("createFFEMdata shifts V-column indices correctly when numSkipOm > 0",
   expect_false(any(is.na(output_data$V33)))
 
   # Snapshot the structural output to prevent regression
-  expect_snapshot_value(stabilize(as.data.frame(head(output_data, 20))), style = "serialize")
+  expect_snapshot_value(stabilize(as.data.frame(head(output_data, 20))), style = "json2", cran = TRUE)
 })

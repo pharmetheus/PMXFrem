@@ -13,12 +13,12 @@ test_that("calcFFEM output is stable across R versions", {
   # --- Test Case 1: Basic usage ---
   calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE)
 
-  expect_snapshot_value(stabilize(calcFFEMtestout$Coefficients), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout$FullVars), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout$Expr), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout$Vars), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout$UpperVars), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout$Eta_prim), style = "serialize")
+  expect_snapshot_value(stabilize(calcFFEMtestout$Coefficients), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout$FullVars), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout$Expr), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout$Vars), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout$UpperVars), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout$Eta_prim), style = "serialize", cran = TRUE)
 
   expect_snapshot_value(
     {
@@ -27,7 +27,8 @@ test_that("calcFFEM output is stable across R versions", {
       stable_res$Expr <- stabilize(res$Expr)
       stable_res
     },
-    style = "serialize"
+    style = "serialize",
+    cran = TRUE
   )
 
   # --- Test Case 2: Compute eta_prim ---
@@ -46,11 +47,11 @@ test_that("calcFFEM output is stable across R versions", {
     quiet = TRUE
   )$Eta_prim))
 
-  expect_snapshot_value(stabilize(calcFFEMtestout2$Coefficients), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout2$FullVars), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout2$Expr), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout2$Vars), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout2$UpperVars), style = "serialize")
+  expect_snapshot_value(stabilize(calcFFEMtestout2$Coefficients), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout2$FullVars), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout2$Expr), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout2$Vars), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout2$UpperVars), style = "serialize", cran = TRUE)
 
   expect_snapshot_value(
     {
@@ -59,7 +60,8 @@ test_that("calcFFEM output is stable across R versions", {
       stable_res$Expr <- stabilize(res$Expr)
       stable_res
     },
-    style = "serialize"
+    style = "serialize",
+    cran = TRUE
   )
 
   # --- Test Case 3: Specify availCov with named covariates ---
@@ -69,12 +71,12 @@ test_that("calcFFEM output is stable across R versions", {
     covNames = covNames, availCov = c("SEX", "WT")
   )
 
-  expect_snapshot_value(stabilize(calcFFEMtestout3$Coefficients), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout3$FullVars), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout3$Expr), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout3$Vars), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout3$UpperVars), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout3$Eta_prim), style = "serialize")
+  expect_snapshot_value(stabilize(calcFFEMtestout3$Coefficients), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout3$FullVars), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout3$Expr), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout3$Vars), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout3$UpperVars), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout3$Eta_prim), style = "serialize", cran = TRUE)
 
   expect_snapshot_value(
     {
@@ -83,7 +85,8 @@ test_that("calcFFEM output is stable across R versions", {
       stable_res$Expr <- stabilize(res$Expr)
       stable_res
     },
-    style = "serialize"
+    style = "serialize",
+    cran = TRUE
   )
 
 
@@ -93,12 +96,12 @@ test_that("calcFFEM output is stable across R versions", {
     availCov = c("Cov1", "Cov2")
   )
 
-  expect_snapshot_value(stabilize(calcFFEMtestout4$Coefficients), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout4$FullVars), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout4$Expr), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout4$Vars), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout4$UpperVars), style = "serialize")
-  expect_snapshot_value(stabilize(calcFFEMtestout4$Eta_prim), style = "serialize")
+  expect_snapshot_value(stabilize(calcFFEMtestout4$Coefficients), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout4$FullVars), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout4$Expr), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout4$Vars), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout4$UpperVars), style = "serialize", cran = TRUE)
+  expect_snapshot_value(stabilize(calcFFEMtestout4$Eta_prim), style = "serialize", cran = TRUE)
 
   expect_snapshot_value(
     {
@@ -107,7 +110,8 @@ test_that("calcFFEM output is stable across R versions", {
       stable_res$Expr <- stabilize(res$Expr)
       stable_res
     },
-    style = "serialize"
+    style = "serialize",
+    cran = TRUE
   )
 })
 
@@ -130,7 +134,7 @@ test_that("calcFFEM handles the numParCov = 1 edge case", {
     quiet = TRUE
   )
 
-  expect_snapshot_value(stabilize(result_partial), style = "serialize")
+  expect_snapshot_value(stabilize(result_partial), style = "serialize", cran = TRUE)
 
   # Test 2: numParCov = 1 with all available covariates
   # This covers the red lines in the second block (lines 146-148)
@@ -143,7 +147,7 @@ test_that("calcFFEM handles the numParCov = 1 edge case", {
     quiet = TRUE
   )
 
-  expect_snapshot_value(stabilize(result_all), style = "serialize")
+  expect_snapshot_value(stabilize(result_all), style = "serialize", cran = TRUE)
 })
 
 test_that("calcFFEM calculates eta_prim correctly with numSkipOm = 0", {
@@ -174,7 +178,7 @@ test_that("calcFFEM calculates eta_prim correctly with numSkipOm = 0", {
     quiet = TRUE
   )
 
-  expect_snapshot_value(stabilize(result_partial), style = "serialize")
+  expect_snapshot_value(stabilize(result_partial), style = "serialize", cran = TRUE)
 
   # Test 2: numSkipOm = 0 with all available covariates
   # This covers the `else` branch
@@ -187,7 +191,7 @@ test_that("calcFFEM calculates eta_prim correctly with numSkipOm = 0", {
     quiet = TRUE
   )
 
-  expect_snapshot_value(stabilize(result_all), style = "serialize")
+  expect_snapshot_value(stabilize(result_all), style = "serialize", cran = TRUE)
 })
 
 test_that("calcFFEM calculates eta_prim correctly with numSkipOm > 0", {
@@ -218,7 +222,7 @@ test_that("calcFFEM calculates eta_prim correctly with numSkipOm > 0", {
     quiet = TRUE
   )
 
-  expect_snapshot_value(stabilize(result_partial), style = "serialize")
+  expect_snapshot_value(stabilize(result_partial), style = "serialize", cran = TRUE)
 
   # Test 2: numSkipOm > 0 with all available covariates
   # This covers the `else` branch
@@ -231,7 +235,7 @@ test_that("calcFFEM calculates eta_prim correctly with numSkipOm > 0", {
     quiet = TRUE
   )
 
-  expect_snapshot_value(stabilize(result_all), style = "serialize")
+  expect_snapshot_value(stabilize(result_all), style = "serialize", cran = TRUE)
 })
 
 test_that("calcFFEM covers final quiet=FALSE and empty availCov paths", {
@@ -271,7 +275,7 @@ test_that("calcFFEM covers final quiet=FALSE and empty availCov paths", {
     quiet = TRUE
   )
 
-  expect_snapshot_value(stabilize(result_empty_cov), style = "serialize")
+  expect_snapshot_value(stabilize(result_empty_cov), style = "serialize", cran = TRUE)
 })
 
 test_that("calcFFEM strictly validates parNames and covNames dimensions", {
