@@ -239,11 +239,19 @@ expect_forest_sampling_sane <- function(x, lo = "Q1", point = "POINT", hi = "Q2"
   invisible(x)
 }
 
-#' Drop the sampled column from a fremParameterTable() result
+#' Reduce a fremParameterTable() result to the part that is reproducible
 #'
-#' `RSE (%)` is computed from `n` sampled parameter vectors drawn through
-#' `MASS::mvrnorm()`, so like the Forest-plot quantiles it is LAPACK-dependent
-#' and not reproducible across machines. `Type`, `Parameter` and `Estimate` are.
+#' With `includeRSE = TRUE` almost everything the function returns is derived
+#' from `n` parameter vectors drawn through `MASS::mvrnorm()`, which calls
+#' `eigen()` and is therefore LAPACK-dependent - established empirically by
+#' running the same call under two seeds and seeing which elements move:
+#'
+#'   deterministic      parameterTable$Type, $Parameter, $Estimate
+#'   sample-dependent   parameterTable$`RSE (%)`, Samples, Condition,
+#'                      coefficientTable_long, coefficientTable_wide
+#'
+#' Only the first is safe to snapshot across machines. The rest is checked by
+#' [expect_rse_sane()] for what it must satisfy anywhere.
 dropSampledRSE <- function(x) {
   if (!is.null(x$parameterTable)) {
     x$parameterTable <- x$parameterTable[
@@ -251,15 +259,32 @@ dropSampledRSE <- function(x) {
       drop = FALSE
     ]
   }
+  for (nm in c(
+    "Samples", "Condition", "coefficientTable_long",
+    "coefficientTable_wide"
+  )) {
+    x[[nm]] <- NULL
+  }
   x
 }
 
-#' Assert the RSE column is a plausible relative standard error
+#' Assert the sampled parts of a fremParameterTable() result are well formed
+#'
+#' The exact numbers are not reproducible off one machine; these properties are.
 expect_rse_sane <- function(x) {
   rse <- suppressWarnings(as.numeric(as.character(x$parameterTable[["RSE (%)"]])))
   testthat::expect_true(all(is.finite(rse)), info = "every RSE should be finite")
   testthat::expect_true(all(rse >= 0), info = "an RSE cannot be negative")
   testthat::expect_true(all(rse < 1000), info = "an RSE of >1000% is not plausible")
   testthat::expect_true(any(rse > 0), info = "not every RSE should be zero")
+
+  ## the draws themselves: present, finite, and more than just the estimates row
+  testthat::expect_true(nrow(x$Samples) > 1,
+    info = "the sampled parameter vectors should be more than the estimates row"
+  )
+  num <- vapply(x$Samples, is.numeric, logical(1))
+  testthat::expect_true(all(vapply(x$Samples[num], function(c) all(is.finite(c)), TRUE)),
+    info = "every sampled parameter value should be finite"
+  )
   invisible(x)
 }
