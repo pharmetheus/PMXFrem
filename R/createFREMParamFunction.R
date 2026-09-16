@@ -222,15 +222,27 @@ createFREMParamFunction <- function(fremModel = NULL,
     missVal = missVal
   )
 
-  ## ---- classify the requested parameters by ETA count in their $PK line ----
-  etaCounts <- vapply(parameters, function(nm) {
+  ## ---- classify the requested parameters by their $PK ETA() reference ----
+  ## A FREM covariate parameter carries exactly one ETA(), and that eta comes
+  ## after the skipped omegas - the FREM block starts at ETA(numSkipOm + 1).
+  ## A parameter whose single eta is inside the skip region (IOV, an RUV eta,
+  ## a structural random effect) is a real quantity with a real eta, but no
+  ## covthetas index applies to it.
+  paramEta <- lapply(parameters, function(nm) {
     a <- Find(
       function(s) identical(s$type, "assign") && identical(s$lhs, nm),
       p$statements
     )
-    length(.fremEtaIndices(a$rhs))
-  }, integer(1))
-  fremParams <- parameters[etaCounts == 1L]
+    .fremEtaIndices(a$rhs)
+  })
+  names(paramEta) <- parameters
+  etaCounts <- lengths(paramEta)
+  skipEta <- vapply(paramEta, function(e) {
+    length(e) == 1L && e[1] <= numSkipOm
+  }, logical(1))
+  fremParams <- parameters[etaCounts == 1L & !skipEta]
+  ## kept, not spliced: their own eta, no covariate coefficient
+  keepEta <- vapply(paramEta[skipEta], function(e) as.integer(e[1]), integer(1))
 
   ## For each FREM parameter, how its single ETA() is enclosed in $PK:
   ## "exp"   -> P = C * exp(<linear-in-ETA>)      (log-normal; splice is exp())
@@ -250,24 +262,11 @@ createFREMParamFunction <- function(fremModel = NULL,
   ## subset, or asking in a different order, must not renumber the model.
   ## The k-th FREM parameter of the model is the one whose $PK assignment
   ## carries ETA(numSkipOm + k), so the index comes from the parsed eta.
-  fremEtaIdx <- vapply(fremParams, function(nm) {
-    a <- Find(
-      function(s) identical(s$type, "assign") && identical(s$lhs, nm),
-      p$statements
-    )
-    .fremEtaIndices(a$rhs)[1]
-  }, integer(1))
+  fremEtaIdx <- vapply(
+    paramEta[fremParams], function(e) as.integer(e[1]),
+    integer(1)
+  )
   names(fremEtaIdx) <- fremParams
-  bad <- fremEtaIdx <= numSkipOm
-  if (any(bad)) {
-    stop("Parameter(s) ", paste(fremParams[bad], collapse = ", "),
-      " carry ETA(", paste(fremEtaIdx[bad], collapse = ", "),
-      "), which is inside the ", numSkipOm, " skipped omega(s). A FREM ",
-      "covariate parameter's eta must come after them, so either numSkipOm ",
-      "is wrong or these are not FREM covariate parameters.",
-      call. = FALSE
-    )
-  }
 
   numTotEta <- .fremCountTotEta(readLines(fremModel, warn = FALSE))
   ## numParCov = the FREM block's size less the FREM covariates, which is what
@@ -335,7 +334,8 @@ createFREMParamFunction <- function(fremModel = NULL,
 
   code <- .fremEmit(kept, covs, p$covRef, parameters, fremParams, numSkipOm,
     functionName, fremModel, missVal, quiet,
-    secondary = sec, numTotEta = numTotEta
+    secondary = sec, numTotEta = numTotEta,
+    fremEtaIdx = fremEtaIdx, keepEta = keepEta
   )
   class(code) <- c("pmxFREMParamFunction", "character")
 
@@ -563,7 +563,8 @@ createFREMParamFunction <- function(fremModel = NULL,
 #' @noRd
 .fremEmit <- function(stmts, covs, covRef, parameters, fremParams, numSkipOm,
                       functionName, fremModel, missVal, quiet,
-                      secondary = list(), numTotEta = NULL) {
+                      secondary = list(), numTotEta = NULL,
+                      fremEtaIdx = NULL, keepEta = integer(0)) {
   nEtas <- if (is.null(numTotEta)) numSkipOm + length(fremParams) else numTotEta
   dep <- function(node, etaVal = "0") {
     PMXForest::nmDeparse(node, thetaVar = "basethetas", etaValue = etaVal)
@@ -574,20 +575,54 @@ createFREMParamFunction <- function(fremModel = NULL,
     out <- character(0)
     for (s in sl) {
       if (identical(s$type, "assign")) {
-        isFrem <- s$lhs %in% fremParams
         eIdx <- .fremEtaIndices(s$rhs)
-        if (isFrem) {
+        ## The FREM eta belongs to the parameter, not to the statement: a
+        ## parameter can be assigned more than once, and a later assignment
+        ## may carry a different eta (an IOV term, say). Only the statement
+        ## that carries the parameter's own FREM eta gets the splice.
+        myEta <- if (s$lhs %in% names(fremEtaIdx)) {
+          fremEtaIdx[[s$lhs]]
+        } else {
+          NA_integer_
+        }
+        if (!is.na(myEta) && length(eIdx) == 1L && eIdx[1] == myEta) {
           ## The FREM index comes from the model: the parameter whose $PK line
           ## carries ETA(numSkipOm + k) is the model's k-th FREM parameter.
           ## Never from match(s$lhs, fremParams), which is a rank within the
           ## *request* and silently hands a subset another parameter's
           ## covariate coefficient and eta.
-          k <- eIdx[1] - numSkipOm
-          fremEta <- sprintf("(covthetas[%d] + .eta(etas, %d))", k, eIdx[1])
+          k <- myEta - numSkipOm
+          fremEta <- sprintf("(covthetas[%d] + .eta(etas, %d))", k, myEta)
           out <- c(out, paste0(
             pad, s$lhs, " <- ", dep(s$rhs, fremEta),
-            "   # FREM parameter ", k, ": ETA(", eIdx[1],
-            ") -> covthetas[", k, "] + etas[", eIdx[1], "]"
+            "   # FREM parameter ", k, ": ETA(", myEta,
+            ") -> covthetas[", k, "] + etas[", myEta, "]"
+          ))
+        } else if (!is.na(myEta) && myEta %in% eIdx) {
+          ## nmDeparse() substitutes every ETA in the expression, so a
+          ## statement carrying the FREM eta *and* another one would count
+          ## the covariate coefficient twice and turn the other eta into the
+          ## FREM one. There is no correct in-place splice here.
+          stop("The assignment of '", s$lhs, "' references ETA(",
+            paste(eIdx, collapse = "), ETA("), ") - its FREM eta ETA(", myEta,
+            ") together with another. The covariate effect cannot be spliced ",
+            "in place; write this parameter's function by hand.",
+            call. = FALSE
+          )
+        } else if (s$lhs %in% names(keepEta)) {
+          ## Its eta is inside the skipped omegas, so no covariate coefficient
+          ## applies - but the eta itself is real and is kept.
+          ki <- keepEta[[s$lhs]]
+          out <- c(out, paste0(
+            pad, s$lhs, " <- ", dep(s$rhs, sprintf(".eta(etas, %d)", ki)),
+            "   # ETA(", ki, ") is inside numSkipOm: kept, no covariate effect"
+          ))
+        } else if (!is.na(myEta) && length(eIdx) > 0L) {
+          ## A further assignment to a FREM parameter that does not carry its
+          ## FREM eta - an IOV term, typically. Typical values take it at 0.
+          out <- c(out, paste0(
+            pad, s$lhs, " <- ", dep(s$rhs),
+            "   # ETA() -> 0 (not this parameter's FREM eta)"
           ))
         } else if (s$lhs %in% parameters) {
           note <- if (length(eIdx) == 0L) {

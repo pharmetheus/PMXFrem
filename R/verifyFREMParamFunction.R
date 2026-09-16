@@ -10,8 +10,11 @@
 #'     \item **Covariate splice.** Setting `covthetas[k]` should scale parameter
 #'       `k` by `exp(covthetas[k])` and nothing else.
 #'     \item **Random-effect splice.** Setting `etas[numSkipOm + k]` should scale
-#'       parameter `k` by `exp(etas[numSkipOm + k])` and nothing else - this also
-#'       checks the `numSkipOm` offset is right.
+#'       parameter `k` by `exp(etas[numSkipOm + k])` and nothing else.
+#'     \item **`numSkipOm`.** The reference model's own `$OMEGA` records say how
+#'       many etas precede its parameter block. If that disagrees with the
+#'       `numSkipOm` the function was generated with, every `covthetas` index
+#'       in it is offset and the result is `FALSE` - see `attr(v, "numSkipOm")`.
 #'   }
 #'   **Where the probe indices come from.** `k` and `numSkipOm + k` are taken
 #'   from `PMXForest`'s own parse of the FFEM reference model (`etaMap`), keyed
@@ -174,18 +177,33 @@ verifyFREMParamFunction <- function(x,
   ## `x$fremModel`, which for a non-FREM model carries no FREM covariate
   ## columns at all, and PMXForest rejects a covRef naming a covariate the $PK
   ## does not use.
-  refText <- paste(readLines(refModel, warn = FALSE), collapse = " ")
-  fremCols <- paste0(params, covSuffix)
-  fremCols <- fremCols[vapply(fremCols, function(n) {
-    grepl(paste0("\\b", n, "\\b"), refText)
-  }, logical(1))]
+  refLines <- sub(";.*$", "", readLines(refModel, warn = FALSE))
+  refText <- paste(refLines, collapse = " ")
+  ## Every <name><covSuffix> the reference actually mentions, not only the
+  ## ones for the requested parameters: a requested parameter can depend on
+  ## another one (KA on MAT), and $PK then reads that one's FREMCOV column
+  ## too. Pinning only the requested names left it unresolved and the whole
+  ## check errored out.
+  fremCols <- unique(unlist(regmatches(refText, gregexpr(
+    paste0("\\b[A-Za-z][A-Za-z0-9_]*", covSuffix, "\\b"), refText
+  ))))
+  ## Reference values the caller gave the generator apply to the reference
+  ## model too - it is the same $PK, less the FREM machinery.
+  userRef <- list()
+  if (length(x$covRef)) {
+    vals <- lapply(x$covRef, function(z) if (is.list(z)) z$value else z)
+    keep <- vapply(names(vals), function(n) {
+      grepl(paste0("\\b", n, "\\b"), refText)
+    }, logical(1))
+    userRef <- vals[keep]
+  }
+  covRefRef <- c(
+    stats::setNames(as.list(rep(0, length(fremCols))), fremCols),
+    userRef[setdiff(names(userRef), fremCols)]
+  )
   scm <- PMXForest::createParamFunction(refModel,
     parameters = params,
-    covRef = if (length(fremCols)) {
-      stats::setNames(as.list(rep(0, length(fremCols))), fremCols)
-    } else {
-      NULL
-    },
+    covRef = if (length(covRefRef)) covRefRef else NULL,
     quiet = TRUE
   )
   scmFn <- eval(parse(text = scm$code))
@@ -224,6 +242,19 @@ verifyFREMParamFunction <- function(x,
     error = function(e) 0L
   )
   nEtas <- max(c(numSkipOm + 1L, etaIdx, funEtas), na.rm = TRUE)
+
+  ## numSkipOm, derived from the reference rather than believed from `x`.
+  ## covIdx = etaIdx - numSkipOm, so a wrong numSkipOm makes the generated
+  ## function index covthetas wrongly for every real caller - and a check
+  ## that inherits the same wrong value cannot see it. The FFEM reference's
+  ## own $OMEGA records say how many etas precede its parameter block.
+  refOm <- .fremOmegaRecords(refLines)
+  refSkip <- if (nrow(refOm) > 1L) {
+    as.integer(sum(refOm$n) - refOm$n[nrow(refOm)])
+  } else {
+    NA_integer_
+  }
+  skipOk <- is.na(refSkip) || refSkip == numSkipOm
   nCov <- max(c(1L, covIdx, x$numParCov), na.rm = TRUE)
 
   ## Which parameters are log-normal (P = C * exp(<linear in ETA>))? Only those
@@ -309,6 +340,14 @@ verifyFREMParamFunction <- function(x,
 
   nFail <- sum(out$PASS %in% FALSE)
   nNA <- sum(is.na(out$PASS))
+  if (!skipOk && !quiet) {
+    message(
+      "verifyFREMParamFunction(): numSkipOm is ", numSkipOm,
+      ", but ", basename(refModel), " has ", refSkip,
+      " eta(s) before its parameter $OMEGA block. Every covthetas index in ",
+      "the generated function is offset by ", numSkipOm - refSkip, "."
+    )
+  }
 
   if (!quiet) {
     message(
@@ -336,13 +375,17 @@ verifyFREMParamFunction <- function(x,
 
   ## A single logical for use in `if`: FALSE only if a check actually failed;
   ## a non-log-normal parameter (PASS = NA) does not make it FALSE.
-  invisible(structure(nFail == 0L, class = "pmxFREMVerify", checks = out))
+  invisible(structure(nFail == 0L && skipOk,
+    class = "pmxFREMVerify", checks = out,
+    numSkipOm = list(object = numSkipOm, reference = refSkip, ok = skipOk)
+  ))
 }
 
 #' @export
 print.pmxFREMVerify <- function(x, ...) {
   d <- attr(x, "checks")
   nNA <- sum(is.na(d$PASS))
+  sk <- attr(x, "numSkipOm")
   cat(if (isTRUE(unclass(x)[1])) "PASS" else "FAIL",
     " - verifyFREMParamFunction: ", sum(d$PASS %in% TRUE), "/", nrow(d),
     " parameter(s)",
@@ -350,6 +393,12 @@ print.pmxFREMVerify <- function(x, ...) {
     "\n",
     sep = ""
   )
+  if (!is.null(sk) && isFALSE(sk$ok)) {
+    cat("  numSkipOm ", sk$object, " disagrees with the reference model's ",
+      sk$reference, "\n",
+      sep = ""
+    )
+  }
   print(d, row.names = FALSE)
   invisible(x)
 }

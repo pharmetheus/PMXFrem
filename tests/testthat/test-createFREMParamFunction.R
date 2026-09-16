@@ -322,14 +322,16 @@ test_that("the ETA index in $PK decides the FREM index, not the request order", 
   )
 })
 
-test_that("a FREM parameter whose eta falls inside the skipped omegas is an error", {
+test_that("a parameter whose eta is inside the skipped omegas is not a FREM parameter", {
   bm <- .stubMod(c("  TVCL = THETA(1)", "  CL = TVCL * EXP(ETA(1))"))
-  expect_error(
-    createFREMParamFunction(bm,
-      parameters = "CL", numSkipOm = 2,
-      numNonFREMThetas = 4, quiet = TRUE
-    ),
-    "inside the 2 skipped omega"
+  out <- createFREMParamFunction(bm,
+    parameters = "CL", numSkipOm = 2,
+    numNonFREMThetas = 4, quiet = TRUE
+  )
+  expect_length(out$fremParameters, 0)
+  expect_match(
+    paste(out$code, collapse = "\n"),
+    "CL <- TVCL \\* exp\\(.eta\\(etas, 1\\)\\)"
   )
 })
 
@@ -802,4 +804,120 @@ test_that("verifyFREMParamFunction catches a function that indexes by request po
 
   v <- verifyFREMParamFunction(bad, ffemModel = ffem, extFile = e, quiet = TRUE)
   expect_false(isTRUE(unclass(v)[1]))
+})
+
+# ---------------------------------------------------------------------------
+# Which ETA() in which statement gets the covariate splice
+# ---------------------------------------------------------------------------
+
+.fremModWith <- function(td, after, newline) {
+  l <- readLines(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+    warn = FALSE
+  )
+  i <- grep(after, l, fixed = TRUE)[1]
+  l <- append(l, newline, after = i)
+  f <- file.path(td, "run31x.mod")
+  writeLines(l, f)
+  file.copy(.fremExt(), file.path(td, "run31x.ext"))
+  f
+}
+
+test_that("a second assignment to a FREM parameter is not given the covariate splice", {
+  # IF(OCC.EQ.2) CL = CL * EXP(ETA(2)) is an IOV term, not CL's FREM eta.
+  # Splicing it emitted covthetas[0], which is numeric(0), so CL vanished
+  # from the returned list for every OCC == 2 row - no error, no warning.
+  td <- withr::local_tempdir()
+  m <- .fremModWith(
+    td, "CL    = EXP(MU_3               + ETA(3))",
+    "IF(OCC.EQ.2) CL = CL * EXP(ETA(2))"
+  )
+  out <- suppressWarnings(createFREMParamFunction(m,
+    parameters = c("CL", "V", "MAT"), covRef = list(OCC = 1), quiet = TRUE
+  ))
+  code <- paste(out$code, collapse = "\n")
+  expect_no_match(code, "covthetas[0]", fixed = TRUE)
+
+  fn <- eval(parse(text = out$code))
+  th <- .finals()[seq_len(out$noBaseThetas)]
+  r <- fn(th,
+    covthetas = c(0, 0, 0), dfrow = data.frame(FOOD = 1, OCC = 2),
+    etas = rep(0, 23)
+  )
+  expect_named(r, c("CL", "V", "MAT"))
+  expect_true(is.finite(r$CL))
+})
+
+test_that("a FREM parameter's own eta mixed with another eta is refused", {
+  # EXP(MU_3 + ETA(3) + ETA(2)) cannot have the covariate coefficient spliced
+  # in place: nmDeparse() replaces every ETA in the expression, so the
+  # coefficient would be counted twice and the IOV eta would become the IIV.
+  td <- withr::local_tempdir()
+  m <- .fremModWith(
+    td, "CL    = EXP(MU_3               + ETA(3))",
+    "IF(FOOD.EQ.0) CL = EXP(MU_3 + ETA(3) + ETA(2))"
+  )
+  expect_error(
+    createFREMParamFunction(m,
+      parameters = c("CL", "V", "MAT"), quiet = TRUE
+    ),
+    "ETA\\(3\\), ETA\\(2\\)|together with"
+  )
+})
+
+test_that("a parameter whose eta is in the skip region keeps its own eta", {
+  # D1FR = MU_2 + ETA(2) with numSkipOm = 2. It is not a FREM covariate
+  # parameter - no covthetas index applies - but its eta is real, and
+  # explained-variability work needs it. It used to be spliced with the wrong
+  # covthetas index, and then (briefly) refused outright.
+  out <- createFREMParamFunction(.fremMod(),
+    parameters = c("CL", "D1FR"), extFile = .fremExt(), quiet = TRUE
+  )
+  code <- paste(out$code, collapse = "\n")
+  expect_match(code, "D1FR <- MU_2 \\+ .eta\\(etas, 2\\)")
+  expect_no_match(code, "D1FR <- MU_2 \\+ \\(covthetas")
+  expect_false("D1FR" %in% out$fremParameters)
+
+  fn <- eval(parse(text = out$code))
+  th <- .finals()[seq_len(out$noBaseThetas)]
+  e <- rep(0, 23)
+  e[2] <- 0.4
+  a <- fn(th, covthetas = c(0, 0, 0), dfrow = data.frame(FOOD = 1), etas = rep(0, 23))
+  b <- fn(th, covthetas = c(0, 0, 0), dfrow = data.frame(FOOD = 1), etas = e)
+  expect_equal(b$D1FR - a$D1FR, 0.4, tolerance = 1e-12)
+})
+
+test_that("verifyFREMParamFunction derives numSkipOm from the reference and fails on a mismatch", {
+  # The probe index is etaIdx - numSkipOm. Taking numSkipOm from `x` means
+  # inheriting the generator's own belief about it, so a wrong numSkipOm
+  # produced a function every real caller would index wrongly - and verify
+  # said PASS. The FFEM reference's own $OMEGA records have the answer.
+  m <- .fremMod()
+  e <- .fremExt()
+  ffem <- system.file("extdata/SimNeb/run31max1-2.mod", package = "PMXFrem")
+
+  out <- suppressWarnings(createFREMParamFunction(m,
+    parameters = c("CL", "V", "MAT"), numSkipOm = 1, numNonFREMThetas = 7,
+    extFile = e, quiet = TRUE
+  ))
+  v <- verifyFREMParamFunction(out, ffemModel = ffem, extFile = e, quiet = TRUE)
+  expect_false(isTRUE(unclass(v)[1]))
+  expect_equal(attr(v, "numSkipOm")$reference, 2L)
+  expect_equal(attr(v, "numSkipOm")$object, 1)
+})
+
+test_that("verifyFREMParamFunction pins every FREMCOV column the reference needs", {
+  # KA depends on MAT, so run31max1-2.mod's $PK reads MATFREMCOV even though
+  # MAT was not requested. Pinning only <requested>FREMCOV left it unresolved
+  # and the whole check errored out.
+  m <- .fremMod()
+  e <- .fremExt()
+  ffem <- system.file("extdata/SimNeb/run31max1-2.mod", package = "PMXFrem")
+
+  out <- createFREMParamFunction(m,
+    parameters = c("FREL", "KA", "CL"), extFile = e, quiet = TRUE
+  )
+  expect_error(
+    verifyFREMParamFunction(out, ffemModel = ffem, extFile = e, quiet = TRUE),
+    NA
+  )
 })

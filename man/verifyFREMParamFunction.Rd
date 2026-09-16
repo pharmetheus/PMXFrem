@@ -70,8 +70,11 @@ compared with the SCM-style typical-value function that
 \item \strong{Covariate splice.} Setting \code{covthetas[k]} should scale parameter
 \code{k} by \code{exp(covthetas[k])} and nothing else.
 \item \strong{Random-effect splice.} Setting \code{etas[numSkipOm + k]} should scale
-parameter \code{k} by \code{exp(etas[numSkipOm + k])} and nothing else - this also
-checks the \code{numSkipOm} offset is right.
+parameter \code{k} by \code{exp(etas[numSkipOm + k])} and nothing else.
+\item \strong{\code{numSkipOm}.} The reference model's own \verb{$OMEGA} records say how
+many etas precede its parameter block. If that disagrees with the
+\code{numSkipOm} the function was generated with, every \code{covthetas} index
+in it is offset and the result is \code{FALSE} - see \code{attr(v, "numSkipOm")}.
 }
 \strong{Where the probe indices come from.} \code{k} and \code{numSkipOm + k} are taken
 from \code{PMXForest}'s own parse of the FFEM reference model (\code{etaMap}), keyed
