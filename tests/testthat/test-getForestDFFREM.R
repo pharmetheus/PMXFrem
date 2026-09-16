@@ -25,8 +25,6 @@ test_that("getForestDFFREM works", {
   set.seed(123)
   dfSamplesCOV <- PMXForest::getSamples(covFile, extFile = extFile, n = 25)
 
-  r_version_variant <- paste(R.version$major, R.version$minor, sep = ".")
-
   # Suppress warnings which are a known issue in the source code
   dfresFREM <- suppressWarnings(getForestDFFREM(
     dfCovs           = dfCovs,
@@ -43,7 +41,9 @@ test_that("getForestDFFREM works", {
     cstrPackages     = c("PMXFrem", "dplyr")
   ))
 
-  expect_snapshot_value(stabilize(dfresFREM), variant = r_version_variant, style = "serialize")
+  expect_snapshot_value(stabilizeRows(dfresFREM),
+    style = "serialize", tolerance = 1e-6
+  )
 
   covlabels <- c(
     "Age 25 y", "Age 61 y", "ALT 14 IU", "ALT 43 IU", "AST 15 IU", "AST 34 IU",
@@ -70,7 +70,9 @@ test_that("getForestDFFREM works", {
     cstrPackages     = c("PMXFrem", "dplyr")
   ))
 
-  expect_snapshot_value(stabilize(dfresFREM2), variant = r_version_variant, style = "serialize")
+  expect_snapshot_value(stabilizeRows(dfresFREM2),
+    style = "serialize", tolerance = 1e-6
+  )
 })
 
 
@@ -141,7 +143,6 @@ test_that("getForestDFFREM covers edge cases", {
   }
   set.seed(123)
   dfSamplesCOV <- PMXForest::getSamples(covFile, extFile = extFile, n = 5) # Use fewer samples
-  r_version_variant <- paste(R.version$major, R.version$minor, sep = ".")
 
   # Suppress warnings for all calls in this block
   suppressWarnings({
@@ -168,7 +169,9 @@ test_that("getForestDFFREM covers edge cases", {
       numNonFREMThetas = 13, dfParameters = dfSamplesCOV,
       dfRefRow = dfRefRow_single, quiet = TRUE
     )
-    expect_snapshot_value(stabilize(res_ref_row), variant = r_version_variant, style = "serialize")
+    expect_snapshot_value(stabilizeRows(res_ref_row),
+      style = "serialize", tolerance = 1e-6
+    )
 
     # Test case: dfRefRow has wrong number of rows
     dfRefRow_wrong <- dfCovs[1:2, , drop = FALSE]

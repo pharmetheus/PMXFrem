@@ -173,3 +173,30 @@ stabilize_model_paths <- function(result_list) {
 
   return(stable_list)
 }
+
+#' Stabilize a result whose row order is not part of the contract
+#'
+#' `getForestDFFREM()` emits one row per covariate level, and the level order
+#' comes from `PMXForest::getCovStats()`. PMXForest 1.3.0 began sorting binary
+#' levels - deliberately, because the old order depended on which subject
+#' appeared first in the data - which reordered the ETHNIC rows and failed every
+#' snapshot that encoded the old order.
+#'
+#' Row order is that function's concern, not this package's, and the tests
+#' already assert the labels separately. So sort the rows on every column before
+#' comparing: the assertion is then about the *content*, and a dependency
+#' reordering its output no longer looks like a regression.
+#'
+#' @param x A data.frame.
+#' @param ... Passed to [stabilize()].
+#' @return `x`, stabilized, with rows in a deterministic order and row names
+#'   dropped.
+stabilizeRows <- function(x, ...) {
+  x <- stabilize(x, ...)
+  if (is.data.frame(x) && nrow(x) > 1) {
+    key <- lapply(x, function(col) as.character(col))
+    x <- x[do.call(order, key), , drop = FALSE]
+    rownames(x) <- NULL
+  }
+  x
+}

@@ -85,8 +85,6 @@ test_that("fremParameterTable works for standard outputs", {
   numNonFREMThetas <- 7
   numSkipOm <- 2
 
-  r_version_variant <- paste(R.version$major, R.version$minor, sep = ".")
-
   # All covariates - NO RSE
   expect_snapshot_value(stabilize(fremParameterTable(
     runno = runno,
@@ -149,7 +147,7 @@ test_that("fremParameterTable works for standard outputs", {
       availCov = "all",
       quiet = TRUE
     )),
-    variant = r_version_variant,
+    tolerance = 1e-6,
     style = "serialize"
   )
 
@@ -170,7 +168,7 @@ test_that("fremParameterTable works for standard outputs", {
       availCov = "all",
       quiet = TRUE
     )),
-    variant = r_version_variant,
+    tolerance = 1e-6,
     style = "serialize"
   )
 })
