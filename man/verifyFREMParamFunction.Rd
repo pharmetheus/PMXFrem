@@ -9,6 +9,8 @@ verifyFREMParamFunction(
   fun = NULL,
   thetas = NULL,
   extFile = NULL,
+  ffemModel = NULL,
+  covSuffix = "FREMCOV",
   dfrows = NULL,
   tol = 1e-06,
   quiet = FALSE
@@ -25,6 +27,20 @@ verifyFREMParamFunction(
 
 \item{extFile}{Path to the FREM model's \code{.ext}. Required if \code{thetas} is not
 supplied. Defaults to the \code{.ext} next to \code{x$fremModel}.}
+
+\item{ffemModel}{Path to the FFEM version of the model - what
+\code{\link[=createFFEMmodel]{createFFEMmodel()}} writes. Required when \code{x} was built from a FREM model:
+the structural check compares the generated function against an
+\emph{independent} transliteration of the same \verb{$PK}, and
+\code{PMXForest::createParamFunction()} refuses a FREM model outright. The FFEM
+model's \verb{$PK} is the FREM model's with the covariate effect as an additive
+term inside the same \code{EXP()} as the ETA, so with those columns at 0 the two
+reduce to the same typical values. Defaults to \code{x$fremModel}, which is
+correct only when that model is not itself a FREM model.}
+
+\item{covSuffix}{The suffix \code{\link[=createFFEMmodel]{createFFEMmodel()}} gives the FREM covariate
+columns, so their reference value - 0, by construction - can be supplied
+without the caller naming them. Default \code{"FREMCOV"}.}
 
 \item{dfrows}{A data frame of covariate rows to test over. Each row is passed
 as \code{dfrow}. Defaults to a single all-reference row (every structural
@@ -72,9 +88,16 @@ out <- createFREMParamFunction(fremModel,
   quiet = TRUE
 )
 
-if (verifyFREMParamFunction(out, quiet = TRUE)) message("generated function checks out")
+## The structural check needs an independent transliteration of the same
+## $PK, and a FREM model cannot supply one - PMXForest refuses it. The FFEM
+## version of the model, as written by createFFEMmodel(), is the reference.
+ffemModel <- system.file("extdata/SimNeb/run31max1-2.mod", package = "PMXFrem")
 
-v <- verifyFREMParamFunction(out, quiet = TRUE)
+if (verifyFREMParamFunction(out, ffemModel = ffemModel, quiet = TRUE)) {
+  message("generated function checks out")
+}
+
+v <- verifyFREMParamFunction(out, ffemModel = ffemModel, quiet = TRUE)
 attr(v, "checks") # per-parameter detail
 
 }

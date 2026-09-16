@@ -54,17 +54,38 @@
 #'   quiet = TRUE
 #' )
 #'
-#' if (verifyFREMParamFunction(out, quiet = TRUE)) message("generated function checks out")
+#' ## The structural check needs an independent transliteration of the same
+#' ## $PK, and a FREM model cannot supply one - PMXForest refuses it. The FFEM
+#' ## version of the model, as written by createFFEMmodel(), is the reference.
+#' ffemModel <- system.file("extdata/SimNeb/run31max1-2.mod", package = "PMXFrem")
 #'
-#' v <- verifyFREMParamFunction(out, quiet = TRUE)
+#' if (verifyFREMParamFunction(out, ffemModel = ffemModel, quiet = TRUE)) {
+#'   message("generated function checks out")
+#' }
+#'
+#' v <- verifyFREMParamFunction(out, ffemModel = ffemModel, quiet = TRUE)
 #' attr(v, "checks") # per-parameter detail
 #'
 #' @family Diagnostics & Plotting
 #' @concept diagnostics
+#' @param ffemModel Path to the FFEM version of the model - what
+#'   [createFFEMmodel()] writes. Required when `x` was built from a FREM model:
+#'   the structural check compares the generated function against an
+#'   *independent* transliteration of the same `$PK`, and
+#'   `PMXForest::createParamFunction()` refuses a FREM model outright. The FFEM
+#'   model's `$PK` is the FREM model's with the covariate effect as an additive
+#'   term inside the same `EXP()` as the ETA, so with those columns at 0 the two
+#'   reduce to the same typical values. Defaults to `x$fremModel`, which is
+#'   correct only when that model is not itself a FREM model.
+#' @param covSuffix The suffix [createFFEMmodel()] gives the FREM covariate
+#'   columns, so their reference value - 0, by construction - can be supplied
+#'   without the caller naming them. Default `"FREMCOV"`.
 verifyFREMParamFunction <- function(x,
                                     fun = NULL,
                                     thetas = NULL,
                                     extFile = NULL,
+                                    ffemModel = NULL,
+                                    covSuffix = "FREMCOV",
                                     dfrows = NULL,
                                     tol = 1e-6,
                                     quiet = FALSE) {
@@ -105,13 +126,63 @@ verifyFREMParamFunction <- function(x,
   }
   basethetas <- thetas[seq_len(nNonFREM)] # what the FREM fn gets
 
-  ## ---- SCM typical-value function from the same FREM model ----
-  scm <- PMXForest::createParamFunction(x$fremModel,
+  ## ---- the independent structural reference ----
+  ## The point of the structural check is that the right-hand side is a
+  ## *different* transliteration of the same $PK - PMXForest's emitter, not
+  ## .fremEmit(). Comparing .fremEmit() against itself would prove nothing.
+  ##
+  ## A FREM model cannot supply it: PMXForest::createParamFunction() refuses
+  ## one outright, and rightly - a FREM model's covariate effects live in
+  ## $OMEGA, so a parameter function built from its $PK would describe none of
+  ## the covariates the model was built for. The FFEM version of the same model
+  ## is the parseable one. Its $PK is the FREM model's with the covariate
+  ## effect as an additive term inside the same EXP() as the ETA,
+  ##
+  ##   FREM  CL = EXP(MU_3 + ETA(3))
+  ##   FFEM  CL = EXP(MU_3 + (ETA(3) + CLFREMCOV))
+  ##
+  ## so with the FREM covariate columns at 0 the two reduce to the same typical
+  ## values, and its $THETA records are the structural ones alone, which is
+  ## exactly the `basethetas` slice above.
+  refModel <- if (is.null(ffemModel)) x$fremModel else ffemModel
+  if (!file.exists(refModel)) {
+    stop("The structural reference model does not exist: ", refModel,
+      call. = FALSE
+    )
+  }
+  if (.isFremModel(refModel)) {
+    stop(basename(refModel), " is a FREM model, which cannot be the ",
+      "structural reference: PMXForest::createParamFunction() refuses one.",
+      "\nSupply the FFEM version through `ffemModel` - the model ",
+      "createFFEMmodel() writes - e.g. ffemModel = \"run31max1-2.mod\".",
+      call. = FALSE
+    )
+  }
+
+  ## The FREM covariate columns are named <parameter><covSuffix> by
+  ## createFFEMmodel(), and their reference is 0 by construction: the typical
+  ## subject carries no covariate effect. The caller should not have to know
+  ## that, or type the names.
+  ## Only pin the columns this model actually has: the reference defaults to
+  ## `x$fremModel`, which for a non-FREM model carries no FREM covariate
+  ## columns at all, and PMXForest rejects a covRef naming a covariate the $PK
+  ## does not use.
+  refText <- paste(readLines(refModel, warn = FALSE), collapse = " ")
+  fremCols <- paste0(params, covSuffix)
+  fremCols <- fremCols[vapply(fremCols, function(n) {
+    grepl(paste0("\\b", n, "\\b"), refText)
+  }, logical(1))]
+  scm <- PMXForest::createParamFunction(refModel,
     parameters = params,
-    extFile = extFile, quiet = TRUE
+    covRef = if (length(fremCols)) {
+      stats::setNames(as.list(rep(0, length(fremCols))), fremCols)
+    } else {
+      NULL
+    },
+    quiet = TRUE
   )
   scmFn <- eval(parse(text = scm$code))
-  scmTh <- thetas[seq_len(scm$noBaseThetas)] # SCM fn gets all thetas
+  scmTh <- thetas[seq_len(scm$noBaseThetas)]
 
   ## ---- test rows ----
   if (is.null(dfrows)) {
@@ -244,4 +315,21 @@ print.pmxFREMVerify <- function(x, ...) {
   )
   print(d, row.names = FALSE)
   invisible(x)
+}
+
+## Does this control stream declare FREMTYPE in $INPUT? That is what makes it a
+## FREM model rather than its FFEM counterpart, and what
+## PMXForest::createParamFunction() refuses on.
+##
+## @noRd
+.isFremModel <- function(modFile) {
+  L <- sub("\r$", "", readLines(modFile, warn = FALSE))
+  i <- grep("^\\s*\\$INP", L)
+  if (!length(i)) {
+    return(FALSE)
+  }
+  j <- grep("^\\s*\\$", L)
+  j <- j[j > i[1]]
+  block <- L[i[1]:(if (length(j)) j[1] - 1L else length(L))]
+  any(grepl("\\bFREMTYPE\\b", toupper(sub(";.*$", "", block))))
 }

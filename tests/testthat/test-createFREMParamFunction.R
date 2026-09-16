@@ -2,6 +2,9 @@
 
 .fremMod <- function() system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
 .fremExt <- function() system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+## The FFEM version of run31, as createFFEMmodel() writes it. It is the
+## independent structural reference: PMXForest refuses the FREM model.
+.ffemMod <- function() system.file("extdata/SimNeb/run31max1-2.mod", package = "PMXFrem")
 
 .finals <- function() { # all FREM-model THETA finals
   de <- getExt(extFile = .fremExt())
@@ -320,9 +323,13 @@ test_that("with covthetas = 0 and etas = 0 the FREM function equals the SCM typi
   )
   fn <- eval(parse(text = out$code))
 
-  scm <- PMXForest::createParamFunction(.fremMod(),
+  ## The reference is the FFEM model, not the FREM one: PMXForest refuses a
+  ## FREM model, and the FFEM $PK is the same algebra with the covariate effect
+  ## as an additive term inside the ETA's EXP(). At 0 they coincide.
+  scm <- PMXForest::createParamFunction(.ffemMod(),
     parameters = c("CL", "V", "MAT"),
-    extFile = .fremExt(), quiet = TRUE
+    covRef = list(CLFREMCOV = 0, VFREMCOV = 0, MATFREMCOV = 0),
+    quiet = TRUE
   )
   scmFn <- eval(parse(text = scm$code))
 
@@ -366,12 +373,36 @@ test_that("covthetas[k] / etas[numSkipOm+k] scale only parameter k, by exp()", {
 # verifyFREMParamFunction()
 # ---------------------------------------------------------------------------
 
+test_that("a FREM model is refused as its own structural reference", {
+  ## Without `ffemModel` the reference defaults to x$fremModel, which for a FREM
+  ## model PMXForest::createParamFunction() refuses - correctly, since a FREM
+  ## model's covariate effects are in $OMEGA. The error must name the way out
+  ## rather than let PMXForest's refusal surface from two levels down.
+  out <- createFREMParamFunction(.fremMod(),
+    parameters = c("CL", "V", "MAT"),
+    extFile = .fremExt(), quiet = TRUE
+  )
+  e <- tryCatch(
+    verifyFREMParamFunction(out, extFile = .fremExt(), quiet = TRUE),
+    error = conditionMessage
+  )
+  expect_match(e, "FREM model")
+  expect_match(e, "ffemModel")
+  expect_match(e, "createFFEMmodel")
+
+  ## and a path that does not exist is caught before PMXForest sees it
+  expect_error(
+    verifyFREMParamFunction(out, ffemModel = "no/such/model.mod", quiet = TRUE),
+    "does not exist"
+  )
+})
+
 test_that("verifyFREMParamFunction returns a scalar TRUE for a faithful function", {
   out <- createFREMParamFunction(.fremMod(),
     parameters = c("CL", "V", "MAT"),
     extFile = .fremExt(), quiet = TRUE
   )
-  v <- verifyFREMParamFunction(out, extFile = .fremExt(), quiet = TRUE)
+  v <- verifyFREMParamFunction(out, ffemModel = .ffemMod(), extFile = .fremExt(), quiet = TRUE)
 
   expect_length(as.logical(v), 1L)
   expect_true(as.logical(v))
@@ -391,6 +422,7 @@ test_that("verifyFREMParamFunction returns FALSE and flags the tampered paramete
   )
   bad <- gsub("covthetas\\[1\\]", "2 * covthetas[1]", paste(out$code, collapse = "\n"))
   v <- verifyFREMParamFunction(out,
+    ffemModel = .ffemMod(),
     fun = eval(parse(text = bad)),
     extFile = .fremExt(), quiet = TRUE
   )
@@ -406,7 +438,7 @@ test_that("verifyFREMParamFunction ignores secondary parameters", {
     extFile = .fremExt(), quiet = TRUE,
     secondary = list(AUC = "80 / CL")
   )
-  v <- verifyFREMParamFunction(out, extFile = .fremExt(), quiet = TRUE)
+  v <- verifyFREMParamFunction(out, ffemModel = .ffemMod(), extFile = .fremExt(), quiet = TRUE)
   expect_true(as.logical(v))
   expect_identical(attr(v, "checks")$PARAMETER, c("CL", "V", "MAT")) # no AUC
 })
@@ -428,7 +460,7 @@ test_that("verifyFREMParamFunction derives the extFile from the model when theta
     extFile = .fremExt(), quiet = TRUE
   )
   # neither `thetas` nor `extFile` supplied: it should find run31.ext beside the model
-  v <- verifyFREMParamFunction(out, quiet = TRUE)
+  v <- verifyFREMParamFunction(out, ffemModel = .ffemMod(), quiet = TRUE)
   expect_true(as.logical(v))
 })
 
@@ -442,7 +474,7 @@ test_that("verifyFREMParamFunction errors when neither thetas nor a usable extFi
   )
   out$fremModel <- mod # point at the ext-less copy
   expect_error(
-    verifyFREMParamFunction(out, quiet = TRUE),
+    verifyFREMParamFunction(out, ffemModel = .ffemMod(), quiet = TRUE),
     "Supply `thetas`, or an `extFile`"
   )
 })
@@ -453,11 +485,11 @@ test_that("verifyFREMParamFunction reports each parameter when quiet = FALSE", {
     extFile = .fremExt(), quiet = TRUE
   )
   expect_message(
-    verifyFREMParamFunction(out, extFile = .fremExt(), quiet = FALSE),
+    verifyFREMParamFunction(out, ffemModel = .ffemMod(), extFile = .fremExt(), quiet = FALSE),
     "parameter\\(s\\) pass"
   )
   expect_message(
-    verifyFREMParamFunction(out, extFile = .fremExt(), quiet = FALSE),
+    verifyFREMParamFunction(out, ffemModel = .ffemMod(), extFile = .fremExt(), quiet = FALSE),
     "CL: pass"
   )
 })
