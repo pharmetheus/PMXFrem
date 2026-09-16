@@ -78,9 +78,36 @@
 #' @param bWriteMod Logical. Write the new model? Default `TRUE`.
 #' @param quiet Logical. Suppress progress messages. Default `TRUE`.
 #'
-#' @return Invisibly, a list with `model` (character vector), `thetaIndex`,
-#'   `etaIndex` (or `NA`), `numNonFREMThetas`, `numSkipOm` (both updated) and
-#'   `file`.
+#' @return Invisibly, a list with
+#'   \item{model}{the new model as a character vector}
+#'   \item{thetaIndex}{the index of the inserted `$THETA`}
+#'   \item{etaIndex}{the index of the inserted `ETA()`, or `NA` when
+#'     `addEta = FALSE`}
+#'   \item{numNonFREMThetas}{the updated count, always one more than the input}
+#'   \item{numSkipOm}{the skip count. Updated **only when `addEta = TRUE`** -
+#'     with `addEta = FALSE` no random effect was added, so it comes back
+#'     unchanged. Either way it is the right value to pass to the next call.}
+#'   \item{file}{the path written, or `NULL`}
+#'
+#' @examples
+#' # A structural THETA on a parameter run31.mod does not have yet, with a
+#' # matching IIV. The .ext is not migrated: the model has to be re-estimated.
+#' td <- tempfile()
+#' dir.create(td)
+#' file.copy(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), td)
+#' file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
+#'
+#' res <- addFremStructuralTheta(file.path(td, "run31.mod"),
+#'   thetaInit = 0.5, parameter = "KA2", addEta = TRUE, omegaInit = 0.04,
+#'   bWriteMod = FALSE
+#' )
+#' res$thetaIndex # 8: just before the FREM covariate-mean thetas
+#' res$etaIndex # 3: numSkipOm + 1
+#'
+#' # the house form, so a later updateFREMmodel() does not splice it away
+#' grep("KA2", res$model, value = TRUE)
+#'
+#' unlink(td, recursive = TRUE)
 #'
 #' @seealso [addFremIIV()], [updateFREMmodel()]
 #' @family FREM model management

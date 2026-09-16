@@ -58,6 +58,25 @@
 #'   \item{numNonFREMThetas}{unchanged, passed through for convenience}
 #'   \item{file}{the path written, or `NULL`}
 #'
+#' @examples
+#' # run31.mod has numSkipOm = 2, so a new IIV takes ETA(3) and everything
+#' # from ETA(3) up shifts by one. The .ext is not migrated: re-estimate.
+#' td <- tempfile()
+#' dir.create(td)
+#' file.copy(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), td)
+#' file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
+#'
+#' res <- addFremIIV(file.path(td, "run31.mod"),
+#'   parameter = "FREL", omegaInit = 0.04, bWriteMod = FALSE
+#' )
+#' res$etaIndex # 3
+#' res$numSkipOm # 3: one more than before
+#'
+#' # the new $OMEGA lands after the skip records, before the FREM block
+#' grep("^\\$OMEGA", res$model, value = TRUE)[1:4]
+#'
+#' unlink(td, recursive = TRUE)
+#'
 #' @seealso [addFremStructuralTheta()], [updateFREMmodel()]
 #' @family FREM model management
 #' @concept frem_model_management

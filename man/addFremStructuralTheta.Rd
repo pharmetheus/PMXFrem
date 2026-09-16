@@ -61,9 +61,16 @@ the extension.}
 \item{quiet}{Logical. Suppress progress messages. Default \code{TRUE}.}
 }
 \value{
-Invisibly, a list with \code{model} (character vector), \code{thetaIndex},
-\code{etaIndex} (or \code{NA}), \code{numNonFREMThetas}, \code{numSkipOm} (both updated) and
-\code{file}.
+Invisibly, a list with
+\item{model}{the new model as a character vector}
+\item{thetaIndex}{the index of the inserted \verb{$THETA}}
+\item{etaIndex}{the index of the inserted \code{ETA()}, or \code{NA} when
+\code{addEta = FALSE}}
+\item{numNonFREMThetas}{the updated count, always one more than the input}
+\item{numSkipOm}{the skip count. Updated \strong{only when \code{addEta = TRUE}} -
+with \code{addEta = FALSE} no random effect was added, so it comes back
+unchanged. Either way it is the right value to pass to the next call.}
+\item{file}{the path written, or \code{NULL}}
 }
 \description{
 Inserts one new structural (non-FREM) \verb{$THETA} at index \code{numNonFREMThetas + 1},
@@ -113,6 +120,27 @@ delete this definition. The \code{LOG(TV...)} form cannot collide.
 Markers are only ever placed in \verb{$PK}, never in \verb{$THETA} / \verb{$OMEGA}, where
 \code{generateFremModel()} reads comments positionally and a standalone comment
 line would shift every subsequent parameter label.
+}
+\examples{
+# A structural THETA on a parameter run31.mod does not have yet, with a
+# matching IIV. The .ext is not migrated: the model has to be re-estimated.
+td <- tempfile()
+dir.create(td)
+file.copy(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), td)
+file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
+
+res <- addFremStructuralTheta(file.path(td, "run31.mod"),
+  thetaInit = 0.5, parameter = "KA2", addEta = TRUE, omegaInit = 0.04,
+  bWriteMod = FALSE
+)
+res$thetaIndex # 8: just before the FREM covariate-mean thetas
+res$etaIndex # 3: numSkipOm + 1
+
+# the house form, so a later updateFREMmodel() does not splice it away
+grep("KA2", res$model, value = TRUE)
+
+unlink(td, recursive = TRUE)
+
 }
 \seealso{
 \code{\link[=addFremIIV]{addFremIIV()}}, \code{\link[=updateFREMmodel]{updateFREMmodel()}}
