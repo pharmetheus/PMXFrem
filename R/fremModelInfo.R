@@ -92,6 +92,23 @@ fremModelInfo <- function(modFile,
     ignore.case = TRUE
   ))
 
+  ## ---- model vs ext ----------------------------------------------------
+  ## The mutators (addFremIIV / addFremStructuralTheta) deliberately do not
+  ## migrate the .ext, so a caller can easily pair a mutated .mod with the old
+  ## one. Everything below is then derived from the ext and describes the
+  ## model before the mutation, with nothing to show for it.
+  modLines <- sub("\r$", "", readLines(modFile, warn = FALSE))
+  modEta <- .fremCountTotEta(modLines)
+  if (modEta > 0L && modEta != numTotEta) {
+    warning(
+      basename(modFile), " references ", modEta, " eta(s) but the ext ",
+      "describes ", numTotEta,
+      "; the two are not from the same run. Every number derived here comes ",
+      "from the ext. If the model was changed by addFremIIV() or ",
+      "addFremStructuralTheta(), it has to be re-estimated first."
+    )
+  }
+
   ## ---- derive ---------------------------------------------------------
   d_numNonFREMThetas <- nTheta - numFREMThetas
   d_numSkipOm <- numTotEta - blockN

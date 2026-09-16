@@ -221,6 +221,15 @@ addFremStructuralTheta <- function(strFREMModel,
     } else {
       ## existing parameter: addFremIIV() already attached the ETA; add the
       ## new THETA as a factor on the same assignment.
+      if (!muReference) {
+        warning("addFremStructuralTheta(): muReference = FALSE applies only ",
+          "to a parameter this function defines. '", parameter,
+          "' is already assigned in $PK, so the new ETA was attached by ",
+          "addFremIIV() as EXP(ETA(k)) on the existing right-hand side, ",
+          "whatever form that takes.",
+          call. = FALSE
+        )
+      }
       lines <- .fremAttachEta_thetaFactor(lines,
         parameter = parameter,
         thetaIdx = jNew
@@ -355,15 +364,40 @@ addFremStructuralTheta <- function(strFREMModel,
 #' @keywords internal
 #' @noRd
 .fremPkAssigns <- function(lines, parameter) {
+  nrow(.fremAssignLines(lines, parameter)) > 0L
+}
+
+
+#' Where `parameter` is assigned in `$PK`, guarded or not
+#'
+#' Returns a data.frame of `line` and `guarded` (TRUE for `IF(...) X = ...`).
+#' A line-anchored pattern misses the guarded form, which is run31.mod's own
+#' house style - and a caller that concludes "not assigned" from that will
+#' append a second, later assignment that overwrites nothing anyone reads.
+#'
+#' @keywords internal
+#' @noRd
+.fremAssignLines <- function(lines, parameter) {
   recStart <- grep("^\\s*\\$[A-Za-z]", lines)
   pkStart <- recStart[grepl("^\\s*\\$PK\\b", lines[recStart], ignore.case = TRUE)]
+  empty <- data.frame(line = integer(0), guarded = logical(0))
   if (length(pkStart) == 0L) {
-    return(FALSE)
+    return(empty)
   }
   pkEnd <- recStart[recStart > pkStart[1]]
   pkEnd <- if (length(pkEnd)) pkEnd[1] - 1L else length(lines)
-  pat <- sprintf("^\\s*%s\\s*=", .fremEscape(parameter))
-  any(grepl(pat, lines[pkStart[1]:pkEnd]))
+  idx <- pkStart[1]:pkEnd
+  body <- sub(";.*$", "", lines[idx])
+  nm <- .fremEscape(parameter)
+  plain <- grepl(sprintf("^\\s*%s\\s*=[^=]", nm), body)
+  guard <- grepl(sprintf("^\\s*IF\\s*\\(.*\\)\\s*%s\\s*=[^=]", nm), body,
+    ignore.case = TRUE
+  )
+  hit <- plain | guard
+  if (!any(hit)) {
+    return(empty)
+  }
+  data.frame(line = idx[hit], guarded = guard[hit] & !plain[hit])
 }
 
 
@@ -415,6 +449,19 @@ addFremStructuralTheta <- function(strFREMModel,
   pat <- sprintf("^(\\s*)%s(\\s*)=(\\s*)(.*)$", .fremEscape(parameter))
   recStart <- grep("^\\s*\\$[A-Za-z]", lines)
   pkStart <- recStart[grepl("^\\s*\\$PK\\b", lines[recStart], ignore.case = TRUE)]
+  found <- .fremAssignLines(lines, parameter)
+  if (any(found$guarded)) {
+    stop("addFremStructuralTheta(): '", parameter, "' is assigned ",
+      "conditionally in $PK (line",
+      if (sum(found$guarded) > 1L) "s " else " ",
+      paste(found$line[found$guarded], collapse = ", "),
+      "). Attaching a THETA to one branch would change only that branch, and ",
+      "appending a new assignment would overwrite the parameter after the ",
+      "lines that read it - a $THETA that cannot move the objective ",
+      "function. Edit the branches by hand.",
+      call. = FALSE
+    )
+  }
   hit <- grep(pat, lines)
   if (length(pkStart)) {
     pkEnd <- recStart[recStart > pkStart[1]]

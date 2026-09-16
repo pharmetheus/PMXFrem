@@ -290,7 +290,7 @@ addFremIIV <- function(strFREMModel,
   # default etas length.
   lines <- sub(";.*$", "", lines)
   # (?<![A-Za-z]) so ETA( inside THETA( / BETA( / ZETA( is not counted
-  m <- regmatches(lines, gregexpr("(?<![A-Za-z])ETA\\(\\s*[0-9]+\\s*\\)", lines, perl = TRUE))
+  m <- regmatches(lines, gregexpr("(?i)(?<![A-Za-z])ETA\\(\\s*[0-9]+\\s*\\)", lines, perl = TRUE))
   idx <- as.integer(gsub("[^0-9]", "", unlist(m)))
   if (length(idx) == 0L) 0L else max(idx)
 }
@@ -310,7 +310,13 @@ addFremIIV <- function(strFREMModel,
   recStart <- grep("^\\s*\\$[A-Za-z]", lines)
   region <- rep(FALSE, length(lines))
   for (s in recStart) {
-    if (grepl("^\\s*\\$(PK|ERROR|PRED)\\b", lines[s], ignore.case = TRUE)) {
+    ## Every record that can hold abbreviated code and therefore an ETA(),
+    ## MU_ or COV reference. $DES in particular: an index left behind there
+    ## is still in range, so a count check sees nothing, but it now names a
+    ## different random effect than it did before the insertion.
+    if (grepl("^\\s*\\$(PK|PRED|ERROR|DES|AES|MIX|INFN)\\b", lines[s],
+      ignore.case = TRUE
+    )) {
       e <- recStart[recStart > s]
       e <- if (length(e)) e[1] - 1L else length(lines)
       region[s:e] <- TRUE
@@ -322,9 +328,14 @@ addFremIIV <- function(strFREMModel,
   for (k in seq(maxIdx, fromIdx)) {
     kk <- k + 1L
     # (?<![A-Za-z]) so ETA( inside THETA( / BETA( / ZETA( is never matched
-    seg <- gsub(sprintf("(?<![A-Za-z])ETA\\(\\s*%d\\s*\\)", k), sprintf("ETA(%d)", kk), seg, perl = TRUE)
-    seg <- gsub(sprintf("(?<![A-Za-z0-9_])MU_%d(?![0-9])", k), sprintf("MU_%d", kk), seg, perl = TRUE)
-    seg <- gsub(sprintf("(?<![A-Za-z0-9_])COV%d(?![0-9])", k), sprintf("COV%d", kk), seg, perl = TRUE)
+    ## (?i) because NM-TRAN does not care about case in abbreviated code.
+    ## Renumbering only the upper-case spelling left the other one behind,
+    ## and the reference that *was* renumbered then pointed at a variable
+    ## nothing assigns - a control stream NM-TRAN rejects. The replacement is
+    ## canonical upper case.
+    seg <- gsub(sprintf("(?i)(?<![A-Za-z])ETA\\(\\s*%d\\s*\\)", k), sprintf("ETA(%d)", kk), seg, perl = TRUE)
+    seg <- gsub(sprintf("(?i)(?<![A-Za-z0-9_])MU_%d(?![0-9])", k), sprintf("MU_%d", kk), seg, perl = TRUE)
+    seg <- gsub(sprintf("(?i)(?<![A-Za-z0-9_])COV%d(?![0-9])", k), sprintf("COV%d", kk), seg, perl = TRUE)
   }
   lines[idx] <- seg
   lines
@@ -346,6 +357,23 @@ addFremIIV <- function(strFREMModel,
     hit <- hit[hit >= pkStart[1] & hit <= pkEnd]
   }
   if (length(hit) == 0L) {
+    ## Say which of the two it is. A conditionally assigned parameter does
+    ## have assignments; they are just not at the start of a line, and
+    ## attaching an eta to one branch would change only that branch.
+    cond <- grep(sprintf(
+      "^\\s*IF\\s*\\(.*\\)\\s*%s\\s*=[^=]",
+      .fremEscape(parameter)
+    ), sub(";.*$", "", lines), ignore.case = TRUE)
+    if (length(cond)) {
+      stop("addFremIIV(): '", parameter, "' is assigned conditionally in $PK ",
+        "(line", if (length(cond) > 1L) "s " else " ",
+        paste(cond, collapse = ", "),
+        "); attaching an ETA to one branch would change only that branch. ",
+        "Edit the branches by hand, or attach the ETA to a parameter that ",
+        "is assigned once.",
+        call. = FALSE
+      )
+    }
     stop("addFremIIV(): no $PK assignment of '", parameter, "' was found.",
       call. = FALSE
     )
@@ -369,6 +397,18 @@ addFremIIV <- function(strFREMModel,
   } else {
     rhs <- sub("\\s+$", "", rhsAll)
     comment <- ""
+  }
+
+  ## Stacking a second random effect on a parameter that already has one is
+  ## sometimes intended and sometimes a slip; nothing used to say which.
+  existing <- .fremCountTotEta(rhs)
+  if (existing > 0L) {
+    warning("addFremIIV(): the $PK assignment of '", parameter,
+      "' already references ETA(). The new ETA(", etaIdx,
+      ") is added alongside it, giving the parameter two independent random ",
+      "effects.",
+      call. = FALSE
+    )
   }
 
   newRhs <- switch(link,

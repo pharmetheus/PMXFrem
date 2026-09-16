@@ -375,3 +375,123 @@ test_that("the eta/omega counters read code, not comments or prior records", {
     c(2L, 6L)
   )
 })
+
+test_that("addFremStructuralTheta refuses a conditionally assigned $PK parameter", {
+  # run31.mod's own house style is
+  #   IF(FOOD.EQ.1) MATFOOD = 1
+  #   IF(FOOD.EQ.0) MATFOOD = ( 1 + THETA(6))
+  # The line-anchored detector saw no assignment, so the parameter was treated
+  # as new and "MATFOOD = THETA(8)" was appended at the end of $PK - after
+  # MATCOVTIME = MATFOOD had already consumed the real value. NM-TRAN accepts
+  # that and NONMEM estimates a THETA that cannot move the objective function.
+  td <- withr::local_tempdir()
+  m <- .run31(td)
+  expect_error(
+    addFremStructuralTheta(m,
+      thetaInit = 0.1, parameter = "MATFOOD",
+      addEta = FALSE, bWriteMod = FALSE, quiet = TRUE
+    ),
+    "MATFOOD.*conditionally|conditionally.*MATFOOD"
+  )
+})
+
+test_that("addFremStructuralTheta still attaches to a plainly assigned parameter", {
+  td <- withr::local_tempdir()
+  res <- addFremStructuralTheta(.run31(td),
+    thetaInit = 0.1, parameter = "MATCOVTIME", addEta = FALSE,
+    bWriteMod = FALSE, quiet = TRUE
+  )
+  expect_match(
+    paste(res$model, collapse = "\n"),
+    "MATCOVTIME = \\(MATFOOD\\) \\* THETA\\(8\\)"
+  )
+})
+
+test_that("the eta renumber pass covers every abbreviated-code record, not just $PK/$ERROR", {
+  # An ETA() left behind in $DES still has an in-range index, so a record/count
+  # check sees nothing wrong - but it now names a different random effect than
+  # the one it named before the insertion.
+  td <- withr::local_tempdir()
+  l <- readLines(.run31(td), warn = FALSE)
+  ie <- grep("^\\$ERROR", l)
+  l <- append(l, c("$DES", "DADT(1) = -ETA(6)*A(1)"), after = ie - 1L)
+  f <- file.path(td, "des.mod")
+  writeLines(l, f)
+  file.copy(file.path(td, "run31.ext"), file.path(td, "des.ext"))
+
+  res <- suppressWarnings(addFremIIV(f,
+    parameter = "CL", omegaInit = 0.05, quiet = TRUE, bWriteMod = FALSE
+  ))
+  expect_match(
+    grep("DADT", res$model, value = TRUE), "ETA\\(7\\)"
+  )
+})
+
+test_that("the eta renumber pass is case-insensitive, as NM-TRAN is", {
+  # NM-TRAN does not care about case in abbreviated code. Renumbering only the
+  # upper-case spelling leaves the lower-case one behind, and the reference
+  # that *was* renumbered then points at a variable nothing assigns - a model
+  # NM-TRAN rejects.
+  td <- withr::local_tempdir()
+  l <- readLines(.run31(td), warn = FALSE)
+  i <- grep("COV6\\s*=\\s*MU_6\\s*\\+\\s*ETA\\(6\\)", l)
+  expect_length(i, 1)
+  l[i] <- "     cov6 = mu_6 + eta(6)"
+  f <- file.path(td, "lc.mod")
+  writeLines(l, f)
+  file.copy(file.path(td, "run31.ext"), file.path(td, "lc.ext"))
+
+  res <- suppressWarnings(addFremIIV(f,
+    parameter = "CL", omegaInit = 0.05, quiet = TRUE, bWriteMod = FALSE
+  ))
+  txt <- paste(res$model, collapse = "\n")
+  # the lower-case line moved to index 7 like every other reference
+  expect_match(txt, "(?i)cov7\\s*=\\s*mu_7\\s*\\+\\s*eta\\(7\\)", perl = TRUE)
+  expect_no_match(txt, "(?i)cov6\\s*=", perl = TRUE)
+})
+
+test_that("addFremIIV warns when the target parameter already carries an ETA", {
+  # CL = EXP(MU_3 + ETA(3)) already has IIV. Attaching another gives
+  # CL = (EXP(MU_4 + ETA(4))) * EXP(ETA(3)) - two independent random effects
+  # stacked on one parameter. That is sometimes intended and sometimes a
+  # mistake, and nothing said which.
+  td <- withr::local_tempdir()
+  expect_warning(
+    addFremIIV(.run31(td),
+      parameter = "CL", omegaInit = 0.05, quiet = TRUE,
+      bWriteMod = FALSE
+    ),
+    "already references ETA"
+  )
+})
+
+test_that("addFremStructuralTheta says muReference does not apply to an existing parameter", {
+  td <- withr::local_tempdir()
+  w <- capture_warnings(
+    addFremStructuralTheta(.run31(td),
+      thetaInit = 0.1, parameter = "CL", addEta = TRUE, muReference = FALSE,
+      omegaInit = 0.05, bWriteMod = FALSE, quiet = TRUE
+    )
+  )
+  expect_true(any(grepl("muReference", w)))
+  # CL already carries ETA(3), so the stacking warning comes too
+  expect_true(any(grepl("already references ETA", w)))
+})
+
+test_that("fremModelInfo warns when the model and the ext describe different structures", {
+  # The .ext is deliberately not migrated by the mutators, so a caller can
+  # easily pair a mutated .mod with the old .ext. numSkipOm and numTotEta then
+  # come back describing the model before the mutation, with no sign of it.
+  td <- withr::local_tempdir()
+  m <- .run31(td)
+  res <- addFremIIV(m,
+    parameter = "V", omegaInit = 0.05, quiet = TRUE,
+    bWriteMod = FALSE
+  ) |> suppressWarnings()
+  newMod <- file.path(td, "mutated.mod")
+  writeLines(res$model, newMod)
+  expect_warning(
+    fremModelInfo(modFile = newMod, dfext = file.path(td, "run31.ext")),
+    "24 eta|does not match|disagree"
+  )
+})
