@@ -200,3 +200,66 @@ stabilizeRows <- function(x, ...) {
   }
   x
 }
+
+## Columns of a getForestDFFREM() result that are derived from the sampled
+## parameter vectors. Established empirically, by running the same call with two
+## different draws and seeing which columns move.
+##
+## These cannot be asserted exactly across machines. getSamples() draws through
+## MASS::mvrnorm(), which calls eigen(Sigma, symmetric = TRUE); eigenvector
+## signs and the treatment of near-degenerate eigenvalues are LAPACK-dependent,
+## so the same seed on two OpenBLAS builds gives different draws. That, not the
+## R version, is what the old _snaps/4.2.2 and _snaps/4.4.2 variants were
+## really recording.
+forestSampledCols <- c(
+  "POINT", "POINT_NOVAR_REL_REFFUNC", "POINT_REL_REFFUNC", "POINT_REL_REFFINAL",
+  "Q1", "Q1_REL_REFFUNC", "Q1_REL_REFFINAL", "Q1_NOVAR_REL_REFFUNC",
+  "Q2", "Q2_REL_REFFUNC", "Q2_REL_REFFINAL", "Q2_NOVAR_REL_REFFUNC"
+)
+
+#' Assert what a sampled Forest-plot column must satisfy on any machine
+#'
+#' The exact values are not reproducible (see [forestSampledCols]), but their
+#' shape is: every quantile finite, and the interval bracketing the point
+#' estimate. That catches NaN, sign errors, an order-of-magnitude slip, or the
+#' quantiles coming back the wrong way round - which is what these assertions
+#' are actually for.
+expect_forest_sampling_sane <- function(x, lo = "Q1", point = "POINT", hi = "Q2") {
+  for (cc in intersect(forestSampledCols, names(x))) {
+    testthat::expect_true(all(is.finite(x[[cc]])),
+      info = paste(cc, "should be finite everywhere")
+    )
+  }
+  testthat::expect_true(all(x[[lo]] <= x[[point]] + 1e-8),
+    info = "the lower quantile should not exceed the point estimate"
+  )
+  testthat::expect_true(all(x[[point]] <= x[[hi]] + 1e-8),
+    info = "the point estimate should not exceed the upper quantile"
+  )
+  invisible(x)
+}
+
+#' Drop the sampled column from a fremParameterTable() result
+#'
+#' `RSE (%)` is computed from `n` sampled parameter vectors drawn through
+#' `MASS::mvrnorm()`, so like the Forest-plot quantiles it is LAPACK-dependent
+#' and not reproducible across machines. `Type`, `Parameter` and `Estimate` are.
+dropSampledRSE <- function(x) {
+  if (!is.null(x$parameterTable)) {
+    x$parameterTable <- x$parameterTable[
+      , setdiff(names(x$parameterTable), "RSE (%)"),
+      drop = FALSE
+    ]
+  }
+  x
+}
+
+#' Assert the RSE column is a plausible relative standard error
+expect_rse_sane <- function(x) {
+  rse <- suppressWarnings(as.numeric(as.character(x$parameterTable[["RSE (%)"]])))
+  testthat::expect_true(all(is.finite(rse)), info = "every RSE should be finite")
+  testthat::expect_true(all(rse >= 0), info = "an RSE cannot be negative")
+  testthat::expect_true(all(rse < 1000), info = "an RSE of >1000% is not plausible")
+  testthat::expect_true(any(rse > 0), info = "not every RSE should be zero")
+  invisible(x)
+}

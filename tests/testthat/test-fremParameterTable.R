@@ -132,7 +132,7 @@ test_that("fremParameterTable works for standard outputs", {
   # Test RSE calculation with default SD transformations.
   # The expect_warning is removed, as the function is now robust and does not warn.
   expect_snapshot_value(
-    stabilize(fremParameterTable(
+    stabilize(dropSampledRSE(fremParameterTable(
       runno = runno,
       modDevDir = modDevDir,
       bsFile = bsFile,
@@ -146,15 +146,19 @@ test_that("fremParameterTable works for standard outputs", {
       sigmaNum = 1:2,
       availCov = "all",
       quiet = TRUE
-    )),
-    tolerance = 1e-6,
+    ))),
     style = "serialize"
   )
+  expect_rse_sane(fremParameterTable(
+    runno = runno, modDevDir = modDevDir, bsFile = bsFile, includeRSE = TRUE,
+    numNonFREMThetas = numNonFREMThetas, numSkipOm = numSkipOm,
+    thetaNum = 1:7, omegaNum = 1:5, sigmaNum = 1:2, availCov = "all", quiet = TRUE
+  ))
 
   # No SD transformation (Existing test, keep for regression)
   # The expect_warning is removed, as the function is now robust and does not warn.
   expect_snapshot_value(
-    stabilize(fremParameterTable(
+    stabilize(dropSampledRSE(fremParameterTable(
       runno = runno,
       modDevDir = modDevDir,
       thetaNum = 2:7,
@@ -167,8 +171,7 @@ test_that("fremParameterTable works for standard outputs", {
       numSkipOm = numSkipOm,
       availCov = "all",
       quiet = TRUE
-    )),
-    tolerance = 1e-6,
+    ))),
     style = "serialize"
   )
 })
