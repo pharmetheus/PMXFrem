@@ -257,3 +257,93 @@ test_that("addFremStructuralTheta accepts a verbatim string thetaInit and writes
   expect_match(res$file, "run31_theta\\.mod$")
   expect_true(file.exists(res$file))
 })
+
+# ---------------------------------------------------------------------------
+# $OMEGA placement
+#
+# The new record must define ETA(numSkipOm + 1), so it belongs *after* every
+# skip record. Anchoring on the first "$OMEGA BLOCK(" is only equivalent when
+# the skip omegas are bare $OMEGA records, as in run31.mod. This package's own
+# updateFREMmodel() writes them as $OMEGA BLOCK(1) - run31_new.mod - and there
+# the anchor lands at index 1, permuting every existing IIV and giving the new
+# one whatever the record it displaced was initialised to (1e-04 FIX: zero).
+# ---------------------------------------------------------------------------
+
+.run31new <- function(td) {
+  file.copy(system.file("extdata/SimNeb/run31_new.mod", package = "PMXFrem"), td)
+  file.copy(system.file("extdata/SimNeb/run31_new.ext", package = "PMXFrem"), td)
+  file.path(td, "run31_new.mod")
+}
+
+.omegaRecs <- function(lines) grep("^\\s*\\$OMEGA", lines, value = TRUE)
+
+test_that("addFremIIV inserts the new $OMEGA after the skip records, not before the first BLOCK(", {
+  td <- withr::local_tempdir()
+  res <- addFremIIV(.run31new(td), parameter = "FREL", omegaInit = 0.04, quiet = TRUE)
+
+  expect_equal(res$etaIndex, 3L) # numSkipOm (2) + 1
+  expect_equal(res$numSkipOm, 3L)
+
+  recs <- .omegaRecs(res$model)
+
+  # the two skip omegas keep their own initial values, FIX flags and comments
+  expect_match(recs[1], "0\\.0541999")
+  expect_match(recs[1], "IIV on RUV")
+  expect_match(recs[2], "1e-04")
+  expect_match(recs[2], "FIX")
+  expect_match(recs[2], "IIV on D1")
+
+  # the new record is third - ETA(3) - carries omegaInit, and is not FIX
+  expect_match(recs[3], "0\\.04")
+  expect_match(recs[3], "IIV on FREL")
+  expect_false(grepl("FIX", recs[3]))
+
+  # and the FREM block still follows it
+  expect_match(recs[4], "BLOCK\\(20\\)")
+})
+
+test_that(".fremOmegaRecords counts the record shapes the bundled corpus does not contain", {
+  # BLOCK(n), bare diagonals and BLOCK(n) SAME are all present in inst/extdata
+  # and are covered by the models above. These three are not, so they are
+  # asserted directly rather than left to chance.
+  bareSame <- c(
+    "$OMEGA BLOCK(2) 0.1 0.01 0.2",
+    "$OMEGA BLOCK SAME",
+    "$SIGMA 1"
+  )
+  expect_equal(PMXFrem:::.fremOmegaRecords(bareSame)$n, c(2L, 2L))
+
+  expect_equal(
+    PMXFrem:::.fremOmegaRecords(c("$OMEGA DIAGONAL(3) 0.1 0.2 0.3"))$n, 3L
+  )
+
+  # (value)xN repetition, and a continuation line
+  expect_equal(
+    PMXFrem:::.fremOmegaRecords(c("$OMEGA (0.1)x3", "$SIGMA 1"))$n, 3L
+  )
+  expect_equal(
+    PMXFrem:::.fremOmegaRecords(c("$OMEGA 0.1 0.2", "  0.3 ; a comment", "$SIGMA 1"))$n,
+    3L
+  )
+
+  # options and comments must not be counted as values
+  expect_equal(
+    PMXFrem:::.fremOmegaRecords(c("$OMEGA 1e-04 FIX ; 2. IIV on D1"))$n, 1L
+  )
+})
+
+test_that("addFremIIV stops when numSkipOm does not land on an $OMEGA record boundary", {
+  m <- c(
+    "$PROBLEM x", "$PK", "CL = THETA(1) * EXP(ETA(1) + ETA(2) + ETA(3))",
+    "$THETA 1", "$OMEGA BLOCK(3) 0.1 0.01 0.2 0.01 0.01 0.3", "$SIGMA 1"
+  )
+  # numSkipOm = 1 would put the new eta inside the BLOCK(3): there is no record
+  # boundary there, so guessing a position would silently corrupt the model.
+  expect_error(
+    addFremIIV(m,
+      omegaInit = 0.01, link = "none",
+      numNonFREMThetas = 1, numSkipOm = 1, quiet = TRUE
+    ),
+    "no \\$OMEGA record starts at ETA\\(2\\)"
+  )
+})

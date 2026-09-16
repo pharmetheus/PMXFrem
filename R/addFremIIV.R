@@ -135,19 +135,12 @@ addFremIIV <- function(strFREMModel,
     )
   }
 
-  ## ---- insert the new simple $OMEGA before the FREM BLOCK(N) -------------
+  ## ---- insert the new simple $OMEGA at eta index kNew ---------------------
   if (is.null(label)) {
     label <- if (!is.null(parameter)) paste0("IIV on ", parameter) else "added IIV"
   }
   newOmLine <- sprintf("$OMEGA  %s  ; %d. %s", format(omegaInit), kNew, label)
-  omBlockLine <- grep("^\\s*\\$OMEGA\\s+BLOCK\\s*\\(", lines, ignore.case = TRUE)
-  if (length(omBlockLine) == 0L) {
-    stop("addFremIIV(): could not find a '$OMEGA BLOCK(N)' record to insert ",
-      "the new $OMEGA before.",
-      call. = FALSE
-    )
-  }
-  at <- omBlockLine[1] - 1L
+  at <- .fremOmegaInsertAt(lines, numSkipOm)
   lines <- c(lines[seq_len(at)], newOmLine, lines[(at + 1L):length(lines)])
 
   ## ---- write -----------------------------------------------------------
@@ -180,6 +173,94 @@ addFremIIV <- function(strFREMModel,
     numNonFREMThetas = numNonFREMThetas,
     file = outFile
   ))
+}
+
+
+#' Where to insert a new $OMEGA so that it defines ETA(numSkipOm + 1)
+#'
+#' Returns the line number to insert *after*. The new record belongs
+#' immediately before the first $OMEGA record that defines ETA(numSkipOm + 1),
+#' which is found by counting etas, not by looking for "$OMEGA BLOCK(".
+#'
+#' Anchoring on the first BLOCK( is only equivalent when the skip omegas are
+#' bare $OMEGA records. This package's own updateFREMmodel() writes them as
+#' $OMEGA BLOCK(1) (inst/extdata/SimNeb/run31_new.mod), and there that anchor
+#' lands at index 1: every existing IIV shifts down one record and the new eta
+#' inherits whatever record it displaced was initialised to.
+#'
+#' @keywords internal
+#' @noRd
+.fremOmegaInsertAt <- function(lines, numSkipOm) {
+  recs <- .fremOmegaRecords(lines)
+  if (nrow(recs) == 0L) {
+    stop("addFremIIV(): the model has no $OMEGA record to insert next to.",
+      call. = FALSE
+    )
+  }
+  ## etas defined by all records *before* each record
+  before <- cumsum(c(0L, recs$n))[seq_len(nrow(recs))]
+  i <- which(before == numSkipOm)[1]
+  if (is.na(i)) {
+    stop("addFremIIV(): no $OMEGA record starts at ETA(", numSkipOm + 1L,
+      "), so the new record cannot be placed. The $OMEGA records define ",
+      paste(recs$n, collapse = " + "), " = ", sum(recs$n),
+      " eta(s); numSkipOm is ", numSkipOm,
+      ". Check numSkipOm against the control stream.",
+      call. = FALSE
+    )
+  }
+  recs$start[i] - 1L
+}
+
+
+#' The $OMEGA records of a control stream, and how many etas each defines
+#'
+#' One row per record: `start` / `end` line numbers and `n`, the number of etas.
+#' BLOCK(n) -> n; BLOCK(n) SAME or a bare SAME -> the previous record's size;
+#' DIAGONAL(n) -> n; a bare $OMEGA -> the count of numeric values it carries
+#' across its continuation lines, with `(v)xN` repetition expanded.
+#'
+#' Comments and the record-level options NM-TRAN allows here are stripped
+#' first, so `$OMEGA BLOCK(1) 1e-04 FIX ; 2. IIV on D1` counts as one eta and
+#' not as three numbers.
+#'
+#' @keywords internal
+#' @noRd
+.fremOmegaRecords <- function(lines) {
+  isRec <- grepl("^\\s*\\$[A-Za-z]", lines)
+  isOm <- grepl("^\\s*\\$OM", lines, ignore.case = TRUE)
+  starts <- which(isOm)
+  empty <- data.frame(
+    start = integer(0), end = integer(0), n = integer(0)
+  )
+  if (length(starts) == 0L) {
+    return(empty)
+  }
+  recStarts <- which(isRec)
+  ends <- vapply(starts, function(s) {
+    nxt <- recStarts[recStarts > s]
+    if (length(nxt)) nxt[1] - 1L else length(lines)
+  }, integer(1))
+
+  n <- integer(length(starts))
+  for (k in seq_along(starts)) {
+    txt <- paste(sub(";.*$", "", lines[starts[k]:ends[k]]), collapse = " ")
+    txt <- sub("^\\s*\\$[A-Za-z]+", "", txt)
+    up <- toupper(txt)
+    blk <- regmatches(up, regexpr("BLOCK\\s*\\(\\s*[0-9]+\\s*\\)", up))
+    dia <- regmatches(up, regexpr("DIAGONAL\\s*\\(\\s*[0-9]+\\s*\\)", up))
+    if (length(blk) == 1L) {
+      n[k] <- as.integer(gsub("[^0-9]", "", blk))
+    } else if (length(dia) == 1L) {
+      n[k] <- as.integer(gsub("[^0-9]", "", dia))
+    } else if (grepl("\\bSAME\\b", up)) {
+      ## BLOCK SAME with no size: same dimension as the previous record
+      n[k] <- if (k > 1L) n[k - 1L] else 0L
+    } else {
+      n[k] <- .fremCountOmegaValues(txt)
+    }
+  }
+  data.frame(start = starts, end = ends, n = n)
 }
 
 

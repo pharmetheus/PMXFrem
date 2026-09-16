@@ -293,17 +293,37 @@ generateFremModel <- function(final_df,
 }
 
 
-#' Count the numeric values an $OMEGA line carries
+#' Count the numeric values an $OMEGA record carries
 #'
 #' Comment text, the `$OMEGA` keyword, `BLOCK(k)` / `DIAGONAL(k)` sizes and the
 #' option flags are stripped, so the `k` of a `BLOCK(k)` header is never counted
-#' as a value.
+#' as a value. `(v ...)xN` repetition is expanded first, so a record written
+#' that way reports the values it stands for rather than the two it is spelt
+#' with.
+#'
+#' `l` may be one line or the several a record spans.
 #' @keywords internal
 #' @noRd
 .fremCountOmegaValues <- function(l) {
-  b <- sub(";.*$", "", l)
+  b <- paste(sub(";.*$", "", l), collapse = " ")
   b <- sub("^\\s*\\$OMEGA\\b", "", b, ignore.case = TRUE)
   b <- gsub("BLOCK\\s*\\([^)]*\\)|DIAGONAL\\s*\\([^)]*\\)", "", b, ignore.case = TRUE)
-  b <- gsub("\\b(FIXED?|SAME|VALUES|CORRELATION|CHOLESKY|STANDARD)\\b", "", b, ignore.case = TRUE)
+  b <- gsub(
+    paste0(
+      "\\b(FIXED?|SAME|VALUES|CORRELATION|CHOLESKY|STANDARD|SD|",
+      "VARIANCE|COVARIANCE)\\b"
+    ),
+    "", b,
+    ignore.case = TRUE
+  )
+  ## (value ...)xN repeats the parenthesised group N times
+  repeat {
+    m <- regexpr("\\(([^()]*)\\)\\s*[xX]\\s*([0-9]+)", b)
+    if (m == -1L) break
+    hit <- regmatches(b, m)
+    inner <- sub("\\(([^()]*)\\)\\s*[xX]\\s*([0-9]+)", "\\1", hit)
+    times <- as.integer(sub("\\(([^()]*)\\)\\s*[xX]\\s*([0-9]+)", "\\2", hit))
+    regmatches(b, m) <- paste(rep(inner, times), collapse = " ")
+  }
   length(regmatches(b, gregexpr("[-+]?[0-9.][-+0-9.eE]*", b))[[1]])
 }
