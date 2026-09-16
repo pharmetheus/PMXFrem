@@ -185,69 +185,76 @@ The \code{availCov} argument specifies the covariates in the frem model that sho
 of the maximum variability (TOTCOVVAR). If NULL (default), all covariates inteh frem model will be used for the derivation of TOTCOVVAR.
 }
 \examples{
-
 \donttest{
 library(dplyr)
 
-modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
+modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
 fremRunno <- 31
-modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))
-covNames  <- getCovNames(modFile = modFile)
+modFile <- file.path(modDevDir, paste0("run", fremRunno, ".mod"))
+covNames <- getCovNames(modFile = modFile)
 
 ## Set up dfCovs
 dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) \%>\%
   filter(BLQ == 0) \%>\%
-  distinct(ID,.keep_all = TRUE)
+  distinct(ID, .keep_all = TRUE)
 
 dfCovs <- setupDfCovsEV(modFile)
 
-cstrCovariates <- c("All",names(dfCovs))
+cstrCovariates <- c("All", names(dfCovs))
 
 ## A list of functions
 functionList2 <- list(
-  function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[2]*exp(covthetas[1] + etas[3]))},
-  function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[3]*exp(covthetas[2] + etas[4]))}
+  function(basethetas, covthetas, dfrow, etas, ...) {
+    return(basethetas[2] * exp(covthetas[1] + etas[3]))
+  },
+  function(basethetas, covthetas, dfrow, etas, ...) {
+    return(basethetas[3] * exp(covthetas[2] + etas[4]))
+  }
 )
 
-functionListName2 <- c("CL","V")
+functionListName2 <- c("CL", "V")
 
 ## numNonFREMThetas / numSkipOm passed explicitly
-dfres1 <- getExplainedVar(type             = 1,
-                          data             = dfData,
-                          dfCovs           = dfCovs,
-                          numNonFREMThetas = 7,
-                          numSkipOm        = 2,
-                          functionList     = functionList2,
-                          functionListName = functionListName2,
-                          cstrCovariates   = cstrCovariates,
-                          modDevDir        = modDevDir,
-                          runno            = fremRunno,
-                          ncores           = 2,
-                          quiet            = TRUE,
-                          seed             = 123
+dfres1 <- getExplainedVar(
+  type = 1,
+  data = dfData,
+  dfCovs = dfCovs,
+  numNonFREMThetas = 7,
+  numSkipOm = 2,
+  functionList = functionList2,
+  functionListName = functionListName2,
+  cstrCovariates = cstrCovariates,
+  modDevDir = modDevDir,
+  runno = fremRunno,
+  ncores = 2,
+  quiet = TRUE,
+  seed = 123
 )
 
 ## A function that returns a vector of values
-vectorFunction <- function(basethetas,covthetas, dfrow, etas, ...) {
+vectorFunction <- function(basethetas, covthetas, dfrow, etas, ...) {
   return(
-    c(basethetas[2]*exp(covthetas[1] + etas[3]),
-      basethetas[3]*exp(covthetas[2] + etas[4]))
-)
+    c(
+      basethetas[2] * exp(covthetas[1] + etas[3]),
+      basethetas[3] * exp(covthetas[2] + etas[4])
+    )
+  )
 }
 
 ## numNonFREMThetas / numSkipOm omitted: derived from the model file located
 ## via runno / modDevDir (see fremModelInfo())
-dfres12 <- getExplainedVar(type            = 0,
-                          data             = dfData,
-                          dfCovs           = dfCovs,
-                          functionList     = list(vectorFunction), # Need to enclose the function in list()
-                          functionListName = functionListName2,
-                          cstrCovariates   = cstrCovariates,
-                          modDevDir        = modDevDir,
-                          runno            = fremRunno,
-                          ncores           = 2,
-                          quiet            = TRUE,
-                          seed             = 123
+dfres12 <- getExplainedVar(
+  type = 0,
+  data = dfData,
+  dfCovs = dfCovs,
+  functionList = list(vectorFunction), # Need to enclose the function in list()
+  functionListName = functionListName2,
+  cstrCovariates = cstrCovariates,
+  modDevDir = modDevDir,
+  runno = fremRunno,
+  ncores = 2,
+  quiet = TRUE,
+  seed = 123
 )
 }
 }

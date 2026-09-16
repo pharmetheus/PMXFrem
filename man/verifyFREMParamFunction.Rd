@@ -67,13 +67,15 @@ counterpart or splice to probe.
 }
 \examples{
 fremModel <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
-out <- createFREMParamFunction(fremModel, parameters = c("CL", "V", "MAT"),
-                               quiet = TRUE)
+out <- createFREMParamFunction(fremModel,
+  parameters = c("CL", "V", "MAT"),
+  quiet = TRUE
+)
 
 if (verifyFREMParamFunction(out, quiet = TRUE)) message("generated function checks out")
 
 v <- verifyFREMParamFunction(out, quiet = TRUE)
-attr(v, "checks")          # per-parameter detail
+attr(v, "checks") # per-parameter detail
 
 }
 \seealso{

@@ -33,7 +33,7 @@ function.
 }
 \examples{
 
-modFile <- system.file("extdata", "SimNeb", "run31.mod",package = "PMXFrem")
+modFile <- system.file("extdata", "SimNeb", "run31.mod", package = "PMXFrem")
 
 # Use a covariates in the FREM model file
 setupDfCovsEV(modFile)

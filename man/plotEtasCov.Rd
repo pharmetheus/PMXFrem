@@ -50,7 +50,7 @@ Allowed values are \code{"FREM"}, \code{"Prim"}, and \code{"EBE"}. Defaults to
 Must be the same length as \code{etaNames}. If \code{NULL} (default), \code{etaNames} are used.}
 
 \item{typeLabels}{A named character vector specifying custom labels for the ETA
-calculation types (the facet rows). Defaults to \code{c("FREM" = "FREM ETA", 
+calculation types (the facet rows). Defaults to \code{c("FREM" = "FREM ETA",
   "Prim" = "ETA Prim", "EBE" = "FFEM EBE")}.}
 
 \item{showMissing}{Logical. If \code{FALSE} (default), subjects with missing
@@ -119,7 +119,7 @@ data_path <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", pack
 
 # Isolate valid observations (e.g., exclude BLQ)
 my_data <- read.csv(data_path)
-my_data <- my_data[my_data$BLQ != 1, ] 
+my_data <- my_data[my_data$BLQ != 1, ]
 
 # 2. Generate the individual ETAs and missingness flags
 ind_params <- calcEtas(
@@ -136,8 +136,8 @@ ind_params <- calcEtas(
 # 3. Example A: Default Diagnostic Plot
 # Excludes missing covariates to evaluate the observed relationship
 p_strict <- plotEtasCov(
-  df = ind_params, 
-  covName = "WT", 
+  df = ind_params,
+  covName = "WT",
   etaNames = c("ETA3", "ETA4"),
   etaTypes = c("EBE", "FREM"),
   etaLabels = c("Clearance", "Volume"),
@@ -148,8 +148,8 @@ print(p_strict)
 # 4. Example B: Diagnostic Plot with Missing Data
 # Visualizes missing covariates and fits a separate smoothing line for them
 p_missing <- plotEtasCov(
-  df = ind_params, 
-  covName = "WT", 
+  df = ind_params,
+  covName = "WT",
   etaNames = c("ETA3"),
   etaTypes = c("FREM"),
   showMissing = TRUE,

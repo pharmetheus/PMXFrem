@@ -109,7 +109,8 @@ model_dir <- system.file("extdata/SimNeb/", package = "PMXFrem")
 
 # 2. Load and prepare the dataset also included with the package
 data_path <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",
-                         package = "PMXFrem")
+  package = "PMXFrem"
+)
 
 my_data <- read.csv(data_path)
 

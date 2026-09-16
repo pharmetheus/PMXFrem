@@ -213,7 +213,7 @@ updateFREMmodel(
   strFREMData       = frem_data_path,
   strFFEMData       = ffem_df, # Use the modified data frame with SITE
   strNewFREMData    = file.path(td, "frem_data_with_SITE.csv"),
-  cstrCatCovsToAdd  = "SITE",  # Add the new SITE covariate
+  cstrCatCovsToAdd  = "SITE", # Add the new SITE covariate
   numNonFREMThetas  = 7,
   numSkipOm         = 2,
   bWriteData        = TRUE,
@@ -227,10 +227,10 @@ td <- tempdir()
 # Load the original data as data frames
 frem_df <- as.data.frame(data.table::fread(
   system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem")
-)) \%>\% rename(LNDV=ODV)
+)) \%>\% rename(LNDV = ODV)
 ffem_df <- as.data.frame(data.table::fread(
   system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
-)) 
+))
 
 # Simulate new individuals by taking 50 rows and giving them new IDs
 ffem_new_ids <- ffem_df[1:50, ]
@@ -241,7 +241,7 @@ model_path <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
 
 result <- updateFREMmodel(
   strFREMModel      = model_path,
-  strFREMData       = frem_df,      # Pass original data as a data frame
+  strFREMData       = frem_df, # Pass original data as a data frame
   strFFEMData       = ffem_new_ids, # Pass the new individuals' data
   strNewFREMData    = file.path(td, "frem_data_with_new_ids.csv"),
   numNonFREMThetas  = 7,
@@ -266,8 +266,8 @@ model_in_td <- file.path(td, "run31.mod")
 updateFREMmodel(
   strFREMModel       = model_in_td,
   strUpdateType      = "NoData",
-  basenames_th       = c("CL","V","MAT","D1","FRELFOOD","MATFOOD"),
-  basenames_om       = c("RUV","D1","CL","V","MAT"),
+  basenames_th       = c("CL", "V", "MAT", "D1", "FRELFOOD", "MATFOOD"),
+  basenames_om       = c("RUV", "D1", "CL", "V", "MAT"),
   numNonFREMThetas   = 7,
   numSkipOm          = 2,
   bWriteData         = FALSE,

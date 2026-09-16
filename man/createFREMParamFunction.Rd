@@ -172,7 +172,8 @@ cat(out$code, sep = "\n")
 out2 <- createFREMParamFunction(
   runno      = 31,
   modDevDir  = system.file("extdata/SimNeb/", package = "PMXFrem"),
-  parameters = c("CL", "V", "MAT"))
+  parameters = c("CL", "V", "MAT")
+)
 stopifnot(identical(out$code, out2$code))
 
 }

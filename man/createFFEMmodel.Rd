@@ -134,8 +134,10 @@ function. This may be practically possible for one or a few covariates, but
 will quickly run into NONMEM related issues regarding the number of allowed
 constants, and similar. The second and recommended approach, is to precompute
 the total impact of the covariates for each individual, and to add these
-\emph{individual covariate coefficients} to the original data set. They can then be
+\itemize{
+\item individual covariate coefficients* to the original data set. They can then be
 added as constants in the the FFEM code additatively to the corresponding ETA:
+}
 
 Change the FFEM code from:
 
@@ -182,9 +184,9 @@ simulations for a VPC analysis.
 
 \examples{
 
-#Setup paths using package extdata
+# Setup paths using package extdata
 modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
-dataFile  <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+dataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
 
 # Isolate outputs to a temporary directory
 td <- tempdir()
@@ -198,7 +200,7 @@ ffemMod <- createFFEMmodel(
   modDevDir        = modDevDir,
   numNonFREMThetas = 7,
   numSkipOm        = 2,
-  parNames         = c("CL","V","MAT"),
+  parNames         = c("CL", "V", "MAT"),
   dataFile         = dataFile,
   newDataFile      = out_data,
   quiet            = TRUE
@@ -212,7 +214,7 @@ ffemModChol <- createFFEMmodel(
   modDevDir        = modDevDir,
   numNonFREMThetas = 7,
   numSkipOm        = 2,
-  parNames         = c("CL","V","MAT"),
+  parNames         = c("CL", "V", "MAT"),
   dataFile         = dataFile,
   newDataFile      = out_data_chol,
   quiet            = TRUE,
@@ -226,7 +228,7 @@ ffemModDerived <- createFFEMmodel(
   runno       = 31,
   baserunno   = 30,
   modDevDir   = modDevDir,
-  parNames    = c("CL","V","MAT"),
+  parNames    = c("CL", "V", "MAT"),
   dataFile    = dataFile,
   newDataFile = out_data_derived,
   quiet       = TRUE

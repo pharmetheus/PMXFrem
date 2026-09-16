@@ -148,7 +148,7 @@ the console.
 \examples{
 # Setup paths using package extdata
 modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
-dataFile  <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+dataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
 
 # Isolate outputs to a temporary directory
 td <- tempdir()
@@ -162,7 +162,8 @@ ffemData <- createFFEMdata(
   numSkipOm        = 2,
   dataFile         = dataFile,
   newDataFile      = NULL,
-  quiet            = TRUE)
+  quiet            = TRUE
+)
 
 # Example 2: Writing to a file and including Cholesky matrix columns
 out_data <- file.path(td, "ffem_data_chol.csv")
@@ -175,7 +176,8 @@ ffemDataChol <- createFFEMdata(
   dataFile         = dataFile,
   newDataFile      = out_data,
   quiet            = TRUE,
-  omegaToData      = TRUE)
+  omegaToData      = TRUE
+)
 
 # Example 3: numNonFREMThetas / numSkipOm omitted -- derived from the FREM
 # model located via runno / modDevDir (see fremModelInfo())
@@ -185,7 +187,8 @@ ffemDataDerived <- createFFEMdata(
   parNames    = c("CL", "V", "MAT"),
   dataFile    = dataFile,
   newDataFile = NULL,
-  quiet       = TRUE)
+  quiet       = TRUE
+)
 
 }
 \seealso{

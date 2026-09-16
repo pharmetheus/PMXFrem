@@ -68,41 +68,46 @@ TOTCOVVAR and multiplied by 100.
 \examples{
 library(dplyr)
 
-modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
+modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
 fremRunno <- 31
-modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))
-covNames  <- getCovNames(modFile = modFile)
+modFile <- file.path(modDevDir, paste0("run", fremRunno, ".mod"))
+covNames <- getCovNames(modFile = modFile)
 
 ## Set up dfCovs
 dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) \%>\%
   filter(BLQ == 0) \%>\%
-  distinct(ID,.keep_all = TRUE)
+  distinct(ID, .keep_all = TRUE)
 
 dfCovs <- setupDfCovsEV(modFile)
 
-cstrCovariates <- c("All",names(dfCovs))
+cstrCovariates <- c("All", names(dfCovs))
 
 ## A list of functions
 functionList2 <- list(
-  function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[2]*exp(covthetas[1] + etas[3]))},
-  function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[3]*exp(covthetas[2] + etas[4]))}
+  function(basethetas, covthetas, dfrow, etas, ...) {
+    return(basethetas[2] * exp(covthetas[1] + etas[3]))
+  },
+  function(basethetas, covthetas, dfrow, etas, ...) {
+    return(basethetas[3] * exp(covthetas[2] + etas[4]))
+  }
 )
 
-functionListName2 <- c("CL","V")
+functionListName2 <- c("CL", "V")
 
-dfres1 <- getExplainedVar(type             = 0,
-                          data             = dfData,
-                          dfCovs           = dfCovs,
-                          numNonFREMThetas = 7,
-                          numSkipOm        = 2,
-                          functionList     = functionList2,
-                          functionListName = functionListName2,
-                          cstrCovariates   = cstrCovariates,
-                          modDevDir        = modDevDir,
-                          runno            = fremRunno,
-                          ncores           = 2,
-                          quiet            = TRUE,
-                          seed             = 123
+dfres1 <- getExplainedVar(
+  type = 0,
+  data = dfData,
+  dfCovs = dfCovs,
+  numNonFREMThetas = 7,
+  numSkipOm = 2,
+  functionList = functionList2,
+  functionListName = functionListName2,
+  cstrCovariates = cstrCovariates,
+  modDevDir = modDevDir,
+  runno = fremRunno,
+  ncores = 2,
+  quiet = TRUE,
+  seed = 123
 )
 
 plotExplainedVar(dfres1)

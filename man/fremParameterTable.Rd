@@ -147,61 +147,63 @@ Covariate Effects) mapping each covariate to each structural parameter.
 \examples{
 
 if (requireNamespace("kableExtra", quietly = TRUE)) {
-library(kableExtra)
-library(dplyr)
+  library(kableExtra)
+  library(dplyr)
 
-set.seed(123)
-runno            <- 31
-modName          <- "run31"
-ffemModName      <- "run31max0"
-modDevDir        <- system.file("extdata/SimNeb/",package = "PMXFrem")
-numNonFREMThetas <- 7
-numSkipOm        <- 2
+  set.seed(123)
+  runno <- 31
+  modName <- "run31"
+  ffemModName <- "run31max0"
+  modDevDir <- system.file("extdata/SimNeb/", package = "PMXFrem")
+  numNonFREMThetas <- 7
+  numSkipOm <- 2
 
-## numNonFREMThetas / numSkipOm omitted: derived from the model located via
-## runno / modDevDir (see fremModelInfo())
-tmpDerived <- fremParameterTable(
-      runno     = runno,
-      modDevDir = modDevDir,
-      thetaNum  = 2:7,
-      omegaNum  = c(1, 3, 4, 5),
-      sigmaNum  = 1,
-      parNames  = c("CL", "V", "MAT"),
-      availCov  = "all",
-      quiet     = TRUE)
+  ## numNonFREMThetas / numSkipOm omitted: derived from the model located via
+  ## runno / modDevDir (see fremModelInfo())
+  tmpDerived <- fremParameterTable(
+    runno     = runno,
+    modDevDir = modDevDir,
+    thetaNum  = 2:7,
+    omegaNum  = c(1, 3, 4, 5),
+    sigmaNum  = 1,
+    parNames  = c("CL", "V", "MAT"),
+    availCov  = "all",
+    quiet     = TRUE
+  )
 
-## Full output, numNonFREMThetas / numSkipOm passed explicitly
-tmp <- fremParameterTable(
-      runno            = runno,
-      modName          = modName,
-      modDevDir        = modDevDir,
-      thetaNum         = 2:7,
-      omegaNum         = c(1,3,4,5),
-      sigmaNum         = 1,
-      thetaLabels      = c("CL (L/h)","V (L)","MAT (h)","D1 (h)","Food on Frel","Food on MAT"),
-      omegaLabels      = c("IIV on RUV","IIV on CL","IIV on V","IIV on MAT"),
-      sigmaLabels      = c("RUV"),
-      parNames         = c("CL", "V", "MAT"),
-      includeRSE       = TRUE,
-      includeShrinkage = TRUE,
-      shrinkageType    = "ETA_SD",
-      rawShrinkage     = FALSE,
-      ffemModName      = ffemModName,
-      shkDigs          = 2,
-      uncertainty      = "CI",
-      numNonFREMThetas = numNonFREMThetas,
-      numSkipOm        = numSkipOm,
-      availCov         = "all",
-      quiet            = TRUE)
+  ## Full output, numNonFREMThetas / numSkipOm passed explicitly
+  tmp <- fremParameterTable(
+    runno            = runno,
+    modName          = modName,
+    modDevDir        = modDevDir,
+    thetaNum         = 2:7,
+    omegaNum         = c(1, 3, 4, 5),
+    sigmaNum         = 1,
+    thetaLabels      = c("CL (L/h)", "V (L)", "MAT (h)", "D1 (h)", "Food on Frel", "Food on MAT"),
+    omegaLabels      = c("IIV on RUV", "IIV on CL", "IIV on V", "IIV on MAT"),
+    sigmaLabels      = c("RUV"),
+    parNames         = c("CL", "V", "MAT"),
+    includeRSE       = TRUE,
+    includeShrinkage = TRUE,
+    shrinkageType    = "ETA_SD",
+    rawShrinkage     = FALSE,
+    ffemModName      = ffemModName,
+    shkDigs          = 2,
+    uncertainty      = "CI",
+    numNonFREMThetas = numNonFREMThetas,
+    numSkipOm        = numSkipOm,
+    availCov         = "all",
+    quiet            = TRUE
+  )
 
-## Use kable_extra to generate a nice looking table of the main parameters
-tmp$parameterTable \%>\%
-    mutate(Estimate=as.character(signif(Estimate,3)))\%>\%
+  ## Use kable_extra to generate a nice looking table of the main parameters
+  tmp$parameterTable \%>\%
+    mutate(Estimate = as.character(signif(Estimate, 3))) \%>\%
     kbl() \%>\%
     kable_classic(full_width = FALSE, html_font = "Cambria")
-    
-## Use kable_extra to generate a nice looking table of the covariate coefficients
-tmp$coefficientTable_wide \%>\%
+
+  ## Use kable_extra to generate a nice looking table of the covariate coefficients
+  tmp$coefficientTable_wide \%>\%
     kbl() \%>\%
     kable_classic(full_width = FALSE, html_font = "Cambria")
 }

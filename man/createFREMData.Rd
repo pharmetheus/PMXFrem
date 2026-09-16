@@ -96,13 +96,15 @@ argument.
 }
 \examples{
 strFFEMData <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",
-                           package = "PMXFrem")
+  package = "PMXFrem"
+)
 tmp10 <- createFREMData(
-           strFFEMData          = strFFEMData,
-           cstrKeepCols         = c("ID", "TIME", "AMT", "EVID", "RATE"),
-           bRecodeDichotomous   = TRUE,
-           cstrCatCovs          = c("SEX","SMOK","NCIL"),
-           cstrContCovs         = c("WT","BMI","AGE"))
+  strFFEMData          = strFFEMData,
+  cstrKeepCols         = c("ID", "TIME", "AMT", "EVID", "RATE"),
+  bRecodeDichotomous   = TRUE,
+  cstrCatCovs          = c("SEX", "SMOK", "NCIL"),
+  cstrContCovs         = c("WT", "BMI", "AGE")
+)
 
 }
 \seealso{

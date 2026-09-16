@@ -104,8 +104,8 @@ cleans up all intermediate files.
 \examples{
 
 # Setup paths using package extdata
-modDevDir    <- system.file("extdata", "SimNeb", package = "PMXFrem")
-modName      <- "run30"
+modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
+modName <- "run30"
 ffemDataFile <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 
 
@@ -113,32 +113,32 @@ td <- tempfile(pattern = "frem_example_")
 dir.create(td)
 
 # Define covariates and keep columns
-covariates <- c("AGE","WT","SEX","RACEL")
-catCovs    <- c("RACEL","SEX")
-keep_cols  <- c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV")
+covariates <- c("AGE", "WT", "SEX", "RACEL")
+catCovs <- c("RACEL", "SEX")
+keep_cols <- c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV")
 
 # Generate the full FREM model
 generated_files <- createFREMmodel(
-  modName            = modName,
-  modDevDir          = modDevDir,
-  ffemDataFile       = ffemDataFile,
-  covariates         = covariates,
-  logtCovs           = "WT",
-  catCovs            = catCovs,         
-  outputDir          = td,
-  fremModName       = "frem_final",
-  numNonFREMThetas   = 7,
-  numSkipOm          = 2,
-  cstrKeepCols       = keep_cols,
+  modName = modName,
+  modDevDir = modDevDir,
+  ffemDataFile = ffemDataFile,
+  covariates = covariates,
+  logtCovs = "WT",
+  catCovs = catCovs,
+  outputDir = td,
+  fremModName = "frem_final",
+  numNonFREMThetas = 7,
+  numSkipOm = 2,
+  cstrKeepCols = keep_cols,
   bRecodeDichotomous = TRUE,
-  quiet              = TRUE
+  quiet = TRUE
 )
 
 # The generated files are available in the temporary directory
 print(generated_files$model)
 print(generated_files$data)
 
-#Clean up the temporary directory
+# Clean up the temporary directory
 unlink(td, recursive = TRUE)
 
 }

@@ -60,10 +60,11 @@ library(dplyr)
 
 # Load the base dataset
 dfFFEM <- read.csv(
-  system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package="PMXFrem")) \%>\%
+  system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+) \%>\%
   filter(BLQ != 1)
 
-modFile <- system.file("extdata/SimNeb/run31.mod", package="PMXFrem")
+modFile <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
 
 ## Example 1: Add covariates automatically based on a FREM model file
 dfFFEM_mod <- addFREMcovariates(dfFFEM, modFile = modFile)

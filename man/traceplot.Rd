@@ -111,7 +111,7 @@ trace_plots_no_shape <- traceplot(
   includeShapedOFV = FALSE
 )
 
-  trace_plots_no_shape$OFV
+trace_plots_no_shape$OFV
 }
 \seealso{
 Other Diagnostics & Plotting: 

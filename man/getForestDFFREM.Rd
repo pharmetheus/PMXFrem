@@ -150,55 +150,55 @@ data frame will be computed.
 }
 \examples{
 \donttest{
-  # 1. Setup paths to model and bootstrap results
-  modDevDir <- system.file("extdata/SimNeb", package="PMXFrem")
-  modFile   <- file.path(modDevDir, "run31.mod")
-  extFile   <- file.path(modDevDir, "run31.ext")
-  bsFile    <- file.path(modDevDir, "bs31.dir/raw_results_run31.csv")
-  
-  # 2. Setup Covariates
-  dfCovs <- data.frame(
-    COVARIATEGROUPS = c("AGE", "AGE", "SEX", "SEX"),
-    AGE = c(30, 60, -99, -99),
-    SEX = c(-99, -99, 0, 1)
-  )
-  
-  # 3. Define a simple parameter function
-  paramFunction <- function(basethetas, covthetas, dfrow, ...) {
-    return(basethetas[1] * exp(covthetas[1]))
-  }
-  
-  # 4. Use PMXForest to extract 25 samples from bootstrap results
-  set.seed(123)
-  samples <- PMXForest::getSamples(bsFile, extFile = extFile, n = 25)
-  
-  # 5a. Generate Forest Plot Data -- covNames / numSkipOm / numNonFREMThetas
-  #     passed explicitly
-  dfresFREM <- getForestDFFREM(
-    dfCovs           = dfCovs,
-    covNames         = getCovNames(modFile)$covNames,
-    functionList     = list(paramFunction),
-    functionListName = "CL",
-    numSkipOm        = 2,
-    numNonFREMThetas = 7,
-    dfParameters     = samples,
-    quiet            = TRUE
-  )
+# 1. Setup paths to model and bootstrap results
+modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+modFile <- file.path(modDevDir, "run31.mod")
+extFile <- file.path(modDevDir, "run31.ext")
+bsFile <- file.path(modDevDir, "bs31.dir/raw_results_run31.csv")
 
-  # 5b. Same result -- covNames / numSkipOm / numNonFREMThetas omitted and
-  #     derived from the model file located via runno / modDevDir
-  #     (see fremModelInfo())
-  dfresFREM2 <- getForestDFFREM(
-    dfCovs           = dfCovs,
-    functionList     = list(paramFunction),
-    functionListName = "CL",
-    dfParameters     = samples,
-    runno            = 31,
-    modDevDir        = modDevDir,
-    quiet            = TRUE
-  )
+# 2. Setup Covariates
+dfCovs <- data.frame(
+  COVARIATEGROUPS = c("AGE", "AGE", "SEX", "SEX"),
+  AGE = c(30, 60, -99, -99),
+  SEX = c(-99, -99, 0, 1)
+)
 
-  print(head(dfresFREM))
+# 3. Define a simple parameter function
+paramFunction <- function(basethetas, covthetas, dfrow, ...) {
+  return(basethetas[1] * exp(covthetas[1]))
+}
+
+# 4. Use PMXForest to extract 25 samples from bootstrap results
+set.seed(123)
+samples <- PMXForest::getSamples(bsFile, extFile = extFile, n = 25)
+
+# 5a. Generate Forest Plot Data -- covNames / numSkipOm / numNonFREMThetas
+#     passed explicitly
+dfresFREM <- getForestDFFREM(
+  dfCovs           = dfCovs,
+  covNames         = getCovNames(modFile)$covNames,
+  functionList     = list(paramFunction),
+  functionListName = "CL",
+  numSkipOm        = 2,
+  numNonFREMThetas = 7,
+  dfParameters     = samples,
+  quiet            = TRUE
+)
+
+# 5b. Same result -- covNames / numSkipOm / numNonFREMThetas omitted and
+#     derived from the model file located via runno / modDevDir
+#     (see fremModelInfo())
+dfresFREM2 <- getForestDFFREM(
+  dfCovs           = dfCovs,
+  functionList     = list(paramFunction),
+  functionListName = "CL",
+  dfParameters     = samples,
+  runno            = 31,
+  modDevDir        = modDevDir,
+  quiet            = TRUE
+)
+
+print(head(dfresFREM))
 }
 }
 \seealso{

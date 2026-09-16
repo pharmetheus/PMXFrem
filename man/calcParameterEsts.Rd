@@ -51,8 +51,9 @@ computing FFEM parameter estimates from FREM results.
 }
 \examples{
 \dontrun{
- fremParEsts <- calcParameterEsts(extRes,thetaNum,omegaNum,sigmaNum,numNonFREMThetas,numSkipOm,
-covNames=covNames, availCov=availCov,quiet=quiet)
+fremParEsts <- calcParameterEsts(extRes, thetaNum, omegaNum, sigmaNum, numNonFREMThetas, numSkipOm,
+  covNames = covNames, availCov = availCov, quiet = quiet
+)
 }
 }
 \seealso{

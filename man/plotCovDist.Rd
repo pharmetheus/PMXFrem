@@ -107,8 +107,8 @@ print(p1)
 # 4. Plot multiple covariates simultaneously (Density curves of counts)
 # Forcing a 2-column layout
 p2 <- plotCovDist(
-  df = ind_params, 
-  covNames = c("WT", "AGE", "GENO2","AST"), 
+  df = ind_params,
+  covNames = c("WT", "AGE", "GENO2", "AST"),
   scales = "free",
   ncol = 2
 )

@@ -101,15 +101,17 @@ the ETA prims for all subjects at the same ime, please use \code{\link[=calcEtas
 }
 \examples{
 library(dplyr)
-extFile         <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
-dfExt           <- getExt(extFile = extFile)
+extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+dfExt <- getExt(extFile = extFile)
 calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE)
 
 ## Use fremETA to also compute the ETA prim
-phiFile         <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
-dfPhi           <- getPhi(phiFile) \%>\% select(starts_with("ETA"))
-calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
-  etaFREM = as.numeric(dfPhi[1, ]))
+phiFile <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
+dfPhi <- getPhi(phiFile) \%>\% select(starts_with("ETA"))
+calcFFEMtestout <- calcFFEM(dfExt,
+  numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
+  fremETA = as.numeric(dfPhi[1, ])
+)
 
 }
 \seealso{
