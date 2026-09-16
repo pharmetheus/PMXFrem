@@ -300,3 +300,39 @@ test_that("fremParameterTable rejects bad shrinkage arguments", {
     "Invalid shrinkageType"
   )
 })
+
+test_that("the uncertainty sampling is reproducible, and leaves the caller's RNG alone", {
+  ## RSE and CI come from `n` draws, so they are Monte-Carlo quantities. With
+  ## the seed left alone they inherited whatever RNG state the caller arrived
+  ## with: two consecutive calls differed by up to 20%, and the value therefore
+  ## depended on which tests had run before this one. No snapshot of it could be
+  ## stable, which is what produced the long-running snapshot drift (T17).
+  modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+  bsFile <- system.file("extdata/SimNeb/bs31.dir/raw_results_run31.csv", package = "PMXFrem")
+  rse <- function(...) {
+    t <- fremParameterTable(
+      runno = "31", modDevDir = modDevDir, bsFile = bsFile,
+      includeRSE = TRUE, numNonFREMThetas = 7, numSkipOm = 2,
+      thetaNum = 1:7, omegaNum = 1:5, sigmaNum = 1:2,
+      availCov = "all", quiet = TRUE, ...
+    )
+    as.character(t$parameterTable[["RSE (%)"]])
+  }
+
+  ## deliberately perturb the RNG between the calls: the result must not care
+  a <- rse()
+  invisible(stats::runif(37))
+  b <- rse()
+  expect_identical(a, b)
+
+  ## an explicit seed still works, and a different one gives something different
+  expect_identical(rse(seed = 99), rse(seed = 99))
+  expect_false(identical(rse(seed = 99), rse(seed = 100)))
+
+  ## and it does not move the caller's stream
+  set.seed(4242)
+  before <- stats::runif(3)
+  set.seed(4242)
+  invisible(rse())
+  expect_identical(stats::runif(3), before)
+})

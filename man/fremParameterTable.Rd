@@ -36,7 +36,7 @@ fremParameterTable(
   modExt = ".mod",
   lstExt = ".lst",
   quiet = FALSE,
-  seed = NULL,
+  seed = 1,
   ...
 )
 }
@@ -123,8 +123,13 @@ ext, phi and cov to form the NONMEM file names, for example
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
 STDOUT.}
 
-\item{seed}{Optional integer. Seed set before the uncertainty sampling, for
-reproducible RSE / CI values. Default \code{NULL} (seed left alone).}
+\item{seed}{Integer seed set before the uncertainty sampling, so that RSE and
+CI are reproducible for the same inputs. Defaults to \code{1}. RSE and CI
+are Monte-Carlo quantities computed from \code{n} sampled parameter
+vectors; left unseeded they depend on whatever random numbers were drawn
+earlier in the session, and consecutive calls can differ by 20\%. Pass
+\code{NULL} to inherit the session's RNG state instead. The caller's
+random stream is restored afterwards either way.}
 
 \item{...}{Additional arguments passed directly to \code{PMXForest::getSamples()}.}
 }

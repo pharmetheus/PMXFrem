@@ -38,8 +38,13 @@
 #' @param sigDigs An integer specifying the number of significant digits to use for formatting output estimates and uncertainties. Default is 3.
 #' @param bsFile The name of a PsNbootstrap or sir file raw_results file. To be used for RSE calculations based on bootstrap output.
 #' @param n The number of samples to use in the RSE calculations.
-#' @param seed Optional integer. Seed set before the uncertainty sampling, for
-#'   reproducible RSE / CI values. Default \code{NULL} (seed left alone).
+#' @param seed Integer seed set before the uncertainty sampling, so that RSE and
+#'   CI are reproducible for the same inputs. Defaults to \code{1}. RSE and CI
+#'   are Monte-Carlo quantities computed from \code{n} sampled parameter
+#'   vectors; left unseeded they depend on whatever random numbers were drawn
+#'   earlier in the session, and consecutive calls can differ by 20%. Pass
+#'   \code{NULL} to inherit the session's RNG state instead. The caller's
+#'   random stream is restored afterwards either way.
 #' @param ... Additional arguments passed directly to \code{PMXForest::getSamples()}.
 #'
 #' @return A list of five components:
@@ -149,7 +154,7 @@ fremParameterTable <- function(runno = NULL,
                                modExt = ".mod",
                                lstExt = ".lst",
                                quiet = FALSE,
-                               seed = NULL,
+                               seed = 1,
                                ...) {
   ## 1. Input checks & File Resolution
   if (is.null(runno) & is.null(modName)) stop("Either runno or modName has to be specified")
@@ -234,7 +239,27 @@ fremParameterTable <- function(runno = NULL,
 
   ## 5. RSE / Uncertainty Engine
   if (includeRSE) {
-    if (!is.null(seed)) set.seed(seed)
+    ## RSE and CI are computed from `n` sampled parameter vectors, so they are
+    ## Monte-Carlo quantities. With the seed left alone they inherited whatever
+    ## RNG state the caller happened to arrive with - two consecutive calls
+    ## could differ by 20%, and the value depended on what had drawn random
+    ## numbers earlier in the session. Seeded by default so the same inputs give
+    ## the same number; pass `seed = NULL` for the old behaviour.
+    ##
+    ## The caller's stream is restored afterwards: reporting a table should not
+    ## silently move someone else's simulation along.
+    if (!is.null(seed)) {
+      if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+        .oldSeed <- get(".Random.seed", envir = globalenv(), inherits = FALSE)
+        on.exit(assign(".Random.seed", .oldSeed, envir = globalenv()), add = TRUE)
+      } else {
+        on.exit(
+          suppressWarnings(rm(".Random.seed", envir = globalenv())),
+          add = TRUE
+        )
+      }
+      set.seed(seed)
+    }
 
     # Capture arguments in ... for getSamples
     dfSamplesBS <- PMXForest::getSamples(rseFile, extFile = extFile, n = n, ...)

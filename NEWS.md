@@ -25,6 +25,27 @@
 * **`oneHot` in `getForestDFFREM()`:** Added optional `oneHot` and `oneHotSep` arguments. When `oneHot` is supplied, raw multi-level categorical columns in `dfCovs` (and `dfRefRow`) are one-hot encoded before the FFEM expressions are evaluated, so `dfCovs` can be built with a raw covariate column rather than the FREM `<cov>_<level>` dummies. Defaults to `NULL` (no encoding, output unchanged).
 
 ## Bug fixes
+
+* **`fremParameterTable()`'s RSE and CI were not reproducible.** They are
+  computed from `n` sampled parameter vectors (default 175), and `seed`
+  defaulted to `NULL`, meaning the sampling inherited whatever RNG state the
+  caller happened to arrive with. Two consecutive calls in one session could
+  differ by **20%** — `RSE (%)` of 1.58 then 1.38 for the same model — and the
+  value depended on what had drawn random numbers earlier. `seed` now defaults
+  to `1`, so the same inputs give the same number; pass `seed = NULL` for the
+  old behaviour.
+
+  **Your RSE and CI values will change once** as a result, and then stop moving.
+
+  The function also no longer leaves the caller's random stream where it landed:
+  the previous `set.seed()` call silently advanced the global RNG, so producing
+  a parameter table moved an unrelated simulation along. The stream is now saved
+  and restored.
+
+  This is what produced the long-running snapshot drift: the recorded values
+  were whatever the RNG state happened to be on the machine that recorded them,
+  which is why they matched no released PMXForest and no other environment.
+
 * **Windows / PSOCK parallelisation in `getForestDFFREM()` and `createFFEMdata()`:** With `ncores > 1` (`cores > 1` for `createFFEMdata()`) on a platform that uses PSOCK workers (Windows), the `foreach` loop could crash with "object not found" because its static global detection does not follow the internal closure's free variables. The local environment is now bundled explicitly (`.export = c(ls(environment()), ...)`), the same fix applied to `getExplainedVar()` in 2.0.0; `createFFEMdata()`'s workers additionally load `PMXFrem` (`.packages`). Both functions now also release the parallel cluster via `on.exit(stopImplicitCluster(), add = TRUE)`, so it is torn down even if the function errors. Fork parallelism (Linux/macOS) and single-core runs are unaffected; `ncores`/`cores` 1 vs 2 give identical output.
 * **`tibble` and single-covariate `dfCovs` in `getForestDFFREM()`:** Passing `dfCovs` (or `dfRefRow`) as a `tibble` failed with an unclear `vctrs` "Can't subset columns past the end" error, because the internal code relies on base-R `[` dropping a single-column selection to a vector. `dfCovs` / `dfRefRow` are now coerced with `as.data.frame()` on entry, and `drop = FALSE` was added to every `dfCovs[i, ]` / `dfRefRow[indi, ]` access, so `tibble` and `data.frame` inputs behave identically and a `dfCovs` with a single covariate column no longer mislabels that column as `dfCovs[i, ]`. Mirrors the same fix in `PMXForest::getForestDFSCM()`.
 * **Reversed relative confidence intervals:** Fixed a bug in `getForestDFFREM()` where the `Q*_REL_REFFUNC` and `Q*_REL_REFFINAL` columns had their lower and upper limits swapped when the `functionList` function returned a negative reference value. The relative quantiles are now computed from the ratio directly instead of dividing the absolute quantiles by the (possibly negative) reference, so the interval endpoints stay correctly ordered.
