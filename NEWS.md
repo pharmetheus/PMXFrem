@@ -1,70 +1,183 @@
 # PMXFrem 2.1.0.9000
 
-## Breaking Changes
+## New features
+
+* **`createFREMParamFunction()` / `verifyFREMParamFunction()` — a parameter
+  function generated from the FREM model itself.** `getForestDFFREM()` and
+  `getExplainedVar()` both take a `functionList` of parameter functions, and
+  writing one by hand means transcribing `$PK` and getting every `THETA()`,
+  `ETA()` and covariate index right. `createFREMParamFunction(fremModel,
+  parameters)` writes it for you, as **source text to read and edit** — nothing
+  is evaluated.
+
+  It transliterates the model's structural `$PK`, keeping non-FREM covariates
+  such as allometric weight, and pruned to the statements the requested
+  parameters actually depend on. For a FREM covariate parameter — one carrying
+  a single `ETA()` after the skipped omegas — that `ETA()` reference is replaced
+  in place, whatever encloses it, by `covthetas[k] + etas[i]`: `ETA(i)` is the
+  reference `$PK` makes, and `k = i - numSkipOm` is the parameter's FREM index
+  in the model. Both are the model's own numbering, so the same `covthetas` and
+  `etas` vectors serve a request for two parameters and a request for all of
+  them, and asking for a subset gives exactly the lines the full request gives.
+  Every other `ETA()` goes to 0. One generated function serves both plots: call
+  it with `etas = 0` for a forest plot and with non-zero `etas` for an
+  explained-variability plot.
+
+  A `secondary` argument appends derived quantities (AUC, Cmax, ...) to the
+  return list, the same way `PMXForest::createParamFunction()` does: each entry
+  is a line of R code, a path to an `.R` file of arbitrary code (an `mrgsolve`
+  simulation, say), or `list(source = <string>, dose = 100, tau = 12, ...)`
+  carrying that source plus constants bound ahead of it. The code is inlined
+  verbatim inside `local()` and sees `basethetas`, `covthetas`, `dfrow` (also
+  as `df`), `etas`, the call-site constants and every structural parameter by
+  name.
+
+  `verifyFREMParamFunction(x, ffemModel = <the FFEM model>)` is the check to
+  run before trusting the result. It compares the structural part against the
+  parameter function `PMXForest::createParamFunction()` writes from the FFEM
+  version of the same model — a genuinely independent transliteration — and
+  confirms that `covthetas[k]` and `etas[i]` scale parameter `k` by `exp(.)`
+  and nothing else. Its probe indices come from PMXForest's parse of the
+  reference, not from the object under test, and it derives `numSkipOm` from
+  the reference model's own `$OMEGA` records: a check that shares the
+  generator's assumptions cannot test them. It returns a single `TRUE` /
+  `FALSE` usable in an `if`, with the per-parameter table attached as
+  `attr(., "checks")`.
+
+* **`addFremStructuralTheta()` / `addFremIIV()` — extend an established FREM
+  model in place.** Adding a structural `$THETA` or an IIV to a FREM model by
+  hand means renumbering every `THETA()`, `ETA()`, `MU_` and `COV` reference
+  that follows it, including the ones inside the `;;;FREM CODE` block, and
+  getting the new `$OMEGA` record into the skip region rather than after it.
+  These do that.
+
+  `addFremStructuralTheta(strFREMModel, thetaInit, ...)` inserts one structural
+  `$THETA` at `numNonFREMThetas + 1`, immediately before the FREM covariate-mean
+  thetas, and shifts the `MU_k = THETA(...)` block up by one. With
+  `addEta = TRUE` it adds a matching IIV. A parameter that has no `$PK`
+  assignment gets a definition inserted before the FREM `MU_` block, delimited
+  by `;; Begin added THETA` / `;; End added THETA`; one that already has an
+  assignment is modified in place. For a new parameter, `muReference = TRUE`
+  (the default) writes the house form `TV<par> = THETA(j)`,
+  `MU_k = LOG(TV<par>)`, `<par> = EXP(MU_k + ETA(k))` — deliberately not a
+  direct `MU_k = THETA(j)`, which would match the pattern `generateFremModel()`
+  uses to find the FREM block and would be spliced away by a later
+  `updateFREMmodel()`.
+
+  `addFremIIV(strFREMModel, parameter, omegaInit, ...)` is the primitive, also
+  usable on its own: it takes eta index `numSkipOm + 1`, shifts every reference
+  at or after it across all of the model's abbreviated-code records, inserts a
+  matching `$OMEGA` immediately before the FREM block — located by counting
+  etas, so it is right whether the skip omegas are written as `$OMEGA` or as
+  `$OMEGA BLOCK(1)` — and attaches the eta to a `$PK` line as `* EXP(ETA(k))`
+  (`link = "exp"`, the default), `+ ETA(k)` (`"add"`), or not at all
+  (`"none"`).
+
+  `thetaInit` and `omegaInit` have no defaults; they are modelling choices. The
+  `.ext` and `.phi` are **not** migrated — only the control stream is rewritten,
+  and the model has to be re-estimated. `fremModelInfo()` warns if you later
+  pair the rewritten model with the old `.ext`.
+
+* **`fremModelInfo()` — the FREM structural integers, derived.** Works out
+  `numNonFREMThetas`, `numSkipOm`, `numParCov`, `numFREMThetas` and `numSigmas`
+  from a FREM model and its `.ext`, and says so when the two describe different
+  structures. `fremParameterTable()`, `createFFEMmodel()`, `createFFEMdata()`,
+  `calcEtas()`, `updateFREMmodel()` and `createFREMmodel()` now accept `NULL`
+  for `numNonFREMThetas` / `numSkipOm` and derive them through it; a supplied
+  value that disagrees with the model warns and is kept.
+
+* **`add.stamp` on the plotting functions.** `plotExplainedVar()`,
+  `traceplot()`, `plotEtasCov()` and `plotCovDist()` gained
+  `add.stamp = FALSE`. With `TRUE`, a caption recording the source directory
+  and the time of generation is added through `PMXForest::addStamp()`.
+  `traceplot()` returns a list of plots and stamps each one.
+
+* **`oneHot` in `getForestDFFREM()`.** New `oneHot` and `oneHotSep` arguments:
+  raw multi-level categorical columns in `dfCovs` (and `dfRefRow`) are one-hot
+  encoded to the `<cov>_<level>` columns the FREM model uses, so the caller can
+  pass the covariate as the data records it.
+
+## Breaking changes
 
 * **`setupDfCovsEV()`'s `additionalCovs` is renamed `conditionalCovs`.** The old
-  name says when the argument was added rather than what it does: the covariates
-  it carries are the ones `getExplainedVar()` conditions on when computing the
-  variability each FREM covariate explains. `additionalCovs` still works and
-  gives an identical result, with a deprecation warning; supplying both is an
-  error rather than a silent precedence rule.
+  name says when the argument was added rather than what it does: these are the
+  covariates `getExplainedVar()` conditions on when computing the variability
+  each FREM covariate explains. `additionalCovs` still works and gives an
+  identical result, with a deprecation warning; supplying both is an error
+  rather than a silent precedence rule.
 
-* **`plotExplainedVar()` no longer takes `...`, and `add.stamp` no longer reads the global environment.** The `add.stamp = TRUE` path called `PhRame::add_stamp()`; `PhRame` is internal and PMXFrem is public, so that dependency breaks for external users and the path could only error. The stamp itself is kept — see below — but it now goes through `PMXForest::addStamp()`, which takes no extra arguments, so `...` (whose only consumer was the `PhRame` call) is gone with it. The undocumented behaviour of picking `add.stamp` up from a same-named variable in the global environment is also gone: a plot's output should not depend on an invisible global.
-* **`calcFFEM()` no longer takes `...`.** It was never used in the body — a silent sink that swallowed mistyped argument names. `createFFEMdata()` correspondingly stops forwarding its `...` into `calcFFEM()`, since it already passes every argument explicitly; its `...` now goes to `getFileNames()` alone. (`calcParameterEsts()` keeps its `...`, which *is* forwarded to `calcFFEM()` and which `fremParameterTable()` relies on.)
+* **`plotExplainedVar()` no longer takes `...`, and `add.stamp` is no longer
+  read from the global environment.** The `add.stamp = TRUE` path called
+  `PhRame::add_stamp()`; `PhRame` is internal and PMXFrem is public, so that
+  path could only error for an external user. The stamp is kept and now goes
+  through `PMXForest::addStamp()`, which takes no extra arguments — so `...`,
+  whose only consumer was the `PhRame` call, is gone with it. Picking
+  `add.stamp` up from a same-named variable in the global environment is also
+  gone: a plot should not depend on an invisible global.
 
-## New Features
-* **`add.stamp` on the plotting functions.** `plotExplainedVar()`, `traceplot()`, `plotEtasCov()` and `plotCovDist()` gained `add.stamp = FALSE`. When `TRUE`, a caption recording the source directory and time of generation is added via the new `PMXForest::addStamp()` (requires PMXForest >= 1.2.15.9008) — a native reimplementation of the stamp `PhRame::add_stamp()` applies, written against `ggplot2` alone so the public packages can use it. `traceplot()` returns a list of plots and stamps each one.
-
-## Under the Hood & Refactoring
-* **A `fremETA` / `baseModName` test-argument audit.** Removing `calcFFEM()`'s `...` surfaced that `test-calcFFEM.R` was calling it as `etaFREM =` (the formal is `fremETA`), which the sink swallowed — so a case named "compute eta_prim" never computed one, and passed, because the components it snapshotted are identical with and without the eta. The recorded snapshots had the subject `ID` sitting in the eta vector, because `getPhi()` was passed unfiltered (it also returns `SUBJECT_NO`, `ID`, the whole `ETC` matrix and `OBJ`). Both are fixed and the `Eta_prim` snapshots re-recorded from correct input. A sweep of both packages for the same pattern — a named argument that is not a formal, landing in a callee whose `...` is never used — found one more: `createFFEMmodel(baseModdName =)`, a typo for `baseModName`, in an `expect_error()` that passed for the wrong reason.
-* **Shared one-hot encoder:** `addFREMcovariates()` now performs its binarisation through `PMXForest::oneHotEncode()` (requires PMXForest >= 1.2.15.9002) instead of a private implementation. The column names, order, values, and warnings are unchanged; a single implementation of the `<cov>_<level>` convention is now shared with PMXForest.
-* **Faster result assembly in `getForestDFFREM()`.** It built its per-parameter-vector result with a per-cell `data.frame()` plus a growing `bind_rows()` loop (inner and outer). It now fills typed column vectors and constructs the data frame once. Output is unchanged; the assembly step alone is roughly **50-80x** faster on a representative shape, with the effect on total runtime depending on how expensive `functionList` is.
-
-## New Features
-* **`addFremStructuralTheta()` / `addFremIIV()` — extend an established FREM model in place.** `addFremStructuralTheta(strFREMModel, thetaInit, ...)` inserts one structural `$THETA` at index `numNonFREMThetas + 1` (immediately before the FREM covariate-mean thetas) and shifts every `THETA()` reference at or after that index — in a FREM model, the `MU_k = THETA(numNonFREMThetas + c)` block — up by one, keeping the model consistent. With `addEta = TRUE` it also adds a matching IIV (`omegaInit` required). Whether `parameter` already has a `$PK` assignment decides the rest: a **new** parameter gets a definition inserted just before the FREM `MU_` block, delimited by `;; Begin added THETA` / `;; End added THETA`; an **existing** one is modified in place (its assignment gains a `* THETA(<j>)` factor, and with `addEta = TRUE` an `* EXP(ETA(<k>))` term) with nothing inserted. For a new parameter, `muReference = TRUE` (default) emits the house-style three lines `TV<parameter> = THETA(<j>)`, `MU_<k> = LOG(TV<parameter>)`, `<parameter> = EXP(MU_<k> + ETA(<k>))` — the form the FREM models themselves use for `CL` / `V` / `MAT`, and deliberately **not** a direct `MU_<k> = THETA(<j>)`, which would match the `MU_\d+ = THETA` pattern `generateFremModel()` uses to locate the FREM block and so would be spliced away by a later `updateFREMmodel()`. `muReference = FALSE` emits `<parameter> = THETA(<j>) * EXP(ETA(<k>))`; `addEta = FALSE` emits `<parameter> = THETA(<j>)`. `addFremIIV(strFREMModel, parameter, omegaInit, ...)` is the primitive it calls (also usable directly): it inserts a new random effect at index `numSkipOm + 1` in the skip region before the FREM `$OMEGA BLOCK(N)`, shifts every `ETA()` / `MU_` / `COV` reference at or after that index up by one across `$PK` / `$ERROR` (including the `;;;FREM CODE` block), inserts a matching simple `$OMEGA`, and attaches the eta to a `$PK` line as `* EXP(ETA(k))` (`link = "exp"`, default), `+ ETA(k)` (`"add"`) or not at all (`"none"`). `numNonFREMThetas` / `numSkipOm` are derived via `fremModelInfo()` when not supplied. The required initial values (`thetaInit`, `omegaInit`) have no default — they are modelling choices. The `.ext` / `.phi` are **not** migrated: only the control stream is rewritten and the model must be re-estimated.
-* **`createFREMParamFunction()` / `verifyFREMParamFunction()` — generate a FREM parameter function from the FREM model.** `createFREMParamFunction(fremModel, parameters)` (or `runno` / `modName` / `modDevDir`) translates the FREM model's `$PK` into R source for a `function(basethetas, covthetas, dfrow, etas, ...)`. `numSkipOm` and `numNonFREMThetas` are derived via `fremModelInfo()` (a supplied value that disagrees warns and is kept). The structural `$PK` (including non-FREM covariates such as allometric weight) is transliterated; for each named parameter that carries an `ETA()` in `$PK`, that single `ETA()` reference is replaced **in place** - whatever encloses it (`exp(mu + ETA)`, `TV * exp(ETA)`, `TV + ETA`, ...) - by `covthetas[k] + etas[numSkipOm + k]` (the FREM covariate coefficient is additive on the eta scale). A named parameter with no `ETA()` is returned as `$PK` computes it (no covariate effect - not an error); more than one `ETA()` is returned as-is with a warning. The emitted body is **pruned to the statements the returned parameters depend on**, so the appended FREM covariate block is dropped and `basethetas` is the first `numNonFREMThetas` (what `getForestDFFREM()` / `getExplainedVar()` pass). One generated function serves both plots -- call it with `etas = 0` for a forest plot, non-zero `etas` for an explained-variability plot. Nothing is evaluated; the source is returned for review. `verifyFREMParamFunction()` checks the structural part against `PMXForest::createParamFunction()` and that `covthetas[k]` / `etas[numSkipOm + k]` scale parameter `k` by `exp(...)`; it returns a single `TRUE` / `FALSE` (usable directly in an `if`) with the per-parameter table attached as `attr(., "checks")`. Built on `PMXForest::nmParsePK()` (requires PMXForest >= 1.2.15.9005).
-
-  `createFREMParamFunction()` gained a `secondary` argument (requires PMXForest >= 1.2.15.9007), the same as `PMXForest::createParamFunction()`: a named list of derived quantities (AUC, Cmax, ...) to append to the generated function's return list. Each entry's value is a line of R code, the path to an `.R` file of arbitrary code (including an `mrgsolve` simulation), or a list `list(source = <string>, dose = 100, tau = 12, ...)` carrying that `source` plus named atomic constants bound ahead of it - so a reusable secondary file can be parametrised at the call site. The code is inlined verbatim inside a `local()` block and sees `basethetas`, `covthetas`, `dfrow` (also aliased as `df`), `etas`, `...`, any call-site constants, and every structural parameter by name, with covariate columns as `dfrow$NAME`. The names are appended to `functionListName` (so `getForestDFFREM()` / `getExplainedVar()` pick them up) and recorded in the new `secondaryNames` element, with `primaryNames` holding the FREM `$PK` parameters alone. `verifyFREMParamFunction()` checks only the `$PK` parameters by default and skips the secondaries.
-
-  `verifyFREMParamFunction()`'s covariate / random-effect splice checks (scale by `exp(.)`) only make sense for a **log-normal** parameter. `createFREMParamFunction()` now records `fremEtaScale` per FREM parameter -- `"exp"` for `C * exp(<linear in ETA>)`, `"other"` for additive, logit, `exp(THETA * ETA)`, ... -- and `verifyFREMParamFunction()` reports `COVSPLICE` / `ETASPLICE` / `PASS` as `NA` for a non-log-normal parameter (the structural check still runs; a structural failure still fails). Its scalar return is now `TRUE` unless a check **actually failed**, so a model with a non-log-normal parameter is still usable in an `if`.
-* **`fremModelInfo()` — derive the FREM structural integers.** New exported helper that works out `numNonFREMThetas`, `numSkipOm`, `numParCov`, `numFREMThetas` and `numSigmas` from a FREM model file and its ext (or a `getSamples()` result). `getExplainedVar()` and `getForestDFFREM()` now accept `NULL` for `numNonFREMThetas` / `numSkipOm` and derive them via `fremModelInfo()`; `getForestDFFREM()` gains `runno` / `modName` / `modDevDir` arguments (resolved with `getFileNames()`, matching `getExplainedVar()`) from which `covNames` is also derived. An explicitly supplied value that disagrees with the derived one triggers a warning and is kept. `getExplainedVar()`'s `numSkipOm` default changed from `0` to `NULL` (derive); pass `numSkipOm = 0` explicitly to force the old behaviour. Explicit calls that already pass the correct values are unaffected.
-* **`numNonFREMThetas` / `numSkipOm` now optional in `fremParameterTable()`, `createFFEMmodel()`, `createFFEMdata()` and `calcEtas()`** too. When omitted (`NULL`) they are derived from the FREM model located via `runno` / `modName` / `modDevDir`, using `fremModelInfo()`; a supplied value that disagrees with the derived one warns and is kept. Their `numSkipOm` default changed from `0` to `NULL` (derive); pass `numSkipOm = 0` for the old behaviour.
-* **`updateFREMmodel()` / `createFREMmodel()` — the model-mutation functions — now derive what they can.** `updateFREMmodel()`'s `numNonFREMThetas` and `numSkipOm` default to `NULL` and are derived from the FREM model and its `.ext`; if the model's `;;;FREM CODE` markers / final `$OMEGA BLOCK(N)` and the `.ext` column counts do **not** agree, the derivation **stops loudly** — pass explicit values to override. When `createFREMmodel()` calls `updateFREMmodel()` it always supplies both, so that path is unaffected. `createFREMmodel()`'s own `numNonFREMThetas` defaults to `NULL` and is read from the base model's `.ext` (the THETA column count); `numSkipOm` must still be given — a base model has no FREM structure to deduce it from. `updateFREMmodel()`'s `numSkipOm` default changed from `0` to `NULL`; `numNonFREMThetas` gained a `NULL` default (was required). Explicit calls are unaffected.
-* **`oneHot` in `getForestDFFREM()`:** Added optional `oneHot` and `oneHotSep` arguments. When `oneHot` is supplied, raw multi-level categorical columns in `dfCovs` (and `dfRefRow`) are one-hot encoded before the FFEM expressions are evaluated, so `dfCovs` can be built with a raw covariate column rather than the FREM `<cov>_<level>` dummies. Defaults to `NULL` (no encoding, output unchanged).
+* **`calcFFEM()` no longer takes `...`.** It was never used in the body — a
+  silent sink that swallowed mistyped argument names. `createFFEMdata()`
+  correspondingly stops forwarding its `...` into `calcFFEM()`, since it already
+  passes every argument explicitly; its `...` now goes to `getFileNames()`
+  alone. `calcParameterEsts()` keeps its `...`, which *is* forwarded and which
+  `fremParameterTable()` relies on.
 
 ## Bug fixes
 
 * **`fremParameterTable()`'s RSE and CI were not reproducible.** They are
   computed from `n` sampled parameter vectors (default 175), and `seed`
-  defaulted to `NULL`, meaning the sampling inherited whatever RNG state the
-  caller happened to arrive with. Two consecutive calls in one session could
-  differ by **20%** — `RSE (%)` of 1.58 then 1.38 for the same model — and the
-  value depended on what had drawn random numbers earlier. `seed` now defaults
-  to `1`, so the same inputs give the same number; pass `seed = NULL` for the
-  old behaviour.
-
+  defaulted to `NULL`, so the sampling inherited whatever RNG state the caller
+  happened to arrive with. Two consecutive calls in one session could differ by
+  20% — `RSE (%)` of 1.58 then 1.38 for the same model — and the value depended
+  on what had drawn random numbers earlier. `seed` now defaults to `1`, so the
+  same inputs give the same number; pass `seed = NULL` for the old behaviour.
   **Your RSE and CI values will change once** as a result, and then stop moving.
 
-  The function also no longer leaves the caller's random stream where it landed:
-  the previous `set.seed()` call silently advanced the global RNG, so producing
-  a parameter table moved an unrelated simulation along. The stream is now saved
-  and restored.
+  The function also no longer leaves the caller's random stream where it landed.
+  The previous `set.seed()` silently advanced the global RNG, so producing a
+  parameter table moved an unrelated simulation along; the stream is saved and
+  restored.
 
-  This is what produced the long-running snapshot drift: the recorded values
-  were whatever the RNG state happened to be on the machine that recorded them,
-  which is why they matched no released PMXForest and no other environment.
+* **`getExplainedVar()` reported no explained variability for a single-covariate
+  `dfCovs`.** A one-column data frame collapses to a numeric vector when a row
+  is taken from it, so the covariate names came back empty, no covariate was
+  ever active, and `COVVAR` was 0 while `TOTVAR` and `TOTCOVVAR` — which do not
+  go through that step — were right. The same indexing also handed the
+  parameter function something that was not a data frame.
 
-* **Windows / PSOCK parallelisation in `getForestDFFREM()` and `createFFEMdata()`:** With `ncores > 1` (`cores > 1` for `createFFEMdata()`) on a platform that uses PSOCK workers (Windows), the `foreach` loop could crash with "object not found" because its static global detection does not follow the internal closure's free variables. The local environment is now bundled explicitly (`.export = c(ls(environment()), ...)`), the same fix applied to `getExplainedVar()` in 2.0.0; `createFFEMdata()`'s workers additionally load `PMXFrem` (`.packages`). Both functions now also release the parallel cluster via `on.exit(stopImplicitCluster(), add = TRUE)`, so it is torn down even if the function errors. Fork parallelism (Linux/macOS) and single-core runs are unaffected; `ncores`/`cores` 1 vs 2 give identical output.
-* **`tibble` and single-covariate `dfCovs` in `getForestDFFREM()`:** Passing `dfCovs` (or `dfRefRow`) as a `tibble` failed with an unclear `vctrs` "Can't subset columns past the end" error, because the internal code relies on base-R `[` dropping a single-column selection to a vector. `dfCovs` / `dfRefRow` are now coerced with `as.data.frame()` on entry, and `drop = FALSE` was added to every `dfCovs[i, ]` / `dfRefRow[indi, ]` access, so `tibble` and `data.frame` inputs behave identically and a `dfCovs` with a single covariate column no longer mislabels that column as `dfCovs[i, ]`. Mirrors the same fix in `PMXForest::getForestDFSCM()`.
-* **Reversed relative confidence intervals:** Fixed a bug in `getForestDFFREM()` where the `Q*_REL_REFFUNC` and `Q*_REL_REFFINAL` columns had their lower and upper limits swapped when the `functionList` function returned a negative reference value. The relative quantiles are now computed from the ratio directly instead of dividing the absolute quantiles by the (possibly negative) reference, so the interval endpoints stay correctly ordered.
+* **`getExplainedVar()` could pass a too-short eta vector to the parameter
+  function.** Two internal "all etas zero" calls sized the vector from the
+  number of structural thetas rather than from the model's random effects. It
+  is now `numSkipOm + numParCov`, the dimension the same function already uses
+  for its eta samples.
 
-## Documentation
-* **Vignette dependencies declared.** `Part2-walkthrough-frem-workflow` loaded the whole `tidyverse` meta-package; it now loads only what it uses -- `dplyr`, `tidyr`, `purrr`. `tidyr`, `purrr` and `GGally` (used by `Part3-deep-dive-diagnostics-and-etas`) were added to `Suggests`, so the vignettes build against a declared dependency set.
-* **Vignettes use the derived `fremModelInfo()` form.** `Part1-quick-start`, `Part2-walkthrough-frem-workflow`, `Part3-deep-dive-forest-plots`, `Part3-deep-dive-explained-variability` and `Part3-deep-dive-diagnostics-and-etas` no longer pass `numNonFREMThetas` / `numSkipOm` (nor `covNames`) by hand to `createFFEMmodel()`, `fremParameterTable()`, `getForestDFFREM()`, `getExplainedVar()` and `calcEtas()`: the model is located by `runno` / `modName` / `modDevDir` and those integers are derived from it. `updateFREMmodel()` / `createFREMmodel()` still take them explicitly (they mutate a model and cannot derive), and `Part3-deep-dive-subject-specific-variances-for-missing-covariates` keeps one explicit example as a reference for overriding the derived values.
-* New **"Secondary Parameters"** deep-dive vignette (`Part3-deep-dive-secondary-parameters`): the `secondary` argument of `createFREMParamFunction()` in two parts. Part 1 derives `AUC` (a config list with a call-site `dose`) and a half-life in closed form and runs at build time, through `getForestDFFREM()` with the model located by `runno` / `modDevDir` (so `numNonFREMThetas` / `numSkipOm` / `covNames` are all derived). Part 2 outlines a steady-state `Cmax` via an `mrgsolve` simulation, shown but not executed, with the mrgsolve version requirements and a note that the same function serves `getExplainedVar()` with non-zero `etas`.
+## Under the hood
 
-## Testing
-* **`traceplot()` tests no longer use `vdiffr`.** The visual regression checks (`expect_doppelganger`) compared rendered SVG and failed on any `svglite` / `freetype` / OS difference even when the plotted data was unchanged. They are replaced by data-level assertions on the structure of the returned `ggplot` objects and an independent recomputation of the values each panel must contain. The committed `tests/testthat/_snaps/tracePlot/*.svg` snapshots and the `vdiffr` entry in `Suggests` were removed.
+* **PMXForest (>= 1.3.0)** is the new floor. The parameter-function generator is
+  built on `PMXForest::nmParsePK()` / `nmDeparse()`, and the stamp on
+  `PMXForest::addStamp()`.
+
+* **A shared one-hot encoder.** `addFREMcovariates()` binarises through
+  `PMXForest::oneHotEncode()` instead of a private implementation. Column names,
+  order, values and warnings are unchanged; the `<cov>_<level>` convention now
+  has one implementation across the two packages.
+
+* **`getForestDFFREM()` assembles its result once.** It built the
+  per-parameter-vector result with a per-cell `data.frame()` inside a growing
+  `bind_rows()` loop; it now fills typed column vectors and constructs the data
+  frame once. The output is unchanged.
+
+* **An argument-name audit across both packages.** Removing `calcFFEM()`'s `...`
+  surfaced that `test-calcFFEM.R` called it as `etaFREM =` when the formal is
+  `fremETA`, which the sink swallowed — so a case named "compute eta_prim" never
+  computed one, and passed, because what it snapshotted is identical with and
+  without the eta. The recorded snapshots also had the subject `ID` sitting in
+  the eta vector, because `getPhi()` was passed unfiltered. Both are fixed and
+  those snapshots re-recorded from correct input. Sweeping both packages for the
+  same shape — a named argument that is not a formal of the callee, landing in a
+  `...` the callee never uses — found one more: `createFFEMmodel(baseModdName =)`,
+  a typo for `baseModName`, inside an `expect_error()` that passed for the wrong
+  reason.
 
 # PMXFrem 2.1.0
 
