@@ -371,3 +371,49 @@ test_that("getExplainedVar handles data.table inputs robustly without NSE scopin
 
   expect_s3_class(res, "data.frame")
 })
+
+# ---------------------------------------------------------------------------
+# A decomposition with a closed-form answer
+#
+# For a parameter linear in one eta, P = theta + b * ETA(3), the delta rule is
+# exact, so the variance components can be written down from the model's own
+# OMEGA and compared with what getExplainedVar() reports:
+#
+#   TOTVAR              = b^2 * OMEGA(3,3)
+#   TOTCOVVAR (WT only) = b^2 * OMEGA(6,3)^2 / OMEGA(6,6)
+#
+# and with WT the only covariate in play, COVVAR must equal TOTCOVVAR - all of
+# the explainable variability is explained by the only covariate there is.
+# ---------------------------------------------------------------------------
+
+test_that("getExplainedVar reproduces a closed-form variance decomposition", {
+  modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+  ext <- file.path(modDevDir, "run31.ext")
+  fin <- getExt(extFile = ext)
+  fin <- fin[fin$ITERATION == -1000000000, , drop = FALSE]
+  om <- function(i, j) as.numeric(fin[[paste0("OMEGA.", i, ".", j, ".")]])
+
+  b <- 2.5
+  totVarHand <- b^2 * om(3, 3)
+  totCovVarHand <- b^2 * om(6, 3)^2 / om(6, 6)
+
+  fl <- list(function(basethetas, covthetas, dfrow, etas, ...) {
+    basethetas[2] + b * etas[3]
+  })
+
+  res <- getExplainedVar(
+    type = 0, data = NULL, dfCovs = data.frame(WT = 1),
+    numNonFREMThetas = 7, numSkipOm = 2,
+    functionList = fl, functionListName = "CLlin",
+    cstrCovariates = "WT", modDevDir = modDevDir, modName = "run31",
+    availCov = "WT", quiet = TRUE
+  )
+
+  # delta rule via numDeriv::grad(), so a finite-difference tolerance
+  expect_equal(res$TOTVAR[1], totVarHand, tolerance = 1e-8)
+  expect_equal(res$TOTCOVVAR[1], totCovVarHand, tolerance = 1e-8)
+  # WT is the only covariate, so it accounts for all of TOTCOVVAR. A
+  # single-column dfCovs used to collapse to a numeric vector, leaving
+  # names() empty, no covariate active, and COVVAR silently 0.
+  expect_equal(res$COVVAR[1], res$TOTCOVVAR[1], tolerance = 1e-8)
+})

@@ -74,18 +74,20 @@
   for (j in seq_along(functionList)) {
     TOTVAR <- .apply_delta_rule(
       params = rep(0, length(diag(ffemObjAllNoCov$FullVars))), covmatrix = ffemObjAllNoCov$FullVars, transform_fun = parf, basethetas = thetas,
-      covthetas = rep(0, length(parNames)), dfrow = dfCovs[1, ], myfunc = functionList[[j]], ...
+      covthetas = rep(0, length(parNames)), dfrow = dfCovs[1, , drop = FALSE], myfunc = functionList[[j]], ...
     )
     TOTVAR <- TOTVAR[(length(TOTVAR) / 2 + 1):length(TOTVAR)]
 
     TOTCOVVAR <- .apply_delta_rule(
       params = rep(0, length(diag(ffemObjAllCov$FullVars))), covmatrix = ffemObjAllCov$FullVars, transform_fun = parf, basethetas = thetas,
-      covthetas = rep(0, length(parNames)), dfrow = dfCovs[1, ], myfunc = functionList[[j]], ...
+      covthetas = rep(0, length(parNames)), dfrow = dfCovs[1, , drop = FALSE], myfunc = functionList[[j]], ...
     )
     TOTCOVVAR <- TOTCOVVAR[(length(TOTCOVVAR) / 2 + 1):length(TOTCOVVAR)]
 
     for (i in seq_len(nrow(dfCovs))) {
-      currentNames <- names(dfCovs[i, ])[as.numeric(dfCovs[i, ]) != missVal]
+      currentNames <- names(dfCovs[i, , drop = FALSE])[
+        as.numeric(dfCovs[i, , drop = FALSE]) != missVal
+      ]
       tmpcovs <- .get_frem_cov_names(currentNames, fremCovs)
 
       ffemObj <- calcFFEM(
@@ -95,7 +97,7 @@
 
       COVVAR <- .apply_delta_rule(
         params = rep(0, length(diag(ffemObj$FullVars))), covmatrix = ffemObj$FullVars, transform_fun = parf, basethetas = thetas,
-        covthetas = rep(0, length(parNames)), dfrow = dfCovs[1, ], myfunc = functionList[[j]], ...
+        covthetas = rep(0, length(parNames)), dfrow = dfCovs[1, , drop = FALSE], myfunc = functionList[[j]], ...
       )
       COVVAR <- COVVAR[(length(COVVAR) / 2 + 1):length(COVVAR)]
 
@@ -174,7 +176,9 @@
   dfrest_list <- vector("list", nrow(dfCovs))
 
   for (i in seq_len(nrow(dfCovs))) {
-    currentNames <- names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, ]) != missVal]
+    currentNames <- names(dfCovs[i, , drop = FALSE])[
+      as.numeric(dfCovs[i, , drop = FALSE]) != missVal
+    ]
     strCovsRow <- currentNames
 
     if (type == 3 || type == 2) {
@@ -247,7 +251,7 @@
             for (m in seq_len(nrow(tmpval))) val[m] <- stats::var(tmpval[m, ])
           }
 
-          valeta0 <- functionList[[j]](basethetas = thetas, covthetas = coveffectsAll, dfrow = dataI[k, ], etas = rep(0, 3 * length(thetas)), ...)
+          valeta0 <- functionList[[j]](basethetas = thetas, covthetas = coveffectsAll, dfrow = dataI[k, ], etas = rep(0, numSkipOm + numParCov), ...)
           listcount <- length(valeta0)
 
           for (l in seq_len(listcount)) {
@@ -265,7 +269,7 @@
       n <- 1
       for (j in seq_along(functionList)) {
         datatmp_eval <- dataI[k, c(tmpcovs, "jxrtp47"), drop = FALSE]
-        val <- functionList[[j]](basethetas = thetas, covthetas = coveffects, dfrow = datatmp_eval, etas = rep(0, 3 * length(thetas)), ...)
+        val <- functionList[[j]](basethetas = thetas, covthetas = coveffects, dfrow = datatmp_eval, etas = rep(0, numSkipOm + numParCov), ...)
         listcount <- length(val)
 
         for (l in seq_len(listcount)) {
