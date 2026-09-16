@@ -329,6 +329,42 @@ out with the tarball and the public mirror).
 
 The work was done on a `create_FREMmodel` branch off `refactor_updateFREMmodel3`.
 
+## T25 — `stabilize()` rewrites NM-TRAN operators, not just numbers
+
+`stabilize_text_snapshot()` (tests/testthat/helper-stabilize.R) finds every
+number-like substring and reformats it, which in a control stream turns
+
+    IF(FOOD.EQ.1) MATFOOD = 1
+    IF(FOOD.EQ.0) MATFOOD = ( 1 + THETA(6))
+
+into `IF(FOOD.EQ0.1)` / `IF(FOOD.EQ0)` - it reads `.1` as the number and eats
+the `.` that closes `.EQ.`. While snapshots were base64 this was invisible;
+now that model text is snapshotted as text it is not, and
+`expect_model_snapshot()` works around it by not stabilising the model at all.
+
+Two things to settle. The regex should not treat a `.` bounded by letters as
+part of a number, so `.EQ.`, `.NE.`, `.GT.` survive. And every other text
+snapshot that goes through `stabilize()` should be checked for the same
+mangling - `_snaps/createFFEMmodel.md` and `_snaps/generateFremModel.md` hold
+model text too.
+
+## T26 — `_snaps/calcEtas.md` is still 871 kB of base64
+
+The three largest serialized snapshots were replaced with readable JSON;
+`calcEtas.md` was left, and is now the biggest file under `_snaps` by a factor
+of ten. It snapshots eta tables, which `columnDigest()` plus a head would cover
+the same way. Worth the same treatment, with the same mutation check
+afterwards.
+
+## T27 — `expect_forest_sampling_sane()`'s `relBand` was not derived from data
+
+The helper bounds each `_REL_` column to `[1e-3, 1e3]` on the reasoning that a
+ratio to a reference is of order 1. That is a judgement, not a measurement: it
+was chosen to catch a x1000 units slip and checked only against the two calls
+that use it. Run it over a range of real forest results - several models, wide
+covariate ranges - and either narrow the band to what those actually occupy or
+record why it has to stay this wide.
+
 ## Done
 
 - **T5** — direct `getCovNames(createFREMmodel() output)` test — PR #40 (merged).
