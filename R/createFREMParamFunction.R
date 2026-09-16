@@ -216,6 +216,15 @@ createFREMParamFunction <- function(fremModel = NULL,
     numNonFREMThetas <- .info$numNonFREMThetas
   }
 
+  if (anyDuplicated(parameters)) {
+    warning("`parameters` has a repeated name (",
+      paste(unique(parameters[duplicated(parameters)]), collapse = ", "),
+      "); using each once.",
+      call. = FALSE
+    )
+    parameters <- unique(parameters)
+  }
+
   ## ---- parse the FREM model's $PK ----
   p <- PMXForest::nmParsePK(fremModel,
     parameters = parameters, covRef = covRef,
@@ -305,6 +314,34 @@ createFREMParamFunction <- function(fremModel = NULL,
   }
   numParCov <- modelParCov
 
+  ## A parameter can carry IIV through an intermediate variable:
+  ##   ETACL = ETA(3)
+  ##   CL    = EXP(MU_3 + ETACL)
+  ## CL's own assignment has no ETA(), so it looks like a parameter with no
+  ## random effect and is emitted as written - silently dropping its FREM
+  ## covariate effect. Only an intermediate carrying an eta in the FREM range
+  ## matters: one carrying a skip-region eta is documented to go to 0, and one
+  ## that is itself a requested FREM parameter has already been spliced, so
+  ## the dependent parameter inherits the effect correctly.
+  fremRange <- function(e) any(e > numSkipOm & e <= numSkipOm + numParCov)
+  etaCarriers <- unique(unlist(lapply(p$statements, function(s) {
+    if (fremRange(.fremStmtEtas(s))) .fremStmtAssigns(s) else character(0)
+  })))
+  etaCarriers <- setdiff(etaCarriers, c(fremParams, names(keepEta)))
+  for (nm in parameters[etaCounts == 0L]) {
+    via <- intersect(.fremDependsOn(nm, p$statements), setdiff(etaCarriers, nm))
+    if (length(via)) {
+      warning("'", nm, "' has no ETA() of its own but depends on ",
+        paste(via, collapse = ", "), ", which carry a FREM ETA(). It is ",
+        "emitted as written, with those ETA() set to 0, so it gets no FREM ",
+        "covariate effect. Reference the ETA() directly in its $PK ",
+        "assignment, or write this parameter's function by hand.",
+        call. = FALSE
+      )
+    }
+  }
+
+
   ## ---- prune to the transitive dependencies of `parameters` ----
   need <- parameters
   repeat {
@@ -383,6 +420,42 @@ createFREMParamFunction <- function(fremModel = NULL,
 ## ---------------------------------------------------------------------------
 ## Internal: walkers over the nmParsePK() statement / expression trees
 ## ---------------------------------------------------------------------------
+
+#' ETA() indices referenced anywhere in a statement, if blocks included
+#' @keywords internal
+#' @noRd
+.fremStmtEtas <- function(s) {
+  if (identical(s$type, "assign")) {
+    return(.fremEtaIndices(s$rhs))
+  }
+  c(
+    .fremEtaIndices(s$cond),
+    unlist(lapply(s$then, .fremStmtEtas)),
+    unlist(lapply(s$elifs, function(e) {
+      c(.fremEtaIndices(e$cond), unlist(lapply(e$stmts, .fremStmtEtas)))
+    })),
+    if (!is.null(s$else_)) unlist(lapply(s$else_, .fremStmtEtas))
+  )
+}
+
+
+#' Every symbol `nm` transitively depends on
+#' @keywords internal
+#' @noRd
+.fremDependsOn <- function(nm, stmts) {
+  need <- nm
+  repeat {
+    before <- length(need)
+    for (s in stmts) {
+      if (any(.fremStmtAssigns(s) %in% need)) {
+        need <- union(need, .fremStmtUses(s))
+      }
+    }
+    if (length(need) == before) break
+  }
+  setdiff(need, nm)
+}
+
 
 #' ETA() indices referenced anywhere in an expression node
 #' @keywords internal

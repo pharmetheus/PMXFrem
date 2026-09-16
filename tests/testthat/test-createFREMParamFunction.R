@@ -913,11 +913,56 @@ test_that("verifyFREMParamFunction pins every FREMCOV column the reference needs
   e <- .fremExt()
   ffem <- system.file("extdata/SimNeb/run31max1-2.mod", package = "PMXFrem")
 
-  out <- createFREMParamFunction(m,
-    parameters = c("FREL", "KA", "CL"), extFile = e, quiet = TRUE
+  # KA carries no ETA() of its own; asking for it without MAT means its
+  # covariate effect is dropped, and that is now said out loud.
+  expect_warning(
+    out <- createFREMParamFunction(m,
+      parameters = c("FREL", "KA", "CL"), extFile = e, quiet = TRUE
+    ),
+    "'KA' has no ETA\\(\\) of its own"
   )
   expect_error(
     verifyFREMParamFunction(out, ffemModel = ffem, extFile = e, quiet = TRUE),
     NA
   )
+})
+
+test_that("a parameter whose ETA sits behind an intermediate variable is flagged", {
+  # ETACL = ETA(3) / CL = EXP(MU_3 + ETACL) is legal $PK. CL's own assignment
+  # carries no ETA(), so it was emitted "returned as-is (no IIV / no FREM
+  # covariate effect)" - silently dropping CL's covariate effect - and
+  # verifyFREMParamFunction() then reported it as "not checked
+  # (non-log-normal)" and still returned TRUE.
+  td <- withr::local_tempdir()
+  l <- readLines(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+    warn = FALSE
+  )
+  i <- grep("CL    = EXP(MU_3               + ETA(3))", l, fixed = TRUE)
+  expect_length(i, 1)
+  l[i] <- "ETACL = ETA(3)\nCL    = EXP(MU_3 + ETACL)"
+  l <- unlist(strsplit(l, "\n"))
+  f <- file.path(td, "indirect.mod")
+  writeLines(l, f)
+  file.copy(.fremExt(), file.path(td, "indirect.ext"))
+
+  expect_warning(
+    createFREMParamFunction(f,
+      parameters = c("CL", "V", "MAT"), quiet = TRUE
+    ),
+    "CL.*ETACL|ETACL.*ETA"
+  )
+})
+
+test_that("a repeated name in `parameters` is reduced to one", {
+  expect_warning(
+    createFREMParamFunction(.fremMod(),
+      parameters = c("CL", "CL", "V"), extFile = .fremExt(), quiet = TRUE
+    ),
+    "repeated"
+  )
+  out <- suppressWarnings(createFREMParamFunction(.fremMod(),
+    parameters = c("CL", "CL", "V"), extFile = .fremExt(), quiet = TRUE
+  ))
+  expect_identical(out$primaryNames, c("CL", "V"))
+  expect_equal(sum(grepl("^\\s+CL = CL,?$", out$code)), 1)
 })
