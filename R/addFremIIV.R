@@ -228,7 +228,10 @@ addFremIIV <- function(strFREMModel,
 #' @noRd
 .fremOmegaRecords <- function(lines) {
   isRec <- grepl("^\\s*\\$[A-Za-z]", lines)
-  isOm <- grepl("^\\s*\\$OM", lines, ignore.case = TRUE)
+  ## $OME / $OMEG / $OMEGA, but not the $OMEGAP / $OMEGAPD prior records,
+  ## which describe a prior and define none of the model's etas.
+  isOm <- grepl("^\\s*\\$OME", lines, ignore.case = TRUE) &
+    !grepl("^\\s*\\$OMEGAP", lines, ignore.case = TRUE)
   starts <- which(isOm)
   empty <- data.frame(
     start = integer(0), end = integer(0), n = integer(0)
@@ -243,22 +246,36 @@ addFremIIV <- function(strFREMModel,
   }, integer(1))
 
   n <- integer(length(starts))
+  repsSeen <- rep(1L, length(starts))
   for (k in seq_along(starts)) {
     txt <- paste(sub(";.*$", "", lines[starts[k]:ends[k]]), collapse = " ")
     txt <- sub("^\\s*\\$[A-Za-z]+", "", txt)
     up <- toupper(txt)
     blk <- regmatches(up, regexpr("BLOCK\\s*\\(\\s*[0-9]+\\s*\\)", up))
     dia <- regmatches(up, regexpr("DIAGONAL\\s*\\(\\s*[0-9]+\\s*\\)", up))
+    ## NONMEM 7.3's SAME(m) stands for m repeats of the preceding block, so
+    ## the record defines m times the block's dimension, not one.
+    sameRep <- regmatches(up, regexpr("SAME\\s*\\(\\s*[0-9]+\\s*\\)", up))
+    reps <- if (length(sameRep) == 1L) {
+      as.integer(gsub("[^0-9]", "", sameRep))
+    } else {
+      1L
+    }
+    isSame <- grepl("\\bSAME\\b", up)
     if (length(blk) == 1L) {
-      n[k] <- as.integer(gsub("[^0-9]", "", blk))
+      n[k] <- as.integer(gsub("[^0-9]", "", blk)) * if (isSame) reps else 1L
     } else if (length(dia) == 1L) {
       n[k] <- as.integer(gsub("[^0-9]", "", dia))
-    } else if (grepl("\\bSAME\\b", up)) {
-      ## BLOCK SAME with no size: same dimension as the previous record
-      n[k] <- if (k > 1L) n[k - 1L] else 0L
+    } else if (isSame) {
+      ## BLOCK SAME with no size: the previous record's dimension. When that
+      ## record was itself a SAME(m), its per-repeat size is n / m.
+      prev <- if (k > 1L) n[k - 1L] else 0L
+      prevReps <- if (k > 1L) repsSeen[k - 1L] else 1L
+      n[k] <- (prev %/% prevReps) * reps
     } else {
       n[k] <- .fremCountOmegaValues(txt)
     }
+    repsSeen[k] <- reps
   }
   data.frame(start = starts, end = ends, n = n)
 }
@@ -268,6 +285,10 @@ addFremIIV <- function(strFREMModel,
 #' @keywords internal
 #' @noRd
 .fremCountTotEta <- function(lines) {
+  # Comment text is not a reference. A commented-out ETA(99) used to set
+  # numTotEta to 99, and with it numParCov and the generated function's
+  # default etas length.
+  lines <- sub(";.*$", "", lines)
   # (?<![A-Za-z]) so ETA( inside THETA( / BETA( / ZETA( is not counted
   m <- regmatches(lines, gregexpr("(?<![A-Za-z])ETA\\(\\s*[0-9]+\\s*\\)", lines, perl = TRUE))
   idx <- as.integer(gsub("[^0-9]", "", unlist(m)))

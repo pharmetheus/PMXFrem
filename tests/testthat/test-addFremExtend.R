@@ -347,3 +347,31 @@ test_that("addFremIIV stops when numSkipOm does not land on an $OMEGA record bou
     "no \\$OMEGA record starts at ETA\\(2\\)"
   )
 })
+
+test_that("the eta/omega counters read code, not comments or prior records", {
+  # A commented-out ETA() is not a reference. Counting it inflates numTotEta,
+  # and with it numParCov and the generated function's default etas length.
+  m <- c("$PK", "; old: CL = EXP(MU_3 + ETA(99))", "CL = EXP(MU_3 + ETA(3))")
+  expect_equal(PMXFrem:::.fremCountTotEta(m), 3L)
+
+  # $OMEGAP / $OMEGAPD are prior records; they define no etas of the model.
+  pri <- c(
+    "$OMEGA BLOCK(1) 0.1", "$OMEGA BLOCK(2) 0.1 0.01 0.1",
+    "$OMEGAP BLOCK(2) VALUES(0.1,0.01) FIX", "$OMEGAPD 2 FIX", "$SIGMA 1"
+  )
+  expect_equal(PMXFrem:::.fremOmegaRecords(pri)$n, c(1L, 2L))
+
+  # NONMEM 7.3's SAME(m) stands for m repeats of the preceding block.
+  expect_equal(
+    PMXFrem:::.fremOmegaRecords(c(
+      "$OMEGA BLOCK(2) 0.1 0.01 0.1", "$OMEGA BLOCK SAME(3)", "$SIGMA 1"
+    ))$n,
+    c(2L, 6L)
+  )
+  expect_equal(
+    PMXFrem:::.fremOmegaRecords(c(
+      "$OMEGA BLOCK(2) 0.1 0.01 0.1", "$OMEGA BLOCK(2) SAME(3)", "$SIGMA 1"
+    ))$n,
+    c(2L, 6L)
+  )
+})
