@@ -41,8 +41,6 @@ Suggests:
     testthat (>= 3.0.0),
     tibble,
     withr
-Remotes:
-    pharmetheus/PMXForest@v1.3.0
 VignetteBuilder: knitr
 NeedsCompilation: no
 Config/testthat/edition: 3
