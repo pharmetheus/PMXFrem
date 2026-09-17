@@ -397,18 +397,16 @@ DESCRIPTION declares `ggplot2` with no version. Either require
 a change for whoever owns ci.yml - or add a test that asserts the rendered
 width, so the mismatch fails rather than warns.
 
-## T30 — bring back `Remotes: pharmetheus/PMXForest@v1.3.0`
-
-Added and then reverted on epic/2.1.1 the same day. remotes::install_deps()
-honours the field, and on the self-hosted runner that install step has no
-GitHub token, so ci.yml's check-r-package failed with "HTTP error 401" - and
-pr-publish-to-dev.yml and cd.yml install the same way. Re-add it once every
-workflow that runs install_deps() is on a GitHub-hosted runner or passes
-GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}. At the same time drop the unpinned
-`pharmetheus/PMXForest` from unit-test's extra-packages (ci.yml:128), which
-would otherwise disagree with the pin once PMXForest's main moves on.
-
 ## Done
+
+- **T30** — PMXForest pinned for CI. Tried as `Remotes: pharmetheus/PMXForest@v1.3.0`
+  and reverted: `remotes::install_deps()` honours it and the self-hosted install
+  steps had no GitHub token (HTTP 401), which would also have broken
+  `pr-publish-to-dev.yml` and `cd.yml`. Resolved in `ci.yml` instead (a092966,
+  817e980): `check-r-package` moved to GitHub-hosted runners, where `setup-r`
+  installs qpdf, and both it and `unit-test` install
+  `pharmetheus/PMXForest@v1.3.0` through `extra-packages`. First fully green
+  `ci.yml` run on the branch: 35205263637.
 
 - **T5** — direct `getCovNames(createFREMmodel() output)` test — PR #40 (merged).
 - **T16** — `generateFremModel()` comment alignment. Kept the override (a
