@@ -495,3 +495,29 @@ test_that("fremModelInfo warns when the model and the ext describe different str
     "24 eta|does not match|disagree"
   )
 })
+
+test_that("fremModelInfo warns when the model gained a theta the ext does not have", {
+  # addFremStructuralTheta(addEta = FALSE) adds a $THETA and no eta. The
+  # eta-count comparison alone passes that pairing, and numNonFREMThetas then
+  # comes back one short with nothing said.
+  td <- withr::local_tempdir()
+  m <- .run31(td)
+  res <- addFremStructuralTheta(m,
+    thetaInit = 0.5, parameter = "KA2", addEta = FALSE,
+    bWriteMod = FALSE, quiet = TRUE
+  )
+  newMod <- file.path(td, "theta_only.mod")
+  writeLines(res$model, newMod)
+  expect_warning(
+    fremModelInfo(modFile = newMod, dfext = file.path(td, "run31.ext")),
+    "references THETA\\(26\\) but the ext has only 25"
+  )
+})
+
+test_that("fremModelInfo does not warn on a matched model and ext", {
+  # the guard must not fire on the package's own reference run
+  expect_no_warning(fremModelInfo(
+    modFile = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+    dfext = system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+  ))
+})

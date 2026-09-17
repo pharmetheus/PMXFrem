@@ -1,6 +1,6 @@
 #' Check a generated FREM parameter function
 #'
-#' @description Runs three consistency checks on the function from
+#' @description Runs four consistency checks on the function from
 #'   [createFREMParamFunction()], for a set of test covariate rows:
 #'   \enumerate{
 #'     \item **Structural match.** With `covthetas = 0` and `etas = 0` a FREM

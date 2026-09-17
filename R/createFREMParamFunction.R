@@ -12,8 +12,10 @@
 #'   `covthetas[k] + etas[i]`, where `ETA(i)` is the reference `$PK` makes and
 #'   `k = i - numSkipOm`, because the FREM covariate coefficient is additive on
 #'   the same (eta) scale. A parameter with no `ETA()` is returned
-#'   as `$PK` computes it (no covariate effect - not an error). Every other
-#'   `ETA(n)` is set to 0.
+#'   as `$PK` computes it (no covariate effect - not an error). A parameter
+#'   whose single `ETA()` falls inside the skipped omegas keeps that eta as
+#'   `.eta(etas, n)` but takes no covariate effect, since no `covthetas` index
+#'   applies to it. Every other `ETA(n)` is set to 0.
 #'
 #'   The emitted body is **pruned to the statements the requested `parameters`
 #'   actually depend on**, so the FREM covariate block (`MU_j = THETA(...)` /
@@ -62,9 +64,12 @@
 #'   **Which parameters get the covariate splice.** Exactly one `ETA()` -> the
 #'   parameter is spliced. None -> returned as-is (no covariate effect). More
 #'   than one -> returned as-is with a warning (which eta is "the" structural one
-#'   is ambiguous). A spliced parameter whose `ETA()` falls inside the skipped
-#'   omegas is an error: either `numSkipOm` is wrong or it is not a FREM
-#'   covariate parameter, and neither can give a correct `covthetas` index.
+#'   is ambiguous). A parameter whose single `ETA()` falls inside the skipped
+#'   omegas (an IOV or residual-error eta, say) is not a FREM covariate
+#'   parameter: it keeps its own eta and gets no covariate effect. A statement
+#'   carrying a parameter's FREM eta together with another eta is an error,
+#'   because the coefficient cannot be spliced in place without counting it
+#'   twice.
 #'
 #' @param fremModel Path to the FREM NONMEM control stream (`.mod` / `.ctl`).
 #'   Optional if `runno` / `modName` (+ `modDevDir`) are given.
@@ -75,8 +80,11 @@
 #'   `$PK` quantities may be included and are returned as-is.
 #' @param numSkipOm,numNonFREMThetas The number of skipped omegas and of
 #'   structural thetas. `NULL` (default) derives them from the FREM model and the
-#'   ext via [fremModelInfo()]; a supplied value that disagrees with the derived
-#'   one warns and is kept.
+#'   ext via [fremModelInfo()] when either is `NULL`; a supplied value that
+#'   disagrees with the derived one then warns and is kept. When both are
+#'   supplied nothing is derived, so nothing is checked against the `.ext` -
+#'   though `numSkipOm` is still compared with the model's own `$OMEGA`
+#'   records.
 #' @param dfext,extFile A `getExt()` data frame / an `.ext` path, used only to
 #'   derive `numSkipOm` / `numNonFREMThetas`. Defaults to the ext located from
 #'   `runno` / `modName` / `modDevDir`, else the `.ext` beside `fremModel`.
@@ -169,7 +177,7 @@ createFREMParamFunction <- function(fremModel = NULL,
       where = asNamespace("PMXForest"),
       inherits = FALSE
     )) {
-    stop("createFREMParamFunction() needs PMXForest (>= 1.2.15.9007), which ",
+    stop("createFREMParamFunction() needs PMXForest (>= 1.3.0), which ",
       "exports nmParsePK() and nmResolveSecondary(); please update PMXForest.",
       call. = FALSE
     )

@@ -34,8 +34,11 @@ parameter block} (that order is what \code{covthetas} / \code{etas} index); othe
 
 \item{numSkipOm, numNonFREMThetas}{The number of skipped omegas and of
 structural thetas. \code{NULL} (default) derives them from the FREM model and the
-ext via \code{\link[=fremModelInfo]{fremModelInfo()}}; a supplied value that disagrees with the derived
-one warns and is kept.}
+ext via \code{\link[=fremModelInfo]{fremModelInfo()}} when either is \code{NULL}; a supplied value that
+disagrees with the derived one then warns and is kept. When both are
+supplied nothing is derived, so nothing is checked against the \code{.ext} -
+though \code{numSkipOm} is still compared with the model's own \verb{$OMEGA}
+records.}
 
 \item{runno}{The run number. Must be provided if \code{modName} is NULL. Will be
 used to create NONMEM model and results file names  with the structure
@@ -115,8 +118,10 @@ encloses it, \code{exp(mu + ETA)}, \code{TV * exp(ETA)}, \code{TV + ETA}, ... - 
 \code{covthetas[k] + etas[i]}, where \code{ETA(i)} is the reference \verb{$PK} makes and
 \code{k = i - numSkipOm}, because the FREM covariate coefficient is additive on
 the same (eta) scale. A parameter with no \code{ETA()} is returned
-as \verb{$PK} computes it (no covariate effect - not an error). Every other
-\code{ETA(n)} is set to 0.
+as \verb{$PK} computes it (no covariate effect - not an error). A parameter
+whose single \code{ETA()} falls inside the skipped omegas keeps that eta as
+\code{.eta(etas, n)} but takes no covariate effect, since no \code{covthetas} index
+applies to it. Every other \code{ETA(n)} is set to 0.
 
 The emitted body is \strong{pruned to the statements the requested \code{parameters}
 actually depend on}, so the FREM covariate block (\code{MU_j = THETA(...)} /
@@ -165,9 +170,12 @@ override or supply through \code{covRef}.
 \strong{Which parameters get the covariate splice.} Exactly one \code{ETA()} -> the
 parameter is spliced. None -> returned as-is (no covariate effect). More
 than one -> returned as-is with a warning (which eta is "the" structural one
-is ambiguous). A spliced parameter whose \code{ETA()} falls inside the skipped
-omegas is an error: either \code{numSkipOm} is wrong or it is not a FREM
-covariate parameter, and neither can give a correct \code{covthetas} index.
+is ambiguous). A parameter whose single \code{ETA()} falls inside the skipped
+omegas (an IOV or residual-error eta, say) is not a FREM covariate
+parameter: it keeps its own eta and gets no covariate effect. A statement
+carrying a parameter's FREM eta together with another eta is an error,
+because the coefficient cannot be spliced in place without counting it
+twice.
 }
 \examples{
 fremModel <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")

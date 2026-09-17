@@ -19,7 +19,8 @@
   in the model. Both are the model's own numbering, so the same `covthetas` and
   `etas` vectors serve a request for two parameters and a request for all of
   them, and asking for a subset gives exactly the lines the full request gives.
-  Every other `ETA()` goes to 0. One generated function serves both plots: call
+  A parameter whose only `ETA()` is inside the skipped omegas keeps that eta
+  and takes no covariate effect; every other `ETA()` goes to 0. One generated function serves both plots: call
   it with `etas = 0` for a forest plot and with non-zero `etas` for an
   explained-variability plot.
 
@@ -76,15 +77,19 @@
   `thetaInit` and `omegaInit` have no defaults; they are modelling choices. The
   `.ext` and `.phi` are **not** migrated — only the control stream is rewritten,
   and the model has to be re-estimated. `fremModelInfo()` warns if you later
-  pair the rewritten model with the old `.ext`.
+  pair the rewritten model with the old `.ext`, whether the model gained a
+  theta, an eta, or both.
 
 * **`fremModelInfo()` — the FREM structural integers, derived.** Works out
   `numNonFREMThetas`, `numSkipOm`, `numParCov`, `numFREMThetas` and `numSigmas`
   from a FREM model and its `.ext`, and says so when the two describe different
   structures. `fremParameterTable()`, `createFFEMmodel()`, `createFFEMdata()`,
-  `calcEtas()`, `updateFREMmodel()` and `createFREMmodel()` now accept `NULL`
-  for `numNonFREMThetas` / `numSkipOm` and derive them through it; a supplied
-  value that disagrees with the model warns and is kept.
+  `calcEtas()` and `updateFREMmodel()` now accept `NULL` for
+  `numNonFREMThetas` / `numSkipOm` and derive them through it; a supplied value
+  that disagrees with the model warns and is kept. `createFREMmodel()` works
+  from a base model, which has no FREM block to derive `numSkipOm` from, so it
+  still needs `numSkipOm`; its `numNonFREMThetas` defaults to the base model's
+  theta count.
 
 * **`add.stamp` on the plotting functions.** `plotExplainedVar()`,
   `traceplot()`, `plotEtasCov()` and `plotCovDist()` gained

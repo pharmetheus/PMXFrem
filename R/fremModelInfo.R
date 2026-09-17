@@ -98,6 +98,23 @@ fremModelInfo <- function(modFile,
   ## one. Everything below is then derived from the ext and describes the
   ## model before the mutation, with nothing to show for it.
   modLines <- sub("\r$", "", readLines(modFile, warn = FALSE))
+  ## Thetas as well as etas: addFremStructuralTheta(addEta = FALSE) adds a
+  ## $THETA and no eta, so an eta comparison alone passes the stale pairing
+  ## and numNonFREMThetas comes back one short. Warn only when the model
+  ## references MORE thetas than the ext has - a model may legitimately carry
+  ## a trailing $THETA it never references, and that is not staleness.
+  codeOnly <- sub(";.*$", "", modLines)
+  thHits <- regmatches(codeOnly, gregexpr("(?i)(?<![A-Za-z])THETA\\(\\s*[0-9]+\\s*\\)", codeOnly, perl = TRUE))
+  thIdx <- as.integer(gsub("[^0-9]", "", unlist(thHits)))
+  modTheta <- if (length(thIdx)) max(thIdx) else 0L
+  if (modTheta > nTheta) {
+    warning(
+      basename(modFile), " references THETA(", modTheta, ") but the ext ",
+      "has only ", nTheta, " theta(s); the two are not from the same run. ",
+      "If the model was changed by addFremStructuralTheta(), it has to be ",
+      "re-estimated first."
+    )
+  }
   modEta <- .fremCountTotEta(modLines)
   if (modEta > 0L && modEta != numTotEta) {
     warning(

@@ -60,7 +60,7 @@ difference for each check, \code{NA} when skipped) and \code{PASS} (\code{TRUE} 
 \code{NA}). Printing shows the table.
 }
 \description{
-Runs three consistency checks on the function from
+Runs four consistency checks on the function from
 \code{\link[=createFREMParamFunction]{createFREMParamFunction()}}, for a set of test covariate rows:
 \enumerate{
 \item \strong{Structural match.} With \code{covthetas = 0} and \code{etas = 0} a FREM
