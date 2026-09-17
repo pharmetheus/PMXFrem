@@ -182,9 +182,21 @@ test_that("getForestDFFREM covers edge cases", {
       numNonFREMThetas = 13, dfParameters = dfSamplesCOV,
       dfRefRow = dfRefRow_single, quiet = TRUE
     )
-    expect_snapshot_value(stabilizeRows(res_ref_row),
-      style = "serialize", tolerance = 1e-6
+    # Only the reproducible columns are snapshotted. The sampled ones (see
+    # forestSampledCols) go through MASS::mvrnorm() -> eigen() and differ
+    # between BLAS builds; this line used to snapshot them exactly, and without
+    # cran = TRUE, so under R CMD check it skipped - aborting the block and
+    # dropping the two tests below with it.
+    expect_snapshot_value(
+      stabilizeRows(res_ref_row[, setdiff(names(res_ref_row), forestSampledCols)]),
+      style = "json2", tolerance = 1e-6, cran = TRUE
     )
+    # Not expect_forest_sampling_sane(): paramFun here reads THETA(1), which
+    # run22-3.mod fixes at 1 (TVFREL), so every POINT, Q1 and Q2 is exactly 1
+    # by construction and a sanity check on the values has nothing to check.
+    # This block is about argument handling, so assert that instead.
+    expect_equal(nrow(res_ref_row), nrow(res_defaults))
+    expect_true("REFROW" %in% names(res_ref_row))
 
     # Test case: dfRefRow has wrong number of rows
     dfRefRow_wrong <- dfCovs[1:2, , drop = FALSE]

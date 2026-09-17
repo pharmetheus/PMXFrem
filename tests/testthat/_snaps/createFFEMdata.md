@@ -636,7 +636,7 @@
         "names": {
           "type": "character",
           "attributes": {},
-          "value": ["column", "type", "n", "nMissing", "nDistinct", "mean", "sd", "min", "max"]
+          "value": ["column", "type", "n", "nMissing", "nDistinct", "mean", "sd", "min", "max", "hash"]
         },
         "row.names": {
           "type": "integer",
@@ -694,6 +694,11 @@
           "type": "double",
           "attributes": {},
           "value": [2, 964, 7, 74.25, 1678.4, 72, 10, 0, 330.5, 5.801, 4, 0, 10, 1, 1, 2, 161.5, 198.5, 89.6785, 2.92336, 2, 5, 77, 131, 129, 32.498, 150, 49.8, 2, 2, 1, 1, 3, 2, 0.740723, 0.826723, 0.205194]
+        },
+        {
+          "type": "character",
+          "attributes": {},
+          "value": ["6166cd94c2937ff687d4833084579392", "4d3cf49a455a552894b22d941b006a3e", "71a6be762e92df815637a9fa5bafb49a", "3d1316d3bf685405994129ad6aaf9ff5", "cfa0c4369609082c93c0a79df2a55354", "4855b9f7cef7706602a0a52d3b377eb0", "2e11973bb5a8cbee0a46e52518e55dc2", "d3c763489847eab3ea406b520ea224cf", "d2ded46847685e9d81a1d9eb953dd0ff", "048972b75170a01a527119b5f094c27f", "2f0e3b87673e6d596d90903e84e4dd16", "8e0b79d71578a748d2003ddd8201c399", "b2b8e74908ad00e9589effbc94d1e601", "f0a0d8f69d7d4e7408ac8456f4a52b62", "790cf374dee7235c97c6fb34552354e6", "6166cd94c2937ff687d4833084579392", "149338187de950b029210a0edb4bdb30", "9457bf613a6480210a73683241278ef7", "b44449135e3848e1222cc481397894ad", "2f98d769d517b1e66546ab01cef96ef1", "b9292f21c03ee8332be63004a94108a0", "8f0c2b74b7b0094659cf5ef836e85b1d", "be2fc656d4776742773b74eff1ce364b", "cdf989218c84815e9b775c2974f653c9", "a2c9ce49ece5861fe8f588a25f5ce740", "7e37bdbde46b145e3928dcc4300188c3", "15a880ae97b014558bd52f6d9cb2be78", "5049f0811528db578a4e37ac5de6ce7c", "5309031e1670400725f19b4ab817caff", "b204c590d9836b8c90c3ba2539138e80", "cd351e7e679a6ee7d30e7c5aee920f20", "c617d18328c3a21cf18408af58a33fea", "0ec80b3d907469439bd633d2fa97642b", "5309031e1670400725f19b4ab817caff", "514171bf8be95aaf2012ad65ff74f3dc", "cdd87f63eae3f0a650797bfc3fe5f0ea", "da5bddf658e5a6a3f0e2347115548b74"]
         }
       ]
     }

@@ -845,6 +845,16 @@ test_that("a second assignment to a FREM parameter is not given the covariate sp
   )
   expect_named(r, c("CL", "V", "MAT"))
   expect_true(is.finite(r$CL))
+
+  # The IOV statement must take no covariate effect at all, not merely a
+  # well-formed one. An emitter that splices CL's own coefficient into it
+  # passes every assertion above while applying the effect twice at OCC == 2,
+  # so compare the two occasions with a non-zero coefficient and no etas:
+  # the IOV term is then exp(0) and CL must be identical on both.
+  ct <- c(0.5, 0, 0)
+  occ1 <- fn(th, covthetas = ct, dfrow = data.frame(FOOD = 1, OCC = 1), etas = rep(0, 23))
+  occ2 <- fn(th, covthetas = ct, dfrow = data.frame(FOOD = 1, OCC = 2), etas = rep(0, 23))
+  expect_equal(occ2$CL, occ1$CL, tolerance = 1e-12)
 })
 
 test_that("a FREM parameter's own eta mixed with another eta is refused", {
@@ -965,4 +975,57 @@ test_that("a repeated name in `parameters` is reduced to one", {
   ))
   expect_identical(out$primaryNames, c("CL", "V"))
   expect_equal(sum(grepl("^\\s+CL = CL,?$", out$code)), 1)
+})
+
+test_that("verifyFREMParamFunction catches a right eta paired with the wrong covthetas index", {
+  # Each parameter is probed with its own coefficient, which is what separates
+  # "reads its own covthetas entry" from "reads a neighbour's". With one shared
+  # coefficient a swapped index scales by the same amount and looks correct.
+  m <- .fremMod()
+  e <- .fremExt()
+  ffem <- system.file("extdata/SimNeb/run31max1-2.mod", package = "PMXFrem")
+  good <- createFREMParamFunction(m, parameters = c("V", "MAT"), extFile = e, quiet = TRUE)
+
+  bad <- good
+  bad$code <- sub("covthetas[2] + .eta(etas, 4)", "covthetas[3] + .eta(etas, 4)", bad$code, fixed = TRUE)
+  bad$code <- sub("covthetas[3] + .eta(etas, 5)", "covthetas[2] + .eta(etas, 5)", bad$code, fixed = TRUE)
+  expect_false(identical(bad$code, good$code)) # the swap applied
+
+  v <- verifyFREMParamFunction(bad, ffemModel = ffem, extFile = e, quiet = TRUE)
+  d <- attr(v, "checks")
+  expect_false(isTRUE(unclass(v)[1]))
+  expect_true(all(d$COVSPLICE > 1e-6)) # caught by the covariate probe...
+  expect_true(all(d$ETASPLICE < 1e-8)) # ...while the etas are right
+})
+
+test_that("verifyFREMParamFunction catches an eta that moves a parameter it does not belong to", {
+  # Perturbing one parameter's eta must leave every other parameter alone.
+  # Here MAT is made to read V's eta as well; probing V then moves MAT too.
+  m <- .fremMod()
+  e <- .fremExt()
+  ffem <- system.file("extdata/SimNeb/run31max1-2.mod", package = "PMXFrem")
+  good <- createFREMParamFunction(m, parameters = c("V", "MAT"), extFile = e, quiet = TRUE)
+
+  bad <- good
+  bad$code <- sub("covthetas[3] + .eta(etas, 5)", "covthetas[3] + .eta(etas, 5) + .eta(etas, 4)",
+    bad$code,
+    fixed = TRUE
+  )
+  expect_false(identical(bad$code, good$code))
+
+  v <- verifyFREMParamFunction(bad, ffemModel = ffem, extFile = e, quiet = TRUE)
+  d <- attr(v, "checks")
+  expect_false(isTRUE(unclass(v)[1]))
+  expect_gt(d$ETASPLICE[d$PARAMETER == "MAT"], 1e-6)
+})
+
+test_that("a bare P = ETA(k) is not treated as log-normal", {
+  # The only shape where the eta leaf itself decides the scale: nothing
+  # encloses the eta, so there is no exp() for the covariate splice to scale.
+  bm <- .stubMod(c("  TVCL = THETA(1)", "  CL = TVCL * EXP(ETA(1))", "  V = ETA(2)"))
+  out <- createFREMParamFunction(bm,
+    parameters = c("CL", "V"), numSkipOm = 0, numNonFREMThetas = 4, quiet = TRUE
+  )
+  expect_identical(unname(out$fremEtaScale["CL"]), "exp")
+  expect_identical(unname(out$fremEtaScale["V"]), "other")
 })

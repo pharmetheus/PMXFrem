@@ -27,7 +27,7 @@ test_that("calEtas works with a pre-created FFEMData object", {
 
   expect_s3_class(ind_params, "data.frame")
   # Using expect_snapshot is great for complex objects
-  expect_snapshot(ind_params)
+  expect_snapshot(ind_params, cran = TRUE)
 })
 
 

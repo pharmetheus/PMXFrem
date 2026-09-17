@@ -58,6 +58,11 @@ test_that("calcFremShrinkage computes valid shrinkages and returns a strictly fo
   expect_equal(shrinkages$ETA_Var[shrinkages$Parameter == "ETA1"], 60.8814,
     tolerance = 1e-4
   )
+  # EBV_SD is derived from EBV_Var, so the relationship above holds even when
+  # EBV_Var itself is computed wrongly. Anchor it outright too.
+  expect_equal(shrinkages$EBV_Var[shrinkages$Parameter == "ETA1"], 56.8161,
+    tolerance = 1e-4
+  )
 })
 
 test_that("calcFremShrinkage safely aborts if required files are missing", {

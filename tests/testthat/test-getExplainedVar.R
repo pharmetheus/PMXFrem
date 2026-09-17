@@ -417,3 +417,34 @@ test_that("getExplainedVar reproduces a closed-form variance decomposition", {
   # names() empty, no covariate active, and COVVAR silently 0.
   expect_equal(res$COVVAR[1], res$TOTCOVVAR[1], tolerance = 1e-8)
 })
+
+test_that("getExplainedVar includes the covariance between etas, not only their variances", {
+  # Every other functionList in this file depends on a single eta, so the
+  # off-diagonal terms of the omega matrix never reached a result: a delta rule
+  # that dropped covmatrix[i, j] for i != j passed the whole file. For
+  # P = theta + b3 * ETA(3) + b4 * ETA(4) the delta rule is still exact, and
+  #   TOTVAR = b3^2 * OM(3,3) + 2 * b3 * b4 * OM(4,3) + b4^2 * OM(4,4)
+  # where the middle term is the one that goes missing.
+  modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+  fin <- getExt(extFile = file.path(modDevDir, "run31.ext"))
+  fin <- fin[fin$ITERATION == -1000000000, , drop = FALSE]
+  om <- function(i, j) as.numeric(fin[[paste0("OMEGA.", i, ".", j, ".")]])
+
+  b3 <- 2.5
+  b4 <- -1.5
+  totVarHand <- b3^2 * om(3, 3) + 2 * b3 * b4 * om(4, 3) + b4^2 * om(4, 4)
+  # the covariance must actually matter here, or the test proves nothing
+  expect_gt(abs(2 * b3 * b4 * om(4, 3)), 0.01 * totVarHand)
+
+  fl <- list(function(basethetas, covthetas, dfrow, etas, ...) {
+    basethetas[2] + b3 * etas[3] + b4 * etas[4]
+  })
+  res <- getExplainedVar(
+    type = 0, data = NULL, dfCovs = data.frame(WT = 1),
+    numNonFREMThetas = 7, numSkipOm = 2,
+    functionList = fl, functionListName = "CLV",
+    cstrCovariates = "WT", modDevDir = modDevDir, modName = "run31",
+    availCov = "WT", quiet = TRUE
+  )
+  expect_equal(res$TOTVAR[1], totVarHand, tolerance = 1e-8)
+})

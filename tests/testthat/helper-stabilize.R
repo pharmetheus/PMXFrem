@@ -267,6 +267,15 @@ expect_forest_sampling_sane <- function(x, lo = "Q1", point = "POINT",
   testthat::expect_true(all(x[[point]] <= x[[hi]] + 1e-8),
     info = "the point estimate should not exceed the upper quantile"
   )
+  ## Degenerate results satisfy every ordering above: an interval of zero
+  ## width, or the same value in every row. Neither is a plausible sampled
+  ## forest result, and a mutation audit found both passed.
+  testthat::expect_true(any(x[[hi]] > x[[lo]] + 1e-8),
+    info = "at least one interval should have non-zero width"
+  )
+  testthat::expect_true(stats::sd(x[[point]]) > 0,
+    info = "the point estimate should vary across covariate levels"
+  )
 
   ## A ratio-to-reference column is of order 1 whatever the parameter's units.
   for (cc in grep("_REL_", present, value = TRUE)) {
@@ -337,6 +346,9 @@ expect_rse_sane <- function(x, n, maxRSE = 100) {
     )
   )
   testthat::expect_true(any(rse > 0), info = "not every RSE should be zero")
+  testthat::expect_true(length(unique(rse)) > 1,
+    info = "every parameter reporting the same RSE is not a plausible result"
+  )
 
   ## the draws themselves: as many as were asked for, and all finite
   testthat::expect_s3_class(x$Samples, "data.frame")
@@ -344,6 +356,12 @@ expect_rse_sane <- function(x, n, maxRSE = 100) {
   num <- vapply(x$Samples, is.numeric, logical(1))
   testthat::expect_true(all(vapply(x$Samples[num], function(c) all(is.finite(c)), TRUE)),
     info = "every sampled parameter value should be finite"
+  )
+  ## draws that are all the same vector - the estimates row repeated n times -
+  ## have the right shape and describe no uncertainty at all
+  testthat::expect_true(
+    any(vapply(x$Samples[num], function(c) stats::sd(c) > 0, TRUE)),
+    info = "the sampled parameter vectors should actually vary"
   )
   invisible(x)
 }
@@ -357,11 +375,20 @@ expect_rse_sane <- function(x, n, maxRSE = 100) {
 #' summary that fits on a screen: enough to notice a change anywhere in the
 #' frame, and legible enough that noticing one means something.
 #'
-#' The summary moves if any value moves (mean and sd), if a value is added or
+#' The summary moves if a value moves (mean and sd), if a value is added or
 #' removed (n, nDistinct), if the range shifts (min, max), or if a column
-#' changes type or name. It does not pin every cell - the head snapshotted
-#' alongside it covers the shape of the rows, and the point is a diff a person
-#' will actually read.
+#' changes type or name.
+#'
+#' Those are all invariant to reordering, which is exactly the failure a FREM
+#' data set is most exposed to: covariates attached to the wrong subject after
+#' a merge, or records reordered within a subject, which NONMEM reads in
+#' sequence. A mutation audit showed a shuffled WT column, two subjects' AGE /
+#' WT / SEX swapped, and one subject's records reversed all left the moments
+#' and the first rows untouched. So each column also carries `hash`, an
+#' order-sensitive hash of its values formatted to `digits` significant
+#' figures - formatted rather than raw, so the same data hashes the same on
+#' another platform. The moments say which column changed and roughly how;
+#' the hash says that it changed at all.
 #'
 #' @param x A data frame.
 #' @param digits Significant figures for the numeric summaries.
@@ -382,6 +409,9 @@ columnDigest <- function(x, digits = 6) {
       sd = if (num) sig(stats::sd(col, na.rm = TRUE)) else NA_real_,
       min = if (num) sig(min(col, na.rm = TRUE)) else NA_real_,
       max = if (num) sig(max(col, na.rm = TRUE)) else NA_real_,
+      hash = rlang::hash(
+        if (num) sprintf(paste0("%.", digits, "g"), col) else as.character(col)
+      ),
       stringsAsFactors = FALSE
     )
   })

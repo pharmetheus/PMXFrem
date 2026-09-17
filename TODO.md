@@ -365,6 +365,24 @@ that use it. Run it over a range of real forest results - several models, wide
 covariate ranges - and either narrow the band to what those actually occupy or
 record why it has to stay this wide.
 
+## T28 — two verifier/generator paths no bundled fixture can reach
+
+From the round-B mutation audit; both are real gaps, neither fixable from
+tests in this package alone.
+
+- `verifyFREMParamFunction()` gates the splice checks on
+  `scale == "exp" & spliceable`. The `scale` half is shadowed on every fixture:
+  `PMXForest::createParamFunction()` never places an additive eta in `etaMap`,
+  so a non-log-normal parameter is already excluded by `spliceable`. Removing
+  the `scale` gate changes no test. The code comments say the scale decides
+  it; on current fixtures the reference does. Either give PMXForest's
+  `nmEtaMap()` the additive idiom or reword the comments.
+- `getExplainedVar()`'s placeholder eta vectors are now
+  `rep(0, numSkipOm + numParCov)` instead of `rep(0, 3 * length(thetas))`. No
+  bundled model has `numSkipOm + numParCov > 3 * numNonFREMThetas`, so no test
+  distinguishes the two. A small FREM fixture with many skip omegas and few
+  structural thetas would.
+
 ## Done
 
 - **T5** — direct `getCovNames(createFREMmodel() output)` test — PR #40 (merged).

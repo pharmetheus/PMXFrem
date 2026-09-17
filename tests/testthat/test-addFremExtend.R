@@ -521,3 +521,39 @@ test_that("fremModelInfo does not warn on a matched model and ext", {
     dfext = system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
   ))
 })
+
+test_that("addFremIIV names a conditionally assigned parameter instead of saying it is missing", {
+  # MATFOOD is assigned on two guarded lines. Reporting "no $PK assignment of
+  # 'MATFOOD' was found" would send the user looking for a typo; the real
+  # problem is that an eta cannot be attached to one branch.
+  td <- withr::local_tempdir()
+  expect_error(
+    addFremIIV(.run31(td),
+      parameter = "MATFOOD", omegaInit = 0.05, bWriteMod = FALSE, quiet = TRUE
+    ),
+    "'MATFOOD' is assigned conditionally in \\$PK"
+  )
+})
+
+test_that("fremModelInfo keeps numParCov consistent when numSkipOm is overridden", {
+  # numSkipOm + numParCov + numFREMThetas must add up to the model's etas, so
+  # forcing a different numSkipOm moves numParCov with it.
+  m <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
+  e <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+  info <- suppressWarnings(fremModelInfo(modFile = m, dfext = e, numSkipOm = 1))
+  expect_equal(info$numSkipOm, 1)
+  expect_equal(
+    info$numSkipOm + info$numParCov + info$numFREMThetas, info$numTotEta
+  )
+})
+
+test_that("fremModelInfo says so when the derived structure is impossible", {
+  # run31.mod is a FREM model with 18 FREM covariate thetas; run30.ext is its
+  # base model's, with 7 thetas in total. Derived numNonFREMThetas is then
+  # 7 - 18 = -11, which no model can have.
+  w <- capture_warnings(fremModelInfo(
+    modFile = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+    dfext = system.file("extdata/SimNeb/run30.ext", package = "PMXFrem")
+  ))
+  expect_true(any(grepl("Derived FREM structure looks inconsistent", w)))
+})
