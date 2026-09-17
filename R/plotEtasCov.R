@@ -249,12 +249,14 @@ plotEtasCov <- function(df,
   if (smoothNonMissing) {
     df_non_missing <- plot_df[plot_df$Missingness == "Non-missing", ]
     if (nrow(df_non_missing) > 0) {
-      p <- p + ggplot2::geom_smooth(
-        data = df_non_missing,
-        method = smoothMethod, color = smoothColor,
-        linetype = smoothLinetype, linewidth = smoothSize,
-        se = smoothSe, ...
-      )
+      p <- p + do.call(ggplot2::geom_smooth, c(
+        list(
+          data = df_non_missing,
+          method = smoothMethod, color = smoothColor,
+          linetype = smoothLinetype, se = smoothSe
+        ),
+        .lineWidthArg(smoothSize), list(...)
+      ))
     }
   }
 
@@ -262,16 +264,40 @@ plotEtasCov <- function(df,
   if (showMissing && smoothMissing) {
     df_missing <- plot_df[plot_df$Missingness == "Missing", ]
     if (nrow(df_missing) > 0) {
-      p <- p + ggplot2::geom_smooth(
-        data = df_missing,
-        method = smoothMethod, color = colorMissing,
-        linetype = smoothMissingLinetype, linewidth = smoothSize,
-        se = smoothSe, ...
-      )
+      p <- p + do.call(ggplot2::geom_smooth, c(
+        list(
+          data = df_missing,
+          method = smoothMethod, color = colorMissing,
+          linetype = smoothMissingLinetype, se = smoothSe
+        ),
+        .lineWidthArg(smoothSize), list(...)
+      ))
     }
   }
 
   if (add.stamp) p <- PMXForest::addStamp(p)
 
   return(p)
+}
+
+
+#' A line-width argument that the installed ggplot2 understands
+#'
+#' ggplot2 3.4.0 renamed a line's `size` aesthetic to `linewidth`. Passing
+#' `linewidth` to an older ggplot2 is not an error - it warns "Ignoring unknown
+#' parameters" and draws the default width - and passing `size` to a newer one
+#' draws correctly but warns that `size` is deprecated. Choosing the name by
+#' version keeps both silent and both correct, without requiring a ggplot2
+#' newer than the one in a given production library.
+#'
+#' @param width The line width.
+#' @return A named list to splice into a geom call.
+#' @keywords internal
+#' @noRd
+.lineWidthArg <- function(width) {
+  if (utils::packageVersion("ggplot2") >= "3.4.0") {
+    list(linewidth = width)
+  } else {
+    list(size = width)
+  }
 }

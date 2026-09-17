@@ -383,21 +383,17 @@ tests in this package alone.
   distinguishes the two. A small FREM fixture with many skip omegas and few
   structural thetas would.
 
-## T29 — CI's ggplot2 predates `linewidth`, so plotEtasCov() line widths are dropped there
-
-CI's unit-test job installs from the Posit snapshot of 2022-10-27, which has a
-ggplot2 older than 3.4.0 - the release that introduced `linewidth`.
-`plotEtasCov()` passes `linewidth = smoothSize` to its smooth layers
-(R/plotEtasCov.R:255, :268), so on CI all ten plotEtasCov tests warn
-"Ignoring unknown parameters: linewidth" and the width is silently ignored.
-The tests still pass because none of them asserts the width.
-
-DESCRIPTION declares `ggplot2` with no version. Either require
-`ggplot2 (>= 3.4.0)` - which also means moving CI to a snapshot that has it,
-a change for whoever owns ci.yml - or add a test that asserts the rendered
-width, so the mismatch fails rather than warns.
-
 ## Done
+
+- **T29** — `plotEtasCov()` line width on older ggplot2. It passed `linewidth`,
+  which ggplot2 < 3.4.0 ignores with a warning, drawing the default width - CI's
+  snapshot has 3.3.6. It now chooses `linewidth` or `size` by the installed
+  version, so it is correct and silent on both without raising the ggplot2
+  requirement (production's version could not be observed). Verified with the
+  new test against ggplot2 3.3.6 in a scratch library - 3 failures before the
+  fix, 0 after - and against 3.4.2. Open in PMXForest: `forestPlot()` passes
+  `linewidth` in `guide_legend(override.aes = ...)` (R/forestPlot.R:369), which
+  an older ggplot2 would ignore the same way.
 
 - **T30** — PMXForest pinned for CI. Tried as `Remotes: pharmetheus/PMXForest@v1.3.0`
   and reverted: `remotes::install_deps()` honours it and the self-hosted install

@@ -214,3 +214,27 @@ test_that("plotEtasCov warns when a missingness flag is absent but showMissing =
     "flag 'WT_MISSING' not found"
   )
 })
+
+test_that("plotEtasCov draws smoothSize as the smooth line width on this ggplot2", {
+  # ggplot2 3.4.0 renamed a line's `size` to `linewidth`. Passing `linewidth`
+  # to an older ggplot2 is not an error: it warns "Ignoring unknown
+  # parameters: linewidth" and draws the default width, so a plot can look
+  # right and silently ignore the argument. CI's package snapshot has 3.3.6,
+  # where every plotEtasCov test warned exactly that and none failed.
+  expect_no_warning(
+    p <- plotEtasCov(indParams,
+      covName = "WT", etaNames = "ETA3", etaTypes = "FREM",
+      showMissing = TRUE, smoothMissing = TRUE, smoothSize = 2.5
+    )
+  )
+  smooth <- which(vapply(p$layers, function(l) inherits(l$geom, "GeomSmooth"), logical(1)))
+  expect_length(smooth, 2) # non-missing and missing
+  built <- suppressMessages(ggplot2::ggplot_build(p))
+  for (i in smooth) {
+    d <- built$data[[i]]
+    width <- if ("linewidth" %in% names(d)) d$linewidth else d$size
+    expect_true(all(width == 2.5),
+      info = sprintf("layer %d drawn at width %s, not smoothSize", i, paste(unique(width), collapse = ","))
+    )
+  }
+})
