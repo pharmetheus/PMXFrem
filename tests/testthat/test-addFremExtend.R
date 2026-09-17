@@ -557,3 +557,49 @@ test_that("fremModelInfo says so when the derived structure is impossible", {
   ))
   expect_true(any(grepl("Derived FREM structure looks inconsistent", w)))
 })
+
+test_that("the theta renumber pass covers every abbreviated-code record, and ignores case", {
+  # .fremRenumberTheta() covered only $PK/$ERROR/$PRED/$THETA and matched only
+  # upper-case THETA(). A THETA() in $DES, or written theta(), was left behind:
+  # still an in-range index, so nothing complains, but after the insertion it
+  # names the theta before the one it used to. Same defect as the eta pass had.
+  td <- withr::local_tempdir()
+  l <- readLines(.run31(td), warn = FALSE)
+  ie <- grep("^\\$ERROR", l)
+  l <- append(l, c("$DES", "DADT(1) = -THETA(8)*A(1)"), after = ie - 1L)
+  i <- grep("TVCL\\s*=\\s*THETA\\(2\\)", l)
+  expect_length(i, 1)
+  l[i] <- "TVCL    = theta(2)"
+  f <- file.path(td, "thetacase.mod")
+  writeLines(l, f)
+  file.copy(file.path(td, "run31.ext"), file.path(td, "thetacase.ext"))
+
+  res <- addFremStructuralTheta(f,
+    thetaInit = 0.5, parameter = "KA2", addEta = FALSE,
+    bWriteMod = FALSE, quiet = TRUE
+  )
+  # THETA(8) was the first FREM covariate mean; a structural theta is inserted
+  # at 8, so every reference from 8 up moves by one - in $DES too.
+  expect_match(grep("DADT", res$model, value = TRUE), "THETA\\(9\\)")
+  # theta(2) is below the insertion point and must not move, in either case
+  expect_match(paste(res$model, collapse = "\n"), "(?i)TVCL\\s*=\\s*theta\\(2\\)", perl = TRUE)
+})
+
+test_that("a lower-case theta() at or after the insertion point is renumbered", {
+  td <- withr::local_tempdir()
+  l <- readLines(.run31(td), warn = FALSE)
+  i <- grep("MU_6\\s*=\\s*THETA\\(8\\)", l)
+  expect_length(i, 1)
+  l[i] <- sub("THETA\\(8\\)", "theta(8)", l[i])
+  f <- file.path(td, "lc.mod")
+  writeLines(l, f)
+  file.copy(file.path(td, "run31.ext"), file.path(td, "lc.ext"))
+
+  res <- addFremStructuralTheta(f,
+    thetaInit = 0.5, parameter = "KA2", addEta = FALSE,
+    bWriteMod = FALSE, quiet = TRUE
+  )
+  txt <- paste(res$model, collapse = "\n")
+  expect_match(txt, "(?i)MU_6\\s*=\\s*theta\\(9\\)", perl = TRUE)
+  expect_no_match(txt, "(?i)MU_6\\s*=\\s*theta\\(8\\)", perl = TRUE)
+})

@@ -325,7 +325,13 @@ addFremStructuralTheta <- function(strFREMModel,
   recStart <- grep("^\\s*\\$[A-Za-z]", lines)
   region <- rep(FALSE, length(lines))
   for (s in recStart) {
-    if (grepl("^\\s*\\$(PK|ERROR|PRED|THETA)\\b", lines[s], ignore.case = TRUE)) {
+    ## Every record that can hold abbreviated code, plus $THETA itself - the
+    ## same set .fremRenumberEta() covers. A THETA() left behind in $DES keeps
+    ## an in-range index, so nothing complains, but it now names the theta
+    ## before the one it used to.
+    if (grepl("^\\s*\\$(PK|PRED|ERROR|DES|AES|MIX|INFN|THETA)\\b", lines[s],
+      ignore.case = TRUE
+    )) {
       e <- recStart[recStart > s]
       e <- if (length(e)) e[1] - 1L else length(lines)
       region[s:e] <- TRUE
@@ -335,7 +341,9 @@ addFremStructuralTheta <- function(strFREMModel,
   idx <- which(region)
   seg <- lines[idx]
   for (k in seq(maxIdx, fromIdx)) {
-    seg <- gsub(sprintf("THETA\\(\\s*%d\\s*\\)", k), sprintf("THETA(%d)", k + 1L),
+    ## (?i): NM-TRAN does not care about case in abbreviated code, so neither
+    ## can the renumber. The replacement is canonical upper case.
+    seg <- gsub(sprintf("(?i)THETA\\(\\s*%d\\s*\\)", k), sprintf("THETA(%d)", k + 1L),
       seg,
       perl = TRUE
     )

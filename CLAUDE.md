@@ -23,8 +23,12 @@ produces plausible-but-wrong numbers, not an error.
   - type 1: `etas` = phi-file rows, `dfPhi[, 3:(2 + numParCov + numSkipOm)]`.
   - type 2/3: `etas` = `t(ETAsamples) %*% chol(FullVars)`,
     `ETAsamples` is `(numParCov + numSkipOm) × numETASamples`.
-  - eta-zero reference calls pass `rep(0, 3 * numNonFREMThetas)` — longer, all
-    zero, harmless; don't assume `length(etas) == numSkipOm + numParCov`.
+  - eta-zero reference calls pass `rep(0, numSkipOm + numParCov)` — the same
+    length as everywhere else. They used to pass `rep(0, 3 * numNonFREMThetas)`,
+    which is shorter than the model's etas whenever `numSkipOm + numParCov`
+    exceeds three times the structural thetas. Don't reintroduce a shorter
+    vector: a function from `createFREMParamFunction()` stops on an `etas` too
+    short for the `ETA()` it references rather than reading it as 0.
 - One `functionList` function therefore serves both use cases: call with
   `etas = 0` for forest plots (`getForestDFFREM`), `etas != 0` for
   explained-variability plots (`getExplainedVar`).
