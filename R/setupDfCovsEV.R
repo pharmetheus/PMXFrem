@@ -9,12 +9,11 @@
 #'   modFileName)$orgCovNames`
 #' @param conditionalCovs Covariates to include in the output `dfCovs` beyond
 #'   the FREM ones - typically covariates in the fixed-effects part of the FREM
-#'   model file. Each gets a row of its own, set up like the FREM covariates'
-#'   rows: 1 for that covariate and `missVal` for every other. They are
-#'   therefore not included in the other rows. To condition every row on one,
-#'   set its column to a non-missing value in all rows (`dfCovs$FOOD <- 1`).
-#'   In types 1-3 of `getExplainedVar()` its values then come from `data`, not
-#'   from `dfCovs`.
+#'   model file. Unlike the FREM covariates, which are isolated one row at a
+#'   time, these are set to 1 in *every* row: `getExplainedVar()` then reports
+#'   what each FREM covariate explains with these in the model. Note that their
+#'   own contribution is part of every row. In types 1-3 of `getExplainedVar()`
+#'   the value used is each subject's own, from `data`, not the 1 in `dfCovs`.
 #' @param additionalCovs Deprecated. Use `conditionalCovs`.
 #' @param missVal Numeric. Missing value indicator.
 #' @return A data.frame that can be used as the dfCovs argument to
@@ -56,6 +55,12 @@ setupDfCovsEV <- function(modFileName,
   for (i in 2:nrow(dfCovs)) {
     dfCovs[i, names(dfCovs) != names(dfCovs)[i - 1]] <- missVal
   }
+
+  ## The conditional covariates are what every row is conditioned on, so they
+  ## stay on in all of them; only the FREM covariates are isolated one row at a
+  ## time. Left missing in the other rows, as this used to do, nothing was
+  ## conditioned on them unless the caller filled the column by hand.
+  if (length(conditionalCovs) > 0) dfCovs[, conditionalCovs] <- 1
 
   return(dfCovs)
 }

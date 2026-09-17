@@ -64,19 +64,14 @@ We use the package's internal `setupDfCovsEV()` function to dynamically construc
 * **Types 1, 2 and 3** use each subject's own value from `data`. The value in `dfCovs` is not used.
 * **Type 0** uses the first row of `dfCovs` for every calculation.
 
-In a covariate row, `dfrow` holds only the covariates that are not `-99` in that row. `setupDfCovsEV()` gives `FOOD` a row of its own, like the FREM covariates, and sets it to `-99` in every other row. The `AGE` row then has no `FOOD` column, so the variability it reports is that of `AGE` alone, and the function must fall back to the baseline effect when the column is missing (Section 3).
-
-To condition every row on `FOOD`, set the column to any non-missing value in all rows, as below. Each subject's own `FOOD` then enters every row, and the `AGE` row reports the variability of `AGE` given `FOOD`. In types 1-3, `1` and `0` give the same result, because the value itself is taken from `data`.
+In a covariate row, `dfrow` holds only the covariates that are not `-99` in that row. A covariate passed as `conditionalCovs` is set to `1` in *every* row, which is what makes it conditional: each FREM covariate's row then reports what that covariate explains with `FOOD` in the model. Its own contribution is part of every row, so those rows are not comparable with the `FOOD` row. The FREM covariates themselves are still isolated one row at a time, and the function must still fall back to the baseline effect when a column is missing (Section 3).
 
 ```{r cov_setup}
-# Robustly generate the covariate matrix, with a row of its own for FOOD
+# Robustly generate the covariate matrix; FOOD is on in every row
 dfCovs <- setupDfCovsEV(
   modFileName = fremFiles$mod,
   conditionalCovs = c("FOOD")
 )
-
-# Include FOOD in every row, so each covariate is conditioned on it
-dfCovs$FOOD <- 1
 
 # Define the exact names corresponding to the rows in dfCovs
 cstrCovariates <- c("All", names(dfCovs))

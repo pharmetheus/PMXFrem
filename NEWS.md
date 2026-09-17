@@ -104,10 +104,18 @@
 
 ## Breaking changes
 
-* **`setupDfCovsEV()`'s `additionalCovs` is renamed `conditionalCovs`.**
-  `additionalCovs` still works and gives an identical result, with a
-  deprecation warning; supplying both is an error rather than a silent
-  precedence rule.
+* **`setupDfCovsEV()`'s `additionalCovs` is renamed `conditionalCovs`, and they
+  are now on in every row.** They used to get a row of their own and `missVal`
+  everywhere else, so nothing was conditioned on them unless the caller filled
+  the column by hand. Each FREM covariate's row now reports what it explains
+  with them in the model - which includes their own contribution, so those rows
+  are no longer comparable with a conditional covariate's own row. On `run31`
+  with `FOOD` conditional, SEX's COVVAR for CL/F goes from 0.0002 to 0.0948
+  (FOOD alone explains 0.0945) and AGE's from 0.076 to 0.257. Callers who
+  filled the column themselves, as the explained-variability vignette did, get
+  the same numbers as before. `additionalCovs` still works, with a deprecation
+  warning, and behaves the same way; supplying both is an error rather than a
+  silent precedence rule.
 
 * **`plotExplainedVar()` no longer takes `...`, and `add.stamp` is no longer
   read from the global environment.** The `add.stamp = TRUE` path called

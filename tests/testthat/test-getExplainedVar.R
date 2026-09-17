@@ -497,9 +497,11 @@ test_that("a missing covariate does not also blank one whose name contains it (W
 
 test_that("a parameter function that returns nothing for a covariate row stops, not shifts names", {
   s <- .evRun31()
-  dfc <- .evRows(setupDfCovsEV(s$modFile, conditionalCovs = "FOOD"), "AGE")
+  ## FORM is a column of data but not of dfCovs, so the AGE row's dfrow has no
+  ## FORM and an unguarded dfrow$FORM is NULL there
+  dfc <- .evRows(setupDfCovsEV(s$modFile), "AGE")
   fFood <- function(basethetas, covthetas, dfrow, etas, ...) {
-    basethetas[2] * ifelse(dfrow$FOOD == 0, 0.5, 1) * exp(covthetas[1] + etas[3])
+    basethetas[2] * ifelse(dfrow$FORM == 0, 0.5, 1) * exp(covthetas[1] + etas[3])
   }
   fV <- function(basethetas, covthetas, dfrow, etas, ...) {
     basethetas[3] * exp(covthetas[2] + etas[4])
@@ -509,7 +511,7 @@ test_that("a parameter function that returns nothing for a covariate row stops, 
       type = 1, data = s$data, functionList = list(fFood, fV),
       functionListName = c("CL", "V")
     ),
-    "returned 0 value\\(s\\) for dfCovs row 2"
+    "returned 0 value\\(s\\) for dfCovs row 1 \\(All\\).*test for the column"
   )
 })
 
