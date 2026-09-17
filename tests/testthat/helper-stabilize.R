@@ -385,14 +385,40 @@ expect_rse_sane <- function(x, n, maxRSE = 100) {
 #' sequence. A mutation audit showed a shuffled WT column, two subjects' AGE /
 #' WT / SEX swapped, and one subject's records reversed all left the moments
 #' and the first rows untouched. So each column also carries `hash`, an
-#' order-sensitive hash of its values formatted to `digits` significant
-#' figures - formatted rather than raw, so the same data hashes the same on
-#' another platform. The moments say which column changed and roughly how;
-#' the hash says that it changed at all.
+#' order-sensitive checksum of its values formatted to `digits` significant
+#' figures (see [orderedChecksum()]). The moments say which column changed and
+#' roughly how; the checksum says that it changed at all.
 #'
 #' @param x A data frame.
 #' @param digits Significant figures for the numeric summaries.
 #' @return A data frame with one row per column of `x`.
+#' An order-sensitive checksum that is the same on every machine
+#'
+#' This replaced `rlang::hash()`, which hashes R's serialized representation:
+#' the serialization header carries R and package version information, so the
+#' same values hashed differently under CI's R 4.2.2 than under R 4.2.3 locally
+#' and every digest snapshot failed there.
+#'
+#' Here nothing but the text of the values goes in. The strings are joined with
+#' newlines, turned into their character codes, and each code is multiplied by
+#' a position weight and summed - twice, with two different weight cycles, so a
+#' change that happens to cancel in one sum does not cancel in both. Every
+#' operand is a small integer and every partial sum stays below 2^53, so the
+#' arithmetic is exact in a double and platform-independent. Moving a value to
+#' another row changes the weights its characters are multiplied by, which is
+#' what makes it order-sensitive.
+#'
+#' @param v A character vector.
+#' @return A single string.
+orderedChecksum <- function(v) {
+  codes <- utf8ToInt(paste(v, collapse = "\n"))
+  pos <- seq_along(codes)
+  s1 <- sum(codes * (pos %% 999983 + 1))
+  s2 <- sum(codes * (pos %% 65521 + 7))
+  sprintf("%.0f-%.0f", s1 %% 4294967291, s2 %% 4294967291)
+}
+
+
 columnDigest <- function(x, digits = 6) {
   x <- as.data.frame(x)
   sig <- function(v) if (is.finite(v)) signif(v, digits) else v
@@ -409,7 +435,7 @@ columnDigest <- function(x, digits = 6) {
       sd = if (num) sig(stats::sd(col, na.rm = TRUE)) else NA_real_,
       min = if (num) sig(min(col, na.rm = TRUE)) else NA_real_,
       max = if (num) sig(max(col, na.rm = TRUE)) else NA_real_,
-      hash = rlang::hash(
+      hash = orderedChecksum(
         if (num) sprintf(paste0("%.", digits, "g"), col) else as.character(col)
       ),
       stringsAsFactors = FALSE
