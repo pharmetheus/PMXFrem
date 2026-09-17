@@ -14,3 +14,12 @@ test_that("getCovNames works", {
   expect_equal(names(covs)[[2]], "polyCatCovs")
   expect_equal(names(covs)[[3]], "orgCovNames")
 })
+
+test_that("a covariate whose own name holds an underscore is not taken for a binarized level", {
+  td <- local_run31_underscore()
+  cn <- getCovNames(file.path(td, "run31.mod"))
+  expect_true("BL_BILI" %in% cn$orgCovNames)
+  expect_false("BL" %in% cn$orgCovNames)
+  expect_false("BL_BILI" %in% cn$polyCatCovs)
+  expect_setequal(cn$polyCatCovs, c("RACEL_2", "RACEL_3", "NCIL_1", "NCIL_2"))
+})

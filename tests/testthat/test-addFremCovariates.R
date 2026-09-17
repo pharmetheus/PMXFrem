@@ -110,3 +110,13 @@ test_that("the correct columns are added", {
   expect_equal(newData_ffem$RACEL_3[1:2], c(0, 0))
   expect_equal(newData_ffem$RACEL_2[1:2], c(0, 0))
 })
+
+test_that("addFREMcovariates does not binarize a covariate whose own name holds an underscore", {
+  td <- local_run31_underscore()
+  dfFFEM <- data.frame(ID = 1:3, BL_BILI = c(5, 10, 15), RACEL = c(1, 2, 3), NCIL = c(0, 1, 2))
+  expect_no_warning(
+    res <- addFREMcovariates(dfFFEM, modFile = file.path(td, "run31.mod"))
+  )
+  expect_false(any(grepl("^BLBILI|^BL_BILI_", names(res))))
+  expect_equal(res$BL_BILI, c(5, 10, 15))
+})

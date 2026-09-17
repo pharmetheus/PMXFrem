@@ -124,7 +124,7 @@ augmentFremData <- function(dfFREM,
     for (i in seq_along(covnames$covNames)) {
       strCov <- covnames$covNames[i]
       iFremtype <- iFremTypeIncrease * i
-      strCovClean <- stringr::str_replace(strCov, "_.*", "")
+      strCovClean <- .fremBaseCov(strCov)
       dfData <- dataToAdd[dataToAdd[[strCovClean]] != missVal, unique(c(names(dataToAdd)[names(dataToAdd) %in% names(dfFREM)], strCovClean)), ]
       if (nrow(dfData) == 0) {
         printq(paste0("No observed covariate values for ", strCov, " (fremtype=", iFremtype, "); not adding any covariate values!"), quiet = quiet)

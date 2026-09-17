@@ -70,7 +70,7 @@ addFREMcovariates <- function(dfFFEM, modFile = NULL, covariates = NULL, missVal
   if (!is.null(modFile)) {
     fremCovs <- getCovNames(modFile)$polyCatCovs
     for (cov in fremCovs) {
-      myCov <- stringr::str_replace(cov, "_[0-9]*", "")
+      myCov <- .fremBaseCov(cov)
       myCovNum <- as.numeric(stringr::str_replace(cov, paste0(myCov, "_"), ""))
       spec[[myCov]]$levels <- c(spec[[myCov]]$levels, myCovNum)
     }

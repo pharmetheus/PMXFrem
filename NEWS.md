@@ -180,6 +180,12 @@
     left out. It now expands to its binarized columns, and an unknown name is
     an error.
 
+* **A covariate whose own name holds an underscore was read as a binarized
+  category.** `BL_BILI` was split into `BL`, so it was silently left out of the
+  FREM covariates (`getCovNames()`, `getExplainedVar()`, `addFREMcovariates()`,
+  `augmentFremData()`, `removeFremCovariates()`). Only a trailing `_<integer>`
+  now marks a level.
+
 * **`getExplainedVar()` failed on inputs its documentation allows:** extra
   arguments in `...` (they now reach the parameter functions), a bare function
   as `functionList`, `parNames` without `numParCov`, and, in type 0, a `dfCovs`

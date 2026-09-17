@@ -42,10 +42,10 @@ getCovNames <- function(modFile,
     covNames <- str_replace(covNames, " ", "")
   }
 
-  orgCovNames <- sort(unique(str_replace(covNames, "_.*", "")))
+  orgCovNames <- sort(unique(.fremBaseCov(covNames)))
 
-  ## Figure out which ones that are poly-categorical, i.e. those with an '_' in the name
-  fremCovs <- covNames[grep("_", x = covNames)]
+  ## The poly-categorical ones: binarized by PsN as <cov>_<level>
+  fremCovs <- covNames[.fremIsBinarized(covNames)]
 
   return(list(
     covNames = covNames,
@@ -53,3 +53,15 @@ getCovNames <- function(modFile,
     orgCovNames = orgCovNames
   ))
 }
+
+## A FREM covariate is <cov>, or <cov>_<level> with an integer level for a
+## binarized category (PsN's naming). Only that trailing suffix is the level:
+## stripping "_.*" or the first "_[0-9]*" split a covariate whose own name holds
+## an underscore (BL_BILI became BL, or BLBILI). Trailing blanks are allowed for
+## getCovNames(keepComment = TRUE).
+##
+## @noRd
+.fremBaseCov <- function(x) sub("_[0-9]+(\\s*)$", "\\1", x)
+
+## @noRd
+.fremIsBinarized <- function(x) grepl("_[0-9]+\\s*$", x)

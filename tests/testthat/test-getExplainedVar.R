@@ -622,3 +622,25 @@ test_that("parNames without numParCov works in the sampling types", {
   }
   expect_equal(run(parNames = c("CL", "V", "MAT")), run())
 })
+
+test_that("an underscore in a covariate's own name changes no explained variability", {
+  s <- .evRun31()
+  td <- local_run31_underscore()
+  run <- function(dir) {
+    mf <- file.path(dir, "run31.mod")
+    dfc <- setupDfCovsEV(mf)
+    getExplainedVar(
+      type = 0, data = NULL, dfCovs = dfc, cstrCovariates = c("All", names(dfc)),
+      modDevDir = dir, runno = 31, numNonFREMThetas = 7, numSkipOm = 2,
+      functionList = list(.evCL), functionListName = "CL", quiet = TRUE
+    )
+  }
+  orig <- run(s$modDevDir)
+  renamed <- run(td)
+  ## same rows once BILI's name is mapped; setupDfCovsEV sorts the names
+  orig$COVNAME[orig$COVNAME == "BILI"] <- "BL_BILI"
+  orig <- orig[order(orig$COVNAME), c("COVNAME", "TOTVAR", "TOTCOVVAR", "COVVAR")]
+  renamed <- renamed[order(renamed$COVNAME), c("COVNAME", "TOTVAR", "TOTCOVVAR", "COVVAR")]
+  rownames(orig) <- rownames(renamed) <- NULL
+  expect_equal(renamed, orig)
+})

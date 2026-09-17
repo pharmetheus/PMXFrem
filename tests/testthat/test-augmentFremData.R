@@ -133,3 +133,14 @@ test_that("augmentFremData preserves row order and prevents Cartesian explosion 
   # D. The new covariate was properly appended
   expect_equal(result_df$FREMTYPE[7:8], c(200, 200))
 })
+
+test_that("augmentFremData reads a covariate whose own name holds an underscore", {
+  dfFREM <- data.frame(ID = c(1, 1), TIME = 0, DV = c(10, 70), FREMTYPE = c(0, 100), EVID = 0)
+  dfFFEM <- data.frame(ID = c(1, 2), TIME = 0, DV1 = c(10, 20), BL_WT = c(70, 80), EVID = 0)
+  res <- augmentFremData(
+    dfFREM = dfFREM, dfFFEM = dfFFEM, covList = list(), addedList = NULL,
+    covnames = list(covNames = "BL_WT"), cstrDV = "DV1", strID = "ID",
+    iFremTypeIncrease = 100, cstrSetToZero = "EVID", quiet = TRUE
+  )
+  expect_equal(res$DV[res$ID == 2 & res$FREMTYPE == 100], 80)
+})

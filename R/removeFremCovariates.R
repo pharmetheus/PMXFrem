@@ -50,7 +50,7 @@ removeFremCovariates <- function(currentState, cstrRemoveCov, quiet) {
   for (i in seq_along(cstrRemoveCov)) {
     for (j in seq_along(covnames$covNames)) {
       strCov <- covnames$covNames[j]
-      strCovClean <- stringr::str_replace(strCov, "_.*", "")
+      strCovClean <- .fremBaseCov(strCov)
 
       if (cstrRemoveCov[i] == strCov) {
         if (cstrRemoveCov[i] %in% covnames$orgCovNames) {

@@ -3,10 +3,10 @@
 #' @noRd
 .get_frem_cov_names <- function(currNames, fremCovs) {
   covrow <- character()
-  ffemCovs <- stringr::str_replace(fremCovs, "_[0-9]*", "")
+  ffemCovs <- .fremBaseCov(fremCovs)
 
   for (cov in c(currNames, fremCovs)) {
-    myCov <- stringr::str_replace(cov, "_[0-9]*", "")
+    myCov <- .fremBaseCov(cov)
     index <- which(cov == fremCovs)
     # If a FREM binarized covariate
     if (length(index) > 0) {
@@ -135,7 +135,7 @@
   }
 
   for (cov in fremCovs) {
-    myCov <- stringr::str_replace(cov, "_[0-9]*", "")
+    myCov <- .fremBaseCov(cov)
     myCovNum <- stringr::str_replace(cov, paste0(myCov, "_"), "")
     if (!myCov %in% names(data)) {
       stop(paste0("Can't find ", myCov, " in the dataset, exiting!"))
