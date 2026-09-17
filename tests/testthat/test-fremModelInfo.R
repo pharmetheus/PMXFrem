@@ -309,3 +309,95 @@ test_that("calcEtas derives the counts when they are omitted", {
   derived <- do.call(calcEtas, common)
   expect_equal(derived, explicit)
 })
+
+# ---------------------------------------------------------------------------
+# Reading the FREM $OMEGA block from control streams that are not run31 as-is
+# ---------------------------------------------------------------------------
+
+.fmiMod <- function(td, edit, name = "m.mod") {
+  l <- readLines(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), warn = FALSE)
+  l <- edit(l)
+  f <- file.path(td, name)
+  writeLines(l, f)
+  f
+}
+.fmiExt <- function() getExt(extFile = system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"))
+.afterBlock <- function(l) {
+  # index of the last line of the FREM BLOCK(21) record
+  s <- grep("^\\$OMEGA\\s+BLOCK\\(21\\)", l)
+  nxt <- grep("^\\s*\\$", l)
+  nxt[nxt > s][1] - 1L
+}
+
+test_that("fremModelInfo is not misled by an $OMEGA record after the FREM block", {
+  # numSkipOm was numTotEta - blockN: every eta outside the block counted as
+  # skipped, so an IIV added after the block made numSkipOm 3 instead of 2.
+  td <- withr::local_tempdir()
+  m <- .fmiMod(td, function(l) {
+    i <- .afterBlock(l)
+    l <- append(l, "$OMEGA  0.1 ; 24. IIV on KA", after = i)
+    l[grep("^KA\\s*=", l)] <- "KA    = 1 / (MAT-D1) * EXP(ETA(24))"
+    l
+  })
+  ext <- .fmiExt()
+  for (j in 1:24) ext[[sprintf("OMEGA.24.%d.", j)]] <- if (j == 24) 0.1 else 0
+  info <- fremModelInfo(modFile = m, dfext = ext)
+  expect_equal(info$numSkipOm, 2)
+  expect_equal(info$numParCov, 3)
+})
+
+test_that("fremModelInfo ignores BLOCK(n) written in a comment", {
+  td <- withr::local_tempdir()
+  m <- .fmiMod(td, function(l) {
+    i <- grep("BSV_SMOK", l, fixed = TRUE)
+    stopifnot(length(i) == 1L) # the edit has to apply, or the test checks nothing
+    l[i] <- paste(l[i], "(was BLOCK(22) in run30)")
+    l
+  })
+  info <- fremModelInfo(modFile = m, dfext = .fmiExt())
+  expect_equal(info$numSkipOm, 2)
+  expect_equal(info$numParCov, 3)
+})
+
+test_that("fremModelInfo ignores prior records after the FREM block", {
+  td <- withr::local_tempdir()
+  m <- .fmiMod(td, function(l) append(l, c("$OMEGAPD BLOCK(2) FIX", "0.1 0.01 0.1"), after = .afterBlock(l)))
+  info <- fremModelInfo(modFile = m, dfext = .fmiExt())
+  expect_equal(info$numSkipOm, 2)
+  expect_equal(info$numParCov, 3)
+})
+
+test_that("fremModelInfo reads an abbreviated or lower-case $OMEGA record", {
+  td <- withr::local_tempdir()
+  for (spelling in c("$OME", "$omega")) {
+    m <- .fmiMod(td, function(l) {
+      i <- grep("^\\$OMEGA\\s+BLOCK\\(21\\)", l)
+      l[i] <- sub("^\\$OMEGA", spelling, l[i], fixed = FALSE)
+      l
+    }, name = paste0("sp", nchar(spelling), ".mod"))
+    info <- fremModelInfo(modFile = m, dfext = .fmiExt())
+    expect_equal(info$numSkipOm, 2, info = spelling)
+    expect_equal(info$numParCov, 3, info = spelling)
+  }
+})
+
+test_that("fremModelInfo does not call an unused trailing eta a stale ext", {
+  # The theta check warns only when the model references MORE than the ext
+  # has; the eta check used !=, so an ext with an eta the code never references
+  # was reported as coming from a different run.
+  ext <- .fmiExt()
+  for (j in 1:24) ext[[sprintf("OMEGA.24.%d.", j)]] <- 0
+  w <- capture_warnings(fremModelInfo(
+    modFile = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), dfext = ext
+  ))
+  expect_false(any(grepl("not from the same run", w)))
+})
+
+test_that("fremModelInfo warns when an overridden numSkipOm leaves no FREM parameters", {
+  # (the "supplied numSkipOm differs" warning fires too, so capture both)
+  w <- capture_warnings(fremModelInfo(
+    modFile = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+    dfext = .fmiExt(), numSkipOm = 5
+  ))
+  expect_true(any(grepl("numSkipOm = 5 leaves numParCov = 0", w)))
+})

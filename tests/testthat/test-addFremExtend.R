@@ -492,7 +492,7 @@ test_that("fremModelInfo warns when the model and the ext describe different str
   writeLines(res$model, newMod)
   expect_warning(
     fremModelInfo(modFile = newMod, dfext = file.path(td, "run31.ext")),
-    "24 eta|does not match|disagree"
+    "references ETA\\(24\\) but the ext describes only 23"
   )
 })
 
