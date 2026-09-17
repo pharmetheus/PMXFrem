@@ -143,6 +143,17 @@
   parameter table moved an unrelated simulation along; the stream is saved and
   restored.
 
+* **`fremParameterTable()` reported a negative shrinkage as `0.00` in both of its
+  documented modes.** `calcFremShrinkage()` clamps negative shrinkages to 0,
+  and `fremParameterTable()` called it with that clamp, so its own reporting
+  rule never saw a negative value. The default is documented to show a negative
+  shrinkage as `1.0000e-10`, the way NONMEM does, and `rawShrinkage = TRUE` to
+  show the calculated value; both showed `0.00`. On the bundled `run31max1-2`,
+  ETA3's variance shrinkage is -26.44%. **A negative shrinkage in a parameter
+  table now reads `1.0000e-10` by default, or its raw value with
+  `rawShrinkage = TRUE`.** `calcFremShrinkage()` gains `clamp = TRUE`; its own
+  default output is unchanged.
+
 * **`getExplainedVar()` reported no explained variability for a single-covariate
   `dfCovs`.** A one-column data frame collapses to a numeric vector when a row
   is taken from it, so the covariate names came back empty, no covariate was

@@ -9,6 +9,7 @@ calcFremShrinkage(
   modName = NULL,
   modDevDir = NULL,
   dropUninformative = TRUE,
+  clamp = TRUE,
   quiet = TRUE
 )
 }
@@ -23,6 +24,11 @@ inferred from \code{runno}.}
 \item{dropUninformative}{Logical. If \code{TRUE} (default), subjects with completely
 uninformative ETAs (where all ETAs are exactly 0) are dropped from the shrinkage
 calculation, mirroring NONMEM's internal handling of missing PK data.}
+
+\item{clamp}{Logical. If \code{TRUE} (default), a negative shrinkage is
+reported as 0. If \code{FALSE}, the calculated value is returned as it is,
+negative or not - which is what \code{\link[=fremParameterTable]{fremParameterTable()}} needs to apply its own
+reporting rules (\code{rawShrinkage}).}
 
 \item{quiet}{Logical. If \code{FALSE}, messages about dropped subjects will be printed.}
 }

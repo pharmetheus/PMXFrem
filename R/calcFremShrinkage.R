@@ -19,6 +19,10 @@
 #' @param dropUninformative Logical. If \code{TRUE} (default), subjects with completely
 #'   uninformative ETAs (where all ETAs are exactly 0) are dropped from the shrinkage
 #'   calculation, mirroring NONMEM's internal handling of missing PK data.
+#' @param clamp Logical. If \code{TRUE} (default), a negative shrinkage is
+#'   reported as 0. If \code{FALSE}, the calculated value is returned as it is,
+#'   negative or not - which is what [fremParameterTable()] needs to apply its own
+#'   reporting rules (\code{rawShrinkage}).
 #' @param quiet Logical. If \code{FALSE}, messages about dropped subjects will be printed.
 #'
 #' @return A data frame containing four types of shrinkage (in percentage) for each ETA:
@@ -48,7 +52,8 @@
 #' print(shrinkage_res)
 #'
 calcFremShrinkage <- function(runno = NULL, modName = NULL, modDevDir = NULL,
-                              dropUninformative = TRUE, quiet = TRUE) {
+                              dropUninformative = TRUE, clamp = TRUE,
+                              quiet = TRUE) {
   fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)
 
   extFile <- paste0(tools::file_path_sans_ext(fileNames$mod), ".ext")
@@ -164,11 +169,13 @@ calcFremShrinkage <- function(runno = NULL, modName = NULL, modDevDir = NULL,
       shk6 <- NA_real_
     }
 
-    # Clamp negative shrinkages to 0 to mimic NONMEM behavior
-    shk8 <- pmax(0, shk8, na.rm = FALSE)
-    shk4 <- pmax(0, shk4, na.rm = FALSE)
-    shk9 <- pmax(0, shk9, na.rm = FALSE)
-    shk6 <- pmax(0, shk6, na.rm = FALSE)
+    # Clamp negative shrinkages to 0 unless the caller wants the raw values.
+    if (clamp) {
+      shk8 <- pmax(0, shk8, na.rm = FALSE)
+      shk4 <- pmax(0, shk4, na.rm = FALSE)
+      shk9 <- pmax(0, shk9, na.rm = FALSE)
+      shk6 <- pmax(0, shk6, na.rm = FALSE)
+    }
 
     res_list$Parameter <- c(res_list$Parameter, paste0("ETA", i))
     res_list$ETA_Var <- c(res_list$ETA_Var, round(shk8, 4))

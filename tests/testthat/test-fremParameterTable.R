@@ -343,3 +343,41 @@ test_that("the uncertainty sampling is reproducible, and leaves the caller's RNG
   invisible(rse())
   expect_identical(stats::runif(3), before)
 })
+
+test_that("fremParameterTable reports a negative shrinkage as documented, in both modes", {
+  # On run31max1-2, ETA3's ETA variance shrinkage is -26.44%. calcFremShrinkage()
+  # clamped it to 0 before fremParameterTable() saw it, so neither documented
+  # mode worked: the default printed 0.00 instead of NONMEM's 1.0000e-10, and
+  # rawShrinkage = TRUE printed 0.00 instead of the raw value.
+  modDevDir <- system.file("extdata/SimNeb/", package = "PMXFrem")
+  shk <- function(raw) {
+    res <- fremParameterTable(
+      runno = 31, modDevDir = modDevDir,
+      thetaNum = 1:7, omegaNum = 1:5, sigmaNum = 1:2,
+      numNonFREMThetas = 7, numSkipOm = 2, availCov = c("SEX", "WT"),
+      includeShrinkage = TRUE, ffemModName = "run31max1-2",
+      shrinkageType = "ETA_Var", rawShrinkage = raw, quiet = TRUE
+    )
+    res$parameterTable$`Shrinkage (%)`[res$parameterTable$Type == "OMEGA"]
+  }
+  floored <- shk(raw = FALSE)
+  raw <- shk(raw = TRUE)
+
+  # ETA3 is the third OMEGA row (omegaNum = 1:5)
+  expect_identical(floored[3], "1.0000e-10")
+  expect_identical(raw[3], "-26.44")
+  # a positive shrinkage is the same in both modes
+  expect_identical(floored[1], "60.88")
+  expect_identical(raw[1], "60.88")
+})
+
+test_that("calcFremShrinkage keeps clamping by default and can return raw values", {
+  modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+  clamped <- calcFremShrinkage(modName = "run31max1-2", modDevDir = modDevDir, quiet = TRUE)
+  raw <- calcFremShrinkage(modName = "run31max1-2", modDevDir = modDevDir, clamp = FALSE, quiet = TRUE)
+  # the default output is unchanged from 2.1.0
+  expect_equal(clamped$ETA_Var[clamped$Parameter == "ETA3"], 0)
+  expect_equal(raw$ETA_Var[raw$Parameter == "ETA3"], -26.4373, tolerance = 1e-4)
+  # non-negative values are identical either way
+  expect_equal(raw$ETA_Var[raw$Parameter == "ETA1"], clamped$ETA_Var[clamped$Parameter == "ETA1"])
+})

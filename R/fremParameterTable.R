@@ -398,10 +398,15 @@ fremParameterTable <- function(runno = NULL,
       stop("ffemModName must be provided when includeShrinkage is TRUE.", call. = FALSE)
     }
 
+    ## Unclamped: this function applies its own documented rule below -
+    ## negatives floored to 1.0000e-10 like NONMEM, or reported raw. With
+    ## calcFremShrinkage()'s default clamp they arrived here as 0 and neither
+    ## rule could ever fire.
     shk_df <- calcFremShrinkage(
       modName           = ffemModName,
       modDevDir         = modDevDir,
       dropUninformative = TRUE,
+      clamp             = FALSE,
       quiet             = quiet
     )
 
