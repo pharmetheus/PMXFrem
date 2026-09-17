@@ -383,6 +383,31 @@ tests in this package alone.
   distinguishes the two. A small FREM fixture with many skip omegas and few
   structural thetas would.
 
+## T29 — CI's ggplot2 predates `linewidth`, so plotEtasCov() line widths are dropped there
+
+CI's unit-test job installs from the Posit snapshot of 2022-10-27, which has a
+ggplot2 older than 3.4.0 - the release that introduced `linewidth`.
+`plotEtasCov()` passes `linewidth = smoothSize` to its smooth layers
+(R/plotEtasCov.R:255, :268), so on CI all ten plotEtasCov tests warn
+"Ignoring unknown parameters: linewidth" and the width is silently ignored.
+The tests still pass because none of them asserts the width.
+
+DESCRIPTION declares `ggplot2` with no version. Either require
+`ggplot2 (>= 3.4.0)` - which also means moving CI to a snapshot that has it,
+a change for whoever owns ci.yml - or add a test that asserts the rendered
+width, so the mismatch fails rather than warns.
+
+## T30 — bring back `Remotes: pharmetheus/PMXForest@v1.3.0`
+
+Added and then reverted on epic/2.1.1 the same day. remotes::install_deps()
+honours the field, and on the self-hosted runner that install step has no
+GitHub token, so ci.yml's check-r-package failed with "HTTP error 401" - and
+pr-publish-to-dev.yml and cd.yml install the same way. Re-add it once every
+workflow that runs install_deps() is on a GitHub-hosted runner or passes
+GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}. At the same time drop the unpinned
+`pharmetheus/PMXForest` from unit-test's extra-packages (ci.yml:128), which
+would otherwise disagree with the pin once PMXForest's main moves on.
+
 ## Done
 
 - **T5** — direct `getCovNames(createFREMmodel() output)` test — PR #40 (merged).
