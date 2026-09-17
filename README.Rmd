@@ -1,7 +1,9 @@
 ---
 output: github_document
 ---
+
 <!-- README.md is generated from README.Rmd. Please edit that file -->
+
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -12,31 +14,177 @@ knitr::opts_chunk$set(
 ```
 
 # PMXFrem
+
 The goal of `PMXFrem` is to provide comprehensive post-processing support for Full Random Effects Models (FREM) built in NONMEM. It facilitates the automated conversion of FREM models to Full Fixed Effects Models (FFEM), enabling standard project workflows including Goodness-of-Fit (GOF) diagnostics, Visual Predictive Checks (VPC), and forest-plot based results communication.
 
 ## Installation
 
-### Nominal Instructions 
-You can install the development version of `PMXFrem` from GitHub with:
+You can install the development version of `PMXFrem` from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
 devtools::install_github("pharmetheus/PMXFrem")
 ```
 
-To install a stable release with compiled vignettes, download the latest source package (.tar.gz) from the Releases section and install locally:
+The vignette sources are in `vignettes/`. Open the `.Rmd` files in RStudio and click Knit to compile, or run `browseVignettes("PMXFrem")` to read the versions built at install time.
 
-```{r,eval=FALSE}
-install.packages("path_to_release/PMXFrem_vX.Y.Z.tar.gz", repos = NULL, type = "source")
+To get the latest stable release (including vignettes), please click the appropriate link on the right side of the page. Download the file with a name that starts with PMXFrem. Install `PMXFrem` with the `install.packages` command, e.g.:
+
+```{r, eval = FALSE}
+install.packages("path_to_release.tar.gz", repos = NULL, type = "source")
 ```
-
-### Organizational Installation
 
 If your organizational SOPs require installation via an internal package manager (e.g., Posit Package Manager) or a localized server, please prioritize those methods over GitHub to ensure environment stability and reproducibility.
 
-## Documentation Roadmap
+## Example of using PMXFrem
 
-To get started with `PMXFrem`, we recommend following this documentation sequence:
+This is a basic example which shows what a converged FREM model gives a project: an FFEM model to run the usual diagnostics with, a parameter table, and the share of the parameter variability the covariates explain.
 
-1. Quick Start: A 5-minute copy-pasteable example to verify your installation and run a basic FREM-to-FFEM conversion.
-2. The Walk-Through: A comprehensive tutorial demonstrating the full workflow: from data assembly to forest plot generation.
+First attach the PMXFrem library:
+```{r example}
+library(PMXFrem)
+```
+
+and set the ggplot theme
+```{r}
+ggplot2::theme_set(ggplot2::theme_bw())
+```
+
+### Point at the model and the data
+
+Everything below uses the `run31` example bundled with the package, so it runs
+anywhere `PMXFrem` is installed. `run31` is a FREM model with 18 covariates,
+built from the base model `run30`.
+
+```{r}
+modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
+modFile <- file.path(modDevDir, "run31.mod")
+extFile <- file.path(modDevDir, "run31.ext")
+dataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+```
+
+A FREM model is described by a handful of structural integers: how many thetas
+are structural rather than covariate means, how many etas precede the FREM
+block, and so on. `fremModelInfo()` reads them from the model and its `.ext`, so
+they do not have to be typed in and kept up to date as the model changes.
+
+```{r}
+info <- fremModelInfo(modFile, extFile)
+unlist(info[c("numNonFREMThetas", "numFREMThetas", "numParCov", "numSkipOm")])
+```
+
+The functions below locate the FREM model through `runno` / `modName` and
+`modDevDir` and derive the same integers. Supply them explicitly only to
+override the derived values.
+
+### Convert the FREM model to its FFEM counterpart
+
+`createFFEMmodel()` writes the FFEM control stream, and the data set that goes
+with it, from the FREM model: the covariate coefficients are computed from the
+FREM omega matrix and written into the model, so GOF diagnostics and VPCs can be
+run in the ordinary way.
+
+```{r}
+td <- tempdir()
+
+ffemMod <- createFFEMmodel(
+  runno = 31,
+  baserunno = 30,
+  modDevDir = modDevDir,
+  dataFile = dataFile,
+  parNames = c("CL", "V", "MAT"),
+  newDataFile = file.path(td, "ffemData31.csv"),
+  ffemModName = file.path(td, "run31_ffem.mod"),
+  quiet = TRUE
+)
+
+head(ffemMod, 8)
+```
+
+### Report the parameter estimates
+
+`fremParameterTable()` collects the structural thetas, the covariate-adjusted
+variances and the residual error, with uncertainty from sampled parameter
+vectors.
+
+```{r}
+tab <- fremParameterTable(
+  runno = 31,
+  modDevDir = modDevDir,
+  thetaNum = 2:7,
+  omegaNum = c(1, 3, 4, 5),
+  sigmaNum = 1,
+  quiet = TRUE
+)
+
+tab$parameterTable
+```
+
+### Describe how the parameters are related to the covariates
+
+The parameter function turns the estimates, one row of covariate values and a
+set of etas into the quantities to plot. `createFREMParamFunction()` writes it by
+transliterating the FREM model's own `$PK`, so the relationship is not retyped in
+R and cannot drift away from the model. The result is source text; nothing is
+evaluated until you do it yourself.
+
+```{r}
+gen <- createFREMParamFunction(modFile, parameters = c("CL", "V", "MAT"))
+```
+
+`verifyFREMParamFunction()` is the check to run before trusting it. It compares
+the generated function with the FFEM version of the same model - an independent
+transliteration - and confirms that each parameter's covariate coefficient and
+eta land where the model says they do.
+
+```{r}
+verifyFREMParamFunction(gen, ffemModel = file.path(modDevDir, "run31max1-2.mod"))
+```
+
+Read the code against the control stream, then evaluate it:
+
+```{r}
+paramFunction <- eval(parse(text = gen$code))
+```
+
+### Show how much of the variability the covariates explain
+
+`setupDfCovsEV()` builds one row per covariate, and `getExplainedVar()` computes
+the total variability of each parameter together with the part of it each
+covariate explains. `type = 0` uses the delta rule, which is the quick way in.
+
+```{r}
+dfCovs <- setupDfCovsEV(modFile)
+
+dfres <- getExplainedVar(
+  type = 0,
+  dfCovs = dfCovs,
+  cstrCovariates = c("All", names(dfCovs)),
+  functionList = list(paramFunction),
+  functionListName = c("CL", "V", "MAT"),
+  modDevDir = modDevDir,
+  runno = 31,
+  quiet = TRUE
+)
+
+head(dfres, 4)
+```
+
+```{r explained-var, fig.width = 8, fig.height = 6}
+plotExplainedVar(dfres, parameters = "CL")
+```
+
+## Further information
+
+The above is a simple use case of PMXFrem for a straightforward FREM model.
+PMXFrem also assembles FREM data sets, extends an established FREM model with new
+structural thetas and IIVs, derives subject-specific variances for missing
+covariates, and produces the diagnostics and forest plots a FREM analysis is
+reported with. These are described in the package vignettes, which are written to
+be read in order:
+
+1. **Quick Start** - a 5-minute copy-pasteable example to verify your installation and run a basic FREM-to-FFEM conversion.
+2. **The Walk-Through** - the full workflow, from data assembly to forest plot generation.
+3. **The deep dives** - one vignette per topic, for the parts of the workflow that need more than the walk-through gives them.
+
+Once the package is installed you can issue the command: `browseVignettes("PMXFrem")`
