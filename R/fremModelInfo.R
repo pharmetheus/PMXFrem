@@ -148,11 +148,17 @@ fremModelInfo <- function(modFile,
   d_numSkipOm <- etasBefore
   d_numParCov <- blockN - numFREMThetas
 
-  if (d_numNonFREMThetas < 0 || d_numParCov < 1 || d_numSkipOm < 0) {
+  ## The $OMEGA records up to the end of the FREM block must fit in the ext. A
+  ## BLOCK(n) larger than the ext's omega matrix otherwise passes every sign
+  ## check above and returns a numParCov no ext column backs.
+  if (d_numNonFREMThetas < 0 || d_numParCov < 1 || d_numSkipOm < 0 ||
+    etasBefore + blockN > numTotEta) {
     warning(
       "Derived FREM structure looks inconsistent (numNonFREMThetas = ",
       d_numNonFREMThetas, ", numParCov = ", d_numParCov,
-      ", numSkipOm = ", d_numSkipOm,
+      ", numSkipOm = ", d_numSkipOm, "; the $OMEGA records define ",
+      etasBefore + blockN, " eta(s) up to the end of the FREM block and the ",
+      "ext describes ", numTotEta,
       "). Check that `modFile` and `dfext` are from the same run."
     )
   }

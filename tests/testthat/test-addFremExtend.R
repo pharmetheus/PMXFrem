@@ -490,10 +490,11 @@ test_that("fremModelInfo warns when the model and the ext describe different str
   ) |> suppressWarnings()
   newMod <- file.path(td, "mutated.mod")
   writeLines(res$model, newMod)
-  expect_warning(
-    fremModelInfo(modFile = newMod, dfext = file.path(td, "run31.ext")),
-    "references ETA\\(24\\) but the ext describes only 23"
+  w <- testthat::capture_warnings(
+    fremModelInfo(modFile = newMod, dfext = file.path(td, "run31.ext"))
   )
+  expect_true(any(grepl("references ETA\\(24\\) but the ext describes only 23", w)))
+  expect_true(any(grepl("define 24 eta\\(s\\) up to the end of the FREM block", w)))
 })
 
 test_that("fremModelInfo warns when the model gained a theta the ext does not have", {
@@ -602,4 +603,162 @@ test_that("a lower-case theta() at or after the insertion point is renumbered", 
   txt <- paste(res$model, collapse = "\n")
   expect_match(txt, "(?i)MU_6\\s*=\\s*theta\\(9\\)", perl = TRUE)
   expect_no_match(txt, "(?i)MU_6\\s*=\\s*theta\\(8\\)", perl = TRUE)
+})
+
+# ---------------------------------------------------------------------------
+# Independent review of the mutators: control streams that are not run31 as-is
+# ---------------------------------------------------------------------------
+
+## Theta values in the $THETA records, counted independently of the package:
+## (lo,init,hi) is one value, (v)xN is N, FIX and comments are ignored.
+.thetaValues <- function(l) {
+  i <- grep("^\\s*\\$THETA", l, ignore.case = TRUE)
+  rec <- grep("^\\s*\\$[A-Za-z]", l)
+  n <- 0L
+  for (s in i) {
+    e <- rec[rec > s]
+    e <- if (length(e)) e[1] - 1L else length(l)
+    b <- sub("^\\s*\\$THETA", "", sub(";.*$", "", l[s:e]), ignore.case = TRUE)
+    b <- paste(b, collapse = " ")
+    for (m in regmatches(b, gregexpr("\\([^)]*\\)(\\s*[xX]\\s*[0-9]+)?|[-+]?[0-9.][-+0-9.eE]*", b))[[1]]) {
+      rep <- regmatches(m, regexpr("[xX]\\s*[0-9]+$", m))
+      n <- n + if (length(rep)) as.integer(gsub("[^0-9]", "", rep)) else 1L
+    }
+  }
+  n
+}
+.editRun31 <- function(td, edit, name = "e.mod") {
+  l <- edit(readLines(.run31(td), warn = FALSE))
+  f <- file.path(td, name)
+  writeLines(l, f)
+  file.copy(file.path(td, "run31.ext"), sub("\\.mod$", ".ext", f), overwrite = TRUE)
+  f
+}
+
+test_that("a new $THETA is placed by value count across a (v)xN record", {
+  # (-1,0.05,3)x3 holds three thetas. Counting it as one put the new $THETA
+  # after the wrong record while THETA() references were renumbered as if it
+  # were in the right place: KA2 started from the WT covariate mean.
+  td <- withr::local_tempdir()
+  m <- .editRun31(td, function(l) {
+    i <- grep("; 5\\. D1$|; 5\\. D1\\b", l)
+    j <- grep("; 7\\. MATFOOD1", l)
+    stopifnot(length(i) == 1L, length(j) == 1L)
+    c(l[seq_len(i - 1L)], "$THETA  (-1.00,0.5,3.00)x3 ; 5-7", l[(j + 1L):length(l)])
+  })
+  res <- addFremStructuralTheta(m, thetaInit = 0.5, parameter = "KA2", numNonFREMThetas = 7, numSkipOm = 2, bWriteMod = FALSE, quiet = TRUE)
+  newAt <- grep("TV_KA2", res$model)
+  before <- res$model[seq_len(newAt - 1L)]
+  expect_equal(.thetaValues(before), 7L) # exactly the 7 structural thetas precede it
+  expect_equal(.thetaValues(res$model), .maxIdx(res$model, "THETA"))
+})
+
+test_that("a new $THETA is not placed inside a multi-value $THETA line", {
+  td <- withr::local_tempdir()
+  m <- .editRun31(td, function(l) {
+    i <- grep("; 7\\. MATFOOD1", l)
+    stopifnot(length(i) == 1L)
+    l[i] <- paste(sub(";.*$", "", l[i]), l[i + 1L])
+    l[-(i + 1L)]
+  })
+  expect_error(
+    addFremStructuralTheta(m, thetaInit = 0.5, parameter = "KA2", numNonFREMThetas = 7, numSkipOm = 2, bWriteMod = FALSE, quiet = TRUE),
+    "same \\$THETA line|split"
+  )
+})
+
+test_that("lower-case theta() references are renumbered when the integers are given", {
+  td <- withr::local_tempdir()
+  m <- .editRun31(td, function(l) {
+    i <- grep("MU_[0-9]+\\s*=\\s*THETA\\(", l)
+    l[i] <- tolower(l[i])
+    l
+  })
+  res <- addFremStructuralTheta(m, thetaInit = 0.5, parameter = "KA2", numNonFREMThetas = 7, numSkipOm = 2, bWriteMod = FALSE, quiet = TRUE)
+  expect_equal(.thetaValues(res$model), .maxIdx(tolower(res$model) |> toupper(), "THETA"))
+  expect_match(paste(res$model, collapse = "\n"), "(?i)mu_6\\s*=\\s*theta\\(9\\)", perl = TRUE)
+})
+
+test_that("a parameter is matched regardless of case, not treated as new", {
+  td <- withr::local_tempdir()
+  m <- .editRun31(td, function(l) {
+    i <- grep("^CL\\s+= EXP\\(MU_3", l)
+    l[i] <- sub("^CL", "cl", l[i])
+    l
+  })
+  res <- addFremStructuralTheta(m, thetaInit = 0.5, parameter = "CL", numNonFREMThetas = 7, numSkipOm = 2, bWriteMod = FALSE, quiet = TRUE)
+  expect_false(any(grepl("^\\s*CL\\s*=\\s*THETA\\(8\\)", res$model))) # not a second definition
+  expect_match(paste(res$model, collapse = "\n"), "(?i)cl\\s*=\\s*\\(.*\\)\\s*\\*\\s*THETA\\(8\\)", perl = TRUE)
+
+  iiv <- suppressWarnings(addFremIIV(m, parameter = "CL", omegaInit = 0.04, numNonFREMThetas = 7, numSkipOm = 2, bWriteMod = FALSE, quiet = TRUE))
+  expect_match(paste(iiv$model, collapse = "\n"), "(?i)cl\\s*=.*EXP\\(ETA\\(3\\)\\)", perl = TRUE)
+})
+
+test_that("an existing parameter in a $PRED model is edited, not redefined", {
+  td <- withr::local_tempdir()
+  m <- .editRun31(td, function(l) {
+    l[grep("^\\$PK", l)] <- "$PRED"
+    l <- l[!grepl("^\\$SUBROUTINE", l)]
+    e <- grep("^\\$ERROR", l)
+    l[-e]
+  })
+  res <- addFremStructuralTheta(m, thetaInit = 0.5, parameter = "CL", numNonFREMThetas = 7, numSkipOm = 2, bWriteMod = FALSE, quiet = TRUE)
+  expect_false(any(grepl("^\\s*CL\\s*=\\s*THETA\\(8\\)", res$model)))
+  expect_true(any(grepl("CL\\s*=\\s*\\(.*\\)\\s*\\*\\s*THETA\\(8\\)", res$model)))
+})
+
+test_that("addFremIIV refuses a parameter overridden by a guarded assignment", {
+  td <- withr::local_tempdir()
+  m <- .editRun31(td, function(l) append(l, "IF(FORM.EQ.2) FREL = THETA(1)*0.8", after = grep("^FREL\\s*=", l)))
+  expect_error(
+    addFremIIV(m, parameter = "FREL", omegaInit = 0.04, numNonFREMThetas = 7, numSkipOm = 2, bWriteMod = FALSE, quiet = TRUE),
+    "'FREL' is assigned conditionally"
+  )
+})
+
+test_that("a model using $ABBR REPLACE is refused rather than renumbered wrongly", {
+  td <- withr::local_tempdir()
+  m <- .editRun31(td, function(l) append(l, "$ABBR REPLACE ETA(CL)=ETA(3)", after = grep("^\\$SUBROUTINE", l)))
+  expect_error(
+    addFremIIV(m, parameter = "FREL", omegaInit = 0.04, numNonFREMThetas = 7, numSkipOm = 2, bWriteMod = FALSE, quiet = TRUE),
+    "ABBR REPLACE"
+  )
+  expect_error(
+    addFremStructuralTheta(m, thetaInit = 0.5, parameter = "KA2", numNonFREMThetas = 7, numSkipOm = 2, bWriteMod = FALSE, quiet = TRUE),
+    "ABBR REPLACE"
+  )
+})
+
+test_that("$TABLE ETAn columns follow the renumbered etas", {
+  td <- withr::local_tempdir()
+  m <- .editRun31(td, function(l) append(l, "$TABLE ID CL V ETA1 ETA2 ETA3 ETA4 ETAS(1:LAST) FILE=t.tab", after = length(l)))
+  res <- addFremIIV(m, parameter = "FREL", omegaInit = 0.04, numNonFREMThetas = 7, numSkipOm = 2, bWriteMod = FALSE, quiet = TRUE)
+  tab <- grep("FILE=t.tab", res$model, value = TRUE)
+  expect_match(tab, "ETA1 ETA2 ETA4 ETA5 ETAS\\(1:LAST\\)")
+})
+
+test_that("the renumber is not cut short by a stale ext", {
+  # With the ext of the model before a previous addFremIIV(), the renumber
+  # stopped at the ext's eta count and left two MU_24 / COV24 definitions.
+  td <- withr::local_tempdir()
+  s1 <- file.path(td, "s1.mod")
+  addFremIIV(.run31(td), parameter = "FREL", omegaInit = 0.04, newModel = s1, quiet = TRUE)
+  res <- suppressWarnings(addFremIIV(s1,
+    parameter = "KA", omegaInit = 0.03,
+    extFile = file.path(td, "run31.ext"), numSkipOm = 3, bWriteMod = FALSE, quiet = TRUE
+  ))
+  mu <- regmatches(res$model, regexpr("^\\s*MU_[0-9]+(?=\\s*=)", res$model, perl = TRUE))
+  expect_false(anyDuplicated(trimws(mu)) > 0)
+})
+
+test_that("addFremStructuralTheta rejects an unusable thetaInit", {
+  td <- withr::local_tempdir()
+  m <- .run31(td)
+  for (bad in list(c(0, 1), "", NA_character_, NA_real_)) {
+    expect_error(
+      addFremStructuralTheta(m, thetaInit = bad, parameter = "KA2", numNonFREMThetas = 7, numSkipOm = 2, bWriteMod = FALSE, quiet = TRUE),
+      "thetaInit",
+      info = deparse(bad)
+    )
+  }
 })

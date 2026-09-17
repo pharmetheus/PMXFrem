@@ -126,8 +126,11 @@ addFremStructuralTheta <- function(strFREMModel,
                                    newModel = NULL,
                                    bWriteMod = TRUE,
                                    quiet = TRUE) {
-  if (missing(thetaInit) || length(thetaInit) == 0L ||
-    (is.numeric(thetaInit) && any(is.na(thetaInit)))) {
+  okInit <- !missing(thetaInit) && (
+    (is.numeric(thetaInit) && length(thetaInit) %in% c(1L, 3L) && all(is.finite(thetaInit))) ||
+      (is.character(thetaInit) && length(thetaInit) == 1L && !is.na(thetaInit) && nzchar(trimws(thetaInit)))
+  )
+  if (!okInit) {
     stop("addFremStructuralTheta(): `thetaInit` is required - a scalar, a ",
       "length-3 c(low, init, up), or a verbatim string. No default: the ",
       "initial value is a modelling choice.",
@@ -150,6 +153,7 @@ addFremStructuralTheta <- function(strFREMModel,
 
   isPath <- length(strFREMModel) == 1L && !grepl("\n", strFREMModel)
   lines <- if (isPath) readLines(strFREMModel, warn = FALSE) else strFREMModel
+  .fremStopOnAbbrReplace(lines, "addFremStructuralTheta")
 
   ## ---- structural integers ---------------------------------------------
   if (is.null(numNonFREMThetas) || is.null(numSkipOm)) {
@@ -175,7 +179,10 @@ addFremStructuralTheta <- function(strFREMModel,
     )
     if (is.null(numNonFREMThetas)) numNonFREMThetas <- .info$numNonFREMThetas
     if (is.null(numSkipOm)) numSkipOm <- .info$numSkipOm
-    numTotThetas <- .info$numTotThetas
+    ## the larger of the ext's count and the model's own references: with an
+    ## ext from before an earlier mutation the ext count is short, and the
+    ## renumber would stop below the highest reference
+    numTotThetas <- max(.info$numTotThetas, .fremCountTotTheta(lines))
   } else {
     numTotThetas <- .fremCountTotTheta(lines)
   }
@@ -308,7 +315,10 @@ addFremStructuralTheta <- function(strFREMModel,
 #' @keywords internal
 #' @noRd
 .fremCountTotTheta <- function(lines) {
-  m <- regmatches(lines, gregexpr("THETA\\(\\s*[0-9]+\\s*\\)", lines))
+  ## case-insensitive and ignoring comments: theta(8) is THETA(8) to NM-TRAN,
+  ## and a lower-case reference that is not counted is never renumbered
+  lines <- sub(";.*$", "", lines)
+  m <- regmatches(lines, gregexpr("(?i)(?<![A-Za-z])THETA\\(\\s*[0-9]+\\s*\\)", lines, perl = TRUE))
   idx <- as.integer(gsub("[^0-9]", "", unlist(m)))
   if (length(idx) == 0L) 0L else max(idx)
 }
@@ -372,20 +382,48 @@ addFremStructuralTheta <- function(strFREMModel,
   nonTheta <- recAfter[!grepl("^\\s*\\$THETA\\b", lines[recAfter], ignore.case = TRUE)]
   tEnd <- if (length(nonTheta)) nonTheta[1] - 1L else length(lines)
 
-  # count theta *values* across the whole region; insert after value (at-1)
-  count <- 0L
-  insertAfter <- tEnd
-  for (i in first:tEnd) {
-    body <- sub(";.*$", "", lines[i])
+  ## Values per line: (lo,init,hi) is one, (v)xN is N, FIX and comments are
+  ## not values. Counting (v)x3 as one put the new record after the wrong line
+  ## while THETA() references were renumbered as if it were in the right place.
+  nValues <- function(line) {
+    body <- sub(";.*$", "", line)
     body <- sub("^\\s*\\$THETA\\b", "", body, ignore.case = TRUE)
-    n <- length(regmatches(
-      body,
-      gregexpr("\\([^)]*\\)|[-+]?[0-9.][-+0-9.eE]*", body)
-    )[[1]])
-    count <- count + n
-    if (count >= at - 1L) {
-      insertAfter <- i
-      break
+    tok <- regmatches(body, gregexpr(
+      "\\([^)]*\\)(\\s*[xX]\\s*[0-9]+)?|[-+]?[0-9.][-+0-9.eE]*", body
+    ))[[1]]
+    sum(vapply(tok, function(t) {
+      r <- regmatches(t, regexpr("[xX]\\s*[0-9]+$", t))
+      if (length(r)) as.integer(gsub("[^0-9]", "", r)) else 1L
+    }, integer(1)))
+  }
+
+  want <- at - 1L # values that must precede the new record
+  if (want == 0L) {
+    insertAfter <- first - 1L
+  } else {
+    count <- 0L
+    insertAfter <- NA_integer_
+    for (i in first:tEnd) {
+      before <- count
+      count <- count + nValues(lines[i])
+      if (count == want) {
+        insertAfter <- i
+        break
+      }
+      if (before < want && count > want) {
+        stop("THETA(", want, ") and THETA(", at, ") are on the same $THETA ",
+          "line (line ", i, "): '", trimws(lines[i]), "'. The new THETA has to ",
+          "go between them, so split that line into one $THETA record per ",
+          "value first.",
+          call. = FALSE
+        )
+      }
+    }
+    if (is.na(insertAfter)) {
+      stop("The $THETA records hold ", count, " value(s), fewer than the ",
+        want, " structural THETA(s) the new one must follow.",
+        call. = FALSE
+      )
     }
   }
   c(
@@ -413,18 +451,18 @@ addFremStructuralTheta <- function(strFREMModel,
 #' @keywords internal
 #' @noRd
 .fremAssignLines <- function(lines, parameter) {
-  recStart <- grep("^\\s*\\$[A-Za-z]", lines)
-  pkStart <- recStart[grepl("^\\s*\\$PK\\b", lines[recStart], ignore.case = TRUE)]
-  empty <- data.frame(line = integer(0), guarded = logical(0))
-  if (length(pkStart) == 0L) {
+  region <- .fremCodeRegion(lines)
+  empty <- data.frame(line = integer(0), guarded = logical(0), record = character(0))
+  if (is.null(region)) {
     return(empty)
   }
-  pkEnd <- recStart[recStart > pkStart[1]]
-  pkEnd <- if (length(pkEnd)) pkEnd[1] - 1L else length(lines)
-  idx <- pkStart[1]:pkEnd
+  idx <- region$idx
   body <- sub(";.*$", "", lines[idx])
   nm <- .fremEscape(parameter)
-  plain <- grepl(sprintf("^\\s*%s\\s*=[^=]", nm), body)
+  ## Case-insensitive, as NM-TRAN is: `cl = ...` is CL. Matching case-
+  ## sensitively treated it as a new parameter and appended a second
+  ## definition after the lines that read the first.
+  plain <- grepl(sprintf("^\\s*%s\\s*=[^=]", nm), body, ignore.case = TRUE)
   guard <- grepl(sprintf("^\\s*IF\\s*\\(.*\\)\\s*%s\\s*=[^=]", nm), body,
     ignore.case = TRUE
   )
@@ -432,7 +470,50 @@ addFremStructuralTheta <- function(strFREMModel,
   if (!any(hit)) {
     return(empty)
   }
-  data.frame(line = idx[hit], guarded = guard[hit] & !plain[hit])
+  data.frame(line = idx[hit], guarded = guard[hit] & !plain[hit], record = region$name)
+}
+
+
+#' The abbreviated-code record a parameter is defined in: $PK, else $PRED
+#'
+#' A $PRED model has no $PK, and looking only for $PK reported every one of its
+#' parameters as "not assigned" - so an existing parameter was treated as new
+#' and redefined after the code that used it.
+#'
+#' @return `list(idx, name)` or `NULL`.
+#' @keywords internal
+#' @noRd
+.fremCodeRegion <- function(lines) {
+  recStart <- grep("^\\s*\\$[A-Za-z]", lines)
+  for (rec in c("PK", "PRED")) {
+    st <- recStart[grepl(sprintf("^\\s*\\$%s\\b", rec), lines[recStart], ignore.case = TRUE)]
+    if (length(st)) {
+      en <- recStart[recStart > st[1]]
+      en <- if (length(en)) en[1] - 1L else length(lines)
+      return(list(idx = st[1]:en, name = paste0("$", rec)))
+    }
+  }
+  NULL
+}
+
+
+#' Stop on $ABBR REPLACE, which the renumber passes cannot follow
+#'
+#' `$ABBR REPLACE ETA(CL)=ETA(3)` lets code say ETA(CL). Renumbering ETA(3)
+#' elsewhere leaves the label pointing at the old index, so CL silently takes
+#' the new eta. Refusing is the honest outcome.
+#'
+#' @keywords internal
+#' @noRd
+.fremStopOnAbbrReplace <- function(lines, fn) {
+  if (any(grepl("^\\s*\\$ABBR\\b.*\\bREPLACE\\b", sub(";.*$", "", lines), ignore.case = TRUE))) {
+    stop(fn, "(): the model uses $ABBR REPLACE. Its labels, such as ",
+      "ETA(CL) = ETA(3), are not renumbered, so inserting a THETA or an ETA ",
+      "would leave them pointing at the wrong parameter. Edit this model by hand.",
+      call. = FALSE
+    )
+  }
+  invisible(NULL)
 }
 
 
@@ -481,13 +562,13 @@ addFremStructuralTheta <- function(strFREMModel,
 #' @keywords internal
 #' @noRd
 .fremAttachEta_thetaFactor <- function(lines, parameter, thetaIdx) {
-  pat <- sprintf("^(\\s*)%s(\\s*)=(\\s*)(.*)$", .fremEscape(parameter))
-  recStart <- grep("^\\s*\\$[A-Za-z]", lines)
-  pkStart <- recStart[grepl("^\\s*\\$PK\\b", lines[recStart], ignore.case = TRUE)]
+  ## (?i) and a captured name: the assignment keeps its own spelling (`cl`)
+  pat <- sprintf("(?i)^(\\s*)(%s)(\\s*)=(\\s*)(.*)$", .fremEscape(parameter))
   found <- .fremAssignLines(lines, parameter)
+  rec <- if (nrow(found)) found$record[1] else "$PK"
   if (any(found$guarded)) {
     stop("addFremStructuralTheta(): '", parameter, "' is assigned ",
-      "conditionally in $PK (line",
+      "conditionally in ", rec, " (line",
       if (sum(found$guarded) > 1L) "s " else " ",
       paste(found$line[found$guarded], collapse = ", "),
       "). Attaching a THETA to one branch would change only that branch, and ",
@@ -497,23 +578,19 @@ addFremStructuralTheta <- function(strFREMModel,
       call. = FALSE
     )
   }
-  hit <- grep(pat, lines)
-  if (length(pkStart)) {
-    pkEnd <- recStart[recStart > pkStart[1]]
-    pkEnd <- if (length(pkEnd)) pkEnd[1] - 1L else length(lines)
-    hit <- hit[hit >= pkStart[1] & hit <= pkEnd]
-  }
+  hit <- found$line[!found$guarded]
   if (length(hit) != 1L) {
-    stop("addFremStructuralTheta(): expected exactly one $PK assignment of '",
+    stop("addFremStructuralTheta(): expected exactly one ", rec, " assignment of '",
       parameter, "' to attach THETA(", thetaIdx, ") to; found ", length(hit),
       ".",
       call. = FALSE
     )
   }
   i <- hit[1]
-  m <- regmatches(lines[i], regexec(pat, lines[i]))[[1]]
+  m <- regmatches(lines[i], regexec(pat, lines[i], perl = TRUE))[[1]]
   lead <- m[2]
-  rhsAll <- m[5]
+  lhsName <- m[3]
+  rhsAll <- m[6]
   cpos <- regexpr(";", rhsAll, fixed = TRUE)
   if (cpos > 0) {
     rhs <- sub("\\s+$", "", substr(rhsAll, 1, cpos - 1))
@@ -523,7 +600,7 @@ addFremStructuralTheta <- function(strFREMModel,
     comment <- ""
   }
   lines[i] <- sprintf(
-    "%s%s = (%s) * THETA(%d)%s", lead, parameter, rhs, thetaIdx,
+    "%s%s = (%s) * THETA(%d)%s", lead, lhsName, rhs, thetaIdx,
     if (nzchar(comment)) paste0("  ", comment) else ""
   )
   lines

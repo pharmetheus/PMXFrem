@@ -401,3 +401,18 @@ test_that("fremModelInfo warns when an overridden numSkipOm leaves no FREM param
   ))
   expect_true(any(grepl("numSkipOm = 5 leaves numParCov = 0", w)))
 })
+
+test_that("fremModelInfo warns when the FREM block is larger than the ext's omega matrix", {
+  td <- withr::local_tempdir()
+  file.copy(system.file("extdata/SimNeb", c("run31.mod", "run31.ext"), package = "PMXFrem"), td)
+  mod <- file.path(td, "run31.mod")
+  L <- readLines(mod)
+  h <- grep("OMEGA *BLOCK\\(21\\)", L)
+  stopifnot(length(h) == 1)
+  L[h] <- sub("BLOCK(21)", "BLOCK(99)", L[h], fixed = TRUE)
+  writeLines(L, mod)
+  expect_warning(
+    fremModelInfo(mod, file.path(td, "run31.ext")),
+    "define 101 eta\\(s\\) up to the end of the FREM block and the ext describes 23"
+  )
+})

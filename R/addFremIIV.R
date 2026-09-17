@@ -111,6 +111,7 @@ addFremIIV <- function(strFREMModel,
 
   isPath <- length(strFREMModel) == 1L && !grepl("\n", strFREMModel)
   lines <- if (isPath) readLines(strFREMModel, warn = FALSE) else strFREMModel
+  .fremStopOnAbbrReplace(lines, "addFremIIV")
 
   ## ---- structural integers -------------------------------------------------
   if (is.null(numNonFREMThetas) || is.null(numSkipOm)) {
@@ -136,7 +137,10 @@ addFremIIV <- function(strFREMModel,
     )
     if (is.null(numNonFREMThetas)) numNonFREMThetas <- .info$numNonFREMThetas
     if (is.null(numSkipOm)) numSkipOm <- .info$numSkipOm
-    numTotEta <- .info$numTotEta
+    ## the larger of the ext's count and the model's own references: with an
+    ## ext from before an earlier mutation the ext count is short, and the
+    ## renumber would stop below the highest reference, duplicating MU_/COV
+    numTotEta <- max(.info$numTotEta, .fremCountTotEta(lines))
   } else {
     numTotEta <- .fremCountTotEta(lines)
   }
@@ -357,6 +361,27 @@ addFremIIV <- function(strFREMModel,
     seg <- gsub(sprintf("(?i)(?<![A-Za-z0-9_])COV%d(?![0-9])", k), sprintf("COV%d", kk), seg, perl = TRUE)
   }
   lines[idx] <- seg
+
+  ## $TABLE ETAn columns name etas too. Left alone, the ETA3 column in the
+  ## output table would hold whatever eta was inserted at 3. ETAS(1:LAST) is
+  ## a range, not a column name, and is not matched.
+  tab <- integer(0)
+  recStartT <- grep("^\\s*\\$[A-Za-z]", lines)
+  for (st in recStartT[grepl("^\\s*\\$TAB", lines[recStartT], ignore.case = TRUE)]) {
+    en <- recStartT[recStartT > st]
+    en <- if (length(en)) en[1] - 1L else length(lines)
+    tab <- c(tab, st:en)
+  }
+  if (length(tab)) {
+    tseg <- lines[tab]
+    for (k in seq(maxIdx, fromIdx)) {
+      tseg <- gsub(sprintf("(?i)(?<![A-Za-z0-9_])ETA%d(?![0-9A-Za-z_(])", k),
+        sprintf("ETA%d", k + 1L), tseg,
+        perl = TRUE
+      )
+    }
+    lines[tab] <- tseg
+  }
   lines
 }
 
@@ -365,49 +390,42 @@ addFremIIV <- function(strFREMModel,
 #' @keywords internal
 #' @noRd
 .fremAttachEta <- function(lines, parameter, etaIdx, link) {
-  pat <- sprintf("^(\\s*)%s(\\s*)=(\\s*)(.*)$", .fremEscape(parameter))
-  hit <- grep(pat, lines)
-  # keep only $PK hits (defensive: a same-named var could appear in $ERROR)
-  recStart <- grep("^\\s*\\$[A-Za-z]", lines)
-  pkStart <- recStart[grepl("^\\s*\\$PK\\b", lines[recStart], ignore.case = TRUE)]
-  if (length(pkStart)) {
-    pkEnd <- recStart[recStart > pkStart[1]]
-    pkEnd <- if (length(pkEnd)) pkEnd[1] - 1L else length(lines)
-    hit <- hit[hit >= pkStart[1] & hit <= pkEnd]
+  ## Found through .fremAssignLines(): the parameter's $PK - or $PRED - record,
+  ## matched case-insensitively as NM-TRAN does.
+  pat <- sprintf("(?i)^(\\s*)(%s)(\\s*)=(\\s*)(.*)$", .fremEscape(parameter))
+  found <- .fremAssignLines(lines, parameter)
+  rec <- if (nrow(found)) found$record[1] else "$PK"
+  ## Any guarded assignment refuses - not only when there is no plain one.
+  ## `FREL = ...` followed by `IF(FORM.EQ.2) FREL = ...` used to take the eta
+  ## on the first line and lose it, silently, for every FORM = 2 subject.
+  if (any(found$guarded)) {
+    stop("addFremIIV(): '", parameter, "' is assigned conditionally in ", rec,
+      " (line", if (sum(found$guarded) > 1L) "s " else " ",
+      paste(found$line[found$guarded], collapse = ", "),
+      "); attaching an ETA to one branch would change only that branch. ",
+      "Edit the branches by hand, or attach the ETA to a parameter that ",
+      "is assigned once.",
+      call. = FALSE
+    )
   }
+  hit <- found$line[!found$guarded]
   if (length(hit) == 0L) {
-    ## Say which of the two it is. A conditionally assigned parameter does
-    ## have assignments; they are just not at the start of a line, and
-    ## attaching an eta to one branch would change only that branch.
-    cond <- grep(sprintf(
-      "^\\s*IF\\s*\\(.*\\)\\s*%s\\s*=[^=]",
-      .fremEscape(parameter)
-    ), sub(";.*$", "", lines), ignore.case = TRUE)
-    if (length(cond)) {
-      stop("addFremIIV(): '", parameter, "' is assigned conditionally in $PK ",
-        "(line", if (length(cond) > 1L) "s " else " ",
-        paste(cond, collapse = ", "),
-        "); attaching an ETA to one branch would change only that branch. ",
-        "Edit the branches by hand, or attach the ETA to a parameter that ",
-        "is assigned once.",
-        call. = FALSE
-      )
-    }
-    stop("addFremIIV(): no $PK assignment of '", parameter, "' was found.",
+    stop("addFremIIV(): no ", rec, " assignment of '", parameter, "' was found.",
       call. = FALSE
     )
   }
   if (length(hit) > 1L) {
-    stop("addFremIIV(): '", parameter, "' is assigned on more than one $PK line (",
-      paste(hit, collapse = ", "), "); cannot decide where the ETA goes.",
+    stop("addFremIIV(): '", parameter, "' is assigned on more than one ", rec,
+      " line (", paste(hit, collapse = ", "), "); cannot decide where the ETA goes.",
       call. = FALSE
     )
   }
 
   i <- hit[1]
-  m <- regmatches(lines[i], regexec(pat, lines[i]))[[1]]
+  m <- regmatches(lines[i], regexec(pat, lines[i], perl = TRUE))[[1]]
   lead <- m[2]
-  rhsAll <- m[5]
+  lhsName <- m[3]
+  rhsAll <- m[6]
   # split a trailing comment off the RHS
   cpos <- regexpr(";", rhsAll, fixed = TRUE)
   if (cpos > 0) {
@@ -436,7 +454,7 @@ addFremIIV <- function(strFREMModel,
   )
 
   lines[i] <- sprintf(
-    "%s%s = %s%s", lead, parameter, newRhs,
+    "%s%s = %s%s", lead, lhsName, newRhs,
     if (nzchar(comment)) paste0("  ", comment) else ""
   )
   lines
