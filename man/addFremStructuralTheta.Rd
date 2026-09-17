@@ -75,9 +75,11 @@ unchanged. Either way it is the right value to pass to the next call.}
 \description{
 Inserts one new structural (non-FREM) \verb{$THETA} at index \code{numNonFREMThetas + 1},
 immediately before the FREM covariate-mean thetas. Every \code{THETA()} reference
-at or after that index in \verb{$PK} / \verb{$ERROR} / \verb{$THETA} is shifted up by one -
-in a FREM model that is the \code{MU_k = THETA(numNonFREMThetas + c)} block - so the
-model stays consistent. \code{numNonFREMThetas} increases by one.
+at or after that index is shifted up by one - in \verb{$THETA} itself and in every
+record that can hold abbreviated code (\verb{$PK}, \verb{$PRED}, \verb{$ERROR}, \verb{$DES},
+\verb{$AES}, \verb{$MIX}, \verb{$INFN}), which in a FREM model is the
+\code{MU_k = THETA(numNonFREMThetas + c)} block - so the model stays consistent.
+\code{numNonFREMThetas} increases by one.
 
 With \code{addEta = TRUE} the function also adds a matching IIV via
 \code{\link[=addFremIIV]{addFremIIV()}} and wires the two together. This is the usual entry point:
@@ -87,6 +89,13 @@ between-subject variability in one step.
 \details{
 The existing \code{.ext} / \code{.phi} are \strong{not} migrated - the model must be
 re-estimated. Only the control stream is rewritten.
+
+The new record is placed by counting the values in \verb{$THETA}, expanding
+\verb{(value)xN} repeats, so a record holding several values on one line is
+handled. When the insertion point falls inside such a line, the function
+stops and asks for that line to be split rather than guessing. A model with
+\verb{$ABBR REPLACE THETA(<label>)=THETA(<n>)} is refused, since renumbering would
+leave the label pointing at the old index.
 
 Whether \code{parameter} already exists in \verb{$PK} decides what happens:
 
@@ -105,7 +114,8 @@ log-normal and MU-referenced, the form the FREM models themselves use for
 with no between-subject variability.}
 }
 
-\strong{An existing parameter} is modified in place instead: its \verb{$PK} assignment
+\strong{An existing parameter} - matched without regard to case, in \verb{$PK} or, in a
+model that has no \verb{$PK}, in \verb{$PRED} - is modified in place instead: its \verb{$PK} assignment
 gains a \verb{* THETA(<j>)} factor, and with \code{addEta = TRUE} also an
 \verb{* EXP(ETA(<k>))} term. Nothing is inserted, so no markers appear.
 

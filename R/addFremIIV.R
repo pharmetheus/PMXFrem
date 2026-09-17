@@ -4,10 +4,12 @@
 #' Inserts one new inter-individual-variability random effect into a FREM model,
 #' in the "skip" region that precedes the FREM `$OMEGA BLOCK(N)`. The new
 #' `ETA()` takes index `numSkipOm + 1`; every `ETA()`, `MU_` and `COV`
-#' reference at or after that index in `$PK` / `$ERROR` (including the
-#' `;;;FREM CODE` block) is shifted up by one so the model stays consistent, and
-#' a matching simple `$OMEGA` record is inserted immediately before the FREM
-#' block. `numSkipOm` therefore increases by one; `numParCov`, the FREM
+#' reference at or after that index is shifted up by one so the model stays
+#' consistent - in every record that can hold abbreviated code (`$PK`, `$PRED`,
+#' `$ERROR`, `$DES`, `$AES`, `$MIX`, `$INFN`, including the `;;;FREM CODE`
+#' block), and in the `ETAn` columns of `$TABLE`, whose numbering names the same
+#' etas (`ETAS(1:LAST)` is left alone). A matching simple `$OMEGA` record is
+#' inserted immediately before the FREM block. `numSkipOm` therefore increases by one; `numParCov`, the FREM
 #' `BLOCK(N)` and the FREM covariate structure are untouched.
 #'
 #' This is the primitive used by [addFremStructuralTheta()]; call it directly
@@ -16,6 +18,10 @@
 #' @details
 #' The existing `.ext` / `.phi` are **not** migrated - a model with a new random
 #' effect must be re-estimated. Only the control stream is rewritten.
+#'
+#' A model with `$ABBR REPLACE ETA(<label>)=ETA(<n>)` is refused: renumbering
+#' `ETA(n)` elsewhere would leave the label pointing at the old index, silently
+#' giving `<label>` a different eta.
 #'
 #' `link` controls how the new `ETA()` enters the target `$PK` line:
 #' \describe{
@@ -31,8 +37,11 @@
 #' @param strFREMModel Path to the FREM model file, or a character vector of its
 #'   lines. A path is required if `numNonFREMThetas` / `numSkipOm` are to be
 #'   derived (they are read from the model + its `.ext` via [fremModelInfo()]).
-#' @param parameter Name of the `$PK` variable that receives the new `ETA()`.
-#'   Required unless `link = "none"`. Must be assigned on exactly one `$PK` line.
+#' @param parameter Name of the variable that receives the new `ETA()`.
+#'   Required unless `link = "none"`. Matched without regard to case, and
+#'   assigned on exactly one line of `$PK` - or of `$PRED`, in a model that has
+#'   no `$PK`. An assignment guarded by an `IF` is refused: the eta would be
+#'   attached on that branch only.
 #' @param omegaInit Initial variance for the new `$OMEGA` record. Required - no
 #'   default, since the value is a modelling choice (a small value such as
 #'   `0.01` or `0.04` is typical for a fresh IIV).

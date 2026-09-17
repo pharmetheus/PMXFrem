@@ -41,8 +41,13 @@
   and nothing else. Its probe indices come from PMXForest's parse of the
   reference, not from the object under test, and it derives `numSkipOm` from
   the reference model's own `$OMEGA` records: a check that shares the
-  generator's assumptions cannot test them. It returns a single `TRUE` /
-  `FALSE` usable in an `if`, with the per-parameter table attached as
+  generator's assumptions cannot test them. Four checks in all — structural
+  match, covariate splice, random-effect splice, and `numSkipOm` — each probe
+  compared against what the same change does to the FFEM reference. The splice
+  checks assume a log-normal parameter; for one whose `$PK` encloses its `ETA()`
+  differently (additive, logit, ...) they are reported as `NA` rather than
+  guessed at, and `NA` does not make the result `FALSE`. It returns a single
+  `TRUE` / `FALSE` usable in an `if`, with the per-parameter table attached as
   `attr(., "checks")`.
 
 * **`addFremStructuralTheta()` / `addFremIIV()` — extend an established FREM
@@ -67,12 +72,22 @@
 
   `addFremIIV(strFREMModel, parameter, omegaInit, ...)` is the primitive, also
   usable on its own: it takes eta index `numSkipOm + 1`, shifts every reference
-  at or after it across all of the model's abbreviated-code records, inserts a
-  matching `$OMEGA` immediately before the FREM block — located by counting
-  etas, so it is right whether the skip omegas are written as `$OMEGA` or as
-  `$OMEGA BLOCK(1)` — and attaches the eta to a `$PK` line as `* EXP(ETA(k))`
-  (`link = "exp"`, the default), `+ ETA(k)` (`"add"`), or not at all
-  (`"none"`).
+  at or after it across all of the model's abbreviated-code records **and the
+  `ETAn` columns of `$TABLE`**, inserts a matching `$OMEGA` immediately before
+  the FREM block — located by counting etas, so it is right whether the skip
+  omegas are written as `$OMEGA` or as `$OMEGA BLOCK(1)` — and attaches the eta
+  to the parameter's line as `* EXP(ETA(k))` (`link = "exp"`, the default),
+  `+ ETA(k)` (`"add"`), or not at all (`"none"`).
+
+  Both read `$PK`, or `$PRED` in a model that has none, and match the parameter
+  without regard to case while keeping the model's own spelling. Both refuse,
+  rather than produce a model that is quietly wrong, three cases: a parameter
+  assigned inside an `IF` (the eta or theta would apply on one branch only), a
+  model using `$ABBR REPLACE` for `ETA()` / `THETA()` labels (renumbering would
+  leave the label on the old index), and a `$THETA` line whose values straddle
+  the insertion point (it asks for the line to be split). `$THETA` values are
+  counted with `(value)xN` repeats expanded, so a record written on one line
+  places the new theta correctly.
 
   `thetaInit` and `omegaInit` have no defaults; they are modelling choices. The
   `.ext` and `.phi` are **not** migrated — only the control stream is rewritten,

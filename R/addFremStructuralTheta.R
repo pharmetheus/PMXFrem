@@ -3,9 +3,11 @@
 #' @description
 #' Inserts one new structural (non-FREM) `$THETA` at index `numNonFREMThetas + 1`,
 #' immediately before the FREM covariate-mean thetas. Every `THETA()` reference
-#' at or after that index in `$PK` / `$ERROR` / `$THETA` is shifted up by one -
-#' in a FREM model that is the `MU_k = THETA(numNonFREMThetas + c)` block - so the
-#' model stays consistent. `numNonFREMThetas` increases by one.
+#' at or after that index is shifted up by one - in `$THETA` itself and in every
+#' record that can hold abbreviated code (`$PK`, `$PRED`, `$ERROR`, `$DES`,
+#' `$AES`, `$MIX`, `$INFN`), which in a FREM model is the
+#' `MU_k = THETA(numNonFREMThetas + c)` block - so the model stays consistent.
+#' `numNonFREMThetas` increases by one.
 #'
 #' With `addEta = TRUE` the function also adds a matching IIV via
 #' [addFremIIV()] and wires the two together. This is the usual entry point:
@@ -15,6 +17,13 @@
 #' @details
 #' The existing `.ext` / `.phi` are **not** migrated - the model must be
 #' re-estimated. Only the control stream is rewritten.
+#'
+#' The new record is placed by counting the values in `$THETA`, expanding
+#' `(value)xN` repeats, so a record holding several values on one line is
+#' handled. When the insertion point falls inside such a line, the function
+#' stops and asks for that line to be split rather than guessing. A model with
+#' `$ABBR REPLACE THETA(<label>)=THETA(<n>)` is refused, since renumbering would
+#' leave the label pointing at the old index.
 #'
 #' Whether `parameter` already exists in `$PK` decides what happens:
 #'
@@ -34,7 +43,8 @@
 #'     with no between-subject variability.}
 #' }
 #'
-#' **An existing parameter** is modified in place instead: its `$PK` assignment
+#' **An existing parameter** - matched without regard to case, in `$PK` or, in a
+#' model that has no `$PK`, in `$PRED` - is modified in place instead: its `$PK` assignment
 #' gains a `* THETA(<j>)` factor, and with `addEta = TRUE` also an
 #' `* EXP(ETA(<k>))` term. Nothing is inserted, so no markers appear.
 #'

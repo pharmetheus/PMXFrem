@@ -23,8 +23,11 @@ addFremIIV(
 lines. A path is required if \code{numNonFREMThetas} / \code{numSkipOm} are to be
 derived (they are read from the model + its \code{.ext} via \code{\link[=fremModelInfo]{fremModelInfo()}}).}
 
-\item{parameter}{Name of the \verb{$PK} variable that receives the new \code{ETA()}.
-Required unless \code{link = "none"}. Must be assigned on exactly one \verb{$PK} line.}
+\item{parameter}{Name of the variable that receives the new \code{ETA()}.
+Required unless \code{link = "none"}. Matched without regard to case, and
+assigned on exactly one line of \verb{$PK} - or of \verb{$PRED}, in a model that has
+no \verb{$PK}. An assignment guarded by an \code{IF} is refused: the eta would be
+attached on that branch only.}
 
 \item{omegaInit}{Initial variance for the new \verb{$OMEGA} record. Required - no
 default, since the value is a modelling choice (a small value such as
@@ -63,10 +66,12 @@ Invisibly, a list with
 Inserts one new inter-individual-variability random effect into a FREM model,
 in the "skip" region that precedes the FREM \verb{$OMEGA BLOCK(N)}. The new
 \code{ETA()} takes index \code{numSkipOm + 1}; every \code{ETA()}, \code{MU_} and \code{COV}
-reference at or after that index in \verb{$PK} / \verb{$ERROR} (including the
-\verb{;;;FREM CODE} block) is shifted up by one so the model stays consistent, and
-a matching simple \verb{$OMEGA} record is inserted immediately before the FREM
-block. \code{numSkipOm} therefore increases by one; \code{numParCov}, the FREM
+reference at or after that index is shifted up by one so the model stays
+consistent - in every record that can hold abbreviated code (\verb{$PK}, \verb{$PRED},
+\verb{$ERROR}, \verb{$DES}, \verb{$AES}, \verb{$MIX}, \verb{$INFN}, including the \verb{;;;FREM CODE}
+block), and in the \code{ETAn} columns of \verb{$TABLE}, whose numbering names the same
+etas (\code{ETAS(1:LAST)} is left alone). A matching simple \verb{$OMEGA} record is
+inserted immediately before the FREM block. \code{numSkipOm} therefore increases by one; \code{numParCov}, the FREM
 \code{BLOCK(N)} and the FREM covariate structure are untouched.
 
 This is the primitive used by \code{\link[=addFremStructuralTheta]{addFremStructuralTheta()}}; call it directly
@@ -75,6 +80,10 @@ only when you want to add a random effect without a new structural \verb{$THETA}
 \details{
 The existing \code{.ext} / \code{.phi} are \strong{not} migrated - a model with a new random
 effect must be re-estimated. Only the control stream is rewritten.
+
+A model with \verb{$ABBR REPLACE ETA(<label>)=ETA(<n>)} is refused: renumbering
+\code{ETA(n)} elsewhere would leave the label pointing at the old index, silently
+giving \verb{<label>} a different eta.
 
 \code{link} controls how the new \code{ETA()} enters the target \verb{$PK} line:
 \describe{
