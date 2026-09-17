@@ -295,7 +295,7 @@ test_that("a $PK assignment referencing ETA() more than once is returned as-is w
       parameters = "CL", numSkipOm = 0,
       numNonFREMThetas = 4, quiet = TRUE
     ),
-    "references ETA\\(\\) 2 times"
+    "more than one FREM-range eta \\(ETA\\(1\\), ETA\\(2\\)\\)"
   )
   expect_length(out$fremParameters, 0)
   expect_match(
@@ -1028,4 +1028,206 @@ test_that("a bare P = ETA(k) is not treated as log-normal", {
   )
   expect_identical(unname(out$fremEtaScale["CL"]), "exp")
   expect_identical(unname(out$fremEtaScale["V"]), "other")
+})
+
+# ---------------------------------------------------------------------------
+# A FREM parameter's eta is found wherever the parameter is assigned
+# ---------------------------------------------------------------------------
+
+.fremModReplacing <- function(td, pattern, replacement, name = "rep.mod") {
+  l <- readLines(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), warn = FALSE)
+  i <- grep(pattern, l)
+  stopifnot(length(i) == 1L)
+  l <- c(l[seq_len(i - 1L)], replacement, l[(i + 1L):length(l)])
+  f <- file.path(td, name)
+  writeLines(l, f)
+  file.copy(.fremExt(), sub("\\.mod$", ".ext", f), overwrite = TRUE)
+  f
+}
+
+.th <- function() {
+  e <- getExt(extFile = .fremExt())
+  as.numeric(e[e$ITERATION == -1000000000, grep("^THETA", names(e))][1, ])
+}
+
+.clAt <- function(out, ct1, eta3, dfrow = data.frame(FOOD = 1)) {
+  fn <- eval(parse(text = out$code))
+  e <- rep(0, 23)
+  e[3] <- eta3
+  fn(.th()[seq_len(out$noBaseThetas)], covthetas = c(ct1, 0, 0), dfrow = dfrow, etas = e)$CL
+}
+
+test_that("a FREM parameter whose eta is applied in a later statement is still spliced", {
+  # CL = EXP(MU_3) then CL = CL * EXP(ETA(3)): the common way to write a typical
+  # value and apply IIV afterwards. Only the first assignment was inspected, it
+  # carries no eta, so CL lost both its eta and its covariate effect - silently,
+  # under a warning claiming a single ETA() is not a FREM parameter.
+  td <- withr::local_tempdir()
+  m <- .fremModReplacing(td, "^CL\\s+= EXP\\(MU_3", c("CL = EXP(MU_3)", "CL = CL * EXP(ETA(3))"))
+  expect_no_warning(out <- createFREMParamFunction(m, parameters = c("CL", "V", "MAT"), quiet = TRUE))
+  expect_true("CL" %in% out$fremParameters)
+  expect_equal(.clAt(out, 0.2, 0.5), exp(log(.th()[2]) + 0.2 + 0.5), tolerance = 1e-10)
+})
+
+test_that("a FREM parameter assigned only inside one-line IFs is still spliced", {
+  td <- withr::local_tempdir()
+  m <- .fremModReplacing(td, "^CL\\s+= EXP\\(MU_3", c(
+    "IF(FOOD.EQ.1) CL = EXP(MU_3 + ETA(3))",
+    "IF(FOOD.EQ.0) CL = EXP(MU_3 + ETA(3)) * (1 + THETA(6))"
+  ))
+  expect_no_warning(out <- createFREMParamFunction(m, parameters = c("CL", "V", "MAT"), quiet = TRUE))
+  expect_true("CL" %in% out$fremParameters)
+  th <- .th()
+  expect_equal(.clAt(out, 0.2, 0.5, data.frame(FOOD = 1)), exp(log(th[2]) + 0.7), tolerance = 1e-10)
+  expect_equal(.clAt(out, 0.2, 0.5, data.frame(FOOD = 0)), exp(log(th[2]) + 0.7) * (1 + th[6]), tolerance = 1e-10)
+})
+
+test_that("a FREM parameter assigned inside an IF/ELSE block is still spliced", {
+  td <- withr::local_tempdir()
+  m <- .fremModReplacing(td, "^CL\\s+= EXP\\(MU_3", c(
+    "IF(FOOD.EQ.1) THEN",
+    "  CL = EXP(MU_3 + ETA(3))",
+    "ELSE",
+    "  CL = EXP(MU_3 + ETA(3)) * (1 + THETA(6))",
+    "ENDIF"
+  ))
+  expect_no_warning(out <- createFREMParamFunction(m, parameters = c("CL", "V", "MAT"), quiet = TRUE))
+  th <- .th()
+  expect_equal(.clAt(out, 0.2, 0.5, data.frame(FOOD = 0)), exp(log(th[2]) + 0.7) * (1 + th[6]), tolerance = 1e-10)
+})
+
+test_that("a parameter carrying two different FREM-range etas is not guessed at", {
+  td <- withr::local_tempdir()
+  m <- .fremModReplacing(td, "^CL\\s+= EXP\\(MU_3", c(
+    "IF(FOOD.EQ.1) CL = EXP(MU_3 + ETA(3))",
+    "IF(FOOD.EQ.0) CL = EXP(MU_3 + ETA(4))"
+  ))
+  expect_warning(
+    out <- createFREMParamFunction(m, parameters = c("CL", "MAT"), quiet = TRUE),
+    "ETA\\(3\\).*ETA\\(4\\)|more than one"
+  )
+  expect_false("CL" %in% out$fremParameters)
+})
+
+test_that("an eta beyond the FREM parameters is not treated as a FREM parameter's", {
+  # COV6 = MU_6 + ETA(6) is a FREM covariate's own eta. It used to be spliced as
+  # covthetas[4], an index covthetas does not have, and silently return NA.
+  # (COV6 also reads MU_6 = THETA(8), beyond the structural thetas, which has
+  # its own warning - so capture both rather than expect exactly one)
+  w <- capture_warnings(
+    out <- createFREMParamFunction(.fremMod(), parameters = c("CL", "COV6"), extFile = .fremExt(), quiet = TRUE)
+  )
+  expect_true(any(grepl("'COV6' carries ETA\\(6\\), beyond the model's 3 FREM parameter", w)))
+  expect_false("COV6" %in% out$fremParameters)
+  expect_no_match(paste(out$code, collapse = "\n"), "covthetas\\[4\\]")
+})
+
+# ---------------------------------------------------------------------------
+# verifyFREMParamFunction(): what it must fail, and what it must not
+# ---------------------------------------------------------------------------
+
+.ffem <- function() system.file("extdata/SimNeb/run31max1-2.mod", package = "PMXFrem")
+.goodFn <- function(params = c("CL", "V", "MAT")) {
+  createFREMParamFunction(.fremMod(), parameters = params, extFile = .fremExt(), quiet = TRUE)
+}
+.verdict <- function(x, ...) {
+  v <- suppressWarnings(verifyFREMParamFunction(x, ffemModel = .ffem(), extFile = .fremExt(), quiet = TRUE, ...))
+  list(ok = isTRUE(unclass(v)[1]), checks = attr(v, "checks"))
+}
+
+test_that("verifyFREMParamFunction fails a parameter that computes NaN", {
+  # max(0, NaN) is NaN, PASS became NA - the "not checked" marker - and NA is
+  # not counted as a failure, so the verdict was TRUE.
+  bad <- .goodFn()
+  bad$code <- sub("V <- exp(MU_4", "V <- sqrt(-1) * exp(MU_4", bad$code, fixed = TRUE)
+  expect_false(identical(bad$code, .goodFn()$code))
+  r <- .verdict(bad)
+  expect_false(r$ok)
+  expect_false(isTRUE(r$checks$PASS[r$checks$PARAMETER == "V"]))
+})
+
+test_that("verifyFREMParamFunction fails when thetas are too short to evaluate the function", {
+  th <- .th()
+  v <- suppressWarnings(verifyFREMParamFunction(.goodFn(),
+    ffemModel = .ffem(), thetas = th[1:3], quiet = TRUE
+  ))
+  expect_false(isTRUE(unclass(v)[1]))
+})
+
+test_that("verifyFREMParamFunction accepts a correct function that returns its list in another order", {
+  # The splice checks indexed the returned list by position, the structural
+  # check by name; a correct `fun` returning MAT, V, CL failed.
+  g <- .goodFn()
+  f <- eval(parse(text = g$code))
+  reordered <- function(...) f(...)[c("MAT", "V", "CL")]
+  v <- verifyFREMParamFunction(g, fun = reordered, ffemModel = .ffem(), extFile = .fremExt(), quiet = TRUE)
+  expect_true(isTRUE(unclass(v)[1]))
+})
+
+test_that("verifyFREMParamFunction fails a non-FREM parameter that picks up an eta", {
+  # "scales parameter k and nothing else" was only checked among the log-normal
+  # FREM parameters; KA leaking CL's eta passed.
+  g <- .goodFn(c("CL", "V", "MAT", "KA"))
+  bad <- g
+  bad$code <- sub("KA <- 1 / (MAT - D1)", "KA <- 1 / (MAT - D1) * exp(.eta(etas, 3))", bad$code, fixed = TRUE)
+  expect_false(identical(bad$code, g$code))
+  expect_false(.verdict(bad)$ok)
+})
+
+test_that("verifyFREMParamFunction still passes a parameter that legitimately depends on a FREM one", {
+  # KA = 1 / (MAT - D1) moves when MAT's covariate or eta moves. Checking that
+  # nothing else moves must not turn that into a failure.
+  expect_true(.verdict(.goodFn(c("CL", "V", "MAT", "KA")))$ok)
+})
+
+test_that("verifyFREMParamFunction does not misread numSkipOm from a reference without a trailing parameter block", {
+  # numSkipOm was taken as "every eta before the last $OMEGA record", which is
+  # only true when that record is the parameter BLOCK. One diagonal record per
+  # eta gave 4, not 2, and failed a correct function.
+  td <- withr::local_tempdir()
+  l <- readLines(.ffem(), warn = FALSE)
+  i <- grep("^\\$OMEGA BLOCK\\(3\\)", l)
+  l <- c(l[seq_len(i - 1L)], "$OMEGA 0.065", "$OMEGA 0.052", "$OMEGA 0.043", l[(i + 4L):length(l)])
+  ref <- file.path(td, "ffdiag.mod")
+  writeLines(l, ref)
+  v <- verifyFREMParamFunction(.goodFn(), ffemModel = ref, extFile = .fremExt(), quiet = TRUE)
+  expect_true(isTRUE(unclass(v)[1]))
+})
+
+test_that("a secondary can use a $PK quantity that was not requested", {
+  # 100 / (CL * FREL) with only CL requested: FREL was pruned away and the
+  # generated function failed at call time with "object 'FREL' not found".
+  # PMXForest::createParamFunction() keeps what a secondary reads.
+  out <- createFREMParamFunction(.fremMod(),
+    parameters = "CL", extFile = .fremExt(),
+    secondary = list(DOSECL = "100 / (CL * FREL)"), quiet = TRUE
+  )
+  fn <- eval(parse(text = out$code))
+  th <- .th()
+  r <- fn(th[seq_len(out$noBaseThetas)], covthetas = c(0, 0, 0), dfrow = data.frame(FOOD = 1), etas = rep(0, 23))
+  # FREL = TVFREL * FRELCOVTIME = THETA(1) * 1 at FOOD = 1
+  expect_equal(r$DOSECL, 100 / (th[2] * th[1]), tolerance = 1e-10)
+})
+
+test_that("a one-line secondary with a comment still parses", {
+  # The one-line form wraps the snippet in local({ ... }); a "#" comments out
+  # the closing "})" and the generated source does not parse.
+  out <- createFREMParamFunction(.fremMod(),
+    parameters = "CL", extFile = .fremExt(),
+    secondary = list(AUC = "100 / CL  # dose 100 mg"), quiet = TRUE
+  )
+  expect_no_error(fn <- eval(parse(text = out$code)))
+  th <- .th()
+  r <- fn(th[seq_len(out$noBaseThetas)], covthetas = c(0, 0, 0), dfrow = data.frame(FOOD = 1), etas = rep(0, 23))
+  expect_equal(r$AUC, 100 / th[2], tolerance = 1e-10)
+})
+
+test_that("C / EXP(eta) is not reported as log-normal scaling", {
+  # 1 / EXP(-MU + ETA(k)) scales by exp(-eta), not exp(eta); only a product
+  # propagates the "exp" scale.
+  td <- withr::local_tempdir()
+  m <- .fremModReplacing(td, "^CL\\s+= EXP\\(MU_3", "CL = 1 / EXP(-MU_3 + ETA(3))", "div.mod")
+  out <- createFREMParamFunction(m, parameters = c("CL", "V", "MAT"), quiet = TRUE)
+  expect_identical(unname(out$fremEtaScale["CL"]), "other")
+  expect_identical(unname(out$fremEtaScale["V"]), "exp")
 })

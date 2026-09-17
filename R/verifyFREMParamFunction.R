@@ -7,10 +7,13 @@
 #'       parameter reduces to its structural typical value. The result is
 #'       compared with the SCM-style typical-value function that
 #'       [PMXForest::createParamFunction()] generates from the same FREM model.
-#'     \item **Covariate splice.** Setting `covthetas[k]` should scale parameter
-#'       `k` by `exp(covthetas[k])` and nothing else.
-#'     \item **Random-effect splice.** Setting `etas[numSkipOm + k]` should scale
-#'       parameter `k` by `exp(etas[numSkipOm + k])` and nothing else.
+#'     \item **Covariate splice.** Setting `covthetas[k]` must change every
+#'       returned parameter exactly as setting parameter `k`'s `<P>FREMCOV`
+#'       column changes the FFEM reference - parameter `k` itself, anything
+#'       computed from it, and nothing else.
+#'     \item **Random-effect splice.** The same for `etas[numSkipOm + k]`. The
+#'       FFEM reference writes each parameter as `EXP(MU + (ETA(k) + <P>FREMCOV))`,
+#'       so the covariate column is also the expected effect of the eta.
 #'     \item **`numSkipOm`.** The reference model's own `$OMEGA` records say how
 #'       many etas precede its parameter block. If that disagrees with the
 #'       `numSkipOm` the function was generated with, every `covthetas` index
@@ -248,8 +251,22 @@ verifyFREMParamFunction <- function(x,
   ## function index covthetas wrongly for every real caller - and a check
   ## that inherits the same wrong value cannot see it. The FFEM reference's
   ## own $OMEGA records say how many etas precede its parameter block.
+  ## Only when the reference's last $OMEGA record is a BLOCK - not a SAME
+  ## repeat - large enough to hold every placed parameter eta: that is the
+  ## layout createFFEMmodel() writes. A reference with one diagonal record per
+  ## eta, or an IOV block after the parameter block, has no single record that
+  ## marks where the parameters start, and reading "everything before the last
+  ## record" as numSkipOm would fail a correct function.
   refOm <- .fremOmegaRecords(refLines)
-  refSkip <- if (nrow(refOm) > 1L) {
+  lastRec <- if (nrow(refOm)) {
+    toupper(paste(refLines[refOm$start[nrow(refOm)]:refOm$end[nrow(refOm)]], collapse = " "))
+  } else {
+    ""
+  }
+  placed <- sum(!is.na(etaIdx))
+  refSkip <- if (nrow(refOm) > 1L &&
+    grepl("\\bBLOCK\\s*\\(", lastRec) && !grepl("\\bSAME\\b", lastRec) &&
+    refOm$n[nrow(refOm)] >= placed) {
     as.integer(sum(refOm$n) - refOm$n[nrow(refOm)])
   } else {
     NA_integer_
@@ -275,6 +292,38 @@ verifyFREMParamFunction <- function(x,
   covD[!isExp] <- etaD[!isExp] <- NA_real_
   names(structD) <- names(covD) <- names(etaD) <- params
 
+  ## Relative difference, with anything that cannot be computed - NA from a
+  ## missing value, NaN from sqrt(-1) - reported as Inf. NA in the output is
+  ## reserved for "this check was not applicable"; a comparison that produced
+  ## no number is a failed check, not a skipped one.
+  rel <- function(a, b) {
+    d <- abs((a - b) / ifelse(b == 0, 1, b))
+    if (length(d) != 1L || !is.finite(d)) Inf else d
+  }
+  getp <- function(res, p) if (is.null(res[[p]])) NA_real_ else res[[p]]
+
+  ## Expected values come from the FFEM reference, not from arithmetic on the
+  ## generated function's own output. There each FREM parameter is written
+  ##   P = EXP(MU + (ETA(k) + <P>FREMCOV))
+  ## so setting <P>FREMCOV to x in the reference is exactly what covthetas = x,
+  ## or etas[k] = x, must do to the generated function - for P itself, and for
+  ## every parameter computed from it (KA = 1 / (MAT - D1)). That lets every
+  ## returned parameter be checked in every probe, by name, independently of
+  ## the emitter.
+  covCol <- stats::setNames(paste0(params, covSuffix), params)
+  hasCol <- covCol %in% fremCols & isExp
+  refWith <- function(dfrow, values) {
+    d <- dfrow
+    for (p in names(values)) d[[covCol[[p]]]] <- values[[p]]
+    scmFn(thetas = scmTh, df = d)
+  }
+  ## A parameter whose own splice is not probed keeps NA in that column unless
+  ## it moves when it should not - then the size of the movement is reported,
+  ## which fails it.
+  record <- function(D, p, d) {
+    if (isExp[[p]]) max(D[[p]], d) else if (d > tol) max(D[[p]], d, na.rm = TRUE) else D[[p]]
+  }
+
   for (i in seq_len(nrow(dfrows))) {
     dfrow <- dfrows[i, , drop = FALSE]
 
@@ -284,45 +333,25 @@ verifyFREMParamFunction <- function(x,
     )
     scm0 <- scmFn(thetas = scmTh, df = dfrow)
     for (p in params) {
-      structD[p] <- max(
-        structD[p],
-        abs((base0[[p]] - scm0[[p]]) /
-          ifelse(scm0[[p]] == 0, 1, scm0[[p]]))
-      )
+      structD[p] <- max(structD[p], rel(getp(base0, p), getp(scm0, p)))
     }
 
-    ## A distinct coefficient per parameter, placed at the parameter's own
-    ## FREM index. If the function picked up a different parameter's
-    ## coefficient it would scale by the wrong one of these, which is what
-    ## makes the cross-talk visible.
+    ## A distinct coefficient per parameter, placed at its own FREM index, so a
+    ## function reading a neighbour's coefficient scales by the wrong one.
+    probe <- params[hasCol]
     ct <- rep(0, nCov)
-    ct[covIdx[isExp]] <- seq_len(sum(isExp)) / 7
+    vals <- stats::setNames(seq_along(probe) / 7, probe)
+    ct[covIdx[probe]] <- vals
     covV <- fun(basethetas, covthetas = ct, dfrow = dfrow, etas = rep(0, nEtas))
-    for (k in which(isExp)) {
-      exp_k <- unlist(base0)
-      exp_k[k] <- exp_k[k] * exp(ct[covIdx[k]])
-      covD[k] <- max(
-        covD[k],
-        abs((covV[[k]] - exp_k[k]) /
-          ifelse(exp_k[k] == 0, 1, exp_k[k]))
-      )
-    }
+    refC <- refWith(dfrow, vals)
+    for (p in params) covD[p] <- record(covD, p, rel(getp(covV, p), getp(refC, p)))
 
-    for (k in which(isExp)) {
+    for (k in probe) {
       e <- rep(0, nEtas)
-      e[etaIdx[k]] <- 0.3
+      e[etaIdx[[k]]] <- 0.3
       etaV <- fun(basethetas, covthetas = rep(0, nCov), dfrow = dfrow, etas = e)
-      exp_k <- unlist(base0)
-      exp_k[k] <- exp_k[k] * exp(0.3)
-      # only parameter k should move; a non-exp parameter j is left out of the
-      # comparison (its own splice was not applied here, so it must be unchanged)
-      for (j in which(isExp)) {
-        etaD[j] <- max(
-          etaD[j],
-          abs((etaV[[j]] - exp_k[j]) /
-            ifelse(exp_k[j] == 0, 1, exp_k[j]))
-        )
-      }
+      refE <- refWith(dfrow, stats::setNames(0.3, k))
+      for (p in params) etaD[p] <- record(etaD, p, rel(getp(etaV, p), getp(refE, p)))
     }
   }
 
@@ -336,7 +365,14 @@ verifyFREMParamFunction <- function(x,
   )
   # NA COVSPLICE / ETASPLICE (non-log-normal parameter) -> PASS is NA when the
   # structural check passes, FALSE when it does not.
-  out$PASS <- with(out, STRUCTURAL <= tol & COVSPLICE <= tol & ETASPLICE <= tol)
+  ## FALSE on any failed or uncomputable comparison; NA only when the structural
+  ## check passed and a splice check did not apply.
+  out$PASS <- with(out, ifelse(
+    STRUCTURAL > tol | (!is.na(COVSPLICE) & COVSPLICE > tol) |
+      (!is.na(ETASPLICE) & ETASPLICE > tol),
+    FALSE,
+    ifelse(is.na(COVSPLICE) | is.na(ETASPLICE), NA, TRUE)
+  ))
 
   nFail <- sum(out$PASS %in% FALSE)
   nNA <- sum(is.na(out$PASS))

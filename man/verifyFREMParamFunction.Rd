@@ -67,10 +67,13 @@ Runs four consistency checks on the function from
 parameter reduces to its structural typical value. The result is
 compared with the SCM-style typical-value function that
 \code{\link[PMXForest:createParamFunction]{PMXForest::createParamFunction()}} generates from the same FREM model.
-\item \strong{Covariate splice.} Setting \code{covthetas[k]} should scale parameter
-\code{k} by \code{exp(covthetas[k])} and nothing else.
-\item \strong{Random-effect splice.} Setting \code{etas[numSkipOm + k]} should scale
-parameter \code{k} by \code{exp(etas[numSkipOm + k])} and nothing else.
+\item \strong{Covariate splice.} Setting \code{covthetas[k]} must change every
+returned parameter exactly as setting parameter \code{k}'s \verb{<P>FREMCOV}
+column changes the FFEM reference - parameter \code{k} itself, anything
+computed from it, and nothing else.
+\item \strong{Random-effect splice.} The same for \code{etas[numSkipOm + k]}. The
+FFEM reference writes each parameter as \verb{EXP(MU + (ETA(k) + <P>FREMCOV))},
+so the covariate column is also the expected effect of the eta.
 \item \strong{\code{numSkipOm}.} The reference model's own \verb{$OMEGA} records say how
 many etas precede its parameter block. If that disagrees with the
 \code{numSkipOm} the function was generated with, every \code{covthetas} index

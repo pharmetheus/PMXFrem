@@ -56,8 +56,10 @@ directory, i.e. ".".}
 derive \code{numSkipOm} / \code{numNonFREMThetas}. Defaults to the ext located from
 \code{runno} / \code{modName} / \code{modDevDir}, else the \code{.ext} beside \code{fremModel}.}
 
-\item{numParCov}{Optional cross-check: should equal the number of
-\code{parameters} that carry an \code{ETA()} in \verb{$PK}. A mismatch warns.}
+\item{numParCov}{Optional cross-check: the number of FREM covariate
+parameters in the MODEL - its FREM \verb{$OMEGA} block less the FREM covariates -
+whatever subset \code{parameters} asks for. A mismatch warns and the derived
+count is used.}
 
 \item{covRef}{Optional named list of structural-covariate reference values,
 e.g. \code{list(WT = 75)}, forwarded to \code{\link[PMXForest:nmParsePK]{PMXForest::nmParsePK()}}.}
@@ -100,7 +102,9 @@ otherwise. \code{\link[=verifyFREMParamFunction]{verifyFREMParamFunction()}} use
 \code{exp()} splice checks apply.
 \item \code{noBaseThetas} - \code{numNonFREMThetas} (the length of \code{basethetas}).
 \item \code{covRef} - the structural-covariate reference used, with its source.
-\item \code{numParCov} - the number of \code{fremParameters}.
+\item \code{numParCov} - the number of FREM covariate parameters in the model,
+which is the length \code{covthetas} must have; not the length of
+\code{fremParameters} when a subset was requested.
 \item \code{numSkipOm}, \code{numNonFREMThetas}, \code{fremModel}, \code{missVal} - as
 supplied or derived.
 }
@@ -112,7 +116,7 @@ expect, \verb{function(basethetas, covthetas, dfrow, etas, ...)}.
 
 The structural \verb{$PK} is transliterated (structural, non-FREM covariates such
 as allometric weight kept). A parameter in \code{parameters} that carries IIV in
-\verb{$PK} (exactly one \code{ETA()} in its assignment) is a \strong{FREM covariate
+\verb{$PK} (one eta in the FREM block's range, across all of its assignments) is a \strong{FREM covariate
 parameter}: its \code{ETA()} reference is replaced \strong{in place} - whatever
 encloses it, \code{exp(mu + ETA)}, \code{TV * exp(ETA)}, \code{TV + ETA}, ... - by
 \code{covthetas[k] + etas[i]}, where \code{ETA(i)} is the reference \verb{$PK} makes and
@@ -167,10 +171,16 @@ but not assigned in \verb{$PK} needs a value for the rows where it is inactive
 rules as \code{\link[PMXForest:createParamFunction]{PMXForest::createParamFunction()}} and hoisted into a preamble;
 override or supply through \code{covRef}.
 
-\strong{Which parameters get the covariate splice.} Exactly one \code{ETA()} -> the
-parameter is spliced. None -> returned as-is (no covariate effect). More
-than one -> returned as-is with a warning (which eta is "the" structural one
-is ambiguous). A parameter whose single \code{ETA()} falls inside the skipped
+\strong{Which parameters get the covariate splice.} A parameter's etas are
+collected from every assignment of it, at any depth - \code{CL = TVCL} followed
+by \code{CL = CL * EXP(ETA(3))}, or \code{CL} assigned only inside \code{IF} blocks, are
+both found. One eta in the FREM block's range -> the parameter is spliced,
+in every statement that carries that eta; its other statements take their
+\code{ETA()} as 0. None -> returned as-is (no covariate effect). Two different
+FREM-range etas -> returned as-is with a warning (which one carries the
+covariate effect is ambiguous). An eta beyond the FREM parameters - a FREM
+covariate's own, such as \code{COV6} - is not a parameter's, and is returned
+with that \code{ETA()} as 0 and a warning. A parameter whose single \code{ETA()} falls inside the skipped
 omegas (an IOV or residual-error eta, say) is not a FREM covariate
 parameter: it keeps its own eta and gets no covariate effect. A statement
 carrying a parameter's FREM eta together with another eta is an error,
