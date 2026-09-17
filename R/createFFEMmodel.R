@@ -296,13 +296,13 @@ createFFEMmodel <- function(runno = NULL,
     if (!omegaToData) {
       tmp <- gsub(
         pattern = paste0("^(.*)(([^TH]|\\s*)\\bETA\\(", eta_idx, "\\))(.*)$"),
-        replace = paste0("\\1(ETA(", eta_idx, ")+", FFEMdata$indCovEff[i], ")\\4"),
+        replacement = paste0("\\1(ETA(", eta_idx, ")+", FFEMdata$indCovEff[i], ")\\4"),
         x = tmp
       )
     } else {
       tmp <- gsub(
         pattern = paste0("^(.*)(([^TH]|\\s*)\\bETA\\(", eta_idx, "\\))(.*)$"),
-        replace = paste0("\\1(MYETA", eta_idx, " + ", FFEMdata$indCovEff[i], ")\\4"),
+        replacement = paste0("\\1(MYETA", eta_idx, " + ", FFEMdata$indCovEff[i], ")\\4"),
         x = tmp
       )
     }
@@ -336,7 +336,7 @@ createFFEMmodel <- function(runno = NULL,
   ## If there is no $TAB in the base model file, skip to the next step
   if (length(tabString) != 0) {
     ## Change the table file name to ffemtab
-    tabString <- gsub(x = tabString, pattern = "FILE=.*", replace = paste0("FILE=", ffemTabName))
+    tabString <- gsub(x = tabString, pattern = "FILE=.*", replacement = paste0("FILE=", ffemTabName))
     tmp <- findrecord(tmp, record = "\\$TAB", replace = tabString)
   }
 

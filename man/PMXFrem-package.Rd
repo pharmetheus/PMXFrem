@@ -4,7 +4,7 @@
 \name{PMXFrem-package}
 \alias{PMXFrem}
 \alias{PMXFrem-package}
-\title{PMXFrem: Support functions for FREM analyses in NONMEM}
+\title{PMXFrem: Support Functions for FREM Analyses in NONMEM}
 \description{
 Support functions for FREM analyses in NONMEM that will facilitate pre- and post-processing.
 }

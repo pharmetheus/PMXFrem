@@ -16,9 +16,9 @@
 #' @importFrom MASS mvrnorm
 #' @importFrom numDeriv grad
 #' @importFrom rlang .data
-#' @importFrom stats cor cov median quantile reorder rnorm sd var
+#' @importFrom stats ave cor cov median na.omit qchisq quantile reorder rnorm sd var
 #' @importFrom stringr str_replace
 #' @importFrom tools file_ext file_path_sans_ext
-#' @importFrom utils head read.table write.csv
+#' @importFrom utils head read.csv read.table tail write.csv write.table
 ## usethis namespace: end
 NULL
