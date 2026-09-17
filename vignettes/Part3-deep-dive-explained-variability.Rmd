@@ -59,18 +59,23 @@ We use the package's internal `setupDfCovsEV()` function to dynamically construc
 
 **Important Conceptual Note:** There is a fundamental difference in how the `dfCovs` matrix is utilized here compared to Forest plots. In a Forest plot, `dfCovs` dictates the exact numerical covariate values to visualize (e.g., `WT = 115`). For explained variability, `dfCovs` acts purely as an indicator matrix **for the FREM covariates**. For these covariates, the actual numerical value assigned does not impact the calculation; setting it to anything other than the missing covariate indicator (typically `-99`) simply flags *which* covariates should be actively evaluated for that specific scenario row.
 
-**However, this indicator system only applies to FREM covariates.** For FFEM covariates (covariates outside the FREM matrix, such as `FOOD`), the parameter function will still evaluate the *actual numerical value* provided in `dfCovs`. 
+**FFEM covariates work differently.** A covariate outside the FREM matrix, such as `FOOD`, is read by the parameter function itself from `dfrow`, and where that value comes from depends on `type`:
 
-Because `FOOD` is a time-varying categorical FFEM covariate that our parameter function evaluates manually, we append it as an `additionalCov` and set its state to `1` (Fed) so our function logic executes correctly.
+* **Types 1, 2 and 3** use each subject's own value from `data`. The value in `dfCovs` is not used.
+* **Type 0** uses the first row of `dfCovs` for every calculation.
+
+In a covariate row, `dfrow` holds only the covariates that are not `-99` in that row. `setupDfCovsEV()` gives `FOOD` a row of its own, like the FREM covariates, and sets it to `-99` in every other row. The `AGE` row then has no `FOOD` column, so the variability it reports is that of `AGE` alone, and the function must fall back to the baseline effect when the column is missing (Section 3).
+
+To condition every row on `FOOD`, set the column to any non-missing value in all rows, as below. Each subject's own `FOOD` then enters every row, and the `AGE` row reports the variability of `AGE` given `FOOD`. In types 1-3, `1` and `0` give the same result, because the value itself is taken from `data`.
 
 ```{r cov_setup}
-# Robustly generate the covariate matrix
+# Robustly generate the covariate matrix, with a row of its own for FOOD
 dfCovs <- setupDfCovsEV(
   modFileName = fremFiles$mod,
   conditionalCovs = c("FOOD")
 )
 
-# Lock the time-varying FFEM covariate state
+# Include FOOD in every row, so each covariate is conditioned on it
 dfCovs$FOOD <- 1
 
 # Define the exact names corresponding to the rows in dfCovs
@@ -81,7 +86,7 @@ cstrCovariates <- c("All", names(dfCovs))
 
 We must supply a function that mimics the structural relationships in the FFEM model. This function is conceptually identical to the one used for Forest plots, with one essential difference: it **must** include the `etas[]` argument to allow the package to integrate over the structural variance.
 
-**Handling Missing Covariates:** You must build defensive fallback logic for missing covariates (e.g., `dfrow$FOOD != -99`) *only* for covariates outside the FREM part of the model (FFEM covariates). `PMXFrem` automatically handles missing data for the covariates included in the FREM covariance matrix. However, because the `dfCovs` matrix intentionally assigns `-99` to isolate covariate effects, your function will encounter missing data for FFEM covariates like `FOOD` and must know how to revert to the baseline fixed effect.
+**Handling Missing Covariates:** You must build defensive fallback logic *only* for covariates outside the FREM part of the model (FFEM covariates). `PMXFrem` automatically handles missing data for the covariates included in the FREM covariance matrix. For an FFEM covariate like `FOOD`, your function will meet two cases and must revert to the baseline fixed effect in both: the column is absent from `dfrow` (a covariate row other than its own, checked with `any(names(dfrow) == "FOOD")`), or the subject's value is missing (`dfrow$FOOD != -99`). A function that reads `dfrow$FOOD` without the first check gets `NULL`, and `getExplainedVar()` stops.
 
 ```{r define_function}
 paramFunctionExpVar <- function(basethetas, covthetas, dfrow, etas, ...) {
@@ -139,12 +144,12 @@ The `dfres` output contains three main metrics:
 ### Calculation Methods (`type`)
 The methodology is dictated by the `type` argument, and each has distinct mathematical properties:
 
-* **Type 0 (Delta Method):** Based on omega calculations. It is fast and guarantees that the explained variability of all covariates will sum to exactly 100%.
+* **Type 0 (Delta Method):** Based on omega calculations. It is fast, but a first-order approximation.
 * **Type 1 (EBEs):** Uses Empirical Bayes Estimates. It is subject to $\eta$ shrinkage but acknowledges individual information richness.
 * **Type 2 ($\eta$ Samples):** Uses $\eta$ samples and integrates over observed FFEM covariates. Useful if the model contains non-FREM covariates.
 * **Type 3 ($\eta$ Samples Optimized):** Similar to Type 2 but does not acknowledge FFEM covariates, making it significantly faster.
 
-*Note: With Types 1, 2, and 3, it is theoretically possible for a single covariate to explain more than all covariates combined (i.e., > 100%) due to parameter correlations and structural non-linearities.*
+*Note: With every type, the variability explained by the single covariates need not add up to the variability explained by all of them together: correlated covariates share explained variability. With Types 1, 2, and 3, a single covariate can even explain more than all covariates combined (i.e., > 100%) due to parameter correlations and structural non-linearities.*
 
 ```{r compute_var}
 dfres <- getExplainedVar(

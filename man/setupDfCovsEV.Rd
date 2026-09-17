@@ -22,9 +22,12 @@ of the FREM model file. Default is all, i.e. \code{getCovNames(modFile = modFile
 
 \item{conditionalCovs}{Covariates to include in the output \code{dfCovs} beyond
 the FREM ones - typically covariates in the fixed-effects part of the FREM
-model file. Named for what they do: \code{getExplainedVar()} computes the
-variability explained by each covariate \emph{conditional} on these being
-present.}
+model file. Each gets a row of its own, set up like the FREM covariates'
+rows: 1 for that covariate and \code{missVal} for every other. They are
+therefore not included in the other rows. To condition every row on one,
+set its column to a non-missing value in all rows (\code{dfCovs$FOOD <- 1}).
+In types 1-3 of \code{getExplainedVar()} its values then come from \code{data}, not
+from \code{dfCovs}.}
 
 \item{additionalCovs}{Deprecated. Use \code{conditionalCovs}.}
 }

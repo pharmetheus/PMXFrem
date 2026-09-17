@@ -448,3 +448,177 @@ test_that("getExplainedVar includes the covariance between etas, not only their 
   )
   expect_equal(res$TOTVAR[1], totVarHand, tolerance = 1e-8)
 })
+
+## ---- From an independent review of the variance engine ----------------------
+## Each case returned a wrong number (or failed to run) with no error. Expected
+## values are independent of the code under test where one can be computed.
+
+.evRun31 <- function() {
+  modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+  list(
+    modDevDir = modDevDir,
+    modFile = file.path(modDevDir, "run31.mod"),
+    data = read.csv(file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")) |>
+      dplyr::filter(BLQ == 0) |>
+      dplyr::distinct(ID, .keep_all = TRUE)
+  )
+}
+.evCL <- function(basethetas, covthetas, dfrow, etas, ...) {
+  basethetas[2] * exp(covthetas[1] + etas[3])
+}
+.evCall <- function(s, dfCovs, ...) {
+  getExplainedVar(
+    modDevDir = s$modDevDir, runno = 31, numNonFREMThetas = 7, numSkipOm = 2,
+    dfCovs = dfCovs, cstrCovariates = c("All", names(dfCovs)[-1][seq_len(nrow(dfCovs) - 1)]),
+    quiet = TRUE, ncores = 1, ...
+  )
+}
+## the "All" row plus the rows of the named covariates
+.evRows <- function(dfCovs, covs) {
+  out <- dfCovs[c(1, match(covs, names(dfCovs)) + 1), , drop = FALSE]
+  stopifnot(!anyNA(match(covs, names(dfCovs))))
+  out
+}
+
+test_that("a missing covariate does not also blank one whose name contains it (WT in LBWT)", {
+  s <- .evRun31()
+  dfc <- setupDfCovsEV(s$modFile)
+  dfc <- .evRows(dfc, "LBWT")
+  d2 <- s$data
+  idx <- which(d2$WT != -99 & d2$LBWT != -99)[1:150]
+  stopifnot(length(idx) == 150)
+  d2$WT[idx] <- -99
+  ## row 1 is All, row 2 is LBWT
+  r1 <- .evCall(s, dfc, type = 1, data = s$data, functionList = list(.evCL), functionListName = "CL")
+  r2 <- .evCall(s, dfc, type = 1, data = d2, functionList = list(.evCL), functionListName = "CL")
+  ## The LBWT row conditions on LBWT alone, so blanking WT cannot change it
+  expect_equal(r2$COVVAR[2], r1$COVVAR[2])
+})
+
+test_that("a parameter function that returns nothing for a covariate row stops, not shifts names", {
+  s <- .evRun31()
+  dfc <- .evRows(setupDfCovsEV(s$modFile, conditionalCovs = "FOOD"), "AGE")
+  fFood <- function(basethetas, covthetas, dfrow, etas, ...) {
+    basethetas[2] * ifelse(dfrow$FOOD == 0, 0.5, 1) * exp(covthetas[1] + etas[3])
+  }
+  fV <- function(basethetas, covthetas, dfrow, etas, ...) {
+    basethetas[3] * exp(covthetas[2] + etas[4])
+  }
+  expect_error(
+    .evCall(s, dfc,
+      type = 1, data = s$data, functionList = list(fFood, fV),
+      functionListName = c("CL", "V")
+    ),
+    "returned 0 value\\(s\\) for dfCovs row 2"
+  )
+})
+
+test_that("availCov accepts the original name of a binarized covariate and rejects unknown names", {
+  s <- .evRun31()
+  dfc <- setupDfCovsEV(s$modFile)[1, , drop = FALSE]
+  run <- function(ac) {
+    getExplainedVar(
+      type = 0, data = NULL, dfCovs = dfc, cstrCovariates = "All",
+      modDevDir = s$modDevDir, runno = 31, numNonFREMThetas = 7, numSkipOm = 2,
+      functionList = list(.evCL), functionListName = "CL", availCov = ac, quiet = TRUE
+    )
+  }
+  expect_equal(
+    run(c("AGE", "RACEL"))$TOTCOVVAR,
+    run(c("AGE", "RACEL_2", "RACEL_3"))$TOTCOVVAR
+  )
+  expect_error(run(c("AGE", "NOTACOV")), "availCov.*NOTACOV")
+})
+
+test_that("type 3 does not pass the sample index into the parameter function", {
+  s <- .evRun31()
+  dfc <- setupDfCovsEV(s$modFile)[1, , drop = FALSE]
+  withScale <- function(basethetas, covthetas, dfrow, etas, scale = 1, ...) {
+    scale * basethetas[2] * exp(covthetas[1] + etas[3])
+  }
+  run <- function(f) {
+    .evCall(s, dfc,
+      type = 3, data = s$data[1:20, ], functionList = list(f),
+      functionListName = "CL", numETASamples = 30, seed = 123
+    )
+  }
+  expect_equal(run(withScale)$TOTVAR, run(.evCL)$TOTVAR)
+})
+
+test_that("type 1 pairs the phi etas with subjects by ID, not by row position", {
+  s <- .evRun31()
+  stopifnot(is.unsorted(s$data$ID))
+  dfc <- setupDfCovsEV(s$modFile)[1, , drop = FALSE]
+  fFood <- function(basethetas, covthetas, dfrow, etas, ...) {
+    f <- if (!is.null(dfrow$FOOD) && dfrow$FOOD == 0) 0.5 else 1
+    basethetas[2] * f * exp(covthetas[1] + etas[3])
+  }
+  run <- function(d) {
+    .evCall(s, dfc, type = 1, data = d, functionList = list(fFood), functionListName = "CL")
+  }
+  sorted <- s$data[order(s$data$ID), ]
+  ## independent: theta(2) * FOOD factor * exp(ETA(3)), etas matched by ID
+  phi <- getPhi(file.path(s$modDevDir, "run31.phi"))
+  ext <- getExt(file.path(s$modDevDir, "run31.ext"))
+  th2 <- ext[ext$ITERATION == -1000000000, "THETA2"]
+  eta3 <- phi[[5]][match(s$data$ID, phi$ID)]
+  expected <- stats::var(th2 * ifelse(s$data$FOOD == 0, 0.5, 1) * exp(eta3))
+
+  expect_equal(run(s$data)$TOTVAR, expected)
+  expect_equal(run(sorted)$TOTVAR, expected)
+})
+
+test_that("extra arguments in ... reach the parameter functions, and modExt still reaches getFileNames", {
+  s <- .evRun31()
+  dfc <- setupDfCovsEV(s$modFile)[1, , drop = FALSE]
+  withDose <- function(basethetas, covthetas, dfrow, etas, dose, ...) {
+    dose * basethetas[2] * exp(covthetas[1] + etas[3])
+  }
+  run <- function(...) {
+    getExplainedVar(
+      type = 0, data = NULL, dfCovs = dfc, cstrCovariates = "All",
+      modDevDir = s$modDevDir, runno = 31, numNonFREMThetas = 7, numSkipOm = 2,
+      functionListName = "CL", quiet = TRUE, ...
+    )
+  }
+  base <- run(functionList = list(.evCL))
+  expect_equal(run(functionList = list(withDose), dose = 2)$TOTVAR, 4 * base$TOTVAR)
+  expect_equal(run(functionList = list(.evCL), modExt = ".mod")$TOTVAR, base$TOTVAR)
+})
+
+test_that("type 0 accepts a dfCovs row that holds only non-FREM covariates", {
+  s <- .evRun31()
+  dfc <- .evRows(setupDfCovsEV(s$modFile, conditionalCovs = "FOOD"), "FOOD")
+  res <- getExplainedVar(
+    type = 0, data = NULL, dfCovs = dfc, cstrCovariates = c("All", "FOOD"),
+    modDevDir = s$modDevDir, runno = 31, numNonFREMThetas = 7, numSkipOm = 2,
+    functionList = list(.evCL), functionListName = "CL", quiet = TRUE
+  )
+  ## no FREM covariate in the row, so it explains nothing
+  expect_equal(res$COVVAR[res$COVNAME == "FOOD"], 0)
+})
+
+test_that("functionList may be a bare function, as documented", {
+  s <- .evRun31()
+  dfc <- setupDfCovsEV(s$modFile)[1, , drop = FALSE]
+  run <- function(fl) {
+    getExplainedVar(
+      type = 0, data = NULL, dfCovs = dfc, cstrCovariates = "All",
+      modDevDir = s$modDevDir, runno = 31, numNonFREMThetas = 7, numSkipOm = 2,
+      functionList = fl, functionListName = "CL", quiet = TRUE
+    )
+  }
+  expect_equal(run(.evCL), run(list(.evCL)))
+})
+
+test_that("parNames without numParCov works in the sampling types", {
+  s <- .evRun31()
+  dfc <- setupDfCovsEV(s$modFile)[1, , drop = FALSE]
+  run <- function(...) {
+    .evCall(s, dfc,
+      type = 3, data = s$data[1:20, ], functionList = list(.evCL),
+      functionListName = "CL", numETASamples = 30, seed = 123, ...
+    )
+  }
+  expect_equal(run(parNames = c("CL", "V", "MAT")), run())
+})

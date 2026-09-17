@@ -104,12 +104,10 @@
 
 ## Breaking changes
 
-* **`setupDfCovsEV()`'s `additionalCovs` is renamed `conditionalCovs`.** The old
-  name says when the argument was added rather than what it does: these are the
-  covariates `getExplainedVar()` conditions on when computing the variability
-  each FREM covariate explains. `additionalCovs` still works and gives an
-  identical result, with a deprecation warning; supplying both is an error
-  rather than a silent precedence rule.
+* **`setupDfCovsEV()`'s `additionalCovs` is renamed `conditionalCovs`.**
+  `additionalCovs` still works and gives an identical result, with a
+  deprecation warning; supplying both is an error rather than a silent
+  precedence rule.
 
 * **`plotExplainedVar()` no longer takes `...`, and `add.stamp` is no longer
   read from the global environment.** The `add.stamp = TRUE` path called
@@ -166,6 +164,26 @@
   number of structural thetas rather than from the model's random effects. It
   is now `numSkipOm + numParCov`, the dimension the same function already uses
   for its eta samples.
+
+* **`getExplainedVar()` returned wrong numbers, without an error, in five cases:**
+  * **types 1-3:** a missing covariate also blanked every covariate whose name
+    contains it, so a missing `WT` removed `LBWT` too;
+  * **types 1-3:** a function that returned no value for a covariate row moved
+    every later result onto the wrong parameter name. It now stops and names
+    the row;
+  * **type 1:** etas read from the phi file were paired with subjects by row
+    position. They are now matched by ID, so `data` no longer has to be in the
+    phi file's order;
+  * **type 3:** the sample index was passed to the parameter function as an
+    extra positional argument;
+  * **`availCov`:** an original categorical name such as `RACEL` was silently
+    left out. It now expands to its binarized columns, and an unknown name is
+    an error.
+
+* **`getExplainedVar()` failed on inputs its documentation allows:** extra
+  arguments in `...` (they now reach the parameter functions), a bare function
+  as `functionList`, `parNames` without `numParCov`, and, in type 0, a `dfCovs`
+  row holding only non-FREM covariates.
 
 ## Under the hood
 

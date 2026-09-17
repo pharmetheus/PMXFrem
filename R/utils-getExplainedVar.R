@@ -88,7 +88,11 @@
       currentNames <- names(dfCovs[i, , drop = FALSE])[
         as.numeric(dfCovs[i, , drop = FALSE]) != missVal
       ]
+      ## Only FREM covariates condition the omega matrix; a row holding only
+      ## FFEM covariates (FOOD) explains nothing here and must not reach
+      ## calcFFEM() as a non-empty availCov with no FREM names in it.
       tmpcovs <- .get_frem_cov_names(currentNames, fremCovs)
+      tmpcovs <- tmpcovs[tmpcovs %in% covNames]
 
       ffemObj <- calcFFEM(
         numNonFREMThetas = numNonFREMThetas, numFREMThetas = numFREMThetas, numSigmas = numSigmas, dfext = dfext, covNames = covNames,
@@ -124,7 +128,7 @@
 .calc_empirical_variance <- function(type, data, dfCovs, dfext, strID, runno, modName, modDevDir,
                                      cstrCovariates, functionList, functionListName, numNonFREMThetas,
                                      numFREMThetas, numSigmas, numParCov, parNames, numSkipOm, allCov,
-                                     etas, quiet, ncores, cstrPackages, cstrExports, numETASamples,
+                                     etas, etaIDs = NULL, quiet, ncores, cstrPackages, cstrExports, numETASamples,
                                      seed, thetas, covNames, fremCovs, orgCovs, missVal, ...) {
   if (type == 2 || type == 3) {
     ETAsamples <- matrix(stats::rnorm((numParCov + numSkipOm) * numETASamples), nrow = (numParCov + numSkipOm), ncol = numETASamples)
@@ -141,6 +145,19 @@
 
   dataI <- data[!duplicated(data[[strID]]), ]
 
+  if (type == 1 && !is.null(etaIDs)) {
+    ## Etas read from the phi file carry their IDs: pair them with the subjects
+    ## by ID. Pairing by row position gave every subject another subject's etas
+    ## whenever data was not in the phi file's order.
+    pos <- match(dataI[[strID]], etaIDs)
+    if (anyNA(pos)) {
+      stop("The phi file has no etas for ", strID, " ",
+        paste(utils::head(dataI[[strID]][is.na(pos)]), collapse = ", "), ".",
+        call. = FALSE
+      )
+    }
+    etas <- etas[pos, , drop = FALSE]
+  }
   if (type == 1 && (nrow(etas) != nrow(dataI))) {
     stop("The number of etas should be the same as the number of subjects in the data set.")
   }
@@ -152,8 +169,12 @@
 
   mapFun <- function(data_row, orgCovs) {
     for (cov in orgCovs) {
-      if (data_row[[cov]][1] == missVal && sum(grepl(cov, names(data_row))) > 1) {
-        data_row[1, grepl(cov, names(data_row))] <- missVal
+      ## the covariate and its own binarized columns (RACEL, RACEL_2, ...) - not
+      ## every name that contains it: grepl("WT", ...) also blanked LBWT
+      own <- names(data_row) == cov |
+        grepl(paste0("^\\Q", cov, "_\\E[0-9]+$"), names(data_row), perl = TRUE)
+      if (data_row[[cov]][1] == missVal && sum(own) > 1) {
+        data_row[1, own] <- missVal
       }
     }
     return(data_row)
@@ -172,6 +193,17 @@
     dataI <- dplyr::bind_rows(dataI_list)
   }
   dataI$jxrtp47 <- missVal
+
+  ## How many values each function returns for a full data row. A covariate
+  ## row passes a narrower dfrow; a function that then returns a different
+  ## number of values would shift every later value onto the wrong parameter
+  ## name, so that is checked against this.
+  nOut <- vapply(functionList, function(f) {
+    length(unlist(f(
+      basethetas = thetas, covthetas = rep(0, length(parNames)), dfrow = dataI[1, ],
+      etas = rep(0, numSkipOm + numParCov), ...
+    )))
+  }, integer(1))
 
   dfrest_list <- vector("list", nrow(dfCovs))
 
@@ -244,7 +276,7 @@
             tmpval <- 0
             val <- 0
             for (m in seq_len(numETASamples)) {
-              val <- functionList[[j]](basethetas = thetas, covthetas = rep(0, length(coveffectsAll)), dfrow = dataI[k, ], etas = etasamples[m, ], m, ...)
+              val <- functionList[[j]](basethetas = thetas, covthetas = rep(0, length(coveffectsAll)), dfrow = dataI[k, ], etas = etasamples[m, ], ...)
               if (m == 1) tmpval <- matrix(0, ncol = numETASamples, nrow = length(val))
               tmpval[, m] <- unlist(val)
             }
@@ -271,6 +303,16 @@
         datatmp_eval <- dataI[k, c(tmpcovs, "jxrtp47"), drop = FALSE]
         val <- functionList[[j]](basethetas = thetas, covthetas = coveffects, dfrow = datatmp_eval, etas = rep(0, numSkipOm + numParCov), ...)
         listcount <- length(val)
+        if (listcount != nOut[j]) {
+          stop("functionList[[", j, "]] returned ", listcount, " value(s) for ",
+            "dfCovs row ", i, " (", cstrCovariates[i], ") but ", nOut[j],
+            " for a full data row. In a covariate row, dfrow holds only that ",
+            "row's covariates (", paste(tmpcovs, collapse = ", "), "), so a ",
+            "function that reads another column gets NULL there; test for the ",
+            "column before using it.",
+            call. = FALSE
+          )
+        }
 
         for (l in seq_len(listcount)) {
           res_list[[res_idx]] <- data.frame(ITER = k, COVS = i, NAME = as.character(functionListName[n]), VALUE = val[[l]])
