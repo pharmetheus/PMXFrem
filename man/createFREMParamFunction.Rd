@@ -156,7 +156,7 @@ Both are indexed by the \strong{model's} numbering, never by position in
 assignment makes, as \code{i - numSkipOm}. Asking for two parameters instead of
 three therefore emits exactly the code the three-parameter request emitted
 for those two, and the same \code{covthetas} / \code{etas} vectors serve either call.
-(Before PMXFrem 2.1.1 the index was the parameter's position in
+(Before PMXFrem 2.2.0 the index was the parameter's position in
 \code{parameters}, so a subset or reordered request silently took another
 parameter's covariate coefficient and eta.)
 

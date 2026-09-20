@@ -249,7 +249,7 @@ Options, roughly in order of preference:
 Note the warning-muffling workaround committed on `fix/ethnic-label-order` was
 reverted when the warning became an error - there is nothing to muffle.
 
-Do this before PMXFrem 2.1.1 goes out, since PMXForest 1.3.0 ships first.
+Do this before PMXFrem 2.2.0 goes out, since PMXForest 1.3.0 ships first.
 
 ## T21 — an FFEM covariate's reference value is 0, and nothing knows it
 
