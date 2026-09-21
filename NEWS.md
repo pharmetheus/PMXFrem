@@ -63,9 +63,13 @@ own missing-covariate pattern, instead of one matrix serving everyone.
   `calcFFEM()` it silently swallowed mistyped argument names.
   `plotExplainedVar()`'s stamp goes through `PMXForest::addStamp()`, and
   `add.stamp` is no longer read from the global environment.
-* **PMXForest (>= 1.3.0)** is the new floor.
+* **PMXFrem now requires PMXForest v1.3.0 or later.**
 
 ## Bug fixes
+
+A careful code review surfaced a number of edge cases in which
+`getExplainedVar()` did not behave as intended. The same review found the
+single-covariate and underscore problems below.
 
 * **`getExplainedVar()` returned wrong numbers, silently, in five cases:** a
   missing covariate blanked others whose names contain it (`WT` removed
@@ -73,9 +77,10 @@ own missing-covariate pattern, instead of one matrix serving everyone.
   ID; type 3 passed the sample index into the parameter function;
   `availCov = "RACEL"` was dropped instead of expanded; a function returning
   nothing for a covariate row shifted later values onto the wrong parameter.
-* **`getExplainedVar()` failed on documented inputs:** arguments in `...`, a
-  bare function as `functionList`, `parNames` without `numParCov`, a type 0
-  `dfCovs` row of only non-FREM covariates.
+* **`getExplainedVar()` rejected calls it should have accepted:** extra
+  arguments meant for the parameter function, a single function given instead
+  of a list of functions, parameter names given without their number, and a
+  `dfCovs` row holding only non-FREM covariates.
 * **A single-covariate `dfCovs`** reported no explained variability at all, and
   two internal calls passed a too-short eta vector.
 * **An underscore in a covariate's own name** (`BL_BILI`) was read as a
@@ -85,25 +90,17 @@ own missing-covariate pattern, instead of one matrix serving everyone.
 
 * `addFREMcovariates()` binarises through `PMXForest::oneHotEncode()`, so the
   `<cov>_<level>` convention has one implementation across the two packages.
-* `getForestDFFREM()` builds its result once instead of growing it in a loop.
-* Smaller: `calcFFEM()` label checks, `buildmatrix(forceSingleBlock)`, `.ext`
-  parsing on R before 4.0, explicit `foreach` arguments, and an argument-name
-  audit that found two tests asserting nothing.
+* `getForestDFFREM()` builds its result once instead of growing it in a loop,
+  which shortens run times.
 
 ## Two numbers you have seen before change
 
-Both are in `fremParameterTable()`, and both are worth knowing before
-regenerating a table you have already shown.
-
 * **RSE and CI are reproducible.** `seed` defaults to `1` rather than `NULL`,
   so the sampled uncertainty no longer depends on the random number state the
-  caller happens to arrive with - two calls in one session could differ by 20%.
-  Your values change once, then stop moving. `seed = NULL` restores the old
-  behaviour.
-* **A negative shrinkage is reported as one.** It read `0.00` in both
-  documented modes; it now reads `1.0000e-10` by default, as NONMEM does, or
-  its raw value with `rawShrinkage = TRUE`. On the bundled `run31max1-2`,
-  ETA3's variance shrinkage is -26.44%.
+  caller happens to arrive with.
+* **A negative shrinkage is reported as in NONMEM.** By default a negative
+  shrinkage is reported as `1.0000e-10`. Setting `rawShrinkage = TRUE` will
+  report the shrinkage as it is calculated, even if negative.
 
 # PMXFrem 2.0.0
 
@@ -111,15 +108,15 @@ regenerating a table you have already shown.
 
 Builds the FREM model and its data set from a base model and a data file, so an
 analysis no longer has to start by running PsN's `frem` command.
-`keepDoseOnlySubjects` (default `FALSE`) keeps subjects that have no PK
+`keepDoseOnlySubjects` (default `FALSE`) retains subjects that have no PK
 observations.
 
 ## `fremParameterTable()` reworked
 
 Base parameters and covariate coefficients are drawn from the same sample
-space, so the two halves of a table agree. `uncertainty` reports `"RSE"` or
-`"CI"`; `includeShrinkage` adds shrinkage, with `shrinkageType`, `shkDigs` and
-`rawShrinkage` deciding what is shown.
+space. `uncertainty` reports `"RSE"` or `"CI"`; `includeShrinkage` adds
+shrinkage, with `shrinkageType`, `shkDigs` and `rawShrinkage` deciding what is
+shown.
 
 ## Covariate coefficient tables
 
@@ -142,12 +139,6 @@ kept in step by hand.
 A quick start and a walk-through, plus deep dives for `createFREMmodel()`,
 diagnostics, Forest plots, explained variability and `updateFREMmodel()`.
 
-## Other notable additions
-
-* The internal pipeline functions (`augmentFremData`, `prepareAndValidateData`
-  and others) moved out of the user-facing namespace.
-* `setypdfCovs()` is renamed `setupDfCovsEV()`.
-
 ## Changes to existing behaviour
 
 * **Output data sets are sorted stably**, by `ORIG_ROW_IDX` and `FREMTYPE`, so
@@ -165,18 +156,6 @@ diagnostics, Forest plots, explained variability and `updateFREMmodel()`.
   cluster running if the calculation errored.
 * **`fremParameterTable()` transformed to the SD scale after computing the CI /
   RSE**, so the uncertainties did not match the scale they were reported on.
-* **Longitudinal data** gave an eta-length mismatch, and a missing categorical
-  covariate passed silently rather than stopping.
-* Smaller: lazy-evaluation defaults reading `dfext`, `data.table` NSE scoping,
-  a dummy-column lookup taking the wrong element.
-
-## Under the hood
-
-* `getExplainedVar()` is split into a helper per type, its growing `rbind`
-  loops replaced by pre-allocated lists and its string rewriting by evaluation
-  in a scoped environment.
-* Examples use base R and `tempdir()`; `@family` / `@concept` tags organise the
-  pkgdown reference.
 
 # PMXFrem 1.2.12
 
