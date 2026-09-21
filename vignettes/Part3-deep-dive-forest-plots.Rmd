@@ -161,8 +161,30 @@ dfres <- getForestDFFREM(
 
 Typing dozens of row labels out by hand means they drift away from `dfCovs` the first time a covariate is added or dropped. `generateCovNames()` reads the scenarios and applies the unit and level mappings given below, so the labels follow the data.
 
+It is meant to be used in two steps. Run it first with `print_template = TRUE`:
+it prints an empty mapping skeleton listing every covariate group, and every
+covariate level, that this `dfCovs` actually contains.
+
+<details>
+<summary>The mapping template for this `dfCovs` (click to expand)</summary>
+
+```{r label_template, comment = ""}
+generateCovNames(dfCovs, print_template = TRUE)
+```
+
+</details>
+
+That skeleton is worth starting from rather than writing the maps from memory.
+A map written by hand goes stale quietly: a key for a covariate that is not in
+`dfCovs` matches nothing, and a level that *is* in `dfCovs` but not in the map
+falls through to its raw code (`SEX=2`) in the finished plot. The template can
+only list what is there, so both mistakes are visible before anything is
+plotted.
+
+Filled in, it gives the three maps below.
+
 ```{r plot_forest, fig.height=20, fig.width=16, out.width="100%"}
-# 1. Define translation maps
+# 1. The maps, filled in from the template above
 unit_map <- c(
   AGE = "years", WT = "kg", BMI = "kg/m2", BSA = "m2",
   CRCL = "mL/min", BILI = "mg/dL", AST = "IU", ALT = "IU",
