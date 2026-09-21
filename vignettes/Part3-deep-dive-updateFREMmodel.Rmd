@@ -1,6 +1,9 @@
 ---
 title: "3. Deep Dive: Modifying FREM Models"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
 vignette: >
   %\VignetteIndexEntry{3. Deep Dive: Modifying FREM Models}
   %\VignetteEngine{knitr::rmarkdown}
@@ -16,11 +19,11 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Introduction
+# Introduction
 
-The Full Random Effects Model (FREM) relies on a highly interdependent architecture between the NONMEM control stream and the underlying dataset. Manually editing these files to add or remove covariates can be time-consuming and introduces a risk for human error into the pharmacometric workflow.
+A FREM model and its data set are tightly coupled: the covariates live in the data as dummy observations, and the control stream indexes them by `FREMTYPE`. Editing both by hand to add or remove a covariate is slow and easy to get wrong.
 
-The `PMXFrem` package provides the `updateFREMmodel()` function to programmatically manage these complex structural updates. 
+`updateFREMmodel()` makes those changes for you. 
 
 This deep dive demonstrates five capabilities:
 
@@ -30,7 +33,7 @@ This deep dive demonstrates five capabilities:
 * Updating a model's initial parameter estimates directly from a converged `.ext` file.
 * Adding a structural `$THETA` or an IIV to a converged model.
 
-## 1. Pre-requisite Setup
+# 1. Pre-requisite Setup
 
 First, we load the package. To ensure system reproducibility, we map all base files from the package's `extdata` directory and explicitly route all generated artifacts into a secure temporary directory (`tempdir()`).
 
@@ -56,7 +59,7 @@ model_in_td <- file.path(td, "run31.mod")
 
 ---
 
-## 2. Use Case 1: Removing Covariates
+# 2. Use Case 1: Removing Covariates
 
 You may sometimes need to remove covariates from an existing model. Here, we remove `WT`, `SEX`, and `AGE` from `run31.mod`.
 
@@ -81,19 +84,19 @@ new_model_path_remove <- file.path(td, "run31_new.mod")
 print(paste("Simplified model successfully written to:", new_model_path_remove))
 ```
 
-**Architectural Operations:**
+**What the call did:**
 
-* The algorithm drops dataset rows associated with the removed covariates and dynamically re-indexes the remaining `FREMTYPE` identifiers to prevent gaps in the NONMEM `$ERROR` block.
+* The data set rows for the removed covariates are dropped and the remaining `FREMTYPE` values re-indexed, so the `$ERROR` block has no gaps to handle.
 * The covariance matrix (`$OMEGA`) and typical values (`$THETA`) are systematically adjusted.
 
 ---
 
-## 3. Use Case 2: Adding Covariates
+# 3. Use Case 2: Adding Covariates
 
-Next, we take the simplified model generated above and insert a new covariate (`AGE`) back into the architecture. We explicitly set `bRecodeDichotomous = TRUE` as a standard practice to ensure any 2-level categorical covariates are safely zero-indexed.
+Next, we take the simplified model generated above and add a covariate (`AGE`) back. We explicitly set `bRecodeDichotomous = TRUE` as a standard practice to ensure any 2-level categorical covariates are safely zero-indexed.
 
 ```{r add_covariates}
-# Utilize the newly generated model and dataset as our baseline
+# Start from the model and data set written above
 model_to_add_to <- new_model_path_remove
 data_to_add_to <- file.path(td, "frem_data_simplified.csv")
 
@@ -118,19 +121,19 @@ result_add <- updateFREMmodel(
 print(paste("Expanded model successfully written to:", file.path(td, "run31_new_new.mod")))
 ```
 
-**Architectural Operations:**
+**What the call did:**
 
 * The base clinical data (`strFFEMData`) is scanned to extract the new covariate's mean and variance, which seed the new `$THETA` and `$OMEGA` parameters.
 * Dummy observation rows (`EVID=2`) are appended to the dataset for the new covariate under a newly assigned `FREMTYPE`.
 
 ---
 
-## 4. Use Case 3: Adding New Individuals
+# 4. Use Case 3: Adding New Individuals
 
-An advantage of the FREM architecture is the ability to process new subjects through a converged model without altering the matrix structure. Here, we simulate 10 new individuals and fold them into the dataset.
+New subjects can be added to a converged model without changing the covariate matrix. Here, we simulate 10 new individuals and fold them into the dataset.
 
 ```{r add_individuals}
-# 1. Load the pristine FREM and FFEM datasets
+# 1. Load the unmodified FREM and FFEM data sets
 frem_df <- fread(frem_data_path, data.table = FALSE) %>% select(-ODV)
 ffem_df <- fread(ffem_data_path, data.table = FALSE)
 
@@ -156,13 +159,13 @@ result_new_ids <- updateFREMmodel(
 print(paste("Original Max ID:", max(frem_df$ID), "| New Max ID:", max(result_new_ids$data$ID)))
 ```
 
-**Architectural Operations:**
+**What the call did:**
 
 * The algorithm expands the dataset horizontally, mapping the structural and covariate dummy rows for the new IDs while keeping the control stream untouched (`bWriteMod = FALSE`).
 
 ---
 
-## 5. Use Case 4: Updating Initial Estimates
+# 5. Use Case 4: Updating Initial Estimates
 
 Due to the size of typical FREM models, it is not feasible to update initial estimates manually. The PsN tool `update_inits` can be used for this, or you can use `updateFREMmodel` to do it by specifying a "NoData" update.
 
@@ -183,14 +186,14 @@ result_inits <- updateFREMmodel(
 print("Control stream initial estimates successfully updated from the .ext file.")
 ```
 
-**Architectural Operations:**
+**What the call did:**
 
 * `updateFREMmodel()` parses the `-1000000000` iteration row from the provided `.ext` file.
-* The `$THETA`, `$OMEGA`, and `$SIGMA` blocks in the `.mod` file are surgically replaced, and user-defined `basenames` are appended as clean comments for maximum readability.
+* The `$THETA`, `$OMEGA` and `$SIGMA` blocks are replaced, with the `basenames` written alongside them as comments.
 
 ---
 
-## 6. Use Case 5: Adding a Structural THETA or an IIV
+# 6. Use Case 5: Adding a Structural THETA or an IIV
 
 The updates above change the covariates or the data. A model sometimes needs a
 change to its structural part instead: one more `$THETA`, or one more IIV on a

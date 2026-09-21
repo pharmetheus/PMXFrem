@@ -1,8 +1,11 @@
 ---
-title: "3. Deep Dive: Standard diagnostics and ETAs"
-output: rmarkdown::html_vignette
+title: "3. Deep Dive: Standard Diagnostics and ETAs"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{3. Deep Dive: Standard diagnostics and ETAs}
+  %\VignetteIndexEntry{3. Deep Dive: Standard Diagnostics and ETAs}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -18,7 +21,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Introduction
+# Introduction
 
 Just like with any other model, it is important to check that FREM models satisfy basic diagnostic tests, for example, goodness-of-fit (GOF) plots of DV versus PRED and CWRES versus TIME. Unlike standard models, some variables of interest are not directly available from the FREM model itself but must be derived based on an FFEM version of the model. 
 
@@ -38,7 +41,7 @@ fremRun <- 31
 baseRun <- 30
 ```
 
-## 1. Comparison of Diagnostics: Base, FREM, and FFEM
+# 1. Comparison of Diagnostics: Base, FREM, and FFEM
 
 To understand why we generate an FFEM model for diagnostics, we extract the structural predictions and residuals from the Base, FREM, and FFEM models and compare them side-by-side.
 
@@ -61,7 +64,7 @@ predData <- bind_cols(Base = xptabBase$CPRED, FREM = xptabFREM$CPRED, FFEM = xpt
 ipredData <- bind_cols(Base = xptabBase$CIPREDI, FREM = xptabFREM$CIPREDI, FFEM = xptabFFEM$CIPREDI)
 ```
 
-### PRED
+## PRED
 ```{r plot_pred}
 ggpairs(predData) + ggtitle("PRED")
 ```
@@ -76,7 +79,7 @@ $$
 \end{aligned}
 $$
 
-### IPRED
+## IPRED
 ```{r plot_ipred}
 ggpairs(ipredData) + ggtitle("IPRED")
 ```
@@ -99,7 +102,7 @@ $$
 
 where $l_i$ is the individual likelihood and $pdf$ is the probability density function of a normal distribution with variance $\Omega$.
 
-### CWRES
+## CWRES
 ```{r plot_cwres}
 ggpairs(cwresData) + ggtitle("CWRES")
 ```
@@ -114,7 +117,7 @@ Var[y_i] &= \frac{\delta \mathrm{IPRED}_i}{\delta \eta_i}\Omega\frac{\delta \mat
 \end{aligned}
 $$
 
-### IWRES
+## IWRES
 ```{r plot_iwres}
 ggpairs(iwresData) + ggtitle("IWRES")
 ```
@@ -128,7 +131,7 @@ R_i &= diag \left( \frac{\delta res}{\delta \varepsilon_i} \Sigma \frac{\delta r
 \end{aligned}
 $$
 
-## 2. Creating Basic GOF Plots
+# 2. Creating Basic GOF Plots
 
 Because the FFEM provides the correct conditional metrics, we use its output (`xptabmax031`) to evaluate the structural fit. We filter out observations with missing `WRES` and `BLQ` values.
 
@@ -167,7 +170,7 @@ p4 <- ggplot(xptabFFEM, aes(exp(CPRED), CWRES)) +
 gridExtra::grid.arrange(p1, p2, p3, p4, ncol = 2, nrow = 2)
 ```
 
-## 3. Creating ETA Diagnostics
+# 3. Creating ETA Diagnostics
 
 Similarly to the standard diagnostic variables, ETAs must also be adjusted to reflect the impact of covariates (i.e., $\eta_{prim}$). `PMXFrem` manages this extraction via `calcEtas()`. By specifying the `ffemModName`, we can simultaneously extract the true Empirical Bayes Estimates (EBEs) from the FFEM model to visualize covariate absorption. We set `appendMissingFlags = TRUE` so we can later evaluate how the model handles missing covariates.
 
@@ -189,7 +192,7 @@ ind_params <- calcEtas(
 )
 ```
 
-### 3.1 Evaluating ETA - Covariate correlation
+## 3.1 Evaluating ETA - Covariate correlation
 Plotting the raw `FREM ETA` versus a covariate will show a strong correlation. However, the `ETA_PRIM` (and its counterpart, the `FFEM EBE`) should be completely flat, indicating that the FREM covariance matrix successfully captured the covariate effect. We visualize this using the `plotEtasCov()` function.
 
 By default, this function plots only the observed covariates, giving a clear view of the underlying relationship.
@@ -205,7 +208,7 @@ plotEtasCov(
 )
 ```
 
-### 3.2 Visualizing the Handling of Missing Data
+## 3.2 Visualizing the Handling of Missing Data
 FREM handles missing data by integrating it out of the likelihood. We can visualize the resulting estimates for individuals with missing baseline covariates by enabling the `showMissing` argument. A separate smoothing line can optionally be fitted through these points to evaluate where the model places these individuals relative to the observed cohort.
 
 ```{r eta_vs_cov_missing, fig.height=8}
@@ -222,7 +225,7 @@ plotEtasCov(
 )
 ```
 
-### 3.3 Marginal Distributions of Missing Covariates
+## 3.3 Marginal Distributions of Missing Covariates
 Finally, the marginal distributions of the estimated covariates can be visualized using histograms. The `plotCovDist()` function maps these estimates, grouped by their original missingness status.
 
 ```{r cov_dist, fig.height=5}

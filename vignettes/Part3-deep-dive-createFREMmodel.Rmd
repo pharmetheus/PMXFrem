@@ -1,6 +1,9 @@
 ---
 title: "3. Deep Dive: Creating FREM Models"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
 vignette: >
   %\VignetteIndexEntry{3. Deep Dive: Creating FREM Models}
   %\VignetteEngine{knitr::rmarkdown}
@@ -14,16 +17,16 @@ knitr::opts_chunk$set(
 )
 ```
 
-### **Introduction**
+# Introduction
 
 The Full Random Effects Model (FREM) methodology requires a specific restructuring of both the NONMEM control stream and the underlying dataset. Continuous and categorical covariates must be converted into dummy "observations" so their variability and correlation can be estimated alongside the structural parameters via a unified covariance matrix.
 
 The `createFREMmodel()` function is the core engine of the `PMXFrem` package. It automates this complex transformation, taking a standard base model and its dataset and returning a fully configured FREM model ready for execution in NONMEM.
 
-### **How createFREMmodel Works Under the Hood**
-Rather than trying to inject every covariate simultaneously, `createFREMmodel()` uses a robust iterative strategy. First, it bootstraps a "minimal" FREM model using only the first covariate listed in your `covariates` argument. It completely rewrites the `$INPUT`, `$DATA`, `$PK`, and `$ERROR` blocks to support the FREM architecture for this single covariate. Then, it iterates through the remaining covariates, utilizing `updateFREMmodel()` in the background to safely and seamlessly fold each subsequent covariate into the expanding OMEGA block and dataset. 
+# How createFREMmodel Works Under the Hood
+Rather than adding every covariate at once, `createFREMmodel()` builds the model one covariate at a time. It first writes a minimal FREM model from the first covariate in your `covariates` argument, rewriting the `$INPUT`, `$DATA`, `$PK` and `$ERROR` blocks for that one covariate. It then works through the rest, calling `updateFREMmodel()` for each, so every step is the same operation the update functions already perform.
 
-### **1. Setup and Paths**
+# 1. Setup and Paths
 
 First, load the package and define the paths to your base model and original clinical dataset. 
 
@@ -40,11 +43,11 @@ ffemDataFile <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"
 td <- tempdir()
 ```
 
-### **2. Designing the FREM Model**
+# 2. Designing the FREM Model
 
 We need to decide which covariates to include and how they should be handled. In FREM, continuous covariates can be modeled as-is or log-transformed, while categorical covariates must be identified so they can be binarized into dummy variables.
 
-We will also explicitly define `keep_cols` to ensure that critical variables from our base dataset carry over correctly to the new FREM dataset rows.
+We will also explicitly define `keep_cols` so that the columns the model needs carry over to the new FREM data set rows.
 
 ```{r define_covariates}
 # Define the complete list of covariates to include
@@ -58,7 +61,7 @@ log_transform_covs <- c("WT")
 keep_cols <- c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV")
 ```
 
-### **3. Generating the Model**
+# 3. Generating the Model
 
 We pass our specifications into `createFREMmodel()`. We use the `run30` base model, which has `7` structural THETAs (`numNonFREMThetas`) and `2` specific OMEGAs that we want to skip correlating with the covariates (`numSkipOm`). `numNonFREMThetas` can be left `NULL` -- it is then read from the base model's `.ext` -- but `numSkipOm` cannot be deduced from a base model and must be given.
 
@@ -79,7 +82,7 @@ generated_files <- createFREMmodel(
   catCovs = categorical_covs,
   logtCovs = log_transform_covs,
 
-  # Structural Architecture
+  # Structural columns
   numNonFREMThetas = 7,
   numSkipOm = 2,
 
@@ -90,11 +93,11 @@ generated_files <- createFREMmodel(
 )
 ```
 
-### **4. Understanding the Output**
+# 4. Understanding the Output
 
 `createFREMmodel()` has now generated the newly expanded `.mod` and `.csv` files. Let's inspect them directly from the disk.
 
-#### **The Generated Dataset**
+## The Generated Dataset
 The original dataset has been vertically expanded. For every subject, new rows (`EVID = 2`) have been appended containing the standardized covariate values in the `DV` column, mapped via the new `FREMTYPE` compartment column. Because we used `bRecodeDichotomous = TRUE`, you will see `SEX` represented as a clean `0` or `1` dummy variable.
 
 ```{r show_data}
@@ -105,8 +108,8 @@ frem_data <- read.csv(generated_files$data)
 head(frem_data, n = 15)
 ```
 
-#### **The Final Model Control Stream**
-The control stream is vastly different. The `$PK` block now handles the structural `ETA`s alongside the covariate means, and the `$ERROR` block dynamically routes the dummy observations (via `FREMTYPE`) to their respective equations. Finally, a massive `$OMEGA BLOCK` is appended to estimate the covariances.
+## The Final Model Control Stream
+The control stream is substantially different. The `$PK` block now handles the structural `ETA`s alongside the covariate means, and the `$ERROR` block routes the dummy observations (via `FREMTYPE`) to their respective equations. Finally, a massive `$OMEGA BLOCK` is appended to estimate the covariances.
 
 ```{r show_model, comment=''}
 # Read the generated NONMEM control stream and print it in its entirety

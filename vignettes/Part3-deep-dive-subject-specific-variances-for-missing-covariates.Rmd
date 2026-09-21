@@ -1,6 +1,9 @@
 ---
 title: "3. Deep Dive: Subject-Specific Variances for Missing Covariates"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
 vignette: >
   %\VignetteIndexEntry{3. Deep Dive: Subject-Specific Variances for Missing Covariates}
   %\VignetteEngine{knitr::rmarkdown}
@@ -14,7 +17,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-## 1. Introduction and Clinical Rationale
+# 1. Introduction and Clinical Rationale
 
 In standard `createFREMmodel` executions (`omegaToData = FALSE`), only one set of variance parameters is derived for all individuals, operating under the assumption of no missing covariate values. 
 
@@ -22,7 +25,7 @@ However, in clinical datasets with significant missing data and high between-sub
 
 To achieve this, the PMXFrem package extracts the individualized variance-covariance elements directly into the dataset and inserts Cholesky decomposition mathematics into the NONMEM `$PK` or `$PRED` blocks.
 
-## 2. Mathematical Foundation
+# 2. Mathematical Foundation
 
 When `omegaToData = TRUE`, PMXFrem circumvents the standard block-diagonal `$OMEGA` structure. Instead, it uses the Cholesky factorization of the individualized variance-covariance matrix $V$:
 
@@ -34,7 +37,7 @@ $$L_{11} = \sqrt{V_{11}}$$
 $$L_{21} = \frac{V_{21}}{L_{11}}$$
 $$L_{22} = \sqrt{V_{22} - L_{21}^2}$$
 
-## 3. Dataset Augmentation (`V`-Columns)
+# 3. Dataset Augmentation (`V`-Columns)
 
 When invoking `createFFEMdata()` with `omegaToData = TRUE`, the matrix elements are appended to the output dataset as continuous `V`-columns.
 
@@ -58,7 +61,7 @@ ffem_data <- createFFEMdata(
 )
 ```
 
-### Data Snippet
+## Data Snippet
 The resulting dataset assigns the individualized variances ($V_{11}, V_{22}$) and covariances ($V_{21}$) to each record based on that specific subject's missing covariate pattern:
 
 ```text
@@ -70,7 +73,7 @@ The resulting dataset assigns the individualized variances ($V_{11}, V_{22}$) an
 ```
 *(Notice how Subject 1 and Subject 2 have different `V` values due to differing covariate missingness).*
 
-## 4. Model Code Modifications
+# 4. Model Code Modifications
 
 In `createFFEMmodel()`, activating this feature drops the empirical covariance estimates from the NONMEM `$OMEGA` block and replaces them with a fixed identity matrix. PMXFrem then inserts the structural equations directly into the model code.
 
@@ -86,7 +89,7 @@ ffem_model <- createFFEMmodel(
 )
 ```
 
-### Generated NONMEM Code Snippet
+## Generated NONMEM Code Snippet
 The generated model explicitly computes the $L$ factors using the data-supplied $V$ parameters and generates `MYETA` assignments representing the newly correlated random effects.
 
 ```text

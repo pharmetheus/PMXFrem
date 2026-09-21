@@ -1,7 +1,10 @@
 ---
 title: "3. Deep Dive: Explained Variability"
 author: "PMXFrem Development Team"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
 vignette: >
   %\VignetteIndexEntry{3. Deep Dive: Explained Variability}
   %\VignetteEngine{knitr::rmarkdown}
@@ -19,7 +22,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Introduction
+# Introduction
 This vignette explains how to use the `PMXFrem` package to visualize the degree to which covariates manage to explain variability in the parameters of interest. 
 
 The workflow is divided into five logical steps:
@@ -30,7 +33,7 @@ The workflow is divided into five logical steps:
 4. **Computing Explained Variability:** Deriving the variance metrics using specific integration methods.
 5. **Visualization:** Rendering the explained variability bar plots.
 
-## 1. Setting up the Pre-requisite
+# 1. Setting up the Pre-requisite
 
 Load the package and identify which NONMEM FREM run is going to be used.
 
@@ -40,7 +43,7 @@ library(ggplot2)
 library(dplyr)
 library(data.table)
 
-# Enforce a clean global theme
+# One theme for every figure below
 set.seed(865765)
 theme_set(theme_bw(base_size = 14))
 
@@ -53,11 +56,11 @@ dfData <- fread(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", p
   distinct(ID, .keep_all = TRUE)
 ```
 
-## 2. Defining the Covariate Scenarios
+# 2. Defining the Covariate Scenarios
 
-We use the package's internal `setupDfCovsEV()` function to dynamically construct the covariate isolation matrix. 
+`setupDfCovsEV()` builds the covariate matrix from the model, one row per covariate. 
 
-**Important Conceptual Note:** There is a fundamental difference in how the `dfCovs` matrix is utilized here compared to Forest plots. In a Forest plot, `dfCovs` dictates the exact numerical covariate values to visualize (e.g., `WT = 115`). For explained variability, `dfCovs` acts purely as an indicator matrix **for the FREM covariates**. For these covariates, the actual numerical value assigned does not impact the calculation; setting it to anything other than the missing covariate indicator (typically `-99`) simply flags *which* covariates should be actively evaluated for that specific scenario row.
+`dfCovs` is read differently here than in a Forest plot. In a Forest plot, `dfCovs` dictates the exact numerical covariate values to visualize (e.g., `WT = 115`). For explained variability, `dfCovs` acts purely as an indicator matrix **for the FREM covariates**. For these covariates, the actual numerical value assigned does not impact the calculation; setting it to anything other than the missing covariate indicator (typically `-99`) simply flags *which* covariates should be actively evaluated for that specific scenario row.
 
 **FFEM covariates work differently.** A covariate outside the FREM matrix, such as `FOOD`, is read by the parameter function itself from `dfrow`, and where that value comes from depends on `type`:
 
@@ -67,7 +70,7 @@ We use the package's internal `setupDfCovsEV()` function to dynamically construc
 In a covariate row, `dfrow` holds only the covariates that are not `-99` in that row. A covariate passed as `conditionalCovs` is set to `1` in *every* row, which is what makes it conditional: each FREM covariate's row then reports what that covariate explains with `FOOD` in the model. Its own contribution is part of every row, so those rows are not comparable with the `FOOD` row. The FREM covariates themselves are still isolated one row at a time, and the function must still fall back to the baseline effect when a column is missing (Section 3).
 
 ```{r cov_setup}
-# Robustly generate the covariate matrix; FOOD is on in every row
+# Build the covariate matrix; FOOD is on in every row
 dfCovs <- setupDfCovsEV(
   modFileName = fremFiles$mod,
   conditionalCovs = c("FOOD")
@@ -77,7 +80,7 @@ dfCovs <- setupDfCovsEV(
 cstrCovariates <- c("All", names(dfCovs))
 ```
 
-## 3. The Parameter Function
+# 3. The Parameter Function
 
 `getExplainedVar()` needs a function that returns the parameters to decompose,
 given the model's thetas, the FREM covariate coefficients and a set of etas.
@@ -123,7 +126,7 @@ fallback is yours to get right: a function that reads `dfrow$FOOD` where the
 column is absent gets `NULL`, and `getExplainedVar()` stops rather than
 silently dropping the parameter.
 
-## 4. Computing Explained Variability
+# 4. Computing Explained Variability
 
 The `getExplainedVar()` function computes the total and explained variability. The variability can be related to the total variability in the parameter ($TOTVAR$) or the total covariate variability in the parameter ($TOTCOVVAR$).
 
@@ -133,7 +136,7 @@ The `dfres` output contains three main metrics:
 * $TOTCOVVAR$: Calculated using all covariates with $\eta=0$, across all observed covariate values.
 * $COVVAR$: Calculated with one (or a combination) of covariates, setting $\eta=0$.
 
-### Calculation Methods (`type`)
+## Calculation Methods (`type`)
 The methodology is dictated by the `type` argument, and each has distinct mathematical properties:
 
 * **Type 0 (Delta Method):** Based on omega calculations. It is fast, but a first-order approximation.
@@ -165,12 +168,12 @@ located through `modName` / `modDevDir` (or `runno`), `getExplainedVar()`
 derives them -- and `covNames` -- from the model and its `.ext` via
 `fremModelInfo()`. Supply them explicitly only to override the derived values.
 
-## 5. Visualization
+# 5. Visualization
 
 We plot the results using `plotExplainedVar()`. To ensure reproducibility and prevent silent misalignment, we map our labels using a programmatic dictionary.
 
 ```{r plot_var}
-# 1. Define robust label mappings
+# 1. Map the covariate names to the labels for the plot
 label_map <- c(
   "All" = "All Covariates", "AGE" = "Age", "ALT" = "ALT", "AST" = "AST",
   "BILI" = "Bilirubin", "BMI" = "BMI", "BSA" = "BSA", "CRCL" = "Creatinine Clearance",

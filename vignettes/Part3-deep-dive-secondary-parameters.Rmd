@@ -1,6 +1,9 @@
 ---
 title: "3. Deep Dive: Secondary Parameters"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
 vignette: >
   %\VignetteIndexEntry{3. Deep Dive: Secondary Parameters}
   %\VignetteEngine{knitr::rmarkdown}

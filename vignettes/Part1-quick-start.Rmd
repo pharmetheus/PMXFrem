@@ -1,8 +1,11 @@
 ---
-title: "1. Quickstart: 5-Minute FREM Workflow"
-output: rmarkdown::html_vignette
+title: "1. Quick-Start: 5-Minute FREM Workflow"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{1. Quickstart: 5-Minute FREM Workflow}
+  %\VignetteIndexEntry{1. Quick-Start: 5-Minute FREM Workflow}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -18,7 +21,7 @@ knitr::opts_chunk$set(
 
 This vignette provides a copy-pasteable example of the core **PMXFrem** workflow. We will take a converged FREM model, extract its parameters, visualize the covariate effects (Forest Plot), and calculate the explained variability. 
 
-## 1. Load Package and Setup Paths
+# 1. Load Package and Setup Paths
 We use the example files provided within the package's `extdata` directory.
 
 
@@ -32,14 +35,14 @@ modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
 mod_path <- file.path(modDevDir, "run31.mod")
 ffemData <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 
-# Setup a temporary directory for outputs (CRO Standard Practice)
+# Write every generated file into a temporary directory
 td <- tempdir()
 
-# Dynamically extract actual covariate names from the model (e.g., AGE, SEX, etc.)
+# Read the covariate names out of the model rather than typing them
 cov_names <- getCovNames(mod_path)
 ```
 
-## 2. Generate the FFEM Model
+# 2. Generate the FFEM Model
 The primary entry point is `createFFEMmodel()`. This function automates the creation of the individual covariate coefficients and the corresponding NONMEM control stream.
 
 Throughout this workflow the FREM model is located by `runno` / `modName` and
@@ -66,7 +69,7 @@ ffemMod <- createFFEMmodel(
 head(ffemMod, 10)
 ```
 
-## 3. Extract Parameter Estimates
+# 3. Extract Parameter Estimates
 Once the FREM model has converged, we can extract the base parameters, adjusted variances (Omega prim), and residual errors (Sigma) using `fremParameterTable()`.
 
 ```{r param_table}
@@ -83,7 +86,7 @@ table_data <- fremParameterTable(
 print(table_data$parameterTable)
 ```
 
-## 4. Covariate Effects (Forest Plot)
+# 4. Covariate Effects (Forest Plot)
 To visualize the covariate effects, we first set up the covariate dataframe using our extracted names. We then pull bootstrap samples for uncertainty and plot using the  `PMXForest` package.
 
 ```{r forest_plot,, fig.asp = 2}
@@ -128,7 +131,7 @@ dfresFREM <- getForestDFFREM(
 PMXForest::forestPlot(dfresFREM, parameters = "CL")
 ```
 
-## 5. Visualizing Explained Variability
+# 5. Visualizing Explained Variability
 Finally, we calculate how much variability in our parameters is explained by these covariates. We use the Delta Method (`type = 0`) for rapid calculation.
 
 ```{r explain_var}
