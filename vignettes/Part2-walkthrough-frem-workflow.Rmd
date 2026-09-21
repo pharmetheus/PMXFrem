@@ -275,9 +275,9 @@ parTableData$coefficientTable_wide %>%
 
 ### **7. Model Revision (`updateFREMmodel`)**
 
-If you need to iteratively add or remove covariates without restarting your entire base workflow, `updateFREMmodel()` handles the dataset restructuring and matrix rebuilding automatically.
+If you need to add or remove covariates without restarting the base workflow, `updateFREMmodel()` restructures the data set and rebuilds the matrices for you.
 
-The example below safely generates a new, modified dataset and control stream in our temporary directory:
+The example below writes a new data set and control stream into the temporary directory:
 
 ```{r update_frem}
 # To avoid modifying the read-only package directory, we copy the base model
@@ -300,3 +300,11 @@ newFrem <- updateFREMmodel(
   cstrKeepCols      = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
 )
 ```
+
+A structural change is a different job: one more `$THETA`, or an IIV on a
+parameter that has none. `addFremStructuralTheta()` and `addFremIIV()` do that,
+renumbering every `THETA()`, `ETA()`, `MU_` and `COV` reference that follows the
+new one -- including those inside the `;;;FREM CODE` block -- and placing the
+new `$OMEGA` inside the skip region rather than after the FREM block. Neither
+migrates the `.ext` or the `.phi`, so the model has to be re-estimated. The
+`Modifying FREM Models` deep dive works through both.

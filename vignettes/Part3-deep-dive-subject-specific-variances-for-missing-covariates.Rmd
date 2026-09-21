@@ -1,8 +1,8 @@
 ---
-title: "Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)"
+title: "3. Deep Dive: Subject-Specific Variances for Missing Covariates"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)}
+  %\VignetteIndexEntry{3. Deep Dive: Subject-Specific Variances for Missing Covariates}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

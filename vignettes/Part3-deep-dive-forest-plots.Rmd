@@ -79,18 +79,34 @@ As well as the covariate form in the FREM model (usually normal):
 $$COV = \theta_{COV} + \eta_{COV}$$
 
 ```{r define_functions}
-# The parameter function list for log-normal parameters
+# The parameter function list for log-normal parameters. The indices are the
+# model's own: in run31 THETA(1) is TVFREL, so CL is basethetas[2], and CL is
+# the model's first FREM parameter, so its covariate effect is covthetas[1].
 functionList <- list(
   function(basethetas, covthetas, ...) {
-    return(basethetas[1] * exp(covthetas[1]))
+    return(basethetas[2] * exp(covthetas[1]))
   },
   function(basethetas, covthetas, ...) {
-    return(basethetas[2] * exp(covthetas[2]))
+    return(basethetas[3] * exp(covthetas[2]))
   }
 )
 
-functionListName <- c("CL", "V1")
+functionListName <- c("CL", "V")
 ```
+
+Getting those two index sets right is the fiddly part of writing a parameter
+function, and nothing downstream can tell you when they are wrong: a Forest plot
+shows ratios to a reference, so a structural theta taken from the wrong index
+cancels out and the plot looks entirely reasonable.
+
+`createFREMParamFunction()` removes that risk by transliterating the model's own
+`$PK` instead, and one generated function serves both plot types -- call it with
+`etas = 0` for a Forest plot, with sampled etas for an explained-variability
+plot. It is not used here because this deep dive is about the *inputs* to a
+Forest plot, and a two-line function keeps the contract those inputs have to
+satisfy visible. The Secondary Parameters deep dive generates the function and
+draws the Forest plot from it; the Explained Variability deep dive does the
+same for the other plot type.
 
 ---
 
@@ -142,7 +158,7 @@ dfres <- getForestDFFREM(
 
 Hardcoding dozens of row labels is dangerous and non-reproducible. Instead, we use `PMXFrem::generateCovNames()`. This utility function parses the `dfCovs` scenarios and applies user-defined unit mappings and categorical translations dynamically.
 
-```{r plot_forest, fig.height=14, fig.width=16, out.width="100%"}
+```{r plot_forest, fig.height=20, fig.width=16, out.width="100%"}
 # 1. Define translation maps
 unit_map <- c(
   AGE = "years", WT = "kg", BMI = "kg/m2", BSA = "m2",
@@ -160,9 +176,9 @@ label_map <- c(
 
 group_map <- c(
   "AGE" = "Age", "ALT" = "ALT", "AST" = "AST", "BILI" = "Total Bilirubin",
-  "BMI" = "BMI", "BSA" = "BSA", "CRCL" = "Creatinine Clearance",
-  "ETHN" = "Ethnicity", "GENO2" = "Genotype", "HT" = "Height",
-  "LBM" = "Lean Body Weight", "NCIL" = "NCI", "RACEL" = "Race",
+  "BMI" = "BMI", "BSA" = "BSA", "CRCL" = "Creatinine CL",
+  "ETHNIC" = "Ethnicity", "GENO2" = "Genotype", "HT" = "Height",
+  "LBWT" = "Lean Body Wt", "NCIL" = "NCI", "RACEL" = "Race",
   "SEX" = "Sex", "SMOK" = "Smoking Status", "WT" = "Weight"
 )
 
@@ -179,6 +195,6 @@ dfres_formatted <- generateCovNames(
 PMXForest::forestPlot(
   dfres_formatted,
   tabTextSize = 14,
-  strip_right_size = 11
+  strip_right_size = 9
 )
 ```

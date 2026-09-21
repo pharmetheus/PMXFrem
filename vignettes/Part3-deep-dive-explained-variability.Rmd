@@ -1,9 +1,9 @@
 ---
-title: "4. Deep Dive: Explained Variability"
+title: "3. Deep Dive: Explained Variability"
 author: "PMXFrem Development Team"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{4. Deep Dive: Explained Variability}
+  %\VignetteIndexEntry{3. Deep Dive: Explained Variability}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -77,54 +77,51 @@ dfCovs <- setupDfCovsEV(
 cstrCovariates <- c("All", names(dfCovs))
 ```
 
-## 3. Defining the Parameter Function
+## 3. The Parameter Function
 
-We must supply a function that mimics the structural relationships in the FFEM model. This function is conceptually identical to the one used for Forest plots, with one essential difference: it **must** include the `etas[]` argument to allow the package to integrate over the structural variance.
+`getExplainedVar()` needs a function that returns the parameters to decompose,
+given the model's thetas, the FREM covariate coefficients and a set of etas.
+Unlike the Forest plot case, it **must** take `etas`: the whole point is to
+integrate over the structural variability.
 
-**Handling Missing Covariates:** You must build defensive fallback logic *only* for covariates outside the FREM part of the model (FFEM covariates). `PMXFrem` automatically handles missing data for the covariates included in the FREM covariance matrix. For an FFEM covariate like `FOOD`, your function will meet two cases and must revert to the baseline fixed effect in both: the column is absent from `dfrow` (a covariate row other than its own, checked with `any(names(dfrow) == "FOOD")`), or the subject's value is missing (`dfrow$FOOD != -99`). A function that reads `dfrow$FOOD` without the first check gets `NULL`, and `getExplainedVar()` stops.
+`createFREMParamFunction()` writes that function from the model's own `$PK`, so
+the algebra is not retyped here and cannot drift away from the control stream:
 
 ```{r define_function}
-paramFunctionExpVar <- function(basethetas, covthetas, dfrow, etas, ...) {
-  # Defensive fallback logic for isolating FFEM covariate effects
-  FRELFOOD <- 1
-  if (any(names(dfrow) == "FOOD") && dfrow$FOOD != -99 && dfrow$FOOD == 0) {
-    FRELFOOD <- (1 + basethetas[7])
-  }
+gen <- createFREMParamFunction(
+  fremModel  = fremFiles$mod,
+  parameters = c("CL", "FREL", "V", "MAT"),
+  secondary  = list(AUC = "80 / (CL / FREL)"),
+  quiet      = TRUE
+)
 
-  MATFOOD <- 1
-  if (any(names(dfrow) == "FOOD") && dfrow$FOOD != -99 && dfrow$FOOD == 0) {
-    MATFOOD <- (1 + basethetas[6])
-  }
-
-  TVFREL <- basethetas[1]
-  TVCL <- basethetas[2]
-  TVV <- basethetas[3]
-  TVMAT <- basethetas[4]
-  TVD1 <- basethetas[5]
-
-  MU_2 <- TVD1
-  MU_3 <- log(TVFREL)
-  MU_4 <- log(TVCL)
-  MU_5 <- log(TVV)
-  MU_6 <- log(TVMAT)
-
-  D1FR <- MU_2 + etas[2]
-  FREL <- FRELFOOD * exp(MU_3)
-  CL <- exp(MU_4 + covthetas[1] + etas[3])
-  V <- exp(MU_5 + covthetas[2] + etas[4])
-  MAT <- MATFOOD * exp(MU_6 + covthetas[3] + etas[5])
-
-  D1 <- MAT * (1 - TVD1)
-  KA <- 1 / (MAT - D1)
-
-  # Compute AUC after an 80 mg dose
-  AUC <- 80 / (CL / FREL)
-
-  return(list(CL, FREL, AUC, V, MAT))
-}
-
-functionListName <- c("CL", "Frel", "AUC", "V", "MAT")
+paramFunction <- eval(parse(text = gen$code))
+functionListName <- gen$functionListName
+functionListName
 ```
+
+`AUC` is a secondary parameter. The 80 mg dose it is taken over is a property of
+the question being asked rather than of `$PK`, so it is supplied at the call
+site; the Secondary Parameters deep dive covers that in full.
+
+The result is source text, and worth reading against the control stream before
+it is used. `verifyFREMParamFunction()` is the mechanical half of that check: it
+compares the generated function with the FFEM version of the same model and
+confirms that each parameter's covariate coefficient and eta land where the
+model says they do.
+
+```{r verify_function, comment = ""}
+verifyFREMParamFunction(gen, ffemModel = file.path(modDevDir, "run31max1-2.mod"))
+```
+
+**FFEM covariates are handled for you.** `FOOD` is part of this model's `$PK`
+but not of its FREM covariate matrix, so the generated function carries it -
+including what to do when `dfrow` has no `FOOD` column, which is the case in
+every covariate row that is not its own. The reference comes from the control
+stream, here the branch PsN marks `; Most common`. Written by hand, that
+fallback is yours to get right: a function that reads `dfrow$FOOD` where the
+column is absent gets `NULL`, and `getExplainedVar()` stops rather than
+silently dropping the parameter.
 
 ## 4. Computing Explained Variability
 
@@ -151,7 +148,7 @@ dfres <- getExplainedVar(
   type             = 2,
   data             = dfData,
   dfCovs           = dfCovs,
-  functionList     = list(paramFunctionExpVar),
+  functionList     = list(paramFunction),
   functionListName = functionListName,
   cstrCovariates   = cstrCovariates,
   modDevDir        = modDevDir,
@@ -177,7 +174,7 @@ We plot the results using `plotExplainedVar()`. To ensure reproducibility and pr
 label_map <- c(
   "All" = "All Covariates", "AGE" = "Age", "ALT" = "ALT", "AST" = "AST",
   "BILI" = "Bilirubin", "BMI" = "BMI", "BSA" = "BSA", "CRCL" = "Creatinine Clearance",
-  "ETHN" = "Ethnicity", "GENO2" = "Genotype", "HT" = "Height", "LBM" = "Lean Body Mass",
+  "ETHNIC" = "Ethnicity", "GENO2" = "Genotype", "HT" = "Height", "LBWT" = "Lean Body Weight",
   "NCIL" = "NCI Grade", "RACEL" = "Race", "SEX" = "Sex", "SMOK" = "Smoking Status",
   "WT" = "Weight", "FOOD" = "Food Status"
 )

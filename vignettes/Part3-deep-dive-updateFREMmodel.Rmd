@@ -22,12 +22,13 @@ The Full Random Effects Model (FREM) relies on a highly interdependent architect
 
 The `PMXFrem` package provides the `updateFREMmodel()` function to programmatically manage these complex structural updates. 
 
-This deep dive demonstrates four primary capabilities:
+This deep dive demonstrates five capabilities:
 
 * Removing covariates from an existing model.
 * Adding new covariates to a model.
 * Appending new individuals to an existing FREM dataset.
 * Updating a model's initial parameter estimates directly from a converged `.ext` file.
+* Adding a structural `$THETA` or an IIV to a converged model.
 
 ## 1. Pre-requisite Setup
 
@@ -186,3 +187,76 @@ print("Control stream initial estimates successfully updated from the .ext file.
 
 * `updateFREMmodel()` parses the `-1000000000` iteration row from the provided `.ext` file.
 * The `$THETA`, `$OMEGA`, and `$SIGMA` blocks in the `.mod` file are surgically replaced, and user-defined `basenames` are appended as clean comments for maximum readability.
+
+---
+
+## 6. Use Case 5: Adding a Structural THETA or an IIV
+
+The updates above change the covariates or the data. A model sometimes needs a
+change to its structural part instead: one more `$THETA`, or one more IIV on a
+parameter that did not have one.
+
+By hand that means renumbering every `THETA()`, `ETA()`, `MU_` and `COV`
+reference after the new one -- including the references inside the
+`;;;FREM CODE` block and the `ETAn` columns of `$TABLE` -- and putting the new
+`$OMEGA` inside the skip region rather than after the FREM block, where it would
+join the covariate matrix. `addFremStructuralTheta()` and `addFremIIV()` do
+that.
+
+`addFremStructuralTheta()` inserts the new `$THETA` at `numNonFREMThetas + 1`,
+immediately before the FREM covariate means, and with `addEta = TRUE` adds a
+matching IIV:
+
+```{r add_theta}
+res_theta <- addFremStructuralTheta(
+  strFREMModel = model_in_td,
+  parameter    = "KA2",
+  thetaInit    = 0.5,
+  addEta       = TRUE,
+  omegaInit    = 0.04,
+  bWriteMod    = FALSE,
+  quiet        = TRUE
+)
+
+c(thetaIndex = res_theta$thetaIndex, etaIndex = res_theta$etaIndex)
+```
+
+`KA2` is not assigned anywhere in `$PK`, so it is defined rather than modified.
+The definition is delimited, so it is clear what the function added:
+
+```{r add_theta_block, comment = ""}
+i <- grep(";; Begin added THETA", res_theta$model)
+j <- grep(";; End added THETA", res_theta$model)
+cat(res_theta$model[i:j], sep = "\n")
+```
+
+A parameter that `$PK` already assigns is modified in place instead. That is
+what `addFremIIV()` does on its own, for the case where the new random effect
+needs no new structural parameter:
+
+```{r add_iiv, comment = ""}
+res_iiv <- addFremIIV(
+  strFREMModel = model_in_td,
+  parameter    = "FREL",
+  omegaInit    = 0.04,
+  bWriteMod    = FALSE,
+  quiet        = TRUE
+)
+
+cat(grep("^\\s*FREL\\s*=", res_iiv$model, value = TRUE), sep = "\n")
+```
+
+Both take the new eta at `numSkipOm + 1` and return the updated counts, so the
+value to pass to the next call comes back with the result.
+
+Two things to know before using either on a real model:
+
+* **The `.ext` and `.phi` are not migrated.** Only the control stream is
+  rewritten, so the model has to be re-estimated. Pairing the rewritten model
+  with the old `.ext` is easy to do by accident, and `fremModelInfo()` warns
+  when it sees it.
+* **They refuse rather than write a model that is quietly wrong.** A parameter
+  assigned inside an `IF` would take the eta on one branch only; a model using
+  `$ABBR REPLACE` labels cannot be renumbered safely; a `$THETA` line whose
+  values straddle the insertion point is ambiguous. Each of these stops with a
+  message naming the record and the line.
