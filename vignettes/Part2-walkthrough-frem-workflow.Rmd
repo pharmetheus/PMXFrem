@@ -50,7 +50,7 @@ td <- tempdir()
 
 # 2. The FFEM Conversion
 
-Because a FREM model estimates covariates as dependent variables, it is mathematically incapable of directly producing standard diagnostics or VPCs. To evaluate the model, we must convert it into a deterministic Full Fixed Effects Model (FFEM). 
+Since FREM models estimates covariates as random effects we must convert it into a deterministic Full Fixed Effects Model (FFEM) for diagnostics and VPCs. 
 
 The `createFFEMmodel()` function locks the covariates into the dataset as individual parameter coefficients. We execute this to create the `.mod` and `.csv` files, saving them directly to our temp directory.
 
