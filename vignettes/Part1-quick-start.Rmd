@@ -19,16 +19,21 @@ knitr::opts_chunk$set(
 )
 ```
 
-This vignette provides a copy-pasteable example of the core **PMXFrem** workflow. We will take a converged FREM model, extract its parameters, visualize the covariate effects (Forest Plot), and calculate the explained variability. 
+# Introduction
+
+A copy-pasteable example of the core **PMXFrem** workflow: take a converged FREM
+model, convert it to FFEM, report its parameters, plot the covariate effects,
+and see how much of the variability those covariates explain.
 
 # 1. Load Package and Setup Paths
+
 We use the example files provided within the package's `extdata` directory.
 
 
 ```{r setup}
 library(PMXFrem)
 library(ggplot2)
-theme_set(theme_bw())
+theme_set(theme_bw(base_size = 14))
 
 # Define paths to example data and models
 modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
@@ -43,7 +48,7 @@ cov_names <- getCovNames(mod_path)
 ```
 
 # 2. Generate the FFEM Model
-The primary entry point is `createFFEMmodel()`. This function automates the creation of the individual covariate coefficients and the corresponding NONMEM control stream.
+`createFFEMmodel()` computes the individual covariate coefficients and writes them into a new control stream and data set.
 
 Throughout this workflow the FREM model is located by `runno` / `modName` and
 `modDevDir`, so `numNonFREMThetas` and `numSkipOm` (and `covNames`, where a
@@ -89,16 +94,21 @@ print(table_data$parameterTable)
 # 4. Covariate Effects (Forest Plot)
 To visualize the covariate effects, we first set up the covariate dataframe using our extracted names. We then pull bootstrap samples for uncertainty and plot using the  `PMXForest` package.
 
-```{r forest_plot,, fig.asp = 2}
+```{r forest_plot, fig.asp = 2}
 
 # 1. Setup the covariate matrix for the forest plot
 data <- data.table::fread(ffemData)
-dfCovsForest <- PMXForest::createInputForestData(
-  PMXForest::getCovStats(data, cov_names$orgCovNames, probs = c(0.05, 0.9), missVal = -99),
-  iMiss = -99
+dfCovsForest <- PMXForest::setupDfCovs(
+  data       = data,
+  covariates = cov_names$orgCovNames,
+  probs      = c(0.05, 0.9),
+  idVar      = "ID",
+  missVal    = -99
 )
 
-# 2. Define the parameter function (No ETAs needed for the forest plot)
+# 2. The parameter function. A Forest plot needs typical values, so no etas.
+#    createFREMParamFunction() writes this from the model - see the Secondary
+#    Parameters deep dive - but for one parameter it is a one-liner.
 funcList_forest <- list(
   function(basethetas, covthetas, dfrow, ...) {
     basethetas[2] * exp(covthetas[1])
@@ -127,7 +137,7 @@ dfresFREM <- getForestDFFREM(
   quiet            = TRUE
 )
 
-# 5. Render Forest Plot
+# 6. Render Forest Plot
 PMXForest::forestPlot(dfresFREM, parameters = "CL")
 ```
 
@@ -139,18 +149,18 @@ Finally, we calculate how much variability in our parameters is explained by the
 # 1. Setup the covariate matrix with actual covariate names
 dfCovsEV <- setupDfCovsEV(mod_path, fremCovs = cov_names$orgCovNames)
 
-# 1. Define the parameter function including ETAs for variability
+# 2. The parameter function, this time with the etas the variance runs over
 funcList_var <- list(
   function(basethetas, covthetas, dfrow, etas, ...) {
     basethetas[2] * exp(covthetas[1] + etas[3])
   }
 )
 
-# 2. Calculate variability
+# 3. Calculate variability
 dfres_var <- getExplainedVar(
   type = 0,
   dfCovs = dfCovsEV,
-  cstrCovariates = c("ALL", cov_names$orgCovNames),
+  cstrCovariates = c("All", cov_names$orgCovNames),
   functionList = funcList_var,
   functionListName = "CL",
   modDevDir = modDevDir,
@@ -158,6 +168,6 @@ dfres_var <- getExplainedVar(
   quiet = TRUE
 )
 
-# 3. Plot results
+# 4. Plot results
 plotExplainedVar(dfres_var)
 ```

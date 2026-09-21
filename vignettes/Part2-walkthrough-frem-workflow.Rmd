@@ -21,7 +21,12 @@ knitr::opts_chunk$set(
 )
 ```
 
-This walkthrough builds on the Quick-Start vignette. It is written for the analyst running a FREM workflow end to end. Here, we move beyond the "happy path" to address real-world execution: constructing a Full Fixed Effects Model (FFEM) for evaluation, visualizing EBEs and diagnostics, plotting Visual Predictive Checks (VPCs), formatting presentation-ready tables, and safely updating models.
+# Introduction
+
+This walkthrough builds on the Quick-Start vignette and follows a FREM analysis
+end to end: the FFEM conversion, goodness-of-fit diagnostics, ETAs against
+EBEs, a Visual Predictive Check, the parameter and covariate tables, and
+updating the model afterwards.
 
 # 1. Setup and Global Options
 
@@ -36,7 +41,7 @@ library(purrr) # map
 library(kableExtra)
 
 # One theme for every figure below
-theme_set(theme_bw())
+theme_set(theme_bw(base_size = 14))
 
 # Define paths to example data and converged models
 modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
@@ -52,12 +57,12 @@ td <- tempdir()
 
 Since FREM models estimates covariates as random effects we must convert it into a deterministic Full Fixed Effects Model (FFEM) for diagnostics and VPCs. 
 
-The `createFFEMmodel()` function locks the covariates into the dataset as individual parameter coefficients. We execute this to create the `.mod` and `.csv` files, saving them directly to our temp directory.
+`createFFEMmodel()` writes the covariate coefficients into the data set as individual parameters, and produces the `.mod` and `.csv` in the temporary directory.
 
 Because the FREM model is located by `runno` / `modDevDir`, `numNonFREMThetas`
 and `numSkipOm` are derived from the model and its `.ext` via `fremModelInfo()`.
-They are still passed explicitly to `updateFREMmodel()` further down, which
-mutates a model and cannot derive them.
+The same holds for `updateFREMmodel()` further down, which is given the model
+path and its `.ext`.
 
 ```{r create_ffem}
 ffemMod <- createFFEMmodel(
@@ -109,7 +114,7 @@ The individual `ETA`s mean something different in FREM than they do in the base 
 * In the **FREM** model, the raw `ETA` values contain both the unexplained variability *and* the covariate variability. They will show strong trends when plotted against covariates.
 * In the **FFEM** model, the `EBE`s (Empirical Bayes Estimates) represent the unexplained variability *after* the covariates have been applied. 
 
-Let's read the `.phi` files from both models using the internal `getPhi` function and plot them against Weight to visualize this difference.
+We read the `.phi` file of each model with `getPhi()` and plot ETA(3), the clearance eta, against weight.
 
 ```{r eta_vs_ebe, fig.width=10, fig.height=5}
 # Extract ETA3 (CL) from the FREM and FFEM phi files
@@ -141,7 +146,7 @@ p_ffem <- ggplot(eta_df, aes(x = WT, y = FFEM_EBE)) +
 
 gridExtra::grid.arrange(p_frem, p_ffem, ncol = 2)
 ```
-*Notice how the strong trend in the FREM ETA is completely resolved in the FFEM EBE, indicating that the FREM covariance matrix successfully captured the weight effect!*
+The trend against weight is in the FREM ETA and gone from the FFEM EBE: the correlation falls from 0.25 to -0.03. The weight effect has moved out of the random effect and into the fixed part of the model.
 
 ---
 
@@ -255,7 +260,7 @@ parTableData <- fremParameterTable(
 
 ## Structural Parameters
 
-The estimates for the fixed effects and `RUV` is taken directly from the FREM model output while the `IIV` terms (except the `IIV` on `RUV`) are adjusted for the impact of the covariates.
+The fixed effects and `RUV` are taken from the FREM model output; the `IIV` terms, apart from the `IIV` on `RUV`, are adjusted for the covariates.
 
 ```{r print_par_table}
 parTableData$parameterTable %>%
@@ -295,8 +300,6 @@ newFrem <- updateFREMmodel(
   cstrRemoveCov     = c("SEX"), # Remove the SEX covariate from the model
   strID             = "ID",
   strNewFREMData    = file.path(td, "frem_dataset_noSEX.csv"),
-  numNonFREMThetas  = 7,
-  numSkipOm         = 2,
   bWriteData        = TRUE,
   bWriteMod         = TRUE,
   quiet             = TRUE,

@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 
 The Full Random Effects Model (FREM) methodology requires a specific restructuring of both the NONMEM control stream and the underlying dataset. Continuous and categorical covariates must be converted into dummy "observations" so their variability and correlation can be estimated alongside the structural parameters via a unified covariance matrix.
 
-The `createFREMmodel()` function is the core engine of the `PMXFrem` package. It automates this complex transformation, taking a standard base model and its dataset and returning a fully configured FREM model ready for execution in NONMEM.
+`createFREMmodel()` does that transformation: it takes a base model and its data set and writes the FREM control stream and data set NONMEM needs.
 
 # How createFREMmodel Works Under the Hood
 Rather than adding every covariate at once, `createFREMmodel()` builds the model one covariate at a time. It first writes a minimal FREM model from the first covariate in your `covariates` argument, rewriting the `$INPUT`, `$DATA`, `$PK` and `$ERROR` blocks for that one covariate. It then works through the rest, calling `updateFREMmodel()` for each, so every step is the same operation the update functions already perform.
@@ -30,7 +30,7 @@ Rather than adding every covariate at once, `createFREMmodel()` builds the model
 
 First, load the package and define the paths to your base model and original clinical dataset. 
 
-*Note: By default, `createFREMmodel` writes the final files to the `modDevDir` directory. It has built-in overwrite protection and will throw an error if files with your `fremModName` already exist. For this vignette, we will generate a unique temporary directory to safely store the output.*
+`createFREMmodel()` writes into `modDevDir` by default, and stops rather than overwrite an existing file with the same `fremModName`. This vignette writes into a temporary directory instead.
 
 ```{r setup}
 library(PMXFrem)
@@ -65,8 +65,15 @@ keep_cols <- c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV")
 
 We pass our specifications into `createFREMmodel()`. We use the `run30` base model, which has `7` structural THETAs (`numNonFREMThetas`) and `2` specific OMEGAs that we want to skip correlating with the covariates (`numSkipOm`). `numNonFREMThetas` can be left `NULL` -- it is then read from the base model's `.ext` -- but `numSkipOm` cannot be deduced from a base model and must be given.
 
-**Handling Dichotomous Covariates (`bRecodeDichotomous`):**
-Notice that we set `bRecodeDichotomous = TRUE`. In many standard datasets, dichotomous variables are coded as `1` and `2` (e.g., Males = 1, Females = 2). If left as-is, the intercept of the FREM covariate effect becomes harder to interpret. When this argument is `TRUE`, the function automatically detects 2-level categorical covariates and recodes them to `0` and `1`. This cleanly establishes the `0` level as the reference baseline. 
+## Dichotomous covariates
+
+`bRecodeDichotomous = TRUE` recodes two-level categorical covariates from
+`1`/`2` - how many data sets code sex - to `0`/`1`, which makes `0` the
+reference level and the covariate effect the difference from it. Without it,
+FREM refuses a `1`/`2` coding: see **Changes to existing behaviour** in the
+2.0.0 release notes.
+
+
 
 ```{r execute_create, warning=FALSE, message=FALSE}
 # Execute the creation of the FREM model and dataset
@@ -98,7 +105,7 @@ generated_files <- createFREMmodel(
 `createFREMmodel()` has now generated the newly expanded `.mod` and `.csv` files. Let's inspect them directly from the disk.
 
 ## The Generated Dataset
-The original dataset has been vertically expanded. For every subject, new rows (`EVID = 2`) have been appended containing the standardized covariate values in the `DV` column, mapped via the new `FREMTYPE` compartment column. Because we used `bRecodeDichotomous = TRUE`, you will see `SEX` represented as a clean `0` or `1` dummy variable.
+The original dataset has been vertically expanded. For every subject, new rows (`EVID = 2`) have been appended containing the standardized covariate values in the `DV` column, mapped via the new `FREMTYPE` compartment column. Because we used `bRecodeDichotomous = TRUE`, `SEX` appears as `0` or `1`.
 
 ```{r show_data}
 # Read the generated dataset
@@ -109,7 +116,7 @@ head(frem_data, n = 15)
 ```
 
 ## The Final Model Control Stream
-The control stream is substantially different. The `$PK` block now handles the structural `ETA`s alongside the covariate means, and the `$ERROR` block routes the dummy observations (via `FREMTYPE`) to their respective equations. Finally, a massive `$OMEGA BLOCK` is appended to estimate the covariances.
+The control stream is substantially different. The `$PK` block now handles the structural `ETA`s alongside the covariate means, and the `$ERROR` block routes the dummy observations (via `FREMTYPE`) to their respective equations. Finally, a large `$OMEGA BLOCK` is appended to estimate the covariances.
 
 ```{r show_model, comment=''}
 # Read the generated NONMEM control stream and print it in its entirety
@@ -117,4 +124,4 @@ frem_mod <- readLines(generated_files$model)
 cat(frem_mod, sep = "\n")
 ```
 
-You can now submit `run30_FREM.mod` directly to NONMEM for execution! 
+`run30_FREM.mod` is ready to run in NONMEM.

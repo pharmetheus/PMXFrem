@@ -17,105 +17,133 @@ knitr::opts_chunk$set(
 )
 ```
 
-# 1. Introduction and Clinical Rationale
+# Introduction
 
-In standard `createFREMmodel` executions (`omegaToData = FALSE`), only one set of variance parameters is derived for all individuals, operating under the assumption of no missing covariate values. 
+The FFEM conversion normally derives one set of variance parameters and gives it
+to every subject. That assumes everyone carries the same covariate information.
+Where covariates are missing, and missing in different combinations from subject
+to subject, the assumption does not hold: a subject whose weight was never
+measured should keep the variability that weight would have explained, while a
+subject with a full covariate record should not.
 
-However, in clinical datasets with significant missing data and high between-subject variability in missingness patterns, this assumption may fail. Setting `omegaToData = TRUE` relaxes this assumption. It ensures that each individual receives their own set of derived omega parameters, specifically adjusted according to their individual missing covariate pattern.
+`omegaToData = TRUE` relaxes it. Each subject gets the variance-covariance
+matrix implied by their own missing-covariate pattern, carried in the data set
+rather than in `$OMEGA`.
 
-To achieve this, the PMXFrem package extracts the individualized variance-covariance elements directly into the dataset and inserts Cholesky decomposition mathematics into the NONMEM `$PK` or `$PRED` blocks.
+# 1. How it works
 
-# 2. Mathematical Foundation
+The matrix a subject is given is the FREM covariance conditional on the
+covariates that subject actually has. Since it differs between subjects it
+cannot live in `$OMEGA`, which is estimated once for the run. Instead the
+elements travel in the data set, and the model rebuilds the correlated random
+effects from them through a Cholesky factorization of the individual matrix
+\(V\):
 
-When `omegaToData = TRUE`, PMXFrem circumvents the standard block-diagonal `$OMEGA` structure. Instead, it uses the Cholesky factorization of the individualized variance-covariance matrix $V$:
+$$V = L L^{T}$$
 
-$$V = L L^T$$
+\(L\) is lower triangular, so independent standard normal `ETA`s become
+correlated `MYETA`s by
 
-Where $L$ is a lower-triangular matrix. Independent standard normal random variables ($\eta$) are mapped to correlated variables (`MYETA`) via linear combinations of the $L$ factors. For a $2 \times 2$ matrix, the inserted equations evaluate to:
+$$L_{ii} = \sqrt{V_{ii} - \sum_{k<i} L_{ik}^{2}}, \qquad
+  L_{ij} = \frac{V_{ij} - \sum_{k<j} L_{ik} L_{jk}}{L_{jj}}$$
 
-$$L_{11} = \sqrt{V_{11}}$$
-$$L_{21} = \frac{V_{21}}{L_{11}}$$
-$$L_{22} = \sqrt{V_{22} - L_{21}^2}$$
+The indices are the model's own eta numbers, so in a model with skipped omegas
+they start above them: `run31` skips two, and its FREM parameter etas are 3, 4
+and 5.
 
-# 3. Dataset Augmentation (`V`-Columns)
+# 2. The data set
 
-When invoking `createFFEMdata()` with `omegaToData = TRUE`, the matrix elements are appended to the output dataset as continuous `V`-columns.
+`createFFEMdata(omegaToData = TRUE)` appends one column per element of the lower
+triangle, named for the etas it belongs to.
 
-The examples in this vignette pass `numNonFREMThetas` and `numSkipOm`
-explicitly. When the FREM model is located through `runno` / `modName` /
-`modDevDir` these are normally derived from the model and its `.ext` (via
-`fremModelInfo()`) and can be omitted -- see the Quick-Start vignette. Pass them
-by hand, as here, when you need to override the derived values.
-
-```{r eval=FALSE}
+```{r ffem_data}
 library(PMXFrem)
 
-ffem_data <- createFFEMdata(
-  modName = "run31",
-  modDevDir = system.file("extdata/SimNeb/", package = "PMXFrem"),
-  parNames = c("CL", "V"),
-  numNonFREMThetas = 7,
-  numSkipOm = 0,
-  dataFile = my_data,
-  omegaToData = TRUE
+modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+td <- tempdir()
+
+ffem <- createFFEMdata(
+  modName     = "run31",
+  modDevDir   = modDevDir,
+  parNames    = c("CL", "V", "MAT"),
+  dataFile    = file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+  newDataFile = file.path(td, "ffem_omegaToData.csv"),
+  omegaToData = TRUE,
+  quiet       = TRUE
+)
+
+vCols <- grep("^V[0-9]+$", names(ffem$newData), value = TRUE)
+vCols
+```
+
+`numNonFREMThetas` and `numSkipOm` are not passed: the model is located through
+`modName` / `modDevDir`, so they come from the model and its `.ext` via
+`fremModelInfo()`. `V33` is the variance of eta 3, `V43` its covariance with
+eta 4, and so on.
+
+The values differ from subject to subject:
+
+```{r v_per_subject}
+firstRow <- ffem$newData[!duplicated(ffem$newData$ID), ]
+head(firstRow[, c("ID", vCols)], 4)
+```
+
+They differ because the covariate records differ. Subject 19 is missing one
+covariate more than subject 1, and keeps a larger unexplained variance on
+clearance:
+
+```{r why_they_differ}
+covs <- getCovNames(file.path(modDevDir, "run31.mod"))$orgCovNames
+covs <- intersect(covs, names(firstRow))
+
+nMissing <- function(id) sum(firstRow[firstRow$ID == id, covs] == -99)
+
+data.frame(
+  ID              = c(1, 19),
+  covsMissing     = c(nMissing(1), nMissing(19)),
+  varianceOnCL    = firstRow$V33[firstRow$ID %in% c(1, 19)]
 )
 ```
 
-## Data Snippet
-The resulting dataset assigns the individualized variances ($V_{11}, V_{22}$) and covariances ($V_{21}$) to each record based on that specific subject's missing covariate pattern:
+# 3. The model code
 
-```text
-  ID TIME   DV       V11       V21       V22
-1  1    0 10.5 0.0651800 0.0196800 0.0520700
-2  1   12  8.2 0.0651800 0.0196800 0.0520700
-3  2    0 20.1 0.0712000 0.0154000 0.0601000
-4  2   24 15.0 0.0712000 0.0154000 0.0601000
-```
-*(Notice how Subject 1 and Subject 2 have different `V` values due to differing covariate missingness).*
+`createFFEMmodel(omegaToData = TRUE)` fixes the FREM part of `$OMEGA` to an
+identity matrix and writes the factorization into `$PK`, reading the `V`-columns
+from the data set.
 
-# 4. Model Code Modifications
-
-In `createFFEMmodel()`, activating this feature drops the empirical covariance estimates from the NONMEM `$OMEGA` block and replaces them with a fixed identity matrix. PMXFrem then inserts the structural equations directly into the model code.
-
-```{r eval=FALSE}
-ffem_model <- createFFEMmodel(
-  runno = 31,
-  baserunno = 30,
-  numNonFREMThetas = 7,
-  numSkipOm = 0,
-  parNames = c("CL", "V"),
-  dataFile = "raw_data.csv",
-  omegaToData = TRUE
+```{r ffem_model}
+ffemMod <- createFFEMmodel(
+  runno       = 31,
+  baserunno   = 30,
+  modDevDir   = modDevDir,
+  parNames    = c("CL", "V", "MAT"),
+  dataFile    = file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+  newDataFile = file.path(td, "ffem_omegaToData_model.csv"),
+  ffemModName = file.path(td, "run31_omegaToData.mod"),
+  omegaToData = TRUE,
+  quiet       = TRUE
 )
 ```
 
-## Generated NONMEM Code Snippet
-The generated model explicitly computes the $L$ factors using the data-supplied $V$ parameters and generates `MYETA` assignments representing the newly correlated random effects.
+The generated `$PK` block:
 
-```text
-$PK
-; ----------------------------------------------------------------
-; 1. Cholesky factors (L) for an 2x2 matrix
-; ----------------------------------------------------------------
-
-; Column 1
-L11 = SQRT(MAX(0.000001, V11))
-L21 = V21 / L11
-
-; Column 2
-L22 = SQRT(MAX(0.000001, V22 - L21**2))
-
-; ----------------------------------------------------------------
-; 2. Multiply standard ETA with L for correlated MYETA
-; ----------------------------------------------------------------
-MYETA1 = L11 * ETA(1)
-MYETA2 = L21 * ETA(1) + L22 * ETA(2)
-
-; Structural parameter assignment using MYETA and individualized covariate effects
-CL = THETA(1) * EXP(MYETA1 + CLFREMCOV)
-V  = THETA(2) * EXP(MYETA2 + VFREMCOV)
-
-$OMEGA BLOCK(2) FIX
-1.0
-0.0 1.0
+```{r cholesky_block, comment = ""}
+i <- grep("Cholesky factors", ffemMod)
+cat(ffemMod[i:(i + 21)], sep = "\n")
 ```
+
+And the `$OMEGA` records the factorization replaces. The two skipped omegas are
+untouched; the FREM block is an identity matrix, fixed:
+
+```{r omega_block, comment = ""}
+j <- grep("^\\$OMEGA", ffemMod)[1]
+cat(ffemMod[j:(j + 6)], sep = "\n")
+```
+
+# 4. When to use it
+
+`omegaToData = TRUE` is worth the extra columns when the covariate record is
+incomplete and the gaps are uneven - a subject missing four covariates and one
+missing none should not share a variance. With a complete covariate record every
+subject gets the same matrix, and the default `omegaToData = FALSE` says the
+same thing with less machinery.
