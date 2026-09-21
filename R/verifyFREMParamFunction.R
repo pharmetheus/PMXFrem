@@ -102,6 +102,7 @@ verifyFREMParamFunction <- function(x,
                                     dfrows = NULL,
                                     tol = 1e-6,
                                     quiet = FALSE) {
+  .fremRequirePMXForest("verifyFREMParamFunction")
   if (!is.list(x) || is.null(x$code) || is.null(x$fremModel)) {
     stop("`x` must be the list returned by createFREMParamFunction().",
       call. = FALSE

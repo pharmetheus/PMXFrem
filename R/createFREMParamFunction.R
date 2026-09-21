@@ -181,17 +181,7 @@ createFREMParamFunction <- function(fremModel = NULL,
                                     missVal = -99,
                                     quiet = FALSE,
                                     secondary = NULL) {
-  if (!requireNamespace("PMXForest", quietly = TRUE) ||
-    !exists("nmParsePK", where = asNamespace("PMXForest"), inherits = FALSE) ||
-    !exists("nmResolveSecondary",
-      where = asNamespace("PMXForest"),
-      inherits = FALSE
-    )) {
-    stop("createFREMParamFunction() needs PMXForest (>= 1.3.0), which ",
-      "exports nmParsePK() and nmResolveSecondary(); please update PMXForest.",
-      call. = FALSE
-    )
-  }
+  .fremRequirePMXForest("createFREMParamFunction")
   if (missing(parameters) || length(parameters) < 1) {
     stop("`parameters` must name at least one $PK variable.", call. = FALSE)
   }

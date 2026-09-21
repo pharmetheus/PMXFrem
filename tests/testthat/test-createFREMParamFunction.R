@@ -1231,3 +1231,24 @@ test_that("C / EXP(eta) is not reported as log-normal scaling", {
   expect_identical(unname(out$fremEtaScale["CL"]), "other")
   expect_identical(unname(out$fremEtaScale["V"]), "exp")
 })
+
+test_that("a PMXForest that is too old is named as such, with its version", {
+  # Niclas hit "unused argument (keep = secReads)" from nmParsePK(). The guard
+  # only asked whether nmParsePK() existed - it has been exported since the
+  # 1.2.15.900x series - not whether it was new enough to take `keep`.
+  expect_error(
+    .fremRequirePMXForest("createFREMParamFunction", installed = "1.2.15"),
+    "createFREMParamFunction\\(\\) needs PMXForest >= 1\\.3\\.0; you have 1\\.2\\.15"
+  )
+  expect_error(
+    .fremRequirePMXForest("verifyFREMParamFunction", installed = "1.2.15.9007"),
+    "you have 1\\.2\\.15\\.9007"
+  )
+  # and says what to do about it
+  expect_error(
+    .fremRequirePMXForest("createFREMParamFunction", installed = "1.2.15"),
+    "install_github"
+  )
+  expect_silent(.fremRequirePMXForest("createFREMParamFunction", installed = "1.3.0"))
+  expect_silent(.fremRequirePMXForest("createFREMParamFunction", installed = "1.4.0"))
+})
