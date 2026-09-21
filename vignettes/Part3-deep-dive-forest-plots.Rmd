@@ -117,20 +117,30 @@ same for the other plot type.
 
 We need to define the specific covariate combinations (univariable or multivariable) to plot. A value of `-99` or `NA` indicates that the covariate is at the reference (population typical) value. 
 
-While you can build this matrix manually, `PMXForest::getCovStats()` is the recommended approach. It automatically scans your clinical dataset and calculates the 5th and 95th percentiles (or your chosen quantiles) for continuous covariates, and identifies categorical levels.
+While you can build this matrix by hand, `PMXForest::setupDfCovs()` does it from the data: the 5th and 90th percentiles (or whichever quantiles you ask for) of each continuous covariate, one row per level of each categorical one, and the `<cov>_<level>` columns the FREM model uses. Statistics are taken one record per `idVar`, so longitudinal data does not skew them.
 
 ```{r define_scenarios}
 # Load clinical data
 data <- fread(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"))
 
 # Build the covariate matrix from the data, at the 5th and 90th percentiles
-dfCovs <- createInputForestData(
-  getCovStats(data, covNames$orgCovNames, probs = c(0.05, 0.90), missVal = -99),
-  iMiss = -99
+dfCovs <- setupDfCovs(
+  data       = data,
+  covariates = covNames$orgCovNames,
+  probs      = c(0.05, 0.90),
+  idVar      = "ID",
+  missVal    = -99
 )
 
 head(dfCovs, 5)
 ```
+
+`setupDfCovs()` composes the two primitives this used to call directly,
+`getCovStats()` and `createInputForestData()`, and gives the same matrix. Use
+those two when you want to inspect or adjust the statistics before they become
+scenario rows. The composed call also records what it did in an attribute,
+which `setupDfRefRow()` reads back to build a matching reference row -- the
+`dfRefRow` argument of `getForestDFFREM()`.
 
 ---
 
