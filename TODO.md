@@ -383,6 +383,43 @@ tests in this package alone.
   distinguishes the two. A small FREM fixture with many skip omegas and few
   structural thetas would.
 
+## T31 — `generateCovNames()` belongs in PMXForest
+
+Niclas's call, 2026-09-21: move it **after 2.2.0 ships**, not before.
+
+The function has nothing FREM-specific in it. Its body reads
+`COVARIATEGROUPS`, `<cov>_<level>` dummy columns and a `COVNUM`-keyed results
+frame - all PMXForest conventions, produced by `createInputForestData()`,
+`oneHotEncode()` and `getForestDFSCM()`. Only its documentation mentions FREM.
+PMXForest has no label generator of its own; its README hand-writes the very
+vector this would produce, so an SCM Forest plot user would have to install
+PMXFrem to get it.
+
+Deferring costs nothing because the move is not a breaking change:
+
+- PMXFrem imports PMXForest, so PMXFrem re-exports `generateCovNames()` after
+  the move. `PMXFrem::generateCovNames()` and the attached call both keep
+  working.
+- R says nothing about masking when two packages export the identical object -
+  checked with dplyr and tidyr, which both re-export `magrittr::%>%` and
+  produce no message. So a user attaching both packages sees nothing.
+
+What keeps it free: **do not change the signature in 2.2.0.** It is stable
+now.
+
+When doing it:
+
+1. Move `R/generateCovNames.R`, its tests and its help page to PMXForest,
+   dropping the FREM references from the docs (the `dfres` argument should name
+   `getForestDFSCM()` as well as the FREM entry points).
+2. Release PMXForest 1.3.1 (or 1.4.0).
+3. In PMXFrem: delete the file, raise the floor to that version in DESCRIPTION,
+   re-export through NAMESPACE (`importFrom` + `export`), and update the
+   `pharmetheus/PMXForest@v1.3.0` pin in `ci.yml`.
+4. Use it in PMXForest's own README and Forest plot vignettes, which currently
+   type the labels out.
+
+
 ## Done
 
 - **T29** — `plotEtasCov()` line width on older ggplot2. It passed `linewidth`,
