@@ -1,149 +1,124 @@
 # PMXFrem 2.2.0
 
-New since **2.0.0**, which is the version most people have. 2.1.0 was tagged on
-GitHub in August but never announced, so its changes are here rather than in a
-section of their own. Coming from 1.2.x? Read the 2.0.0 section below as well.
-
-Two numbers you have seen before change: `fremParameterTable()`'s uncertainty
-and its shrinkage column. Both are under **Changes to existing behaviour**.
+What is new since 2.0.0. 2.1.0 was published but never promoted, so its changes
+are described here together with 2.2.0's.
 
 ## Parameter functions written from the model
 
 `createFREMParamFunction()` writes the parameter function `getForestDFFREM()`
-and `getExplainedVar()` need, by transliterating the FREM model's own `$PK` -
-what `PMXForest::createParamFunction()` does for non-FREM models. The result is
-source text to read and edit; nothing is evaluated. Each FREM parameter's
-`ETA(i)` is replaced in place by `covthetas[k] + etas[i]` in the model's own
-numbering, so asking for two parameters emits the same lines as asking for all
-of them. `secondary` appends derived quantities (AUC, Cmax, ...) from a line of
-R code or a file of it.
+and `getExplainedVar()` need, by transliterating the model's own `$PK` - what
+`PMXForest::createParamFunction()` does for non-FREM models. The result is
+source text to read and edit; nothing is evaluated.
 
-`verifyFREMParamFunction()` is the check to run before trusting the result. It
-compares the generated function against the FFEM version of the same model - an
-independent transliteration - and confirms each parameter's covariate
-coefficient and eta land where the model says they do. It returns `TRUE` /
-`FALSE` for use in an `if`, with the per-parameter table in `attr(., "checks")`.
+One generated function serves both plots: `etas = 0` for a Forest plot, sampled
+etas for explained variability. `secondary` appends AUC, Cmax and the like.
+
+`verifyFREMParamFunction()` is the check to run before trusting it. It compares
+the function against the FFEM version of the same model - an independent
+transliteration - and confirms each parameter's covariate coefficient and eta
+land where the model says.
 
 ## Extending an established FREM model
 
-`addFremStructuralTheta()` adds a structural `$THETA` - with `addEta = TRUE`,
-also a matching IIV - to a converged FREM model, renumbering every `THETA()`,
-`ETA()`, `MU_` and `COV` reference after it, including those inside the
-`;;;FREM CODE` block and the `ETAn` columns of `$TABLE`. `addFremIIV()` adds the
-random effect alone, placing its `$OMEGA` inside the skip region rather than
-after the FREM block.
+`addFremStructuralTheta()` adds a structural `$THETA`, and with `addEta = TRUE`
+a matching IIV. `addFremIIV()` adds the random effect on its own.
 
-Both refuse rather than write a model that is quietly wrong: a parameter
-assigned inside an `IF`, a model using `$ABBR REPLACE`, a `$THETA` line whose
-values straddle the insertion point. The `.ext` and `.phi` are deliberately not
-migrated - the model has to be re-estimated - and `fremModelInfo()` warns if the
-rewritten model is later paired with the old `.ext`.
-
-## The structural integers, derived
-
-`fremModelInfo()` reads `numNonFREMThetas`, `numSkipOm`, `numParCov`,
-`numFREMThetas` and `numSigmas` from a FREM model and its `.ext`, and says so
-when the two describe different runs. `fremParameterTable()`,
-`createFFEMmodel()`, `createFFEMdata()`, `calcEtas()` and `updateFREMmodel()`
-accept `NULL` for `numNonFREMThetas` / `numSkipOm` and derive them; a supplied
-value that disagrees warns and is kept.
+Both renumber every `THETA()`, `ETA()`, `MU_` and `COV` reference that follows
+- including those inside the `;;;FREM CODE` block - and place the new `$OMEGA`
+inside the skip region rather than after the FREM block. Both refuse rather
+than write a model that is quietly wrong. The `.ext` and `.phi` are not
+migrated: the model has to be re-estimated.
 
 ## Individual variances for each covariate pattern
 
 `omegaToData = TRUE` in `createFFEMdata()` / `createFFEMmodel()` writes each
-subject's variance-covariance elements into the data set as `V`-columns, sets
-`$OMEGA` to an identity matrix, and adds the equations that rebuild the
-correlated etas in `$PK` / `$PRED`. Each subject's variance then follows their
-own missing-covariate pattern instead of one matrix serving everyone.
+subject's variance-covariance elements into the data set as `V`-columns and
+sets `$OMEGA` to an identity matrix. Each subject's variance then follows their
+own missing-covariate pattern, instead of one matrix serving everyone.
 
 ## Other notable additions
 
-* `fixTheta` (default `TRUE`) in `createFREMmodel()` / `updateFREMmodel()`
-  writes `FIX` on the covariate thetas that are fully observed, which makes the
-  EM estimation more stable. A covariate with missing data stays estimated.
-* `createFREMmodel()` checks the base model's `$EST` block and warns about
-  `SAEM` with missing covariates, no `IMP` / `IMPMAP`, `NITER` below 150, and
-  `PHITYPE=0`.
-* `missVal` replaces the hardcoded `-99` through the data assembly functions, so
-  a sponsor convention such as `-999` can be used throughout.
+* **The FREM structural integers are read from the model.** `fremModelInfo()`
+  works them out from a model and its `.ext`, so `numNonFREMThetas` and
+  `numSkipOm` no longer have to be passed to `fremParameterTable()`,
+  `createFFEMmodel()`, `createFFEMdata()`, `calcEtas()` or `updateFREMmodel()`.
+  A supplied value that disagrees warns and is kept.
+* `fixTheta` (default `TRUE`) writes `FIX` on the covariate thetas that are
+  fully observed, which makes the EM estimation more stable.
+* `createFREMmodel()` warns about `$EST` settings FREM struggles with: `SAEM`
+  with missing covariates, no `IMP` / `IMPMAP`, `NITER` below 150, `PHITYPE=0`.
+* `missVal` replaces the hardcoded `-99` through the data assembly functions.
 * `oneHot` / `oneHotSep` in `getForestDFFREM()` encode raw categorical columns
   to the `<cov>_<level>` form the model uses.
 * `add.stamp` on `plotExplainedVar()`, `traceplot()`, `plotEtasCov()` and
-  `plotCovDist()` captions a figure with where and when it was produced.
+  `plotCovDist()` records where and when a figure was made.
 
 ## Changes to existing behaviour
 
-* **`fremParameterTable()`'s RSE and CI are reproducible.** `seed` defaults to
-  `1` rather than `NULL`, so the sampled uncertainty no longer depends on the
-  RNG state the caller arrives with - two calls in one session could differ by
-  20%. Your values change once and then stop moving; `seed = NULL` restores the
-  old behaviour. The caller's random stream is also left where it was found.
-* **A negative shrinkage is reported as such.** It read `0.00` in both
-  documented modes; it now reads `1.0000e-10` by default, as NONMEM does, or its
-  raw value with `rawShrinkage = TRUE`. On the bundled `run31max1-2`, ETA3's
-  variance shrinkage is -26.44%.
 * **`setupDfCovsEV()`'s `additionalCovs` is renamed `conditionalCovs`, and they
   are on in every row.** Each FREM covariate's row now reports what it explains
-  with them in the model, which includes their own contribution. With `FOOD`
-  conditional on `run31`, SEX's COVVAR for CL/F goes from 0.0002 to 0.0948.
+  with them in the model, which includes their own contribution.
   `additionalCovs` still works, with a deprecation warning.
-* **`calcFFEM()` and `plotExplainedVar()` no longer take `...`.** In `calcFFEM()`
-  it was a silent sink for mistyped argument names. `plotExplainedVar()`'s only
-  consumer was a call into the internal `PhRame`, which an external user could
-  never reach; the stamp goes through `PMXForest::addStamp()` now, and
+* **`calcFFEM()` and `plotExplainedVar()` no longer take `...`.** In
+  `calcFFEM()` it silently swallowed mistyped argument names.
+  `plotExplainedVar()`'s stamp goes through `PMXForest::addStamp()`, and
   `add.stamp` is no longer read from the global environment.
 * **PMXForest (>= 1.3.0)** is the new floor.
 
 ## Bug fixes
 
-* **`getExplainedVar()` returned wrong numbers, silently, in five cases.** A
-  missing covariate also blanked every covariate whose name contained it (`WT`
-  removed `LBWT`); a function returning nothing for a covariate row shifted
-  every later value onto the wrong parameter; type 1 paired phi etas with
-  subjects by row position instead of by ID; type 3 passed the sample index into
-  the parameter function; and `availCov = "RACEL"` was dropped rather than
-  expanded to its levels.
-* **`getExplainedVar()` failed on inputs its documentation allows:** arguments
-  in `...`, a bare function as `functionList`, `parNames` without `numParCov`,
-  and a type 0 `dfCovs` row holding only non-FREM covariates.
+* **`getExplainedVar()` returned wrong numbers, silently, in five cases:** a
+  missing covariate blanked others whose names contain it (`WT` removed
+  `LBWT`); type 1 paired phi etas with subjects by row position rather than by
+  ID; type 3 passed the sample index into the parameter function;
+  `availCov = "RACEL"` was dropped instead of expanded; a function returning
+  nothing for a covariate row shifted later values onto the wrong parameter.
+* **`getExplainedVar()` failed on documented inputs:** arguments in `...`, a
+  bare function as `functionList`, `parNames` without `numParCov`, a type 0
+  `dfCovs` row of only non-FREM covariates.
 * **A single-covariate `dfCovs`** reported no explained variability at all, and
   two internal calls passed a too-short eta vector.
-* **A covariate whose own name holds an underscore** (`BL_BILI`) was read as a
-  binarized level and silently left out. Only a trailing `_<integer>` marks a
-  level now.
+* **An underscore in a covariate's own name** (`BL_BILI`) was read as a
+  binarized level, leaving the covariate out.
 
 ## Under the hood
 
 * `addFREMcovariates()` binarises through `PMXForest::oneHotEncode()`, so the
   `<cov>_<level>` convention has one implementation across the two packages.
-* `getForestDFFREM()` fills typed column vectors instead of growing a data frame
-  in a loop. The output is unchanged.
-* `calcFFEM()` checks its label vectors against `numParCov` / `numFREMThetas`;
-  `buildmatrix()` gains `forceSingleBlock`; `.ext` parsing no longer coerces to
-  factors on R before 4.0; `createFFEMdata()`'s `foreach` closures take their
-  arguments explicitly.
-* An argument-name audit across both packages found two tests that asserted
-  nothing: a named argument that was not a formal of the callee, swallowed by a
-  `...` the callee never used.
-* Examples write only into `tempdir()`, and the test suite compares objects
-  through a recursive `stabilize()` helper.
+* `getForestDFFREM()` builds its result once instead of growing it in a loop.
+* Smaller: `calcFFEM()` label checks, `buildmatrix(forceSingleBlock)`, `.ext`
+  parsing on R before 4.0, explicit `foreach` arguments, and an argument-name
+  audit that found two tests asserting nothing.
+
+## Two numbers you have seen before change
+
+Both are in `fremParameterTable()`, and both are worth knowing before
+regenerating a table you have already shown.
+
+* **RSE and CI are reproducible.** `seed` defaults to `1` rather than `NULL`,
+  so the sampled uncertainty no longer depends on the random number state the
+  caller happens to arrive with - two calls in one session could differ by 20%.
+  Your values change once, then stop moving. `seed = NULL` restores the old
+  behaviour.
+* **A negative shrinkage is reported as one.** It read `0.00` in both
+  documented modes; it now reads `1.0000e-10` by default, as NONMEM does, or
+  its raw value with `rawShrinkage = TRUE`. On the bundled `run31max1-2`,
+  ETA3's variance shrinkage is -26.44%.
 
 # PMXFrem 2.0.0
 
 ## `createFREMmodel()` - the FREM model without PsN
 
-`createFREMmodel()` builds the FREM model and its data set from a base model and
-a data file, so an analysis no longer has to start by running PsN's `frem`
-command. That saves the time that run takes and keeps the workflow in R.
+Builds the FREM model and its data set from a base model and a data file, so an
+analysis no longer has to start by running PsN's `frem` command.
 `keepDoseOnlySubjects` (default `FALSE`) keeps subjects that have no PK
 observations.
 
 ## `fremParameterTable()` reworked
 
-Base parameters and covariate coefficients are drawn from the same sample space,
-so the two halves of a table agree with each other. `uncertainty` reports either
-`"RSE"` or `"CI"`, with `ciLevel` and `sigDigs`. Shrinkage is reported through
-`includeShrinkage` and `ffemModName`, with `shrinkageType`, `shkDigs` and
+Base parameters and covariate coefficients are drawn from the same sample
+space, so the two halves of a table agree. `uncertainty` reports `"RSE"` or
+`"CI"`; `includeShrinkage` adds shrinkage, with `shrinkageType`, `shkDigs` and
 `rawShrinkage` deciding what is shown.
 
 ## Covariate coefficient tables
@@ -165,7 +140,7 @@ kept in step by hand.
 ## Vignettes
 
 A quick start and a walk-through, plus deep dives for `createFREMmodel()`,
-diagnostics, forest plots, explained variability and `updateFREMmodel()`.
+diagnostics, Forest plots, explained variability and `updateFREMmodel()`.
 
 ## Other notable additions
 
@@ -184,25 +159,22 @@ diagnostics, forest plots, explained variability and `updateFREMmodel()`.
 
 ## Bug fixes
 
-* **Covariates with overlapping names overwrote each other.** A `grepl()` match
-  in the missing-data mapping let `AGE` blank `PAGE`, dropping valid data and
-  pushing `TOTCOVVAR` below `COVVAR`.
-* **`getExplainedVar()` failed on Windows** with "object not found" for
-  `ncores > 1`. The worker environment is exported explicitly, and the cluster
-  is torn down through `on.exit()` if the calculation errors.
+* **Covariates with overlapping names overwrote each other** - `AGE` blanked
+  `PAGE`, dropping valid data and pushing `TOTCOVVAR` below `COVVAR`.
+* **`getExplainedVar()` failed on Windows** with `ncores > 1`, and left its
+  cluster running if the calculation errored.
 * **`fremParameterTable()` transformed to the SD scale after computing the CI /
   RSE**, so the uncertainties did not match the scale they were reported on.
-* **Longitudinal data** gave an eta-length mismatch in `getExplainedVar()`, and
-  a missing categorical covariate passed silently rather than stopping.
-* Default arguments that read `dfext` before it was validated, `data.table`
-  inputs failing on NSE scoping, and a dummy-column lookup taking the wrong
-  element.
+* **Longitudinal data** gave an eta-length mismatch, and a missing categorical
+  covariate passed silently rather than stopping.
+* Smaller: lazy-evaluation defaults reading `dfext`, `data.table` NSE scoping,
+  a dummy-column lookup taking the wrong element.
 
 ## Under the hood
 
-* `getExplainedVar()` is split into a helper per type, the growing
-  `rbind` / `bind_rows` loops are replaced by pre-allocated lists, and its string
-  rewriting by evaluation in a scoped environment.
+* `getExplainedVar()` is split into a helper per type, its growing `rbind`
+  loops replaced by pre-allocated lists and its string rewriting by evaluation
+  in a scoped environment.
 * Examples use base R and `tempdir()`; `@family` / `@concept` tags organise the
   pkgdown reference.
 
