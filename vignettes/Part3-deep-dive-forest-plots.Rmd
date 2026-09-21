@@ -170,11 +170,11 @@ unit_map <- c(
 )
 
 label_map <- c(
-  "SEX=0" = "Male", "SEX=1" = "Female",
-  "RACEL=1" = "Caucasian", "RACEL=2" = "Black", "RACEL=3" = "Other", "RACEL=4" = "Hispanic",
+  "SEX=1" = "Male", "SEX=2" = "Female",
+  "RACEL=1" = "Caucasian", "RACEL=2" = "Black", "RACEL=3" = "Other",
   "SMOK=0" = "Non-smoking", "SMOK=1" = "Smoking",
   "NCIL=0" = "NCI Grade 0", "NCIL=1" = "NCI Grade 1", "NCIL=2" = "NCI Grade 2",
-  "GENO2=0" = "Poor Metabolizer", "GENO2=1" = "Extensive Metabolizer"
+  "GENO2=1" = "Poor metab.", "GENO2=2" = "Extensive metab."
 )
 
 group_map <- c(
