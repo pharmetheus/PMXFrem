@@ -1,55 +1,47 @@
 # PMXFrem 2.2.0
 
-What is new since 2.0.0. 2.1.0 was published but never promoted, so its changes
-are described here together with 2.2.0's.
+PMXFrem 2.1.0 was published but never promoted, so its changes are described
+here together with 2.2.0's.
 
-## Parameter functions written from the model
+## Automatically generate the parameter function from the NONMEM code
 
 `createFREMParamFunction()` writes the parameter function `getForestDFFREM()`
-and `getExplainedVar()` need, by transliterating the model's own `$PK` - what
-`PMXForest::createParamFunction()` does for non-FREM models. The result is
-source text to read and edit; nothing is evaluated.
+and `getExplainedVar()` need, by translating the FREM model's `$PK` block,
+similar to what `PMXForest::createParamFunction()` does for non-FREM models.
 
-One generated function serves both plots: `etas = 0` for a Forest plot, sampled
-etas for explained variability. `secondary` appends AUC, Cmax and the like.
+One generated function serves both Forest plots and explained variability
+plots: `etas = 0` for a Forest plot, sampled etas for explained variability.
 
 `verifyFREMParamFunction()` is the check to run before trusting it. It compares
-the function against the FFEM version of the same model - an independent
-transliteration - and confirms each parameter's covariate coefficient and eta
-land where the model says.
+the function against the FFEM version of the same model.
 
 ## Extending an established FREM model
 
 `addFremStructuralTheta()` adds a structural `$THETA`, and with `addEta = TRUE`
 a matching IIV. `addFremIIV()` adds the random effect on its own.
 
-Both renumber every `THETA()`, `ETA()`, `MU_` and `COV` reference that follows
-- including those inside the `;;;FREM CODE` block - and place the new `$OMEGA`
-inside the skip region rather than after the FREM block. Both refuse rather
-than write a model that is quietly wrong. The `.ext` and `.phi` are not
-migrated: the model has to be re-estimated.
+The THETAs and ETAs are added before the FREM part of the model and renumber
+every `THETA()`, `ETA()`, `MU_` and `COV` reference that follows.
 
-## Individual variances for each covariate pattern
+## Individual variances for each missing covariate pattern
 
-`omegaToData = TRUE` in `createFFEMdata()` / `createFFEMmodel()` writes each
-subject's variance-covariance elements into the data set as `V`-columns and
-sets `$OMEGA` to an identity matrix. Each subject's variance then follows their
-own missing-covariate pattern, instead of one matrix serving everyone.
+`omegaToData = TRUE` in `createFFEMdata()` / `createFFEMmodel()` use Cholesky
+decomposition to write each subject's variance-covariance elements into the
+data set and sets `$OMEGA` to an identity matrix. Each subject's variance then
+follows their own missing-covariate pattern, instead assuming that there are no
+missing covariates.
 
 ## Other notable additions
 
-* **The FREM structural integers are read from the model.** `fremModelInfo()`
-  works them out from a model and its `.ext`, so `numNonFREMThetas` and
-  `numSkipOm` no longer have to be passed to `fremParameterTable()`,
-  `createFFEMmodel()`, `createFFEMdata()`, `calcEtas()` or `updateFREMmodel()`.
-  A supplied value that disagrees warns and is kept.
-* `fixTheta` (default `TRUE`) writes `FIX` on the covariate thetas that are
-  fully observed, which makes the EM estimation more stable.
+* **`numNonFREMThetas` and `numSkipOm` no longer have to be specified by the
+  user.** `fremModelInfo()` works them out from a model and its `.ext`, so they
+  no longer have to be passed to `fremParameterTable()`, `createFFEMmodel()`,
+  `createFFEMdata()`, `calcEtas()` or `updateFREMmodel()`.
 * `createFREMmodel()` warns about `$EST` settings FREM struggles with: `SAEM`
   with missing covariates, no `IMP` / `IMPMAP`, `NITER` below 150, `PHITYPE=0`.
 * `missVal` replaces the hardcoded `-99` through the data assembly functions.
-* `oneHot` / `oneHotSep` in `getForestDFFREM()` encode raw categorical columns
-  to the `<cov>_<level>` form the model uses.
+* `getForestDFFREM()` one-hot encodes categorical covariates if requested
+  (`oneHot` / `oneHotSep`).
 * `add.stamp` on `plotExplainedVar()`, `traceplot()`, `plotEtasCov()` and
   `plotCovDist()` records where and when a figure was made.
 
@@ -59,10 +51,6 @@ own missing-covariate pattern, instead of one matrix serving everyone.
   are on in every row.** Each FREM covariate's row now reports what it explains
   with them in the model, which includes their own contribution.
   `additionalCovs` still works, with a deprecation warning.
-* **`calcFFEM()` and `plotExplainedVar()` no longer take `...`.** In
-  `calcFFEM()` it silently swallowed mistyped argument names.
-  `plotExplainedVar()`'s stamp goes through `PMXForest::addStamp()`, and
-  `add.stamp` is no longer read from the global environment.
 * **PMXFrem now requires PMXForest v1.3.0 or later.**
 
 ## Bug fixes
@@ -104,35 +92,36 @@ single-covariate and underscore problems below.
 
 # PMXFrem 2.0.0
 
-## `createFREMmodel()` - the FREM model without PsN
+## Build a FREM model without PsN
 
-Builds the FREM model and its data set from a base model and a data file, so an
-analysis no longer has to start by running PsN's `frem` command.
+`createFREMmodel()` builds the FREM model and its data set from a base model and
+a data file, so an analysis no longer has to start by running PsN's `frem`
+command.
 `keepDoseOnlySubjects` (default `FALSE`) retains subjects that have no PK
 observations.
 
-## `fremParameterTable()` reworked
+## Parameter tables with uncertainty and shrinkage
 
-Base parameters and covariate coefficients are drawn from the same sample
-space. `uncertainty` reports `"RSE"` or `"CI"`; `includeShrinkage` adds
-shrinkage, with `shrinkageType`, `shkDigs` and `rawShrinkage` deciding what is
-shown.
+`fremParameterTable()` draws base parameters and covariate coefficients from the
+same sample space. `uncertainty` reports `"RSE"` or `"CI"`; `includeShrinkage`
+adds shrinkage, with `shrinkageType`, `shkDigs` and `rawShrinkage` deciding what
+is shown.
 
 ## Covariate coefficient tables
 
-`coefficientTable_long` for programmatic use and `coefficientTable_wide` for
-reports, both returned by `fremParameterTable()`.
+`fremParameterTable()` also returns `coefficientTable_long` for programmatic use
+and `coefficientTable_wide` for reports.
 
-## `plotEtasCov()` and `plotCovDist()`
+## Diagnostic plots for ETAs and covariates
 
 `plotEtasCov()` plots FREM ETAs, ETA_PRIMs and FFEM EBEs against the covariates
 in facets; `plotCovDist()` plots the distributions of the estimated covariates.
 Both group the data by whether the covariate was observed.
 
-## `generateCovNames()`
+## Forest plot labels built from the covariate table
 
-Forest plot labels built from the covariate table, rather than typed out and
-kept in step by hand.
+`generateCovNames()` builds them from the covariate table, rather than having
+them typed out and kept in step by hand.
 
 ## Vignettes
 
