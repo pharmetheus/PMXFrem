@@ -1,0 +1,302 @@
+---
+title: "3. Deep Dive: Reconciling FREM and SCM Forest Plots"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{3. Deep Dive: Reconciling FREM and SCM Forest Plots}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+# Introduction
+
+A Forest plot of the same covariate, drawn from an SCM model and from a FREM
+model of the same data, can point in opposite directions without either being
+wrong. They answer different questions, and the difference is not in the
+estimation but in two choices made when the plot is drawn: what the predictions
+are conditioned on, and what they are compared against.
+
+This vignette shows which question each plot answers, and how to make one FREM
+model produce either.
+
+# 1. Conditional and unconditional covariate effects
+
+**A conditional covariate effect** is the isolated effect of one covariate with
+every other covariate held fixed. It supports a mechanistic reading - what this
+covariate does, once the others are accounted for - and it requires a
+multivariable model.
+
+**An unconditional covariate effect** is the total effect of a covariate,
+whatever else it travels with in the population. It supports label statements
+and dosing recommendations - what to expect of a subject known only by this one
+covariate - and it is what a univariable model estimates.
+
+An SCM produces one multivariable model, so its Forest plot is conditional. FREM
+estimates the covariates jointly and can be reduced to any subset of them, so a
+single FREM model can answer either question. Which one it answers depends on
+how the plot is set up.
+
+# 2. What the two defaults do
+
+|  | SCM | FREM (default) |
+|---|---|---|
+| Predictions | conditional on all other covariates | unconditional |
+| Reference | a typical subject as the model is parameterised - centred on the median, or the most common category | a typical subject as the *data* defines it: the mean predicted parameter value across the covariates |
+
+Neither default is the "right" one. They differ because the two methods were
+built for different readings, which is why the same covariate can sit on
+opposite sides of 1 in the two plots.
+
+# 3. The three controls
+
+Everything below is done with three arguments:
+
+* **`dfCovs`** - one row per Forest plot row. The covariates set to something
+  other than `missVal` in a row are the ones the prediction is conditioned on.
+  The default, one covariate per row, gives unconditional predictions.
+* **`dfRefRow`** - the covariate values the predictions are compared against.
+  One row applies to every Forest plot row; a data frame with as many rows as
+  `dfCovs` gives each row its own reference. `NULL` (the default) uses the
+  typical subject.
+* **`plotRelative`** and **`noVar`** in `forestPlot()` - the scale, and whether
+  the uncertainty in the reference is carried into the interval (`noVar = FALSE`
+  includes it). The absolute scale without that uncertainty is not a meaningful
+  combination, and `forestPlot()` refuses it.
+
+# 4. Setup
+
+```{r setup}
+library(PMXFrem)
+library(PMXForest)
+library(ggplot2)
+library(data.table)
+
+set.seed(865765)
+theme_set(theme_bw(base_size = 14))
+
+modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+fremFiles <- getFileNames(modName = "run31", modDevDir = modDevDir)
+
+data <- fread(
+  file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+  data.table = FALSE
+)
+```
+
+Four covariates are enough to make the point, and keep the plots readable:
+
+```{r dfcovs}
+dfCovs <- setupDfCovs(
+  data       = data,
+  covariates = c("AGE", "GENO2", "RACEL", "WT"),
+  probs      = c(0.05, 0.9),
+  idVar      = "ID",
+  missVal    = -99
+)
+
+dfCovs
+```
+
+Each row sets one covariate and leaves the rest at `-99`. That is what makes the
+default predictions unconditional.
+
+```{r samples}
+dfExt <- subset(getExt(extFile = fremFiles$ext), ITERATION == "-1000000000")
+
+dfParameters <- getSamples(fremFiles$cov, extFile = fremFiles$ext, n = 100)
+dfParameters[1, ] <- dfExt[1, -1] # first sample = the final estimates
+
+# CL is THETA(2) in run31, and the model's first FREM parameter
+functionList <- list(
+  function(basethetas, covthetas, ...) basethetas[2] * exp(covthetas[1])
+)
+```
+
+# 5. The FREM default: unconditional
+
+```{r default}
+dfres_default <- getForestDFFREM(
+  dfCovs           = dfCovs,
+  runno            = 31,
+  modDevDir        = modDevDir,
+  dfParameters     = dfParameters,
+  functionList     = functionList,
+  functionListName = "CL",
+  quiet            = TRUE
+)
+
+data.frame(
+  row       = dfres_default$COVNAME,
+  CL        = round(dfres_default$POINT, 3),
+  reference = round(dfres_default$REFFUNC, 3),
+  relative  = round(dfres_default$POINT / dfres_default$REFFUNC, 3)
+)
+```
+
+One reference value for every row, and each row varies one covariate only.
+
+```{r default_plot, fig.width = 9, fig.height = 5, out.width = "100%"}
+forestPlot(dfres_default, parameters = "CL", plotRelative = TRUE, noVar = TRUE)
+```
+
+# 6. Moving the reference
+
+The reference need not be the typical subject. `dfRefRow` takes the covariate
+values to compare against - here the `GENO2` level with the higher clearance,
+with every other covariate left at its average:
+
+```{r ref_em}
+covOnly <- function(d) d[, setdiff(names(d), "COVARIATEGROUPS"), drop = FALSE]
+
+refEM <- covOnly(dfCovs[dfCovs$GENO2 == 2, ][1, ])
+refEM
+
+dfres_refEM <- getForestDFFREM(
+  dfCovs           = dfCovs,
+  runno            = 31,
+  modDevDir        = modDevDir,
+  dfParameters     = dfParameters,
+  functionList     = functionList,
+  functionListName = "CL",
+  dfRefRow         = refEM,
+  quiet            = TRUE
+)
+
+c(default = dfres_default$REFFUNC[1], GENO2_2 = dfres_refEM$REFFUNC[1])
+```
+
+Every point estimate is unchanged - only what they are divided by has moved, so
+the whole plot shifts. The predictions are still unconditional.
+
+# 7. Conditioning the predictions: mimicking SCM
+
+To read the plot the way an SCM plot is read, two things change together: every
+row is conditioned on the other covariates, and the reference becomes that same
+typical subject.
+
+```{r scm_like}
+typical <- dfCovs
+typical$AGE[typical$AGE == -99] <- 44
+typical$WT[typical$WT == -99] <- 86
+typical$GENO2[typical$GENO2 == -99] <- 2
+typical$RACEL_2[typical$RACEL_2 == -99] <- 0
+typical$RACEL_3[typical$RACEL_3 == -99] <- 0
+
+refTypical <- covOnly(typical[1, ])
+refTypical$AGE <- 44
+refTypical$WT <- 86
+refTypical$GENO2 <- 2
+refTypical$RACEL_2 <- 0
+refTypical$RACEL_3 <- 0
+
+dfres_scm <- getForestDFFREM(
+  dfCovs           = typical,
+  runno            = 31,
+  modDevDir        = modDevDir,
+  dfParameters     = dfParameters,
+  functionList     = functionList,
+  functionListName = "CL",
+  dfRefRow         = refTypical,
+  quiet            = TRUE
+)
+
+data.frame(
+  row          = dfres_scm$COVNAME,
+  relative_SCM = round(dfres_scm$POINT / dfres_scm$REFFUNC, 3)
+)
+```
+
+```{r scm_plot, fig.width = 9, fig.height = 5, out.width = "100%"}
+forestPlot(dfres_scm, parameters = "CL", plotRelative = TRUE, noVar = TRUE,
+           referenceInfo = "Reference: a 44-year-old subject of 86 kg, GENO2 = 2, RACEL reference level")
+```
+
+# 8. A reference that varies by covariate group
+
+The unconditional reading is sharper when each covariate is compared against its
+own typical value rather than against one subject. `dfRefRow` may carry as many
+rows as `dfCovs`:
+
+```{r var_ref}
+refVarying <- covOnly(dfCovs)
+refVarying$AGE <- ifelse(dfCovs$COVARIATEGROUPS == "AGE", 44, -99)
+refVarying$WT <- ifelse(dfCovs$COVARIATEGROUPS == "WT", 86, -99)
+refVarying$GENO2 <- ifelse(dfCovs$COVARIATEGROUPS == "GENO2", 2, -99)
+refVarying$RACEL_2 <- ifelse(dfCovs$COVARIATEGROUPS == "RACEL", 0, -99)
+refVarying$RACEL_3 <- ifelse(dfCovs$COVARIATEGROUPS == "RACEL", 0, -99)
+
+dfres_varRef <- getForestDFFREM(
+  dfCovs           = dfCovs,
+  runno            = 31,
+  modDevDir        = modDevDir,
+  dfParameters     = dfParameters,
+  functionList     = functionList,
+  functionListName = "CL",
+  dfRefRow         = refVarying,
+  quiet            = TRUE
+)
+
+data.frame(
+  row       = dfres_varRef$COVNAME,
+  reference = round(dfres_varRef$REFFUNC, 3),
+  relative  = round(dfres_varRef$POINT / dfres_varRef$REFFUNC, 3)
+)
+```
+
+Each covariate group now sits at 1 for its own reference level. On the relative
+scale that is not visible in the plot, so it belongs in the caption:
+
+```{r var_ref_plot, fig.width = 9, fig.height = 5, out.width = "100%"}
+forestPlot(dfres_varRef, parameters = "CL", plotRelative = TRUE, noVar = TRUE,
+           referenceInfo = "Reference varies by covariate: AGE 44 y, WT 86 kg, GENO2 = 2, RACEL reference level")
+```
+
+# 9. Which plot answers which question
+
+The two readings can disagree, and on this model they do. Take the third `RACEL`
+level:
+
+```{r estimands}
+# the dfCovs row for the third RACEL level. Match on the row number rather than
+# the label: conditioning rewrites the label to carry every covariate it fixes.
+iRacel3 <- which(dfCovs$COVARIATEGROUPS == "RACEL" & dfCovs$RACEL_3 == 1)
+
+pick <- function(d) {
+  r <- d[d$COVNUM == iRacel3, ]
+  round(r$POINT / r$REFFUNC, 3)
+}
+
+c(unconditional = pick(dfres_varRef), conditional = pick(dfres_scm))
+```
+
+* **Unconditional**, `r pick(dfres_varRef)` of the reference: a subject known
+  only to be of that level can be expected to have a *lower* CL than one of the
+  reference level. This is the reading for a label statement or a dosing
+  recommendation.
+* **Conditional**, `r pick(dfres_scm)` of the reference: a 44-year-old subject
+  of 86 kg with `GENO2 = 2` and that level can be expected to have a slightly
+  *higher* CL than an otherwise identical subject of the reference level. This
+  is the mechanistic reading, and the one an SCM Forest plot gives.
+
+Neither number is wrong. They answer different questions, and a plot that does
+not say which one it answers invites the reader to take the wrong one.
+
+# 10. Where explained variability fits
+
+A Forest plot says how far a covariate moves a parameter. It does not say how
+much of the variability in that parameter the covariate accounts for - a
+covariate can move the parameter a long way and still explain little of the
+spread, if few subjects are at its extremes. `getExplainedVar()` answers that
+question, and the two plots are usually read together. See the Explained
+Variability deep dive.
