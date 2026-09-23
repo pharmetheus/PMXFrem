@@ -322,3 +322,35 @@ test_that("getForestDFFREM accepts a tibble dfCovs and a single covariate", {
   expect_equal(as.character(unique(res1$GROUPNAME)), "AGE")
   expect_setequal(res1$COVNAME, c("AGE=30", "AGE=60"))
 })
+
+test_that("a dfRefRow from setupDfRefRow() is accepted without coercion warnings", {
+  # setupDfRefRow() returns the same COVARIATEGROUPS column setupDfCovs() does.
+  # getForestDFFREM() dropped it from dfCovs but not from dfRefRow, so every
+  # row coerced "AGE" and friends to NA - 378 warnings on the four-covariate
+  # example in the Forest plot references vignette.
+  md <- system.file("extdata/SimNeb", package = "PMXFrem")
+  data <- read.csv(file.path(md, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"))
+  covs <- c("AGE", "WT")
+
+  dfCovs <- PMXForest::setupDfCovs(
+    data = data, covariates = covs, probs = c(0.05, 0.9), idVar = "ID", missVal = -99
+  )
+  dfRefRow <- PMXForest::setupDfRefRow(
+    dfCovs = dfCovs, data = data, covariates = covs, singleRef = TRUE
+  )
+  expect_true("COVARIATEGROUPS" %in% names(dfRefRow)) # what the caller is handed
+
+  ext <- getExt(extFile = file.path(md, "run31.ext"))
+  dfPar <- ext[ext$ITERATION == -1000000000, -1][rep(1, 3), ]
+  fl <- list(function(basethetas, covthetas, ...) basethetas[2] * exp(covthetas[1]))
+
+  expect_no_warning(
+    res <- getForestDFFREM(
+      dfCovs = dfCovs, runno = 31, modDevDir = md, dfParameters = dfPar,
+      functionList = fl, functionListName = "CL", dfRefRow = dfRefRow, quiet = TRUE
+    )
+  )
+  # and the reference is the one setupDfRefRow() asked for, not a fallback
+  expect_equal(length(unique(res$REFFUNC)), 1)
+  expect_true(all(is.finite(res$POINT)))
+})

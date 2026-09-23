@@ -243,6 +243,13 @@ getForestDFFREM <- function(dfCovs,
     dfCovs[, "COVARIATEGROUPS"] <- NULL
   }
 
+  ## PMXForest::setupDfRefRow() returns the same COVARIATEGROUPS column
+  ## setupDfCovs() does. Left in place it reaches the as.numeric() calls below
+  ## as a character column, and every row warns "NAs introduced by coercion".
+  if (!is.null(dfRefRow) && any(names(dfRefRow) == "COVARIATEGROUPS")) {
+    dfRefRow[, "COVARIATEGROUPS"] <- NULL
+  }
+
   ## Create function to sort out grouping
   getGroups <- function(df) {
     cGroups <- c()

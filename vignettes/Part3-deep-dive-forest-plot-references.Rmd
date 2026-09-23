@@ -14,7 +14,6 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  warning = FALSE,
   message = FALSE
 )
 ```
@@ -58,21 +57,29 @@ Neither default is the "right" one. They differ because the two methods were
 built for different readings, which is why the same covariate can sit on
 opposite sides of 1 in the two plots.
 
-# 3. The three controls
+# 3. The two controls
 
-Everything below is done with three arguments:
+Everything below is done with two inputs, and both are built by PMXForest rather
+than assembled by hand:
 
-* **`dfCovs`** - one row per Forest plot row. The covariates set to something
-  other than `missVal` in a row are the ones the prediction is conditioned on.
-  The default, one covariate per row, gives unconditional predictions.
-* **`dfRefRow`** - the covariate values the predictions are compared against.
-  One row applies to every Forest plot row; a data frame with as many rows as
-  `dfCovs` gives each row its own reference. `NULL` (the default) uses the
-  typical subject.
-* **`plotRelative`** and **`noVar`** in `forestPlot()` - the scale, and whether
-  the uncertainty in the reference is carried into the interval (`noVar = FALSE`
-  includes it). The absolute scale without that uncertainty is not a meaningful
-  combination, and `forestPlot()` refuses it.
+* **`dfCovs`**, from `setupDfCovs()` - one row per Forest plot row. The
+  covariates active in a row are the ones the prediction is conditioned on. With
+  `useMissVal = TRUE` (the default) every other covariate is left at `missVal`
+  and only one is active per row; with `useMissVal = FALSE` the inactive ones
+  are set to their reference value instead, which conditions every row on them.
+* **`dfRefRow`**, from `setupDfRefRow()` - the covariate values the predictions
+  are compared against. `singleRef = TRUE` returns one row, and that same
+  comparator is used by every row of the plot. `singleRef = FALSE` returns a
+  data frame with as many rows as `dfCovs`, so each row of the plot gets its own
+  comparator. Passing no `dfRefRow` at all leaves the FREM default in place.
+
+Both take `contRef` and `catRef` to say what "reference" means for each
+covariate - a number, `"mean"`, `"median"`, `"mode"`, `"lowest"`, or `"model"`
+to read it from the control stream. The defaults are the median of a continuous
+covariate and the most common level of a categorical one.
+
+The other choice is the scale: `plotRelative = TRUE` plots each row as a ratio
+to its reference, `FALSE` on the parameter's own scale.
 
 # 4. Setup
 
@@ -92,6 +99,8 @@ data <- fread(
   file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
   data.table = FALSE
 )
+
+covariates <- c("AGE", "GENO2", "RACEL", "WT")
 ```
 
 Four covariates are enough to make the point, and keep the plots readable:
@@ -99,7 +108,7 @@ Four covariates are enough to make the point, and keep the plots readable:
 ```{r dfcovs}
 dfCovs <- setupDfCovs(
   data       = data,
-  covariates = c("AGE", "GENO2", "RACEL", "WT"),
+  covariates = covariates,
   probs      = c(0.05, 0.9),
   idVar      = "ID",
   missVal    = -99
@@ -108,8 +117,14 @@ dfCovs <- setupDfCovs(
 dfCovs
 ```
 
-Each row sets one covariate and leaves the rest at `-99`. That is what makes the
-default predictions unconditional.
+Each row sets one covariate and leaves the rest at `missVal`. What that means
+depends on the model behind the parameter function. In a **FREM** model the
+covariates left at `missVal` are integrated out, so the prediction is
+unconditional. In an **SCM** or FFEM parameter function there is nothing to
+integrate over: `missVal` triggers the model's own missing-covariate handling,
+which puts the covariate at its reference - so the prediction is conditioned on
+the reference values rather than unconditional. Same `dfCovs`, two different
+readings, which is where the two plots start to diverge.
 
 ```{r samples}
 dfExt <- subset(getExt(extFile = fremFiles$ext), ITERATION == "-1000000000")
@@ -144,70 +159,79 @@ data.frame(
 )
 ```
 
-One reference value for every row, and each row varies one covariate only.
+The same reference value for every row, and each row varies one covariate only.
 
 ```{r default_plot, fig.width = 9, fig.height = 5, out.width = "100%"}
-forestPlot(dfres_default, parameters = "CL", plotRelative = TRUE, noVar = TRUE)
+forestPlot(dfres_default, parameters = "CL", plotRelative = TRUE)
 ```
 
 # 6. Moving the reference
 
-The reference need not be the typical subject. `dfRefRow` takes the covariate
-values to compare against - here the `GENO2` level with the higher clearance,
-with every other covariate left at its average:
+The reference need not be the one FREM computes from the data.
+`setupDfRefRow()` builds one from the covariates themselves - here the typical
+subject an SCM model would be centred on, the median of each continuous
+covariate and the most common level of each categorical one:
 
-```{r ref_em}
-covOnly <- function(d) d[, setdiff(names(d), "COVARIATEGROUPS"), drop = FALSE]
+```{r ref_single}
+dfRefRow <- setupDfRefRow(
+  dfCovs     = dfCovs,
+  data       = data,
+  covariates = covariates,
+  singleRef  = TRUE
+)
 
-refEM <- covOnly(dfCovs[dfCovs$GENO2 == 2, ][1, ])
-refEM
+dfRefRow
 
-dfres_refEM <- getForestDFFREM(
+dfres_typRef <- getForestDFFREM(
   dfCovs           = dfCovs,
   runno            = 31,
   modDevDir        = modDevDir,
   dfParameters     = dfParameters,
   functionList     = functionList,
   functionListName = "CL",
-  dfRefRow         = refEM,
+  dfRefRow         = dfRefRow,
   quiet            = TRUE
 )
 
-c(default = dfres_default$REFFUNC[1], GENO2_2 = dfres_refEM$REFFUNC[1])
+c(default = dfres_default$REFFUNC[1], typical = dfres_typRef$REFFUNC[1])
 ```
 
 Every point estimate is unchanged - only what they are divided by has moved, so
 the whole plot shifts. The predictions are still unconditional.
 
+```{r ref_plot, fig.width = 9, fig.height = 5, out.width = "100%"}
+forestPlot(dfres_typRef,
+  parameters = "CL", plotRelative = TRUE,
+  referenceInfo = "Reference: the typical subject - median AGE and WT, most common GENO2 and RACEL"
+)
+```
+
 # 7. Conditioning the predictions: mimicking SCM
 
-To read the plot the way an SCM plot is read, two things change together: every
-row is conditioned on the other covariates, and the reference becomes that same
-typical subject.
+To read the plot the way an SCM plot is read, the predictions have to be
+conditioned as well. That is `useMissVal = FALSE`: the covariates a row is not
+varying are set to their reference instead of to `missVal`.
 
 ```{r scm_like}
-typical <- dfCovs
-typical$AGE[typical$AGE == -99] <- 44
-typical$WT[typical$WT == -99] <- 86
-typical$GENO2[typical$GENO2 == -99] <- 2
-typical$RACEL_2[typical$RACEL_2 == -99] <- 0
-typical$RACEL_3[typical$RACEL_3 == -99] <- 0
+dfCovsCond <- setupDfCovs(
+  data        = data,
+  covariates  = covariates,
+  probs       = c(0.05, 0.9),
+  idVar       = "ID",
+  missVal     = -99,
+  useMissVal  = FALSE
+)
 
-refTypical <- covOnly(typical[1, ])
-refTypical$AGE <- 44
-refTypical$WT <- 86
-refTypical$GENO2 <- 2
-refTypical$RACEL_2 <- 0
-refTypical$RACEL_3 <- 0
+dfCovsCond
 
 dfres_scm <- getForestDFFREM(
-  dfCovs           = typical,
+  dfCovs           = dfCovsCond,
   runno            = 31,
   modDevDir        = modDevDir,
   dfParameters     = dfParameters,
   functionList     = functionList,
   functionListName = "CL",
-  dfRefRow         = refTypical,
+  dfRefRow         = dfRefRow,
   quiet            = TRUE
 )
 
@@ -217,24 +241,31 @@ data.frame(
 )
 ```
 
+Every row now carries every covariate, and the reference is that same typical
+subject - which is what an SCM Forest plot shows.
+
 ```{r scm_plot, fig.width = 9, fig.height = 5, out.width = "100%"}
-forestPlot(dfres_scm, parameters = "CL", plotRelative = TRUE, noVar = TRUE,
-           referenceInfo = "Reference: a 44-year-old subject of 86 kg, GENO2 = 2, RACEL reference level")
+forestPlot(dfres_scm,
+  parameters = "CL", plotRelative = TRUE,
+  referenceInfo = "Reference: the typical subject, with every prediction conditioned on it"
+)
 ```
 
 # 8. A reference that varies by covariate group
 
 The unconditional reading is sharper when each covariate is compared against its
-own typical value rather than against one subject. `dfRefRow` may carry as many
-rows as `dfCovs`:
+own reference rather than against one subject. That is `singleRef = FALSE`,
+which returns a reference row per row of `dfCovs`:
 
 ```{r var_ref}
-refVarying <- covOnly(dfCovs)
-refVarying$AGE <- ifelse(dfCovs$COVARIATEGROUPS == "AGE", 44, -99)
-refVarying$WT <- ifelse(dfCovs$COVARIATEGROUPS == "WT", 86, -99)
-refVarying$GENO2 <- ifelse(dfCovs$COVARIATEGROUPS == "GENO2", 2, -99)
-refVarying$RACEL_2 <- ifelse(dfCovs$COVARIATEGROUPS == "RACEL", 0, -99)
-refVarying$RACEL_3 <- ifelse(dfCovs$COVARIATEGROUPS == "RACEL", 0, -99)
+dfRefRowVarying <- setupDfRefRow(
+  dfCovs     = dfCovs,
+  data       = data,
+  covariates = covariates,
+  singleRef  = FALSE
+)
+
+dfRefRowVarying
 
 dfres_varRef <- getForestDFFREM(
   dfCovs           = dfCovs,
@@ -243,7 +274,7 @@ dfres_varRef <- getForestDFFREM(
   dfParameters     = dfParameters,
   functionList     = functionList,
   functionListName = "CL",
-  dfRefRow         = refVarying,
+  dfRefRow         = dfRefRowVarying,
   quiet            = TRUE
 )
 
@@ -254,12 +285,24 @@ data.frame(
 )
 ```
 
-Each covariate group now sits at 1 for its own reference level. On the relative
-scale that is not visible in the plot, so it belongs in the caption:
+Each covariate group now sits at 1 for its own reference level:
 
 ```{r var_ref_plot, fig.width = 9, fig.height = 5, out.width = "100%"}
-forestPlot(dfres_varRef, parameters = "CL", plotRelative = TRUE, noVar = TRUE,
-           referenceInfo = "Reference varies by covariate: AGE 44 y, WT 86 kg, GENO2 = 2, RACEL reference level")
+forestPlot(dfres_varRef,
+  parameters = "CL", plotRelative = TRUE,
+  referenceInfo = "Reference varies by covariate: the median or most common level of each"
+)
+```
+
+On the relative scale the varying reference is invisible - every group is
+divided by its own value, so every group has a line at 1. On the absolute scale
+it can be seen: the reference moves between covariate groups.
+
+```{r var_ref_abs, fig.width = 9, fig.height = 5, out.width = "100%"}
+forestPlot(dfres_varRef,
+  parameters = "CL", plotRelative = FALSE,
+  referenceInfo = "Reference varies by covariate: the median or most common level of each"
+)
 ```
 
 # 9. Which plot answers which question
@@ -284,19 +327,10 @@ c(unconditional = pick(dfres_varRef), conditional = pick(dfres_scm))
   only to be of that level can be expected to have a *lower* CL than one of the
   reference level. This is the reading for a label statement or a dosing
   recommendation.
-* **Conditional**, `r pick(dfres_scm)` of the reference: a 44-year-old subject
-  of 86 kg with `GENO2 = 2` and that level can be expected to have a slightly
-  *higher* CL than an otherwise identical subject of the reference level. This
-  is the mechanistic reading, and the one an SCM Forest plot gives.
+* **Conditional**, `r pick(dfres_scm)` of the reference: a subject of that
+  level, otherwise typical, can be expected to have a slightly *higher* CL than
+  an otherwise identical subject of the reference level. This is the mechanistic
+  reading, and the one an SCM Forest plot gives.
 
 Neither number is wrong. They answer different questions, and a plot that does
 not say which one it answers invites the reader to take the wrong one.
-
-# 10. Where explained variability fits
-
-A Forest plot says how far a covariate moves a parameter. It does not say how
-much of the variability in that parameter the covariate accounts for - a
-covariate can move the parameter a long way and still explain little of the
-spread, if few subjects are at its extremes. `getExplainedVar()` answers that
-question, and the two plots are usually read together. See the Explained
-Variability deep dive.
