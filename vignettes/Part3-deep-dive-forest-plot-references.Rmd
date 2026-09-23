@@ -138,6 +138,26 @@ functionList <- list(
 )
 ```
 
+`RACEL` is coded 1 Caucasian, 2 Black and 3 Asian, with level 1 as the
+reference, so the one-hot columns `RACEL_2` and `RACEL_3` carry the other two.
+
+The plots below are drawn through one small wrapper. `forestPlot()` lays its
+panels out at fixed relative widths, so a long y-axis label runs off the left
+edge of the figure; a left margin gives the labels the room they need, and the
+statistics panel is narrowed from the default 2:1 to 3:1 to pay for it. The
+labels are worth keeping in full - they are what says which covariates a row is
+conditioned on.
+
+```{r plot_helper}
+fp <- function(dfres, left = 30, relative = TRUE, ...) {
+  forestPlot(dfres,
+    parameters = "CL", plotRelative = relative,
+    errbartabwidth = c(3, 1), ...
+  ) +
+    theme(plot.margin = margin(5.5, 5.5, 5.5, left))
+}
+```
+
 # 5. The FREM default: unconditional
 
 ```{r default}
@@ -161,8 +181,8 @@ data.frame(
 
 The same reference value for every row, and each row varies one covariate only.
 
-```{r default_plot, fig.width = 9, fig.height = 5, out.width = "100%"}
-forestPlot(dfres_default, parameters = "CL", plotRelative = TRUE)
+```{r default_plot, fig.width = 10, fig.height = 5, out.width = "100%"}
+fp(dfres_default)
 ```
 
 # 6. Moving the reference
@@ -199,9 +219,8 @@ c(default = dfres_default$REFFUNC[1], typical = dfres_typRef$REFFUNC[1])
 Every point estimate is unchanged - only what they are divided by has moved, so
 the whole plot shifts. The predictions are still unconditional.
 
-```{r ref_plot, fig.width = 9, fig.height = 5, out.width = "100%"}
-forestPlot(dfres_typRef,
-  parameters = "CL", plotRelative = TRUE,
+```{r ref_plot, fig.width = 10, fig.height = 5, out.width = "100%"}
+fp(dfres_typRef,
   referenceInfo = "Reference: the typical subject - median AGE and WT, most common GENO2 and RACEL"
 )
 ```
@@ -246,9 +265,10 @@ subject - which is what an SCM Forest plot shows. This is also visible in the
 y-axis labels, kept here at their default: each covariate value that is not
 `missVal` is included in the label.
 
-```{r scm_plot, fig.width = 9, fig.height = 5, out.width = "100%"}
-forestPlot(dfres_scm,
-  parameters = "CL", plotRelative = TRUE,
+```{r scm_plot, fig.width = 10, fig.height = 5, out.width = "100%"}
+# the conditioned labels are long, so this one needs a wider margin
+fp(dfres_scm,
+  left = 95,
   referenceInfo = "Reference: the typical subject, with every prediction conditioned on it"
 )
 ```
@@ -289,9 +309,8 @@ data.frame(
 
 Each covariate group now sits at 1 for its own reference level:
 
-```{r var_ref_plot, fig.width = 9, fig.height = 5, out.width = "100%"}
-forestPlot(dfres_varRef,
-  parameters = "CL", plotRelative = TRUE,
+```{r var_ref_plot, fig.width = 10, fig.height = 5, out.width = "100%"}
+fp(dfres_varRef,
   referenceInfo = "Reference varies by covariate: the median or most common level of each"
 )
 ```
@@ -300,20 +319,20 @@ On the relative scale the varying reference is invisible - every group is
 divided by its own value, so every group has a line at 1. On the absolute scale
 it can be seen: the reference moves between covariate groups.
 
-```{r var_ref_abs, fig.width = 9, fig.height = 5, out.width = "100%"}
-forestPlot(dfres_varRef,
-  parameters = "CL", plotRelative = FALSE,
+```{r var_ref_abs, fig.width = 10, fig.height = 5, out.width = "100%"}
+fp(dfres_varRef,
+  relative = FALSE,
   referenceInfo = "Reference varies by covariate: the median or most common level of each"
 )
 ```
 
 # 9. Which plot answers which question
 
-The two readings can disagree, and on this model they do. Take the third `RACEL`
-level:
+The two readings can disagree, and on this model they do. Take Asian subjects -
+`RACEL` level 3:
 
 ```{r estimands}
-# the dfCovs row for the third RACEL level. Match on the row number rather than
+# the dfCovs row for Asian subjects. Match on the row number rather than
 # the label: conditioning rewrites the label to carry every covariate it fixes.
 iRacel3 <- which(dfCovs$COVARIATEGROUPS == "RACEL" & dfCovs$RACEL_3 == 1)
 
@@ -326,13 +345,12 @@ c(unconditional = pick(dfres_varRef), conditional = pick(dfres_scm))
 ```
 
 * **Unconditional**, `r pick(dfres_varRef)` of the reference: a subject known
-  only to be of that level can be expected to have a *lower* CL than one of the
-  reference level. This is the reading for a label statement or a dosing
-  recommendation.
-* **Conditional**, `r pick(dfres_scm)` of the reference: a subject of that
-  level, otherwise typical, can be expected to have a slightly *higher* CL than
-  an otherwise identical subject of the reference level. This is the mechanistic
-  reading, and the one an SCM Forest plot gives.
+  only to be Asian can be expected to have a *lower* CL than a Caucasian one.
+  This is the reading for a label statement or a dosing recommendation.
+* **Conditional**, `r pick(dfres_scm)` of the reference: an Asian subject who is
+  otherwise typical can be expected to have a slightly *higher* CL than an
+  otherwise identical Caucasian subject. This is the mechanistic reading, and
+  the one an SCM Forest plot gives.
 
 Neither number is wrong. They answer different questions, and a plot that does
 not say which one it answers invites the reader to take the wrong one.
