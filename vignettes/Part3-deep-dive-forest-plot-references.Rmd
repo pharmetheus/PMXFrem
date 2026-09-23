@@ -242,7 +242,9 @@ data.frame(
 ```
 
 Every row now carries every covariate, and the reference is that same typical
-subject - which is what an SCM Forest plot shows.
+subject - which is what an SCM Forest plot shows. This is also visible in the
+y-axis labels, kept here at their default: each covariate value that is not
+`missVal` is included in the label.
 
 ```{r scm_plot, fig.width = 9, fig.height = 5, out.width = "100%"}
 forestPlot(dfres_scm,
