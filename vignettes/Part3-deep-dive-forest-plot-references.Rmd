@@ -141,12 +141,9 @@ functionList <- list(
 `RACEL` is coded 1 Caucasian, 2 Black and 3 Asian, with level 1 as the
 reference, so the one-hot columns `RACEL_2` and `RACEL_3` carry the other two.
 
-The plots below are drawn through one small wrapper. `forestPlot()` lays its
-panels out at fixed relative widths, so a long y-axis label runs off the left
-edge of the figure; a left margin gives the labels the room they need, and the
-statistics panel is narrowed from the default 2:1 to 3:1 to pay for it. The
-labels are worth keeping in full - they are what says which covariates a row is
-conditioned on.
+For didactic purposes in this vignette, the default labels are kept in full. The
+varying dimensions of the resulting plots are managed through the small wrapper
+function below.
 
 ```{r plot_helper}
 fp <- function(dfres, left = 30, relative = TRUE, ...) {
