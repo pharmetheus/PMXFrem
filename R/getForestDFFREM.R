@@ -45,7 +45,10 @@
 #'   Forest plot, the length of the vector should match the number of rows in
 #'   dfCovs. If NULL (default) an educated guess of the grouping will be set
 #' @param ncores the number of cores to use for the calculations, default = 1
-#'   which means no parallellization
+#'   which means no parallellization.
+#'   On Windows the workers are new R sessions. They load the same package
+#'   versions as this session, including a package loaded from a folder that
+#'   is not on `.libPaths()`, and the run stops if they cannot.
 #' @param cstrPackages a character vector with package names needed to run the
 #'   calculations in parallel, default = NULL
 #' @param cstrExports a character vector with variables needed to run the
@@ -277,8 +280,8 @@ getForestDFFREM <- function(dfCovs,
   ## Register to allow for paralell computing. Tear the cluster down on exit
   ## (including on error), not only at the end of a successful run.
   if (ncores > 1) {
-    registerDoParallel(cores = ncores)
-    on.exit(stopImplicitCluster(), add = TRUE)
+    stopWorkers <- .fremStartWorkers(ncores, pkgs = unique(c("PMXFrem", cstrPackages)))
+    on.exit(stopWorkers(), add = TRUE)
   }
   numParCov <- calcNumParCov(cbind(first = 0, dfParameters), numNonFREMThetas, numSkipOm)
 

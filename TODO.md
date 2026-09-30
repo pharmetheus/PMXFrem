@@ -52,6 +52,18 @@ an HPC scheduler via `future.batchtools`) instead of the package hard-coding it.
 Keep `ncores` as a convenience that sets up a transient `plan()` with an
 `on.exit()` restore; document `plan()` as the real control. Supersedes T14.
 
+**Moving to `future` does not by itself keep the workers on the session's
+package versions** (checked 2026-09-30, future 1.32.0). A package the session
+loaded from a folder not on `.libPaths()` - PMXRenv's `library.versioned()`,
+`library(lib.loc = )` - resolves to another installed copy on `multisession`
+workers exactly as on doParallel's Windows workers: with the session on a
+versioned 1.2.11, `future_lapply()` and `doFuture` + `foreach` workers both
+loaded the 2.1.0.9000 on `.libPaths()`. And it would widen the exposure:
+`multisession` starts fresh sessions on every OS, where doParallel forks on
+macOS/Linux, and `future` refuses `multicore` under RStudio. So carry
+`.fremStartWorkers()`'s folder lookup and version check across - pass the
+folders as `rscript_libs` to `plan(multisession)` and keep the check.
+
 ## T15 — `ci.yml` has been failing on every branch for months
 
 `.github/workflows/ci.yml` (`lint-check`, `format-check`, `unit-test`,
@@ -419,6 +431,18 @@ When doing it:
 4. Use it in PMXForest's own README and Forest plot vignettes, which currently
    type the labels out.
 
+
+## T32 — `fremParameterTable()` gives one non-finite RSE on OpenBLAS
+
+On this machine (R 4.2.3, OpenBLAS 0.3.32) `test-fremParameterTable.R:155` fails
+four times - "every RSE should be finite" - on unchanged `epic/2.1.1`, while the
+same commit passes CI (R 4.2.2, the runner's BLAS) and passed on the previous
+machine. `fremParameterTable(runno = 31, bsFile = bs31.dir/raw_results_run31.csv,
+includeRSE = TRUE, ...)` returns `NA` for the RSE of parameter-table row 11 (an
+OMEGA) with "NaNs produced"; the thread count makes no difference
+(`OPENBLAS_NUM_THREADS` 1 and 8 agree). Likely a variance that is zero in exact
+arithmetic coming out slightly negative under this BLAS before a `sqrt()`, but
+not yet traced to the line. Worth finding: a user on OpenBLAS gets the same `NA`.
 
 ## Done
 

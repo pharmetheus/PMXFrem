@@ -107,7 +107,10 @@ from the phi-file and matched to \code{data} by \code{strID}.}
 FALSE,}
 
 \item{ncores}{the number of cores to use for the calculations, default = 1
-which means no parallellization}
+which means no parallellization.
+On Windows the workers are new R sessions. They load the same package
+versions as this session, including a package loaded from a folder that
+is not on \code{.libPaths()}, and the run stops if they cannot.}
 
 \item{cstrPackages}{a character vector with the packages needed to run
 calculations in parallel, default = NULL}
