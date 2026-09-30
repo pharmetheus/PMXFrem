@@ -84,7 +84,10 @@
 #' @param quiet If output should be allowed during the function call, default=
 #'   FALSE,
 #' @param ncores the number of cores to use for the calculations, default = 1
-#'   which means no parallellization
+#'   which means no parallellization.
+#'   On Windows the workers are new R sessions. They load the same package
+#'   versions as this session, including a package loaded from a folder that
+#'   is not on `.libPaths()`, and the run stops if they cannot.
 #' @param cstrPackages a character vector with the packages needed to run
 #'   calculations in parallel, default = NULL
 #' @param cstrExports a character vector with variables needed to run the

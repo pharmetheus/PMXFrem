@@ -90,7 +90,10 @@ directory, i.e. ".".}
 STDOUT.}
 
 \item{cores}{How many cores to use in the calculations of the FFEM
-expressions.}
+expressions.
+On Windows the workers are new R sessions. They load the same package
+versions as this session, including a package loaded from a folder that
+is not on \code{.libPaths()}, and the run stops if they cannot.}
 
 \item{dfext}{A data frame of the ext file for the FREM model. In case of
 multiple $EST, the dfext should contain the estimates of the \emph{one} relevant

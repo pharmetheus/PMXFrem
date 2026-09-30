@@ -73,6 +73,12 @@ single-covariate and underscore problems below.
   two internal calls passed a too-short eta vector.
 * **An underscore in a covariate's own name** (`BL_BILI`) was read as a
   binarized level, leaving the covariate out.
+* **Parallel runs on Windows could use another installed PMXFrem.** With
+  `ncores > 1`, `getExplainedVar()`, `getForestDFFREM()` and `createFFEMdata()`
+  start fresh R sessions on Windows, and these loaded the first PMXFrem on
+  `.libPaths()` rather than the one the session uses - for example one loaded
+  from a versioned library. They now load the session's copy, and stop with
+  both versions named when they cannot. macOS and Linux were not affected.
 
 ## Under the hood
 

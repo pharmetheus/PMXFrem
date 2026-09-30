@@ -30,6 +30,7 @@ Imports:
     stringr,
     tools,
     numDeriv,
+    parallel,
     PMXForest (>= 1.3.0)
 Suggests:
     GGally,

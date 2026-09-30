@@ -46,6 +46,9 @@
 #' @param idvar The name of the ID column,
 #' @param cores How many cores to use in the calculations of the FFEM
 #'   expressions.
+#'   On Windows the workers are new R sessions. They load the same package
+#'   versions as this session, including a package loaded from a folder that
+#'   is not on `.libPaths()`, and the run stops if they cannot.
 #' @param covSuffix Use to create the column name fo rthe covariate effects
 #'   columns. The column names will be the parameter name followed by this
 #'   string.
@@ -221,8 +224,8 @@ createFFEMdata <- function(runno = NULL,
   ## Register to allow for parallel computing. Tear the cluster down on exit
   ## (including on error), not only on a clean finish.
   if (cores > 1) {
-    registerDoParallel(cores = cores)
-    on.exit(stopImplicitCluster(), add = TRUE)
+    stopWorkers <- .fremStartWorkers(cores)
+    on.exit(stopWorkers(), add = TRUE)
   }
 
   mapFun <- function(data, orgCovs) {

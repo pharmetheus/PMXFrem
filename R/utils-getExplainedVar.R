@@ -163,8 +163,8 @@
   }
 
   if (ncores > 1) {
-    doParallel::registerDoParallel(cores = ncores)
-    on.exit(doParallel::stopImplicitCluster(), add = TRUE)
+    stopWorkers <- .fremStartWorkers(ncores, pkgs = unique(c("PMXFrem", cstrPackages)))
+    on.exit(stopWorkers(), add = TRUE)
   }
 
   mapFun <- function(data_row, orgCovs) {
