@@ -444,6 +444,34 @@ OMEGA) with "NaNs produced"; the thread count makes no difference
 arithmetic coming out slightly negative under this BLAS before a `sqrt()`, but
 not yet traced to the line. Worth finding: a user on OpenBLAS gets the same `NA`.
 
+## T33 — use PMXForest's worker startup instead of a copy
+
+`.fremStartWorkers()` (`R/utils-parallel.R`, PR #77) and PMXForest's
+`.forestStartWorkers()` (PMXForest-private#62) are the same function: fresh
+workers get the session's package folders first on `.libPaths()`, load the
+needed packages, and stop on a version mismatch; forked workers are left as
+they were. They differ only in the default `pkgs` and the option name
+(`PMXFrem.freshWorkers` / `PMXForest.freshWorkers`). Two copies of code this
+subtle drift: a fix to one - the namespace-detached setup function was found
+only by an end-to-end run - has to be remembered in the other.
+
+PMXFrem imports PMXForest, so once PMXForest 1.4.0 ships with it:
+
+1. In PMXForest, make it callable from another package without `:::` (which
+   `R CMD check` flags): export it under a plain name with
+   `@keywords internal`, taking `pkgs` and `fresh` as it does now.
+2. In PMXFrem, require `PMXForest (>= 1.4.0)`, call it from
+   `getExplainedVar()`, `getForestDFFREM()` and `createFFEMdata()` with
+   `pkgs = c("PMXFrem", cstrPackages)`, and delete `R/utils-parallel.R`.
+3. Keep `PMXFrem.freshWorkers` working for the tests (pass it as `fresh`), or
+   move PMXFrem's tests to the one option.
+4. Keep PMXFrem's end-to-end check - a versioned PMXFrem in the session, an
+   older one first on the workers' path - since the shared function is then
+   exercised with PMXFrem as the package that must match.
+
+Same timing as T31: after 2.2.0 ships, together with the `ci.yml` PMXForest
+pin update.
+
 ## Done
 
 - **T29** — `plotEtasCov()` line width on older ggplot2. It passed `linewidth`,
