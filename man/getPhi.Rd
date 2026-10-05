@@ -4,7 +4,7 @@
 \alias{getPhi}
 \title{Read the information in a NONMEM phi file}
 \usage{
-getPhi(phiFile, set = NULL, warn = T)
+getPhi(phiFile, set = NULL, warn = TRUE)
 }
 \arguments{
 \item{phiFile}{The name of the .phi file.}
@@ -36,6 +36,7 @@ dfPhi <- getPhi(phiFile = phiFile)
 }
 \seealso{
 Other NONMEM Parsers: 
+\code{\link{fremModelInfo}()},
 \code{\link{getCovNames}()},
 \code{\link{getExt}()},
 \code{\link{getFileNames}()}

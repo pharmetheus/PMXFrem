@@ -7,8 +7,8 @@
 fremParameterTable(
   runno = NULL,
   modDevDir = NULL,
-  numNonFREMThetas,
-  numSkipOm = 0,
+  numNonFREMThetas = NULL,
+  numSkipOm = NULL,
   thetaNum,
   omegaNum,
   sigmaNum,
@@ -36,7 +36,7 @@ fremParameterTable(
   modExt = ".mod",
   lstExt = ".lst",
   quiet = FALSE,
-  seed = NULL,
+  seed = 1,
   ...
 )
 }
@@ -49,13 +49,15 @@ named run# followed by the appropriate suffix (where # is \code{runno}).}
 \item{modDevDir}{The directory where the files reside. Default is the current
 directory, i.e. ".".}
 
-\item{numNonFREMThetas}{Number of thetas in the FREM model that are not FREM
-covariates. These need to come before the FREM covariate thetas in the FREM
-model file.}
+\item{numNonFREMThetas}{Number of structural (non-FREM-covariate) THETAs in
+the FREM model. If \code{NULL} (default) it is derived from the model file (found
+via \code{runno} / \code{modName} / \code{modDevDir}) and the ext via \code{\link[=fremModelInfo]{fremModelInfo()}}; a
+supplied value that disagrees with the derived one triggers a warning and is
+kept.}
 
-\item{numSkipOm}{Number of diagonal omegas that should not be part of the
-FREM calculations. Such omegas has to come before the large FREM omega
-block in the FREM model file.}
+\item{numSkipOm}{Number of diagonal OMEGAs before the FREM block that are not
+part of the FREM calculations. If \code{NULL} (default) it is derived via
+\code{\link[=fremModelInfo]{fremModelInfo()}} (warn-and-keep on a disagreeing explicit value).}
 
 \item{thetaNum}{The theta numbers to include in the output. This refers to
 the number associated with the theta value in \code{parVector}. `}
@@ -121,7 +123,15 @@ ext, phi and cov to form the NONMEM file names, for example
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
 STDOUT.}
 
-\item{...}{Additional arguments passed directly to \code{PMXForest::getSamples()} (e.g., \code{seed} for reproducibility).}
+\item{seed}{Integer seed set before the uncertainty sampling, so that RSE and
+CI are reproducible for the same inputs. Defaults to \code{1}. RSE and CI
+are Monte-Carlo quantities computed from \code{n} sampled parameter
+vectors; left unseeded they depend on whatever random numbers were drawn
+earlier in the session, and consecutive calls can differ by 20\%. Pass
+\code{NULL} to inherit the session's RNG state instead. The caller's
+random stream is restored afterwards either way.}
+
+\item{...}{Additional arguments passed directly to \code{PMXForest::getSamples()}.}
 }
 \value{
 A list of five components:
@@ -142,49 +152,63 @@ Covariate Effects) mapping each covariate to each structural parameter.
 \examples{
 
 if (requireNamespace("kableExtra", quietly = TRUE)) {
-library(kableExtra)
-library(dplyr)
+  library(kableExtra)
+  library(dplyr)
 
-set.seed(123)
-runno            <- 31
-modName          <- "run31"
-ffemModName      <- "run31max0"
-modDevDir        <- system.file("extdata/SimNeb/",package = "PMXFrem")
-numNonFREMThetas <- 7
-numSkipOm        <- 2
+  set.seed(123)
+  runno <- 31
+  modName <- "run31"
+  ffemModName <- "run31max0"
+  modDevDir <- system.file("extdata/SimNeb/", package = "PMXFrem")
+  numNonFREMThetas <- 7
+  numSkipOm <- 2
 
-## Generate the raw output
-tmp <- fremParameterTable(
-      runno            = runno,
-      modName          = modName,
-      modDevDir        = modDevDir,
-      thetaNum         = 2:7,
-      omegaNum         = c(1,3,4,5),
-      sigmaNum         = 1,
-      thetaLabels      = c("CL (L/h)","V (L)","MAT (h)","D1 (h)","Food on Frel","Food on MAT"),
-      omegaLabels      = c("IIV on RUV","IIV on CL","IIV on V","IIV on MAT"),
-      sigmaLabels      = c("RUV"),
-      parNames         = c("CL", "V", "MAT"),
-      includeRSE       = TRUE,
-      includeShrinkage = TRUE,
-      shrinkageType    = "ETA_SD",
-      rawShrinkage     = FALSE,
-      ffemModName      = ffemModName,
-      shkDigs          = 2,
-      uncertainty      = "CI",
-      numNonFREMThetas = numNonFREMThetas,
-      numSkipOm        = numSkipOm,
-      availCov         = "all",
-      quiet            = TRUE)
+  ## numNonFREMThetas / numSkipOm omitted: derived from the model located via
+  ## runno / modDevDir (see fremModelInfo())
+  tmpDerived <- fremParameterTable(
+    runno     = runno,
+    modDevDir = modDevDir,
+    thetaNum  = 2:7,
+    omegaNum  = c(1, 3, 4, 5),
+    sigmaNum  = 1,
+    parNames  = c("CL", "V", "MAT"),
+    availCov  = "all",
+    quiet     = TRUE
+  )
 
-## Use kable_extra to generate a nice looking table of the main parameters
-tmp$parameterTable \%>\%
-    mutate(Estimate=as.character(signif(Estimate,3)))\%>\%
+  ## Full output, numNonFREMThetas / numSkipOm passed explicitly
+  tmp <- fremParameterTable(
+    runno            = runno,
+    modName          = modName,
+    modDevDir        = modDevDir,
+    thetaNum         = 2:7,
+    omegaNum         = c(1, 3, 4, 5),
+    sigmaNum         = 1,
+    thetaLabels      = c("CL (L/h)", "V (L)", "MAT (h)", "D1 (h)", "Food on Frel", "Food on MAT"),
+    omegaLabels      = c("IIV on RUV", "IIV on CL", "IIV on V", "IIV on MAT"),
+    sigmaLabels      = c("RUV"),
+    parNames         = c("CL", "V", "MAT"),
+    includeRSE       = TRUE,
+    includeShrinkage = TRUE,
+    shrinkageType    = "ETA_SD",
+    rawShrinkage     = FALSE,
+    ffemModName      = ffemModName,
+    shkDigs          = 2,
+    uncertainty      = "CI",
+    numNonFREMThetas = numNonFREMThetas,
+    numSkipOm        = numSkipOm,
+    availCov         = "all",
+    quiet            = TRUE
+  )
+
+  ## Use kable_extra to generate a nice looking table of the main parameters
+  tmp$parameterTable \%>\%
+    mutate(Estimate = as.character(signif(Estimate, 3))) \%>\%
     kbl() \%>\%
     kable_classic(full_width = FALSE, html_font = "Cambria")
-    
-## Use kable_extra to generate a nice looking table of the covariate coefficients
-tmp$coefficientTable_wide \%>\%
+
+  ## Use kable_extra to generate a nice looking table of the covariate coefficients
+  tmp$coefficientTable_wide \%>\%
     kbl() \%>\%
     kable_classic(full_width = FALSE, html_font = "Cambria")
 }
@@ -195,12 +219,14 @@ tmp$coefficientTable_wide \%>\%
 Other Diagnostics & Plotting: 
 \code{\link{calcEtas}()},
 \code{\link{calcFremShrinkage}()},
+\code{\link{createFREMParamFunction}()},
 \code{\link{getExplainedVar}()},
 \code{\link{getForestDFFREM}()},
 \code{\link{plotCovDist}()},
 \code{\link{plotEtasCov}()},
 \code{\link{plotExplainedVar}()},
-\code{\link{traceplot}()}
+\code{\link{traceplot}()},
+\code{\link{verifyFREMParamFunction}()}
 }
 \concept{Diagnostics & Plotting}
 \concept{diagnostics}

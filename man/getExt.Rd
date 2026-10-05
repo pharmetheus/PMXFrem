@@ -37,6 +37,7 @@ subset(getExt(extFile = extFile), ITERATION == "-1000000000")
 }
 \seealso{
 Other NONMEM Parsers: 
+\code{\link{fremModelInfo}()},
 \code{\link{getCovNames}()},
 \code{\link{getFileNames}()},
 \code{\link{getPhi}()}

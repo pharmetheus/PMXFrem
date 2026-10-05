@@ -18,93 +18,85 @@
 #' @param labelfun A label function compatible with \code{labeller}. Used to
 #'   format \code{parameterLabels} used as row facet labels in the plot.
 #' @param fill_col The fill color of the bars.
+#' @param x_scale Passed to \code{facet_wrap(scales = )}; one of
+#'   \code{"fixed"}, \code{"free"}, \code{"free_x"} (default) or
+#'   \code{"free_y"}.
 #' @param maxVar maxVar=1 (default): Visualize the explained part of the total
 #'   variability. maxVar=2: Visualize the explained part of the explainable
 #'   variability.
 #' @param xlb X-axis title.
 #' @param reordFun The function used for the main effects ordering of the bars
 #' in the plots. Default is mean.
-#' @param add.stamp if \strong{TRUE} adds a stamp with the source directory and
-#'   time of generation at the bottom of the plot using \code{\link{add_stamp}}
-#'   function. Default is \strong{FALSE}. If there is any variable defined in
-#'   the global environment with the same name, ie. \code{add.stamp}, this
-#'   argument will assume the globally defined value of \code{add.stamp}, unless
-#'   \code{add.stamp} argument is explicitly defined when this function is
-#'   called.
-#' @param ... is optional arguments that are passed tp \code{\link{add_stamp}}
-#'   and further to \code{\link{ggplot2::ggsave}}
-#'
+#' @param add.stamp Logical. If \code{TRUE}, adds a caption recording the
+#'   source directory and time of generation via
+#'   \code{PMXForest::addStamp()}. Default \code{FALSE}.
 #'
 #' @return A plot that illustrates the explained variability
 #' @export
 #'
-#' @importFrom rlang peek_option
-#' @importFrom withr local_options
-#'
 #' @examples
-#' 
-#' modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
+#' library(dplyr)
+#'
+#' modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
 #' fremRunno <- 31
-#' modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))
-#' covNames  <- getCovNames(modFile = modFile)
+#' modFile <- file.path(modDevDir, paste0("run", fremRunno, ".mod"))
+#' covNames <- getCovNames(modFile = modFile)
 #'
 #' ## Set up dfCovs
 #' dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
 #'   filter(BLQ == 0) %>%
-#'   distinct(ID,.keep_all = TRUE)
+#'   distinct(ID, .keep_all = TRUE)
 #'
 #' dfCovs <- setupDfCovsEV(modFile)
 #'
-#' cstrCovariates <- c("All",names(dfCovs))
+#' cstrCovariates <- c("All", names(dfCovs))
 #'
 #' ## A list of functions
 #' functionList2 <- list(
-#'   function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[2]*exp(covthetas[1] + etas[3]))},
-#'   function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[3]*exp(covthetas[2] + etas[4]))}
+#'   function(basethetas, covthetas, dfrow, etas, ...) {
+#'     return(basethetas[2] * exp(covthetas[1] + etas[3]))
+#'   },
+#'   function(basethetas, covthetas, dfrow, etas, ...) {
+#'     return(basethetas[3] * exp(covthetas[2] + etas[4]))
+#'   }
 #' )
 #'
-#' functionListName2 <- c("CL","V")
+#' functionListName2 <- c("CL", "V")
 #'
-#' dfres1 <- getExplainedVar(type             = 0,
-#'                           data             = dfData,
-#'                           dfCovs           = dfCovs,
-#'                           numNonFREMThetas = 7,
-#'                           numSkipOm        = 2,
-#'                           functionList     = functionList2,
-#'                           functionListName = functionListName2,
-#'                           cstrCovariates   = cstrCovariates,
-#'                           modDevDir        = modDevDir,
-#'                           runno            = fremRunno,
-#'                           ncores           = 2,
-#'                           quiet            = TRUE,
-#'                           seed             = 123
+#' dfres1 <- getExplainedVar(
+#'   type = 0,
+#'   data = dfData,
+#'   dfCovs = dfCovs,
+#'   numNonFREMThetas = 7,
+#'   numSkipOm = 2,
+#'   functionList = functionList2,
+#'   functionListName = functionListName2,
+#'   cstrCovariates = cstrCovariates,
+#'   modDevDir = modDevDir,
+#'   runno = fremRunno,
+#'   ncores = 2,
+#'   quiet = TRUE,
+#'   seed = 123
 #' )
 #'
 #' plotExplainedVar(dfres1)
-#' 
+#'
 #' @family Diagnostics & Plotting
 #' @concept diagnostics
 plotExplainedVar <- function(dfres,
-                             parameters      = unique(dfres$PARAMETER),
+                             parameters = unique(dfres$PARAMETER),
                              parameterLabels = NULL,
                              covariateLabels = NULL,
-                             labelfun        = ggplot2:::label_value,
-                             fill_col        = "lightgrey",
-                             x_scale         = "free_x",
-                             maxVar          = 1,
-                             xlb             = ifelse(maxVar == 1,
+                             labelfun = ggplot2::label_value,
+                             fill_col = "lightgrey",
+                             x_scale = "free_x",
+                             maxVar = 1,
+                             xlb = ifelse(maxVar == 1,
                                "Explained part of total variability (%)",
-                               "Explained part of explainable variability (%)"),
+                               "Explained part of explainable variability (%)"
+                             ),
                              reordFun = "mean",
-                             add.stamp       = FALSE,
-                             ...) {
-  # Adjust add.stamp if needed
-  if ("add.stamp" %in% ls(envir = .GlobalEnv) & missing(add.stamp)) {
-    add.stamp <- get("add.stamp", envir = .GlobalEnv)
-  } else {
-    add.stamp
-  }
-
+                             add.stamp = FALSE) {
   ## Input checks
   if (!(maxVar == 1 | maxVar == 2)) {
     stop("maxVar needs to be 1 or 2")
@@ -121,7 +113,7 @@ plotExplainedVar <- function(dfres,
   ## Check the covariate labels
   if (!is.null(covariateLabels)) {
     if (!((length(covariateLabels) == length(unique(dfres$COVNAME))) |
-      (length(covariateLabels)  == nrow(dfres)))) {
+      (length(covariateLabels) == nrow(dfres)))) {
       stop("The number of group name labels must either be the same as the number of unique values in COVNAME or have the same length as the number of rows in dfres.")
     }
   }
@@ -148,7 +140,6 @@ plotExplainedVar <- function(dfres,
 
   ## Name the COVNAME column
   if (!is.null(covariateLabels)) {
-
     if (length(covariateLabels) == length(unique(dfres$COVNAME))) {
       names(covariateLabels) <- unique(dfres$COVNAME)
 
@@ -157,11 +148,9 @@ plotExplainedVar <- function(dfres,
       for (gName in unique(dfres$COVNAME)) {
         dfres$COVNAMELABEL <- ifelse(dfres$COVNAME == gName, covariateLabels[gName], dfres$COVNAMELABEL)
       }
-
     } else {
       dfres$COVNAMELABEL <- covariateLabels
     }
-
   } else {
     dfres$COVNAMELABEL <- dfres$COVNAME
   }
@@ -183,16 +172,14 @@ plotExplainedVar <- function(dfres,
   #     ylab(xlb) +
   #     xlab("")
   # } else {
-    p1 <- ggplot(data = dfres, aes(x = Frac, y = COVNAMELABEL)) +
-      geom_bar(position = "dodge", stat = "identity", fill = fill_col) +
-      facet_wrap(~PARAMETERLABEL, scales = x_scale, labeller = labeller(PARAMETERLABEL = labelfun)) +
-      xlab(xlb) +
-      ylab("")
+  p1 <- ggplot(data = dfres, aes(x = Frac, y = COVNAMELABEL)) +
+    geom_bar(position = "dodge", stat = "identity", fill = fill_col) +
+    facet_wrap(~PARAMETERLABEL, scales = x_scale, labeller = labeller(PARAMETERLABEL = labelfun)) +
+    xlab(xlb) +
+    ylab("")
   # }
 
-  if (add.stamp) {
-    p1 <- PhRame::add_stamp(p1, print = FALSE, ...)
-  }
+  if (add.stamp) p1 <- PMXForest::addStamp(p1)
 
   return(p1)
 }

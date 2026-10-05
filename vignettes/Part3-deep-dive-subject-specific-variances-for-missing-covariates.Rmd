@@ -1,0 +1,149 @@
+---
+title: "3. Deep Dive: Subject-Specific Variances for Missing Covariates"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{3. Deep Dive: Subject-Specific Variances for Missing Covariates}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Introduction
+
+The FFEM conversion normally derives one set of variance parameters and gives it
+to every subject. That assumes everyone carries the same covariate information.
+Where covariates are missing, and missing in different combinations from subject
+to subject, the assumption does not hold: a subject whose weight was never
+measured should keep the variability that weight would have explained, while a
+subject with a full covariate record should not.
+
+`omegaToData = TRUE` relaxes it. Each subject gets the variance-covariance
+matrix implied by their own missing-covariate pattern, carried in the data set
+rather than in `$OMEGA`.
+
+# 1. How it works
+
+The matrix a subject is given is the FREM covariance conditional on the
+covariates that subject actually has. Since it differs between subjects it
+cannot live in `$OMEGA`, which is estimated once for the run. Instead the
+elements travel in the data set, and the model rebuilds the correlated random
+effects from them through a Cholesky factorization of the individual matrix
+\(V\):
+
+$$V = L L^{T}$$
+
+\(L\) is lower triangular, so independent standard normal `ETA`s become
+correlated `MYETA`s by
+
+$$L_{ii} = \sqrt{V_{ii} - \sum_{k<i} L_{ik}^{2}}, \qquad
+  L_{ij} = \frac{V_{ij} - \sum_{k<j} L_{ik} L_{jk}}{L_{jj}}$$
+
+The indices are the model's own eta numbers, so in a model with skipped omegas
+they start above them: `run31` skips two, and its FREM parameter etas are 3, 4
+and 5.
+
+# 2. The data set
+
+`createFFEMdata(omegaToData = TRUE)` appends one column per element of the lower
+triangle, named for the etas it belongs to.
+
+```{r ffem_data}
+library(PMXFrem)
+
+modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+td <- tempdir()
+
+ffem <- createFFEMdata(
+  modName     = "run31",
+  modDevDir   = modDevDir,
+  parNames    = c("CL", "V", "MAT"),
+  dataFile    = file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+  newDataFile = file.path(td, "ffem_omegaToData.csv"),
+  omegaToData = TRUE,
+  quiet       = TRUE
+)
+
+vCols <- grep("^V[0-9]+$", names(ffem$newData), value = TRUE)
+vCols
+```
+
+`numNonFREMThetas` and `numSkipOm` are not passed: the model is located through
+`modName` / `modDevDir`, so they come from the model and its `.ext` via
+`fremModelInfo()`. `V33` is the variance of eta 3, `V43` its covariance with
+eta 4, and so on.
+
+The values differ from subject to subject:
+
+```{r v_per_subject}
+firstRow <- ffem$newData[!duplicated(ffem$newData$ID), ]
+head(firstRow[, c("ID", vCols)], 4)
+```
+
+They differ because the covariate records differ. Subject 19 is missing one
+covariate more than subject 1, and keeps a larger unexplained variance on
+clearance:
+
+```{r why_they_differ}
+covs <- getCovNames(file.path(modDevDir, "run31.mod"))$orgCovNames
+covs <- intersect(covs, names(firstRow))
+
+nMissing <- function(id) sum(firstRow[firstRow$ID == id, covs] == -99)
+
+data.frame(
+  ID              = c(1, 19),
+  covsMissing     = c(nMissing(1), nMissing(19)),
+  varianceOnCL    = firstRow$V33[firstRow$ID %in% c(1, 19)]
+)
+```
+
+# 3. The model code
+
+`createFFEMmodel(omegaToData = TRUE)` fixes the FREM part of `$OMEGA` to an
+identity matrix and writes the factorization into `$PK`, reading the `V`-columns
+from the data set.
+
+```{r ffem_model}
+ffemMod <- createFFEMmodel(
+  runno       = 31,
+  baserunno   = 30,
+  modDevDir   = modDevDir,
+  parNames    = c("CL", "V", "MAT"),
+  dataFile    = file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+  newDataFile = file.path(td, "ffem_omegaToData_model.csv"),
+  ffemModName = file.path(td, "run31_omegaToData.mod"),
+  omegaToData = TRUE,
+  quiet       = TRUE
+)
+```
+
+The generated `$PK` block:
+
+```{r cholesky_block, comment = ""}
+i <- grep("Cholesky factors", ffemMod)
+cat(ffemMod[i:(i + 21)], sep = "\n")
+```
+
+And the `$OMEGA` records the factorization replaces. The two skipped omegas are
+untouched; the FREM block is an identity matrix, fixed:
+
+```{r omega_block, comment = ""}
+j <- grep("^\\$OMEGA", ffemMod)[1]
+cat(ffemMod[j:(j + 6)], sep = "\n")
+```
+
+# 4. When to use it
+
+`omegaToData = TRUE` is worth the extra columns when the covariate record is
+incomplete and the gaps are uneven - a subject missing four covariates and one
+missing none should not share a variance. With a complete covariate record every
+subject gets the same matrix, and the default `omegaToData = FALSE` says the
+same thing with less machinery.

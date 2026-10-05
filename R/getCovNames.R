@@ -24,33 +24,44 @@
 #' @concept nonmem_parsers
 getCovNames <- function(modFile,
                         keepComment = FALSE) {
-
-  mod       <- scan(modFile, what = "character", sep = "\n", quiet = TRUE)
+  mod <- scan(modFile, what = "character", sep = "\n", quiet = TRUE)
   fremStart <- grep(";;;FREM CODE BEGIN COMPACT", mod)
-  fremEnd   <- grep(";;;FREM CODE END COMPACT", mod)
+  fremEnd <- grep(";;;FREM CODE END COMPACT", mod)
 
   if (length(fremStart) == 0) {
     stop(paste("Could not find", ";;;FREM CODE BEGIN COMPACT", "in the model file. Is this a FREM model?"))
   }
 
-  mod1      <- mod[(fremStart + 2):(fremEnd - 1)]
-  covNames  <- mod1[grep(";", mod1)]
+  mod1 <- mod[(fremStart + 2):(fremEnd - 1)]
+  covNames <- mod1[grep(";", mod1)]
 
-  covNames  <- str_replace(covNames, " 1", "") # Always remove " 1" in the end of the covNames
+  covNames <- str_replace(covNames, " 1", "") # Always remove " 1" in the end of the covNames
 
   if (!keepComment) {
-    covNames  <- str_replace(covNames, ";\\s*", "")
-    covNames  <- str_replace(covNames, " ", "")
+    covNames <- str_replace(covNames, ";\\s*", "")
+    covNames <- str_replace(covNames, " ", "")
   }
 
-  orgCovNames <- sort(unique(str_replace(covNames, "_.*", "")))
+  orgCovNames <- sort(unique(.fremBaseCov(covNames)))
 
-  ## Figure out which ones that are poly-categorical, i.e. those with an '_' in the name
-  fremCovs  <- covNames[grep("_", x = covNames)]
+  ## The poly-categorical ones: binarized by PsN as <cov>_<level>
+  fremCovs <- covNames[.fremIsBinarized(covNames)]
 
-  return(list(covNames = covNames,
+  return(list(
+    covNames = covNames,
     polyCatCovs = fremCovs,
-    orgCovNames = orgCovNames)
-  )
-
+    orgCovNames = orgCovNames
+  ))
 }
+
+## A FREM covariate is <cov>, or <cov>_<level> with an integer level for a
+## binarized category (PsN's naming). Only that trailing suffix is the level:
+## stripping "_.*" or the first "_[0-9]*" split a covariate whose own name holds
+## an underscore (BL_BILI became BL, or BLBILI). Trailing blanks are allowed for
+## getCovNames(keepComment = TRUE).
+##
+## @noRd
+.fremBaseCov <- function(x) sub("_[0-9]+(\\s*)$", "\\1", x)
+
+## @noRd
+.fremIsBinarized <- function(x) grepl("_[0-9]+\\s*$", x)

@@ -1,0 +1,218 @@
+#' Derive the structural integer arguments of a FREM model
+#'
+#' Works out `numNonFREMThetas`, `numSkipOm`, `numParCov`, `numFREMThetas` and
+#' `numSigmas` from a FREM model file and its `.ext` (or a `getSamples()` result),
+#' so the user does not have to supply them by hand to the FREM analysis
+#' functions.
+#'
+#' The derivation is:
+#'
+#' \preformatted{
+#' numFREMThetas    = length(getCovNames(modFile)$covNames)
+#' numTotThetas     = number of THETA columns in `dfext`
+#' numNonFREMThetas = numTotThetas - numFREMThetas
+#' numTotEta        = solve k(k+1)/2 = number of OMEGA columns in `dfext`
+#' blockN           = N in the final "$OMEGA BLOCK(N)" record of `modFile`
+#' numParCov        = blockN - numFREMThetas
+#' numSkipOm        = numTotEta - blockN
+#' numSigmas        = number of SIGMA columns in `dfext`
+#' }
+#'
+#' `numSkipOm` is taken as `numTotEta - blockN` rather than by counting the simple
+#' `$OMEGA` records before the block; that is robust to a structural correlation
+#' `$OMEGA BLOCK(k)` sitting before the FREM block.
+#'
+#' @param modFile Path to the FREM model file. Must contain the PsN-style
+#'   `;;;FREM CODE BEGIN COMPACT` / `;;;FREM CODE END COMPACT` markers (models from
+#'   `createFREMmodel()`, `updateFREMmodel()` and `createMinimalFremModel()` all
+#'   carry them) and a final `$OMEGA BLOCK(N)` record.
+#' @param dfext A data frame with `THETA*` / `OMEGA*` / `SIGMA*` columns - a
+#'   `getExt()` result or a `PMXForest::getSamples()` result - or a path to a
+#'   NONMEM `.ext` file.
+#' @param numNonFREMThetas,numSkipOm Optional. If supplied they are returned as
+#'   given (an override), but a value that disagrees with the one derived from
+#'   the model triggers a warning. Leave `NULL` (default) to use the derived
+#'   value.
+#'
+#' @return A list with components `numNonFREMThetas`, `numFREMThetas`,
+#'   `numParCov`, `numSkipOm`, `numSigmas`, `numTotEta`, `numTotThetas`,
+#'   `covNames`, `orgCovNames` and `polyCatCovs`.
+#'
+#' @examples
+#' modFile <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
+#' extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+#' fremModelInfo(modFile, extFile)
+#'
+#' @family NONMEM Parsers
+#' @concept nonmem_parsers
+#' @export
+fremModelInfo <- function(modFile,
+                          dfext,
+                          numNonFREMThetas = NULL,
+                          numSkipOm = NULL) {
+  ## ---- ext: accept a data.frame or a path -------------------------------
+  if (is.character(dfext) && length(dfext) == 1L) {
+    dfext <- getExt(extFile = dfext)
+  }
+  if (!is.data.frame(dfext)) {
+    stop("`dfext` must be a data.frame from getExt() / getSamples(), or a path to a NONMEM .ext file.")
+  }
+
+  ## ---- FREM covariates from the model (stops if not a FREM model) -------
+  cn <- getCovNames(modFile = modFile)
+  numFREMThetas <- length(cn$covNames)
+
+  ## ---- counts from the ext columns (getExt and getSamples shapes both) --
+  nTheta <- length(grep("THETA", names(dfext)))
+  nOmCol <- length(grep("OMEGA", names(dfext)))
+  nSigma <- length(grep("SIGMA", names(dfext)))
+  if (nTheta == 0 || nOmCol == 0) {
+    stop("Could not find THETA / OMEGA columns in `dfext`; is it a getExt() / getSamples() result?")
+  }
+  numTotEta <- (-1 + sqrt(1 + 8 * nOmCol)) / 2
+  if (abs(numTotEta - round(numTotEta)) > 1e-8) {
+    stop(
+      "The number of OMEGA columns in `dfext` (", nOmCol,
+      ") is not a triangular number; the .ext looks inconsistent."
+    )
+  }
+  numTotEta <- as.integer(round(numTotEta))
+
+  ## ---- the FREM $OMEGA block, from the model's own $OMEGA records ---------
+  ## Read through .fremOmegaRecords(), which strips comments, ignores the
+  ## $OMEGAP / $OMEGAPD prior records, accepts $OME / $omega spellings and
+  ## counts etas per record. A grep for "BLOCK(" on the raw lines, as this used
+  ## to be, took a BLOCK(22) written in a comment, a prior's BLOCK(2), or an IOV
+  ## BLOCK(1) after the FREM block as "the" block, and returned wrong integers
+  ## with no warning.
+  modLines <- sub("\r$", "", readLines(modFile, warn = FALSE))
+  omRecs <- .fremOmegaRecords(modLines)
+  recText <- vapply(seq_len(nrow(omRecs)), function(r) {
+    toupper(paste(sub(";.*$", "", modLines[omRecs$start[r]:omRecs$end[r]]), collapse = " "))
+  }, character(1))
+  ## The FREM block is a BLOCK(n) - not a SAME repeat - big enough to hold
+  ## every FREM covariate and at least one parameter.
+  isBlk <- grepl("\\bBLOCK\\s*\\(\\s*[0-9]+\\s*\\)", recText) &
+    !grepl("\\bSAME\\b", recText) & omRecs$n > numFREMThetas
+  if (!any(isBlk)) {
+    stop(
+      "Could not find a '$OMEGA BLOCK(N)' record in ", basename(modFile),
+      " large enough to hold its ", numFREMThetas, " FREM covariates. ",
+      "Auto-derivation needs the FREM omega block written as an explicit BLOCK(N)."
+    )
+  }
+  b <- max(which(isBlk))
+  blockN <- omRecs$n[b]
+  ## etas defined by the records BEFORE the FREM block - not numTotEta minus
+  ## the block, which also counts any IIV written after it
+  etasBefore <- as.integer(sum(omRecs$n[seq_len(b - 1L)]))
+
+  ## ---- model vs ext ----------------------------------------------------
+  ## The mutators (addFremIIV / addFremStructuralTheta) deliberately do not
+  ## migrate the .ext, so a caller can easily pair a mutated .mod with the old
+  ## one. Everything below is then derived from the ext and describes the
+  ## model before the mutation, with nothing to show for it.
+  ## Thetas as well as etas: addFremStructuralTheta(addEta = FALSE) adds a
+  ## $THETA and no eta, so an eta comparison alone passes the stale pairing
+  ## and numNonFREMThetas comes back one short. Warn only when the model
+  ## references MORE thetas than the ext has - a model may legitimately carry
+  ## a trailing $THETA it never references, and that is not staleness.
+  codeOnly <- sub(";.*$", "", modLines)
+  thHits <- regmatches(codeOnly, gregexpr("(?i)(?<![A-Za-z])THETA\\(\\s*[0-9]+\\s*\\)", codeOnly, perl = TRUE))
+  thIdx <- as.integer(gsub("[^0-9]", "", unlist(thHits)))
+  modTheta <- if (length(thIdx)) max(thIdx) else 0L
+  if (modTheta > nTheta) {
+    warning(
+      basename(modFile), " references THETA(", modTheta, ") but the ext ",
+      "has only ", nTheta, " theta(s); the two are not from the same run. ",
+      "If the model was changed by addFremStructuralTheta(), it has to be ",
+      "re-estimated first."
+    )
+  }
+  modEta <- .fremCountTotEta(modLines)
+  ## Only when the model references MORE etas than the ext describes - the
+  ## same rule as for thetas. An ext eta the code never references is not a
+  ## sign of a different run.
+  if (modEta > numTotEta) {
+    warning(
+      basename(modFile), " references ETA(", modEta, ") but the ext ",
+      "describes only ", numTotEta, " eta(s)",
+      "; the two are not from the same run. Every number derived here comes ",
+      "from the ext. If the model was changed by addFremIIV() or ",
+      "addFremStructuralTheta(), it has to be re-estimated first."
+    )
+  }
+
+  ## ---- derive ---------------------------------------------------------
+  d_numNonFREMThetas <- nTheta - numFREMThetas
+  d_numSkipOm <- etasBefore
+  d_numParCov <- blockN - numFREMThetas
+
+  ## The $OMEGA records up to the end of the FREM block must fit in the ext. A
+  ## BLOCK(n) larger than the ext's omega matrix otherwise passes every sign
+  ## check above and returns a numParCov no ext column backs.
+  if (d_numNonFREMThetas < 0 || d_numParCov < 1 || d_numSkipOm < 0 ||
+    etasBefore + blockN > numTotEta) {
+    warning(
+      "Derived FREM structure looks inconsistent (numNonFREMThetas = ",
+      d_numNonFREMThetas, ", numParCov = ", d_numParCov,
+      ", numSkipOm = ", d_numSkipOm, "; the $OMEGA records define ",
+      etasBefore + blockN, " eta(s) up to the end of the FREM block and the ",
+      "ext describes ", numTotEta,
+      "). Check that `modFile` and `dfext` are from the same run."
+    )
+  }
+
+  ## ---- reconcile with explicit overrides: warn, keep the explicit value
+  out_numNonFREMThetas <- d_numNonFREMThetas
+  if (!is.null(numNonFREMThetas)) {
+    if (!isTRUE(all.equal(as.numeric(numNonFREMThetas), as.numeric(d_numNonFREMThetas)))) {
+      warning(
+        "Supplied numNonFREMThetas (", numNonFREMThetas,
+        ") differs from the value derived from the model and its ext (", d_numNonFREMThetas,
+        "); using the supplied value."
+      )
+    }
+    out_numNonFREMThetas <- numNonFREMThetas
+  }
+
+  out_numSkipOm <- d_numSkipOm
+  if (!is.null(numSkipOm)) {
+    if (!isTRUE(all.equal(as.numeric(numSkipOm), as.numeric(d_numSkipOm)))) {
+      warning(
+        "Supplied numSkipOm (", numSkipOm,
+        ") differs from the value derived from the model and its ext (", d_numSkipOm,
+        "); using the supplied value."
+      )
+    }
+    out_numSkipOm <- numSkipOm
+  }
+
+  ## Keep numSkipOm + numParCov + numFREMThetas == numTotEta even when the user
+  ## forces an inconsistent numSkipOm, so downstream code stays self-consistent.
+  ## Etas up to the end of the FREM block are split between the skipped ones
+  ## and the FREM parameters; an overridden numSkipOm moves numParCov with it,
+  ## so numSkipOm + numParCov + numFREMThetas still ends at the block.
+  out_numParCov <- d_numSkipOm + d_numParCov - out_numSkipOm
+  if (out_numParCov < 1 || out_numSkipOm < 0) {
+    warning(
+      "numSkipOm = ", out_numSkipOm, " leaves numParCov = ", out_numParCov,
+      " for ", basename(modFile), ", whose FREM block holds ", blockN,
+      " etas after ", d_numSkipOm, " skipped. No FREM parameter can be ",
+      "indexed with that; check numSkipOm."
+    )
+  }
+
+  list(
+    numNonFREMThetas = out_numNonFREMThetas,
+    numFREMThetas    = numFREMThetas,
+    numParCov        = out_numParCov,
+    numSkipOm        = out_numSkipOm,
+    numSigmas        = nSigma,
+    numTotEta        = numTotEta,
+    numTotThetas     = nTheta,
+    covNames         = cn$covNames,
+    orgCovNames      = cn$orgCovNames,
+    polyCatCovs      = cn$polyCatCovs
+  )
+}

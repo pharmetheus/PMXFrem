@@ -9,15 +9,14 @@ plotExplainedVar(
   parameters = unique(dfres$PARAMETER),
   parameterLabels = NULL,
   covariateLabels = NULL,
-  labelfun = ggplot2:::label_value,
+  labelfun = ggplot2::label_value,
   fill_col = "lightgrey",
   x_scale = "free_x",
   maxVar = 1,
   xlb = ifelse(maxVar == 1, "Explained part of total variability (\%)",
     "Explained part of explainable variability (\%)"),
   reordFun = "mean",
-  add.stamp = FALSE,
-  ...
+  add.stamp = FALSE
 )
 }
 \arguments{
@@ -39,6 +38,10 @@ format \code{parameterLabels} used as row facet labels in the plot.}
 
 \item{fill_col}{The fill color of the bars.}
 
+\item{x_scale}{Passed to \code{facet_wrap(scales = )}; one of
+\code{"fixed"}, \code{"free"}, \code{"free_x"} (default) or
+\code{"free_y"}.}
+
 \item{maxVar}{maxVar=1 (default): Visualize the explained part of the total
 variability. maxVar=2: Visualize the explained part of the explainable
 variability.}
@@ -48,16 +51,9 @@ variability.}
 \item{reordFun}{The function used for the main effects ordering of the bars
 in the plots. Default is mean.}
 
-\item{add.stamp}{if \strong{TRUE} adds a stamp with the source directory and
-time of generation at the bottom of the plot using \code{\link{add_stamp}}
-function. Default is \strong{FALSE}. If there is any variable defined in
-the global environment with the same name, ie. \code{add.stamp}, this
-argument will assume the globally defined value of \code{add.stamp}, unless
-\code{add.stamp} argument is explicitly defined when this function is
-called.}
-
-\item{...}{is optional arguments that are passed tp \code{\link{add_stamp}}
-and further to \code{\link{ggplot2::ggsave}}}
+\item{add.stamp}{Logical. If \code{TRUE}, adds a caption recording the
+source directory and time of generation via
+\code{PMXForest::addStamp()}. Default \code{FALSE}.}
 }
 \value{
 A plot that illustrates the explained variability
@@ -70,42 +66,48 @@ by 100. With maxVar=2 the explained variability of the covariate
 TOTCOVVAR and multiplied by 100.
 }
 \examples{
+library(dplyr)
 
-modDevDir <- system.file("extdata/SimNeb",package="PMXFrem")
+modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
 fremRunno <- 31
-modFile   <- file.path(modDevDir,paste0("run",fremRunno,".mod"))
-covNames  <- getCovNames(modFile = modFile)
+modFile <- file.path(modDevDir, paste0("run", fremRunno, ".mod"))
+covNames <- getCovNames(modFile = modFile)
 
 ## Set up dfCovs
 dfData <- read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) \%>\%
   filter(BLQ == 0) \%>\%
-  distinct(ID,.keep_all = TRUE)
+  distinct(ID, .keep_all = TRUE)
 
 dfCovs <- setupDfCovsEV(modFile)
 
-cstrCovariates <- c("All",names(dfCovs))
+cstrCovariates <- c("All", names(dfCovs))
 
 ## A list of functions
 functionList2 <- list(
-  function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[2]*exp(covthetas[1] + etas[3]))},
-  function(basethetas,covthetas, dfrow, etas, ...){ return(basethetas[3]*exp(covthetas[2] + etas[4]))}
+  function(basethetas, covthetas, dfrow, etas, ...) {
+    return(basethetas[2] * exp(covthetas[1] + etas[3]))
+  },
+  function(basethetas, covthetas, dfrow, etas, ...) {
+    return(basethetas[3] * exp(covthetas[2] + etas[4]))
+  }
 )
 
-functionListName2 <- c("CL","V")
+functionListName2 <- c("CL", "V")
 
-dfres1 <- getExplainedVar(type             = 0,
-                          data             = dfData,
-                          dfCovs           = dfCovs,
-                          numNonFREMThetas = 7,
-                          numSkipOm        = 2,
-                          functionList     = functionList2,
-                          functionListName = functionListName2,
-                          cstrCovariates   = cstrCovariates,
-                          modDevDir        = modDevDir,
-                          runno            = fremRunno,
-                          ncores           = 2,
-                          quiet            = TRUE,
-                          seed             = 123
+dfres1 <- getExplainedVar(
+  type = 0,
+  data = dfData,
+  dfCovs = dfCovs,
+  numNonFREMThetas = 7,
+  numSkipOm = 2,
+  functionList = functionList2,
+  functionListName = functionListName2,
+  cstrCovariates = cstrCovariates,
+  modDevDir = modDevDir,
+  runno = fremRunno,
+  ncores = 2,
+  quiet = TRUE,
+  seed = 123
 )
 
 plotExplainedVar(dfres1)
@@ -115,12 +117,14 @@ plotExplainedVar(dfres1)
 Other Diagnostics & Plotting: 
 \code{\link{calcEtas}()},
 \code{\link{calcFremShrinkage}()},
+\code{\link{createFREMParamFunction}()},
 \code{\link{fremParameterTable}()},
 \code{\link{getExplainedVar}()},
 \code{\link{getForestDFFREM}()},
 \code{\link{plotCovDist}()},
 \code{\link{plotEtasCov}()},
-\code{\link{traceplot}()}
+\code{\link{traceplot}()},
+\code{\link{verifyFREMParamFunction}()}
 }
 \concept{Diagnostics & Plotting}
 \concept{diagnostics}

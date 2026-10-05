@@ -1,42 +1,56 @@
 ---
 output: github_document
 ---
+
 <!-- README.md is generated from README.Rmd. Please edit that file -->
+
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>",
-  fig.path = "man/figures/README-",
-  out.width = "100%"
+  comment = "#>"
 )
 ```
 
 # PMXFrem
-The goal of `PMXFrem` is to provide comprehensive post-processing support for Full Random Effects Models (FREM) built in NONMEM. It facilitates the automated conversion of FREM models to Full Fixed Effects Models (FFEM), enabling standard project workflows including Goodness-of-Fit (GOF) diagnostics, Visual Predictive Checks (VPC), and forest-plot based results communication.
+
+The goal of `PMXFrem` is to provide pre- and post-processing
+support for Full Random Effects Models (FREM) built in NONMEM. It
+facilitates the conversion of FREM models to Full Fixed
+Effects Models (FFEM), enabling standard project workflows including
+Goodness-of-Fit (GOF) diagnostics, Visual Predictive Checks (VPC), and
+forest-plot based results communication.
 
 ## Installation
 
-### Nominal Instructions 
-You can install the development version of `PMXFrem` from GitHub with:
+You can install the development version of `PMXFrem` from [GitHub](https://github.com/pharmetheus/PMXFrem) with:
 
 ``` r
 # install.packages("devtools")
 devtools::install_github("pharmetheus/PMXFrem")
 ```
 
-To install a stable release with compiled vignettes, download the latest source package (.tar.gz) from the Releases section and install locally:
+The vignette sources are in `vignettes/`. Open the `.Rmd` files in RStudio and click Knit to compile, or run `browseVignettes("PMXFrem")` to read the versions built at install time.
 
-```{r,eval=FALSE}
-install.packages("path_to_release/PMXFrem_vX.Y.Z.tar.gz", repos = NULL, type = "source")
+To get the latest stable release (including vignettes), download the source package from the [releases page of the GitHub repository](https://github.com/pharmetheus/PMXFrem/releases): the file whose name starts with `PMXFrem` and ends in `.tar.gz`. Install it with the `install.packages` command, e.g.:
+
+```{r, eval = FALSE}
+install.packages("path_to_release.tar.gz", repos = NULL, type = "source")
 ```
-
-### Organizational Installation
 
 If your organizational SOPs require installation via an internal package manager (e.g., Posit Package Manager) or a localized server, please prioritize those methods over GitHub to ensure environment stability and reproducibility.
 
-## Documentation Roadmap
+## Further information
 
-To get started with `PMXFrem`, we recommend following this documentation sequence:
+A FREM analysis has more moving parts than a short example can usefully show, so
+the documentation takes it a piece at a time. PMXFrem assembles FREM data sets,
+converts a converged FREM model to its FFEM counterpart, extends an established
+model with new structural thetas and IIVs, derives subject-specific variances
+for missing covariates, and produces the parameter tables, diagnostics, forest
+plots and explained-variability plots a FREM analysis is reported with. The
+vignettes are written to be read in order:
 
-1. Quick Start: A 5-minute copy-pasteable example to verify your installation and run a basic FREM-to-FFEM conversion.
-2. The Walk-Through: A comprehensive tutorial demonstrating the full workflow: from data assembly to forest plot generation.
+1. **Quick Start** - a 5-minute copy-pasteable example to verify your installation and run a basic FREM-to-FFEM conversion.
+2. **The Walk-Through** - the full workflow, from data assembly to forest plot generation.
+3. **The deep dives** - one vignette per topic, for the parts of the workflow that need more than the walk-through gives them.
+
+Once the package is installed you can issue the command: `browseVignettes("PMXFrem")`

@@ -11,11 +11,14 @@ getForestDFFREM(
     
     return(basethetas[1] * exp(covthetas[1]))
  }),
-  covNames,
+  covNames = NULL,
   functionListName = "PAR1",
-  numSkipOm = 0,
-  numNonFREMThetas,
+  numSkipOm = NULL,
+  numNonFREMThetas = NULL,
   dfParameters,
+  runno = NULL,
+  modName = NULL,
+  modDevDir = NULL,
   parNames = paste("Par", 1:numParCov, sep = ""),
   availCov = covNames,
   quiet = FALSE,
@@ -26,7 +29,9 @@ getForestDFFREM(
   ncores = 1,
   cstrPackages = NULL,
   cstrExports = NULL,
-  iMiss = missVal,
+  missVal = -99,
+  oneHot = NULL,
+  oneHotSep = "_",
   ...
 )
 }
@@ -46,22 +51,41 @@ will be calculated. If the function returns a vector of values, each value
 will be used but functionListName must contain the names with a length of
 all return for all functions in the functionList}
 
-\item{covNames}{Names of the covariates}
+\item{covNames}{Names of the covariates. If \code{NULL} (default), locate the model
+file via \code{runno} / \code{modName} / \code{modDevDir} so they can be derived; otherwise
+required.}
 
 \item{functionListName}{A vector of strings (names) of the parameters for
 each function in the functionList}
 
 \item{numSkipOm}{Number of diag omegas (variances) that should not be part of
 the FREM calculations. Such omegas has to come before the large FREM omega
-block.}
+block. If \code{NULL} (default) and the model file is located via \code{runno} /
+\code{modName} / \code{modDevDir}, it is derived via \code{\link[=fremModelInfo]{fremModelInfo()}} (warn-and-keep
+on a disagreeing explicit value); otherwise it defaults to 0.}
 
 \item{numNonFREMThetas}{Number of thetas that are not FREM covariates. These
-need to come before the FREM covariate thetas.}
+need to come before the FREM covariate thetas. If \code{NULL} (default) and the
+model file is located via \code{runno} / \code{modName} / \code{modDevDir}, it is derived
+via \code{\link[=fremModelInfo]{fremModelInfo()}}; an explicit value that disagrees with the derived one
+triggers a warning and is kept. Required when the model file is not given.}
 
 \item{dfParameters}{A data frame with parameter samples from the uncertainty
 distribution. The vector of final parameter estimates is assumed to be in
 the first row. The column order is assumed the same as in the NONMEM ext
 file except the ITERATION and OBJ columns whichshould not be included.}
+
+\item{runno}{The run number. Must be provided if \code{modName} is NULL. Will be
+used to create NONMEM model and results file names  with the structure
+run#.mod and run#. NONMEM ext, phi and cov files will be assumed to be
+named run# followed by the appropriate suffix (where # is \code{runno}).}
+
+\item{modName}{The model name. Will be used together with \code{modExt}, \code{lstExt},
+ext, phi and cov to form the NONMEM file names, for example
+\code{modName}.mod for the model file.}
+
+\item{modDevDir}{The directory where the files reside. Default is the current
+directory, i.e. ".".}
 
 \item{parNames}{Names of the parameters}
 
@@ -90,7 +114,10 @@ Forest plot, the length of the vector should match the number of rows in
 dfCovs. If NULL (default) an educated guess of the grouping will be set}
 
 \item{ncores}{the number of cores to use for the calculations, default = 1
-which means no parallellization}
+which means no parallellization.
+On Windows the workers are new R sessions. They load the same package
+versions as this session, including a package loaded from a folder that
+is not on \code{.libPaths()}, and the run stops if they cannot.}
 
 \item{cstrPackages}{a character vector with package names needed to run the
 calculations in parallel, default = NULL}
@@ -98,7 +125,19 @@ calculations in parallel, default = NULL}
 \item{cstrExports}{a character vector with variables needed to run the
 calculations in parallel, default = NULL}
 
-\item{iMiss}{The missing value number. -99 by default.}
+\item{missVal}{The missing value number. -99 by default.}
+
+\item{oneHot}{An optional one-hot encoding specification (see
+\code{\link[PMXForest:oneHotEncode]{PMXForest::oneHotEncode()}}). When supplied, raw multi-level categorical
+columns in \code{dfCovs} (and in \code{dfRefRow} when it is a data frame) are one-hot
+encoded before the FFEM expressions are evaluated, so \code{dfCovs} can be built
+with a raw covariate column instead of the FREM \verb{<cov>_<level>} dummy
+columns. The raw column is dropped after encoding. Default \code{NULL} (no
+encoding).}
+
+\item{oneHotSep}{The separator between covariate name and level in the dummy
+column names created when \code{oneHot} is used. Defaults to \code{"_"}, matching the
+FREM convention.}
 
 \item{...}{additional variables to be forwarded to the the functionList
 functions}
@@ -114,53 +153,69 @@ data frame will be computed.
 }
 \examples{
 \donttest{
-  # 1. Setup paths to model and bootstrap results
-  modDevDir <- system.file("extdata/SimNeb", package="PMXFrem")
-  modFile   <- file.path(modDevDir, "run31.mod")
-  extFile   <- file.path(modDevDir, "run31.ext")
-  bsFile    <- file.path(modDevDir, "bs31.dir/raw_results_run31.csv")
-  
-  # 2. Setup Covariates
-  dfCovs <- data.frame(
-    COVARIATEGROUPS = c("AGE", "AGE", "SEX", "SEX"),
-    AGE = c(30, 60, -99, -99),
-    SEX = c(-99, -99, 0, 1)
-  )
-  
-  # 3. Define a simple parameter function
-  paramFunction <- function(basethetas, covthetas, dfrow, ...) {
-    return(basethetas[1] * exp(covthetas[1]))
-  }
-  
-  # 4. Use PMXForest to extract 25 samples from bootstrap results
-  set.seed(123)
-  samples <- PMXForest::getSamples(bsFile, extFile = extFile, n = 25)
-  
-  # 5. Generate Forest Plot Data
-  dfresFREM <- getForestDFFREM(
-    dfCovs           = dfCovs,
-    covNames         = getCovNames(modFile)$covNames,
-    functionList     = list(paramFunction),
-    functionListName = "CL",
-    numSkipOm        = 2,
-    numNonFREMThetas = 7,
-    dfParameters     = samples,
-    quiet            = TRUE
-  )
-  
-  print(head(dfresFREM))
+# 1. Setup paths to model and bootstrap results
+modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+modFile <- file.path(modDevDir, "run31.mod")
+extFile <- file.path(modDevDir, "run31.ext")
+bsFile <- file.path(modDevDir, "bs31.dir/raw_results_run31.csv")
+
+# 2. Setup Covariates
+dfCovs <- data.frame(
+  COVARIATEGROUPS = c("AGE", "AGE", "SEX", "SEX"),
+  AGE = c(30, 60, -99, -99),
+  SEX = c(-99, -99, 0, 1)
+)
+
+# 3. Define a simple parameter function
+paramFunction <- function(basethetas, covthetas, dfrow, ...) {
+  return(basethetas[1] * exp(covthetas[1]))
+}
+
+# 4. Use PMXForest to extract 25 samples from bootstrap results
+set.seed(123)
+samples <- PMXForest::getSamples(bsFile, extFile = extFile, n = 25)
+
+# 5a. Generate Forest Plot Data -- covNames / numSkipOm / numNonFREMThetas
+#     passed explicitly
+dfresFREM <- getForestDFFREM(
+  dfCovs           = dfCovs,
+  covNames         = getCovNames(modFile)$covNames,
+  functionList     = list(paramFunction),
+  functionListName = "CL",
+  numSkipOm        = 2,
+  numNonFREMThetas = 7,
+  dfParameters     = samples,
+  quiet            = TRUE
+)
+
+# 5b. Same result -- covNames / numSkipOm / numNonFREMThetas omitted and
+#     derived from the model file located via runno / modDevDir
+#     (see fremModelInfo())
+dfresFREM2 <- getForestDFFREM(
+  dfCovs           = dfCovs,
+  functionList     = list(paramFunction),
+  functionListName = "CL",
+  dfParameters     = samples,
+  runno            = 31,
+  modDevDir        = modDevDir,
+  quiet            = TRUE
+)
+
+print(head(dfresFREM))
 }
 }
 \seealso{
 Other Diagnostics & Plotting: 
 \code{\link{calcEtas}()},
 \code{\link{calcFremShrinkage}()},
+\code{\link{createFREMParamFunction}()},
 \code{\link{fremParameterTable}()},
 \code{\link{getExplainedVar}()},
 \code{\link{plotCovDist}()},
 \code{\link{plotEtasCov}()},
 \code{\link{plotExplainedVar}()},
-\code{\link{traceplot}()}
+\code{\link{traceplot}()},
+\code{\link{verifyFREMParamFunction}()}
 }
 \concept{Diagnostics & Plotting}
 \concept{diagnostics}

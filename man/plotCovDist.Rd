@@ -18,6 +18,7 @@ plotCovDist(
   scales = "free_x",
   nrow = NULL,
   ncol = NULL,
+  add.stamp = FALSE,
   ...
 )
 }
@@ -57,6 +58,10 @@ Defaults to \code{30}.}
 \item{nrow}{Integer. Number of rows for the facet grid layout. Defaults to \code{NULL}.}
 
 \item{ncol}{Integer. Number of columns for the facet grid layout. Defaults to \code{NULL}.}
+
+\item{add.stamp}{Logical. If \code{TRUE}, adds a caption recording the
+source directory and time of generation via
+\code{PMXForest::addStamp()}. Default \code{FALSE}.}
 
 \item{...}{Additional arguments passed directly to \code{geom_histogram()} or
 \code{geom_density()} (e.g., \code{linewidth}, \code{bw}).}
@@ -102,8 +107,8 @@ print(p1)
 # 4. Plot multiple covariates simultaneously (Density curves of counts)
 # Forcing a 2-column layout
 p2 <- plotCovDist(
-  df = ind_params, 
-  covNames = c("WT", "AGE", "GENO2","AST"), 
+  df = ind_params,
+  covNames = c("WT", "AGE", "GENO2", "AST"),
   scales = "free",
   ncol = 2
 )
@@ -114,12 +119,14 @@ print(p2)
 Other Diagnostics & Plotting: 
 \code{\link{calcEtas}()},
 \code{\link{calcFremShrinkage}()},
+\code{\link{createFREMParamFunction}()},
 \code{\link{fremParameterTable}()},
 \code{\link{getExplainedVar}()},
 \code{\link{getForestDFFREM}()},
 \code{\link{plotEtasCov}()},
 \code{\link{plotExplainedVar}()},
-\code{\link{traceplot}()}
+\code{\link{traceplot}()},
+\code{\link{verifyFREMParamFunction}()}
 }
 \concept{Diagnostics & Plotting}
 \concept{diagnostics}

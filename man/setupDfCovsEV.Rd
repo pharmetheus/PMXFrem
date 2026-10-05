@@ -8,6 +8,7 @@ setupDfCovsEV(
   modFileName,
   fremCovs = getCovNames(modFile = modFileName)$orgCovNames,
   missVal = -99,
+  conditionalCovs = NULL,
   additionalCovs = NULL
 )
 }
@@ -19,9 +20,15 @@ of the FREM model file. Default is all, i.e. \code{getCovNames(modFile = modFile
 
 \item{missVal}{Numeric. Missing value indicator.}
 
-\item{additionalCovs}{Any additional covariates to be included in the output
-dfCovs. For example covariates that are part of the fixed effects part of
-the FREM model file}
+\item{conditionalCovs}{Covariates to include in the output \code{dfCovs} beyond
+the FREM ones - typically covariates in the fixed-effects part of the FREM
+model file. Unlike the FREM covariates, which are isolated one row at a
+time, these are set to 1 in \emph{every} row: \code{getExplainedVar()} then reports
+what each FREM covariate explains with these in the model. Note that their
+own contribution is part of every row. In types 1-3 of \code{getExplainedVar()}
+the value used is each subject's own, from \code{data}, not the 1 in \code{dfCovs}.}
+
+\item{additionalCovs}{Deprecated. Use \code{conditionalCovs}.}
 }
 \value{
 A data.frame that can be used as the dfCovs argument to
@@ -33,13 +40,13 @@ function.
 }
 \examples{
 
-modFile <- system.file("extdata", "SimNeb", "run31.mod",package = "PMXFrem")
+modFile <- system.file("extdata", "SimNeb", "run31.mod", package = "PMXFrem")
 
 # Use a covariates in the FREM model file
 setupDfCovsEV(modFile)
 
 # Use only a subset of the covariates in the FREM specification and add an additional covariate.
-setupDfCovsEV(modFile, fremCovs = c("AGE", "SEX"), additionalCovs = "FORM")
+setupDfCovsEV(modFile, fremCovs = c("AGE", "SEX"), conditionalCovs = "FORM")
 
 }
 \seealso{

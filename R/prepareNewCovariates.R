@@ -20,13 +20,13 @@
 #' @param strID The name of the subject identifier column.
 #' @param overrideExistingCheck A logical flag to allow adding covariates that
 #'   already exist.
-#' @param bRecodeDichotomous Logical. If TRUE, dichotomous covariates (e.g., coded 1/2) 
-#'   will be automatically recoded to 0/1, and a new variable (e.g., SEX_1) will be 
-#'   created. If FALSE (the default), dichotomous covariates must be strictly coded 
+#' @param bRecodeDichotomous Logical. If TRUE, dichotomous covariates (e.g., coded 1/2)
+#'   will be automatically recoded to 0/1, and a new variable (e.g., SEX_1) will be
+#'   created. If FALSE (the default), dichotomous covariates must be strictly coded
 #'   as 0/1 in the input data; otherwise, a strict validation error will be thrown.
-#' @param allowNon01 Logical. If TRUE, bypasses strict 0/1 validation and allows 
-#'   dichotomous covariates with non-standard coding (e.g., 1/2) to pass through 
-#'   untouched without being recoded. This provides 100% compatibility with PsN 
+#' @param allowNon01 Logical. If TRUE, bypasses strict 0/1 validation and allows
+#'   dichotomous covariates with non-standard coding (e.g., 1/2) to pass through
+#'   untouched without being recoded. This provides 100% compatibility with PsN
 #'   legacy behavior. Defaults to FALSE.
 #' @param missVal Numeric. Missing value indicator.
 #' @param roundMeanTo Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to 1.
@@ -57,67 +57,65 @@ prepareNewCovariates <- function(dfFFEM,
                                  missVal = -99,
                                  fixTheta = TRUE,
                                  quiet = FALSE) {
-  
   printq <- function(str, quiet) {
     if (!quiet) print(str)
   }
-  
+
   printq(paste0("Variables already in FREM model (n=", length(existingCovNames$orgCovNames), "): ", paste0(existingCovNames$orgCovNames, collapse = " ")), quiet = quiet)
   if (!is.null(cstrContCovsToAdd)) printq(paste0("Continuous covariates that will be added to FREM (n=", length(cstrContCovsToAdd), "): ", paste0(cstrContCovsToAdd, collapse = " ")), quiet = quiet)
   if (!is.null(cstrCatCovsToAdd)) printq(paste0("Categorical covariates that will be added to FREM (n=", length(cstrCatCovsToAdd), "): ", paste0(cstrCatCovsToAdd, collapse = " ")), quiet = quiet)
-  
+
   iFremType <- lastFremType
-  
+
   if (is.null(cstrCovsToAddOrder)) cstrCovsToAddOrder <- sort(c(cstrContCovsToAdd, cstrCatCovsToAdd))
-  
+
   covList <- list()
   addedList <- c()
-  
+
   for (strCov in cstrCovsToAddOrder) {
     # Safely handle dichotomous covariates
     if (strCov %in% cstrCatCovsToAdd && length(unique(dfFFEM[[strCov]][dfFFEM[[strCov]] != missVal])) == 2) {
-      
       valid_vals <- unique(dfFFEM[[strCov]])
       valid_vals <- valid_vals[valid_vals != missVal & !is.na(valid_vals)]
-      
+
       if (bRecodeDichotomous) {
         covVal <- sort(valid_vals)[2]
         new_name <- paste0(strCov, "_", covVal)
-        
-        dfFFEM[[new_name]] <- ifelse(dfFFEM[[strCov]] == missVal, -99, 
-                                     ifelse(dfFFEM[[strCov]] == covVal, 1, 0))
-        
+
+        dfFFEM[[new_name]] <- ifelse(dfFFEM[[strCov]] == missVal, -99,
+          ifelse(dfFFEM[[strCov]] == covVal, 1, 0)
+        )
+
         cstrContCovsToAdd <- c(new_name, cstrContCovsToAdd)
-        cstrCatCovsToAdd  <- cstrCatCovsToAdd[-which(cstrCatCovsToAdd == strCov)]
+        cstrCatCovsToAdd <- cstrCatCovsToAdd[-which(cstrCatCovsToAdd == strCov)]
         printq(paste0("Categorical covariate ", strCov, " is dichotomous, recoded to ", new_name, " (0/1)"), quiet = quiet)
-        strCov <- new_name 
-        
+        strCov <- new_name
       } else {
         if (!allowNon01 && !all(sort(valid_vals) == c(0, 1))) {
           stop(sprintf("Strict Validation Error: Dichotomous covariate '%s' is coded as %s/%s. It must be strictly 0/1. To bypass this check, set allowNon01 = TRUE, or to auto-recode it, set bRecodeDichotomous = TRUE.", strCov, min(valid_vals), max(valid_vals)), call. = FALSE)
         }
-        
+
         cstrContCovsToAdd <- c(strCov, cstrContCovsToAdd)
-        cstrCatCovsToAdd  <- cstrCatCovsToAdd[-which(cstrCatCovsToAdd == strCov)]
+        cstrCatCovsToAdd <- cstrCatCovsToAdd[-which(cstrCatCovsToAdd == strCov)]
         printq(paste0("Categorical covariate ", strCov, " is dichotomous, treating as continuous without recoding"), quiet = quiet)
       }
     }
-    
+
     if (strCov %in% cstrContCovsToAdd) { # Add a continuous covariate
       if (!strCov %in% existingCovNames$covNames || overrideExistingCheck == TRUE) {
         # Evaluate missingness *before* filtering out -99 rows
-        has_missing       <- any(dfFFEM[[strCov]] == missVal | is.na(dfFFEM[[strCov]]))
-        shouldFix         <- if (fixTheta && !has_missing) 1 else 0
-        
-        tmp               <- dfFFEM[dfFFEM[[strCov]] != missVal, ]
-        tmp               <- tmp[!duplicated(tmp[[strID]]), c(strID, strCov)]
-        iFremType         <- iFremType + iFremTypeIncrease
-        calculated_mean   <- round(mean(tmp[[strCov]], na.rm = TRUE), digits = roundMeanTo)
-        l                 <- list(Name = strCov, Mean = calculated_mean, Var = var(tmp[[strCov]]), Fremtype = iFremType, Fix = shouldFix)
-        l[["Data"]]       <- tmp
+        has_missing <- any(dfFFEM[[strCov]] == missVal | is.na(dfFFEM[[strCov]]))
+        shouldFix <- if (fixTheta && !has_missing) 1 else 0
+
+        tmp <- dfFFEM[dfFFEM[[strCov]] != missVal, ]
+        tmp <- tmp[!duplicated(tmp[[strID]]), c(strID, strCov)]
+        iFremType <- iFremType + iFremTypeIncrease
+        calculated_mean <- round(mean(tmp[[strCov]], na.rm = TRUE), digits = roundMeanTo)
+        l <- list(Name = strCov, Mean = calculated_mean, Var = var(tmp[[strCov]]), Fremtype = iFremType, Fix = shouldFix)
+        l[["Data"]] <- tmp
         covList[[strCov]] <- l
         printq(paste0("Identifying new covariate: ", strCov, " with fremtype ", iFremType, ifelse(shouldFix, " (FIXED)", " (ESTIMATED)")), quiet = quiet)
-        addedList         <- c(addedList, strCov)
+        addedList <- c(addedList, strCov)
       } else {
         printq(paste0("Skipping continuous covariate: ", strCov, ", already existing as fremtype"), quiet = quiet)
       }
@@ -125,32 +123,32 @@ prepareNewCovariates <- function(dfFFEM,
       covValues <- sort(unique(dfFFEM[[strCov]][dfFFEM[[strCov]] != missVal]))
       for (j in 2:length(covValues)) {
         strCov2 <- paste0(strCov, "_", covValues[j])
-        
+
         if (!strCov2 %in% existingCovNames$covNames || overrideExistingCheck == TRUE) {
           # Evaluate missingness on the parent categorical variable
-          has_missing        <- any(dfFFEM[[strCov]] == missVal | is.na(dfFFEM[[strCov]]))
-          shouldFix          <- if (fixTheta && !has_missing) 1 else 0
-          
+          has_missing <- any(dfFFEM[[strCov]] == missVal | is.na(dfFFEM[[strCov]]))
+          shouldFix <- if (fixTheta && !has_missing) 1 else 0
+
           dfFFEM[[strCov2]] <- dfFFEM[[strCov]]
           dfFFEM[[strCov2]][dfFFEM[[strCov]] != missVal & dfFFEM[[strCov]] == covValues[j]] <- 1
           dfFFEM[[strCov2]][dfFFEM[[strCov]] != missVal & dfFFEM[[strCov]] != covValues[j]] <- 0
-          
-          tmp                <- dfFFEM[dfFFEM[[strCov2]] != missVal, ]
-          tmp                <- tmp[!duplicated(tmp[[strID]]), c(strID, strCov2)]
-          iFremType          <- iFremType + iFremTypeIncrease
-          calculated_mean    <- round(mean(tmp[[strCov2]], na.rm = TRUE), digits = roundMeanTo)
-          l                  <- list(Name = strCov2, Mean = calculated_mean, Var = var(tmp[[strCov2]]), Fremtype = iFremType, Fix = shouldFix)
-          l[["Data"]]        <- tmp
+
+          tmp <- dfFFEM[dfFFEM[[strCov2]] != missVal, ]
+          tmp <- tmp[!duplicated(tmp[[strID]]), c(strID, strCov2)]
+          iFremType <- iFremType + iFremTypeIncrease
+          calculated_mean <- round(mean(tmp[[strCov2]], na.rm = TRUE), digits = roundMeanTo)
+          l <- list(Name = strCov2, Mean = calculated_mean, Var = var(tmp[[strCov2]]), Fremtype = iFremType, Fix = shouldFix)
+          l[["Data"]] <- tmp
           covList[[strCov2]] <- l
           printq(paste0("Identifying new covariate: ", strCov2, " with fremtype ", iFremType, ifelse(shouldFix, " (FIXED)", " (ESTIMATED)")), quiet = quiet)
-          addedList          <- c(addedList, strCov2)
+          addedList <- c(addedList, strCov2)
         } else {
           printq(paste0("Skipping category: ", strCov2, ", already existing as fremtype"), quiet = quiet)
         }
       }
     }
   }
-  
+
   return(list(
     covList = covList,
     addedList = addedList,

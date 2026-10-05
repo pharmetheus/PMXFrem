@@ -16,24 +16,25 @@ test_that("updateFREMmodel can remove covariates from FREM models", {
   new_model_path <- file.path(td, "run31_new.mod")
 
   tmp <- updateFREMmodel(
-    strFREMModel      = model_path,
-    strFREMData       = frem_data_path,
-    strFFEMData       = ffem_data_path,
-    cstrRemoveCov     = c("SEX","WT"),
-    strNewFREMData    = new_data_path,
-    numNonFREMThetas  = 7,
-    numSkipOm         = 2,
-    bWriteData        = TRUE,
-    bWriteMod         = TRUE,
-    quiet             = TRUE,
-    bWriteFIX         = TRUE,
-    cstrKeepCols = c("ID","TIME","AMT","EVID","RATE","DV","FOOD","FREMTYPE"))
+    strFREMModel = model_path,
+    strFREMData = frem_data_path,
+    strFFEMData = ffem_data_path,
+    cstrRemoveCov = c("SEX", "WT"),
+    strNewFREMData = new_data_path,
+    numNonFREMThetas = 7,
+    numSkipOm = 2,
+    bWriteData = TRUE,
+    bWriteMod = TRUE,
+    quiet = TRUE,
+    bWriteFIX = TRUE,
+    cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
+  )
 
   # Explicitly test that the side-effect (writing files) worked as expected
   expect_true(file.exists(new_data_path))
   expect_true(file.exists(new_model_path))
 
-  expect_snapshot_value(stabilize_model_paths(tmp), style = "serialize")
+  expect_model_snapshot(tmp)
 })
 
 test_that("refactored updateFREMmodel output is self-consistent and parsable", {
@@ -58,16 +59,16 @@ test_that("refactored updateFREMmodel output is self-consistent and parsable", {
 
   # --- Round 1: Remove covariates ---
   result1 <- updateFREMmodel(
-    strFREMModel      = model_path,
-    strFREMData       = frem_data_path,
-    strFFEMData       = ffem_data_path_local,
-    cstrRemoveCov     = c("SEX", "WT"),
-    numNonFREMThetas  = 7,
-    numSkipOm         = 2,
-    bWriteData        = FALSE,
-    bWriteMod         = FALSE,
-    quiet             = TRUE,
-    cstrKeepCols = c("ID","TIME","AMT","EVID","RATE","DV","FOOD","FREMTYPE")
+    strFREMModel = model_path,
+    strFREMData = frem_data_path,
+    strFFEMData = ffem_data_path_local,
+    cstrRemoveCov = c("SEX", "WT"),
+    numNonFREMThetas = 7,
+    numSkipOm = 2,
+    bWriteData = FALSE,
+    bWriteMod = FALSE,
+    quiet = TRUE,
+    cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
   )
 
   # --- Test 1: Check if getCovNames can parse the output model ---
@@ -101,7 +102,7 @@ test_that("refactored updateFREMmodel output is self-consistent and parsable", {
       bWriteData        = FALSE,
       bWriteMod         = FALSE,
       quiet             = TRUE,
-      cstrKeepCols      = c("ID","TIME","AMT","EVID","RATE","DV","FOOD","FREMTYPE")
+      cstrKeepCols      = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
     )
   })
 
@@ -126,26 +127,27 @@ test_that("updateFREMmodel can add covariates to FREM models", {
   ffem_data_path <- file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
 
   tmp <- updateFREMmodel(
-    strFREMModel      = model_path,
-    strFREMData       = frem_data_path,
-    strFFEMData       = ffem_data_path,
-    cstrRemoveCov     = NULL,
-    cstrCatCovsToAdd  = "SEX",
+    strFREMModel = model_path,
+    strFREMData = frem_data_path,
+    strFFEMData = ffem_data_path,
+    cstrRemoveCov = NULL,
+    cstrCatCovsToAdd = "SEX",
     cstrContCovsToAdd = "WT",
-    strID             = "ID",
-    strNewFREMData    = new_data_path,
-    numNonFREMThetas  = 7,
-    numSkipOm         = 2,
-    numParCov         = 3,
-    bWriteData        = TRUE,
-    bWriteMod         = TRUE,
+    strID = "ID",
+    strNewFREMData = new_data_path,
+    numNonFREMThetas = 7,
+    numSkipOm = 2,
+    numParCov = 3,
+    bWriteData = TRUE,
+    bWriteMod = TRUE,
     bRecodeDichotomous = FALSE,
-    allowNon01        = TRUE,
-    quiet             = TRUE,
-    bWriteFIX         = TRUE,
-    cstrKeepCols = c("ID","TIME","AMT","EVID","RATE","DV","FOOD","FREMTYPE"))
+    allowNon01 = TRUE,
+    quiet = TRUE,
+    bWriteFIX = TRUE,
+    cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
+  )
 
-  expect_snapshot_value(stabilize_model_paths(tmp), style = "serialize")
+  expect_model_snapshot(tmp)
 })
 
 test_that("updateFREMmodel can update initial estimates in FREM models", {
@@ -159,15 +161,17 @@ test_that("updateFREMmodel can update initial estimates in FREM models", {
   # Define path relative to the temporary directory
   model_path <- file.path(td, "run31.mod")
 
-  tmp <- updateFREMmodel(strFREMModel      = model_path,
-                         numNonFREMThetas  = 7,
-                         numSkipOm         = 2,
-                         bWriteData        = FALSE,
-                         bWriteMod         = FALSE,
-                         quiet             = TRUE,
-                         strUpdateType     = "NoData")
+  tmp <- updateFREMmodel(
+    strFREMModel = model_path,
+    numNonFREMThetas = 7,
+    numSkipOm = 2,
+    bWriteData = FALSE,
+    bWriteMod = FALSE,
+    quiet = TRUE,
+    strUpdateType = "NoData"
+  )
 
-  expect_snapshot_value(stabilize(tmp), style = "serialize")
+  expect_model_snapshot(tmp)
 })
 
 test_that("updateFREMmodel handles missing files correctly", {
@@ -187,6 +191,8 @@ test_that("updateFREMmodel handles missing files correctly", {
       # FIX: Add strNewFREMData to satisfy the new validation check
       strNewFREMData = "new_data.csv",
       numNonFREMThetas = 7,
+      numSkipOm = 2, # supplied so the .ext-derivation gate is passed and the
+      # numParCov check below is the one actually exercised
       numParCov = NULL # This is the error we actually want to test
     ),
     regexp = "If no \\*.ext file exist, the number of parameters.*needs to be specified!"
@@ -199,6 +205,7 @@ test_that("updateFREMmodel handles missing files correctly", {
       strFREMData = file.path(td, "non_existent_frem_data.csv"),
       strFFEMData = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
       numNonFREMThetas = 7,
+      numSkipOm = 2,
       numParCov = 3
     ),
     regexp = "Cannot find FREM dataset"
@@ -241,7 +248,7 @@ test_that("updateFREMmodel correctly removes a polycotomous covariate", {
 
   # A snapshot is the best way to verify the complex changes to both
   # the data and the model text
-  expect_snapshot_value(stabilize_model_paths(result), style = "serialize")
+  expect_model_snapshot(result)
 })
 
 test_that("updateFREMmodel correctly adds a polycotomous covariate", {
@@ -284,7 +291,7 @@ test_that("updateFREMmodel correctly adds a polycotomous covariate", {
   )
 
   # A snapshot is the best way to verify the complex changes to the model text
-  expect_snapshot_value(stabilize_model_paths(result), style = "serialize")
+  expect_model_snapshot(result)
 })
 
 test_that("updateFREMmodel is robust to data.table inputs", {
@@ -383,7 +390,7 @@ test_that("updateFREMmodel correctly adds new individuals", {
   expect_true(max(result$data$ID) > max(frem_df$ID))
 
   # A snapshot is the best way to verify the complex changes to the data
-  expect_snapshot_value(stabilize_model_paths(result), style = "serialize")
+  expect_model_snapshot(result)
 })
 
 
@@ -433,8 +440,114 @@ test_that("updateFREMmodel correctly adds a new DV type", {
   expect_true(any(result$data$FREMTYPE == 1))
 
   # Snapshot the result to verify the new data structure
-  expect_snapshot_value(stabilize_model_paths(result), style = "serialize")
+  expect_model_snapshot(result)
 })
 
 
 
+
+test_that("updateFREMmodel derives numNonFREMThetas / numSkipOm from the model", {
+  td <- withr::local_tempdir()
+  for (f in c(
+    "run31.mod", "run31.ext", "frem_dataset.dta",
+    "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"
+  )) {
+    file.copy(system.file("extdata/SimNeb", f, package = "PMXFrem"), td)
+  }
+  kc <- c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
+
+  derived <- updateFREMmodel(
+    strFREMModel = file.path(td, "run31.mod"),
+    strFREMData = file.path(td, "frem_dataset.dta"),
+    strFFEMData = file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+    cstrRemoveCov = "SEX",
+    strNewFREMData = file.path(td, "d_new.csv"),
+    bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE, cstrKeepCols = kc
+  )
+
+  explicit <- updateFREMmodel(
+    strFREMModel = file.path(td, "run31.mod"),
+    strFREMData = file.path(td, "frem_dataset.dta"),
+    strFFEMData = file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+    cstrRemoveCov = "SEX",
+    strNewFREMData = file.path(td, "d_new.csv"),
+    numNonFREMThetas = 7, numSkipOm = 2,
+    bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE, cstrKeepCols = kc
+  )
+
+  expect_equal(derived$model, explicit$model)
+})
+
+test_that("updateFREMmodel stops loudly when the model structure and its .ext disagree", {
+  td <- withr::local_tempdir()
+  for (f in c(
+    "run31.mod", "run31.ext", "frem_dataset.dta",
+    "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"
+  )) {
+    file.copy(system.file("extdata/SimNeb", f, package = "PMXFrem"), td)
+  }
+  kc <- c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
+  bad <- file.path(td, "run31.mod")
+  L <- readLines(bad)
+  h <- grep("OMEGA *BLOCK", L, ignore.case = TRUE)
+  L[h] <- sub("BLOCK\\s*\\(\\s*[0-9]+\\s*\\)", "BLOCK(99)", L[h], ignore.case = TRUE)
+  writeLines(L, bad)
+
+  call_it <- function(...) {
+    updateFREMmodel(
+      strFREMModel = bad, strFREMData = file.path(td, "frem_dataset.dta"),
+      strFFEMData = file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+      cstrRemoveCov = "SEX", strNewFREMData = file.path(td, "d.csv"),
+      bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE, cstrKeepCols = kc, ...
+    )
+  }
+
+  expect_error(call_it(), "do not agree") # derivation stops
+  expect_error(call_it(numNonFREMThetas = 7, numSkipOm = 2), NA) # explicit overrides
+})
+
+test_that("updateFREMmodel warns that the deprecated sortFREMDataset arg is ignored", {
+  td <- withr::local_tempdir()
+  file.copy(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), td)
+  file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
+  expect_warning(
+    updateFREMmodel(
+      strFREMModel = file.path(td, "run31.mod"),
+      numNonFREMThetas = 7, numSkipOm = 2,
+      bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE,
+      strUpdateType = "NoData", sortFREMDataset = TRUE
+    ),
+    "sortFREMDataset` argument is deprecated"
+  )
+})
+
+test_that("updateFREMmodel announces the derived counts when quiet = FALSE", {
+  td <- withr::local_tempdir()
+  file.copy(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), td)
+  file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
+  expect_message(
+    updateFREMmodel(
+      strFREMModel = file.path(td, "run31.mod"),
+      bWriteData = FALSE, bWriteMod = FALSE, quiet = FALSE,
+      strUpdateType = "NoData"
+    ),
+    "numNonFREMThetas = 7, numSkipOm = 2 \\(derived from run31.mod\\)"
+  )
+})
+
+test_that("updateFREMmodel errors when the FFEM dataset cannot be found", {
+  td <- withr::local_tempdir()
+  file.copy(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), td)
+  file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
+  expect_error(
+    updateFREMmodel(
+      strFREMModel = file.path(td, "run31.mod"),
+      strFREMData = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
+      strFFEMData = file.path(td, "does-not-exist.csv"),
+      cstrRemoveCov = "SEX",
+      numNonFREMThetas = 7, numSkipOm = 2,
+      bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE
+    ),
+    "Cannot find FFEM dataset"
+  )
+})

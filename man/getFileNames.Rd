@@ -50,6 +50,7 @@ getFileNames(runno = 30, modDevDir = system.file("extdata/SimNeb/", package = "P
 }
 \seealso{
 Other NONMEM Parsers: 
+\code{\link{fremModelInfo}()},
 \code{\link{getCovNames}()},
 \code{\link{getExt}()},
 \code{\link{getPhi}()}

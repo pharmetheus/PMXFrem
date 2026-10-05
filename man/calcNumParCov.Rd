@@ -27,8 +27,9 @@ covariates.
 }
 \examples{
 extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
-dfExt   <- getExt(extFile = extFile)
-n       <- calcNumParCov(dfExt, numNonFREMThetas = 7, numSkipOm = 2)
+dfExt <- getExt(extFile = extFile)
+## internal, so reached with ::: outside the package
+n <- PMXFrem:::calcNumParCov(dfExt, numNonFREMThetas = 7, numSkipOm = 2)
 }
 \seealso{
 Other NONMEM Parsers Internal: 

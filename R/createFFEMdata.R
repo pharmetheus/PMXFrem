@@ -29,21 +29,33 @@
 #'
 #' @inheritParams calcFFEM
 #' @inheritParams getFileNames
+#' @param numNonFREMThetas Number of structural (non-FREM-covariate) THETAs in the
+#'   FREM model. If `NULL` (default) it is derived from the FREM model file (found
+#'   via `runno` / `modName` / `modDevDir`) and the ext via [fremModelInfo()]; a
+#'   supplied value that disagrees with the derived one triggers a warning and is
+#'   kept.
+#' @param numSkipOm Number of diagonal OMEGAs before the FREM block that are not
+#'   part of the FREM calculations. If `NULL` (default) it is derived via
+#'   [fremModelInfo()] (warn-and-keep on a disagreeing explicit value).
 #' @param dataFile The name of the data file used in the base model, i.e. the
 #'   original data file, or a data.frame with the same data.
 #' @param newDataFile The name of a new data file with the FFEM columns added.
 #'   Default is vpcData{runno}.csv. If NULL, will return a data frame with the
 #'   data instead of writing it to disk.
+#' @param ... Additional arguments passed on to \code{getFileNames()}.
 #' @param idvar The name of the ID column,
 #' @param cores How many cores to use in the calculations of the FFEM
 #'   expressions.
+#'   On Windows the workers are new R sessions. They load the same package
+#'   versions as this session, including a package loaded from a folder that
+#'   is not on `.libPaths()`, and the run stops if they cannot.
 #' @param covSuffix Use to create the column name fo rthe covariate effects
 #'   columns. The column names will be the parameter name followed by this
 #'   string.
 #' @param filterString A character string with a filter expression to subset the
 #'   amended FFEM data set so that the number of rows matches the original data
 #'   file. Useful if IGNORE statements were used in the original model file.
-#' @param omegaToData Logical. If \code{TRUE}, the variance-covariance matrix elements 
+#' @param omegaToData Logical. If \code{TRUE}, the variance-covariance matrix elements
 #'   are appended to the output dataset as V-columns (e.g., V11, V21). Defaults to \code{FALSE}.
 #' @param missVal Numeric. The value representing missing data in the covariates. Defaults to -99.
 #' @seealso [createFFEMmodel()]
@@ -67,8 +79,8 @@
 #' @examples
 #' # Setup paths using package extdata
 #' modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
-#' dataFile  <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
-#' 
+#' dataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+#'
 #' # Isolate outputs to a temporary directory
 #' td <- tempdir()
 #'
@@ -81,7 +93,8 @@
 #'   numSkipOm        = 2,
 #'   dataFile         = dataFile,
 #'   newDataFile      = NULL,
-#'   quiet            = TRUE)
+#'   quiet            = TRUE
+#' )
 #'
 #' # Example 2: Writing to a file and including Cholesky matrix columns
 #' out_data <- file.path(td, "ffem_data_chol.csv")
@@ -94,43 +107,53 @@
 #'   dataFile         = dataFile,
 #'   newDataFile      = out_data,
 #'   quiet            = TRUE,
-#'   omegaToData      = TRUE)
+#'   omegaToData      = TRUE
+#' )
+#'
+#' # Example 3: numNonFREMThetas / numSkipOm omitted -- derived from the FREM
+#' # model located via runno / modDevDir (see fremModelInfo())
+#' ffemDataDerived <- createFFEMdata(
+#'   runno       = 31,
+#'   modDevDir   = modDevDir,
+#'   parNames    = c("CL", "V", "MAT"),
+#'   dataFile    = dataFile,
+#'   newDataFile = NULL,
+#'   quiet       = TRUE
+#' )
 #'
 #' @family FFEM Conversion
 #' @concept ffem_conversion
 createFFEMdata <- function(runno = NULL,
-                           numNonFREMThetas,
-                           modName       = NULL,
+                           numNonFREMThetas = NULL,
+                           modName = NULL,
                            numFREMThetas = length(grep("THETA", names(dfext))) - numNonFREMThetas,
-                           covSuffix     = "FREMCOV",
-                           parNames      = paste("Par", 1:numParCov, sep = ""),
-                           numParCov     = NULL,
-                           numSkipOm     = 0,
+                           covSuffix = "FREMCOV",
+                           parNames = paste("Par", 1:numParCov, sep = ""),
+                           numParCov = NULL,
+                           numSkipOm = NULL,
                            dataFile,
-                           newDataFile   = paste("vpcData", runno, ".csv", sep = ""),
-                           filterString  = NULL,
-                           availCov      = "all",
-                           idvar         = "ID",
-                           modDevDir     = NULL,
-                           quiet         = FALSE,
-                           cores         = 1,
-                           dfext         = NULL,
-                           missVal       = -99,
-                           omegaToData   = FALSE,
+                           newDataFile = paste("vpcData", runno, ".csv", sep = ""),
+                           filterString = NULL,
+                           availCov = "all",
+                           idvar = "ID",
+                           modDevDir = NULL,
+                           quiet = FALSE,
+                           cores = 1,
+                           dfext = NULL,
+                           missVal = -99,
+                           omegaToData = FALSE,
                            ...) {
-
-
   retList <- list()
   retList$newDataFileName <- newDataFile
 
   fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir, ...)
-  modFile   <- fileNames$mod
-  extFile   <- fileNames$ext
-  phiFile   <- fileNames$phi
+  modFile <- fileNames$mod
+  extFile <- fileNames$ext
+  phiFile <- fileNames$phi
 
   covNames <- getCovNames(modFile)$covNames
   fremCovs <- getCovNames(modFile)$polyCatCovs
-  orgCovs  <- getCovNames(modFile)$orgCovNames
+  orgCovs <- getCovNames(modFile)$orgCovNames
 
   # It is much faster to send in extdf than to create it fo reach ID.
   # Only read it from file if it isn't passed via dfext
@@ -140,6 +163,15 @@ createFFEMdata <- function(runno = NULL,
     dfext <- dfext
   }
 
+  ## Derive numNonFREMThetas / numSkipOm from the FREM model when not supplied,
+  ## and validate them (warn, keep the explicit value) when they are.
+  .info <- fremModelInfo(
+    modFile = modFile, dfext = dfext,
+    numNonFREMThetas = numNonFREMThetas, numSkipOm = numSkipOm
+  )
+  numNonFREMThetas <- .info$numNonFREMThetas
+  numSkipOm <- .info$numSkipOm
+
   # dfPhi   <- getPhi(phiFile)
 
   if (is.null(numParCov)) {
@@ -148,14 +180,13 @@ createFFEMdata <- function(runno = NULL,
 
 
   ## Run this to get the omega matrix to use in the vpc
-  if (length(availCov) == 1 && availCov == "all") availCov    <- covNames
+  if (length(availCov) == 1 && availCov == "all") availCov <- covNames
 
-  tmp <- calcFFEM(dfext = dfext, numNonFREMThetas, covNames = covNames, parNames = parNames, availCov = availCov, quiet = quiet, numSkipOm = numSkipOm, ...)
+  tmp <- calcFFEM(dfext = dfext, numNonFREMThetas, covNames = covNames, parNames = parNames, availCov = availCov, quiet = quiet, numSkipOm = numSkipOm)
 
   ## Create the omega matrix information to put in the return value. This function
   ## takes the full omega, removes any skipped omega and sets the upper triangle to NA.
   makeMat <- function(myMat, skip = numSkipOm) {
-
     myMat[upper.tri(myMat)] <- NA
     if (skip != 0) {
       retVal <- myMat[-(1:skip), -(1:skip)]
@@ -168,15 +199,15 @@ createFFEMdata <- function(runno = NULL,
 
 
   ## Collect Coefficients and omegaprim to return object
-  retList$Omega        <- makeMat(tmp$FullVars)
+  retList$Omega <- makeMat(tmp$FullVars)
   retList$Coefficients <- tmp$Coefficients
-  retList$FullVars     <- tmp$FullVars
-  retList$Expr         <- tmp$Expr
+  retList$FullVars <- tmp$FullVars
+  retList$Expr <- tmp$Expr
 
   ## Create a data set with all the original covariates + the frem-specific ones
   # Read the FFEM data set and rename the id column to ID (to simplify the coding below. The id column will get its original name in the new data file.)
   if (!is.data.frame(dataFile)) {
-    data <- fread(dataFile, h = TRUE, data.table = FALSE, showProgress = FALSE) %>%
+    data <- fread(dataFile, header = TRUE, data.table = FALSE, showProgress = FALSE) %>%
       rename("ID" = all_of(idvar))
   } else { ## The dataFile was supplied as a data frame and not a name
     data <- dataFile %>%
@@ -190,8 +221,12 @@ createFFEMdata <- function(runno = NULL,
 
   ## Go through the individuals to make sure that missing values for polycats are coded properly
 
-  ## Register to allow for parallel computing
-  if (cores > 1) registerDoParallel(cores = cores)
+  ## Register to allow for parallel computing. Tear the cluster down on exit
+  ## (including on error), not only on a clean finish.
+  if (cores > 1) {
+    stopWorkers <- .fremStartWorkers(cores)
+    on.exit(stopWorkers(), add = TRUE)
+  }
 
   mapFun <- function(data, orgCovs) {
     for (cov in orgCovs) {
@@ -203,22 +238,24 @@ createFFEMdata <- function(runno = NULL,
     }
     return(data)
   }
-  
+
   if (cores > 1) {
-    dataI <- foreach(k = 1:nrow(dataI)) %dopar% {
-      # REMOVED: cov = cov
+    dataI <- foreach(
+      k = seq_len(nrow(dataI)),
+      .export = ls(environment())
+    ) %dopar% {
       mapFun(data = dataI[k, ], orgCovs = orgCovs)
     }
     dataI <- data.frame(data.table::rbindlist(dataI))
   } else {
     dataI2 <- data.frame()
-    for (k in 1:nrow(dataI)) {
+    for (k in seq_len(nrow(dataI))) {
       # REMOVED: cov = cov
       dataI2 <- rbind(dataI2, mapFun(data = dataI[k, ], orgCovs = orgCovs))
     }
     dataI <- dataI2
   }
-  
+
   dataI <- dataI[, c("ID", covNames)]
   dataMap <- dataI[]
   dataMap[, covNames] <- TRUE
@@ -229,35 +266,34 @@ createFFEMdata <- function(runno = NULL,
 
   ## Loop over each individual to compute their covariate contributions ##
   myFun <- function(data, parNames, dataMap = dataMap, availCov = NULL, covSuffix, omegaToData = FALSE, numSkipOm = 0) {
-      
     ID <- data$ID
     if (is.null(availCov)) {
-      availCov  <- covNames[as.logical(dataMap[dataMap$ID == ID, -1])]
+      availCov <- covNames[as.logical(dataMap[dataMap$ID == ID, -1])]
     } else {
-      myCov    <- covNames[as.logical(dataMap[dataMap$ID == ID, -1])]
+      myCov <- covNames[as.logical(dataMap[dataMap$ID == ID, -1])]
       availCov <- myCov[myCov %in% availCov]
     }
-    ffemObj <- calcFFEM(dfext = dfext, numNonFREMThetas, covNames = covNames, availCov = availCov, quiet = TRUE, parNames = parNames, numSkipOm = numSkipOm, ...)
+    ffemObj <- calcFFEM(dfext = dfext, numNonFREMThetas, covNames = covNames, availCov = availCov, quiet = TRUE, parNames = parNames, numSkipOm = numSkipOm)
 
     retDf <- data.frame(ID = ID)
-    for (i in 1:length(parNames)) {
+    for (i in seq_along(parNames)) {
       colName <- paste0(parNames[i], covSuffix)
       retDf[[colName]] <- as.numeric(eval(parse(text = ffemObj$Expr[i])))
     }
-    
+
     # ----------------------------------------------------------------------
     # INJECTION: Extract the variance/covariance matrix as V-columns with offset
     # ----------------------------------------------------------------------
     if (omegaToData) {
       myOmega <- ffemObj$FullVars
-      
+
       # Safely handle matrix subsetting for skipped omegas
       if (numSkipOm > 0) {
         myOmega <- myOmega[-(1:numSkipOm), -(1:numSkipOm), drop = FALSE]
       }
-      
+
       n_par <- nrow(myOmega)
-      
+
       # Extract lower triangle (including diagonal) using the offset
       for (j in seq_len(n_par)) {
         jo <- j + numSkipOm
@@ -269,7 +305,7 @@ createFFEMdata <- function(runno = NULL,
       }
     }
     # ----------------------------------------------------------------------
-    
+
     return(retDf)
   }
 
@@ -278,13 +314,17 @@ createFFEMdata <- function(runno = NULL,
 
 
   if (cores > 1) {
-    covEff <- foreach(k = 1:nrow(dataOne)) %dopar% {
+    covEff <- foreach(
+      k = seq_len(nrow(dataOne)),
+      .packages = "PMXFrem",
+      .export = ls(environment())
+    ) %dopar% {
       myFun(data = dataOne[k, ], parNames = parNames, dataMap = dataMap, availCov = availCov, covSuffix = covSuffix, omegaToData = omegaToData, numSkipOm = numSkipOm)
     }
     covEff <- data.frame(rbindlist(covEff))
   } else {
     covEff2 <- data.frame()
-    for (k in 1:nrow(dataOne)) {
+    for (k in seq_len(nrow(dataOne))) {
       covEff2 <- bind_rows(covEff2, myFun(data = dataOne[k, ], parNames = parNames, dataMap = dataMap, availCov = availCov, covSuffix = covSuffix, omegaToData = omegaToData, numSkipOm = numSkipOm))
     }
     covEff <- covEff2
@@ -314,6 +354,6 @@ createFFEMdata <- function(runno = NULL,
     write.csv(retList$newData, file = newDataFile, quote = FALSE, row.names = FALSE)
   }
 
-  if (cores > 1) stopImplicitCluster()
+  ## (cluster teardown is handled by on.exit() registered above)
   invisible(retList)
 }

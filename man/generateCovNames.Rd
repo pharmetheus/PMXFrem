@@ -70,9 +70,9 @@ generateCovNames(dfCovs, unit_map = unit_map, label_map = label_map)
 # --- Example B: Relational Data Frame Mapping ---
 # Safely mutates the data frame, adding locked COVNAME and GROUPNAME factors
 dfres_updated <- generateCovNames(
-  dfCovs, 
-  dfres = dfres, 
-  unit_map = unit_map, 
+  dfCovs,
+  dfres = dfres,
+  unit_map = unit_map,
   label_map = label_map,
   group_map = group_map
 )

@@ -15,31 +15,31 @@
 #'
 #' modFile <- system.file("extdata/SimNeb/run30.mod", package = "PMXFrem")
 #'
+#' ## internal, so reached with ::: outside the package
 #' ## Return the $PROBLEM record
-#' tmp <- findrecord(modFile, record = "\\$PROBLEM", quiet = TRUE)
+#' tmp <- PMXFrem:::findrecord(modFile, record = "\\$PROBLEM", quiet = TRUE)
 #'
 #' ## Return the new model with $PROBLEM set to FFEM model
-#' tmp <- findrecord(modFile, record = "\\$PROBLEM", replace = "$PROBLEM FFEM model", quiet = TRUE)
+#' tmp <- PMXFrem:::findrecord(modFile, record = "\\$PROBLEM", replace = "$PROBLEM FFEM model", quiet = TRUE)
 #'
 #' @family NONMEM Parsers Internal
 #' @concept nonmem_parsers
 #' @keywords internal
 findrecord <- function(input,
-                       record  = "\\$OMEGA",
+                       record = "\\$OMEGA",
                        replace = NULL,
-                       quiet   = TRUE) {
-
+                       quiet = TRUE) {
   if (length(input) == 1) {
-    con  <- file(input, open = "r")
+    con <- file(input, open = "r")
     line <- readLines(con)
   } else {
     line <- input
   }
 
   start <- NULL
-  stop  <- NULL
+  stop <- NULL
 
-  for (i in 1:length(line)) {
+  for (i in seq_along(line)) {
     tmp <- grep(paste0("^", record, ".*"), line[i])
     if (!is.null(start)) {
       if (length(tmp) == 0) {

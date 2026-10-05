@@ -9,6 +9,7 @@ validateFremData(
   fremData,
   cstrDV = "DV",
   strID = "ID",
+  missVal = -99,
   quiet = FALSE
 )
 }

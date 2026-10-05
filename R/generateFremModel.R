@@ -1,9 +1,9 @@
 #' Generate a FREM Model File
 #'
-#' Generates the new NONMEM model code based on the final parameter state, 
-#' injects the consolidated Full Random Effects Model (FREM) covariate block, 
-#' and optionally writes the updated model to disk. It features smart comment 
-#' extraction to preserve parameter labels and enforces positive-definite 
+#' Generates the new NONMEM model code based on the final parameter state,
+#' injects the consolidated Full Random Effects Model (FREM) covariate block,
+#' and optionally writes the updated model to disk. It features smart comment
+#' extraction to preserve parameter labels and enforces positive-definite
 #' covariance matrices by replacing structural zeros.
 #'
 #' @param final_df A data.frame containing the finalized FREM dataset, used to dynamically construct the `$INPUT` record.
@@ -45,21 +45,27 @@ generateFremModel <- function(final_df,
                               basenames_om,
                               dDefaultCovValue,
                               strUpdateType) {
-  
   safeFindRecord <- function(current_lines, record, replace) {
     result <- findrecord(current_lines, record = record, replace = replace, quiet = TRUE)
-    if (is.null(result)) { return(current_lines) }
+    if (is.null(result)) {
+      return(current_lines)
+    }
     return(result)
   }
-  
+
   strNewCovNames <- c(covnames$covNames, addedList)
   line <- readLines(strFREMModel)
-  
-  THETA <- modelState$theta; OM <- modelState$omegaMatrix; THETAFIX <- modelState$thetaFix
-  iNumTHETA <- modelState$numTheta; iNumOM <- modelState$numOmega
-  
-  if (is.null(THETAFIX)) { THETAFIX <- rep(0, iNumTHETA) }
-  
+
+  THETA <- modelState$theta
+  OM <- modelState$omegaMatrix
+  THETAFIX <- modelState$thetaFix
+  iNumTHETA <- modelState$numTheta
+  iNumOM <- modelState$numOmega
+
+  if (is.null(THETAFIX)) {
+    THETAFIX <- rep(0, iNumTHETA)
+  }
+
   # --- Robust THETA Comment Extraction & Mapping ---
   theta_comment <- character(iNumTHETA)
   for (i in 1:iNumTHETA) {
@@ -70,18 +76,27 @@ generateFremModel <- function(final_df,
       theta_comment[i] <- paste0(" ; ", i, " TV_", if (cov_idx <= length(covnames$covNames)) covnames$covNames[cov_idx] else paste0("BASE", i))
     }
   }
-  
-  # Override with inline comments if they exist
+
+  # Override with inline comments if they exist.
+  #
+  # Advance the index by the number of THETA *values* a line actually carries,
+  # not by one per line. Counting lines assumes exactly one theta per line, so a
+  # standalone comment, a blank line, or a multi-value record ($THETA 1 2 3)
+  # silently shifted every later label onto the wrong parameter. A line with no
+  # values contributes nothing and keeps its generated default.
   th_lines <- safeFindRecord(line, "\\$THETA", replace = NULL)
   idx <- 1
   for (th_l in th_lines) {
     if (idx > iNumTHETA) break
-    if (grepl(";", th_l)) {
-      theta_comment[idx] <- paste0(" ; ", trimws(sub("^[^;]*;\\s*", "", th_l)))
+    n <- .fremCountThetaValues(th_l)
+    if (n > 0L) {
+      if (grepl(";", th_l)) {
+        theta_comment[idx] <- paste0(" ; ", trimws(sub("^[^;]*;\\s*", "", th_l)))
+      }
+      idx <- idx + n
     }
-    idx <- idx + 1
   }
-  
+
   # --- Robust OMEGA Comment Extraction & Mapping ---
   om_comment <- character(iNumOM)
   for (i in 1:iNumOM) {
@@ -92,19 +107,51 @@ generateFremModel <- function(final_df,
       om_comment[i] <- paste0(" ; ", i, " BSV_", if (cov_idx <= length(covnames$covNames)) covnames$covNames[cov_idx] else paste0("BASE", i))
     }
   }
-  
+
+  # Advance on lines that actually carry OMEGA values, not on lines that merely
+  # contain a ";". Keying off the comment assumed every omega is commented and
+  # that nothing else in the record is: a standalone note consumed a slot and
+  # pushed every later label down, while an uncommented omega failed to consume
+  # one and pushed them up. A value line with no comment now keeps its generated
+  # default and still advances, so alignment holds either way.
   in_omega <- FALSE
-  idx <- 1
+  in_block <- FALSE
+  idx <- 1L
+  blockVals <- 0L # values seen so far in the current BLOCK
+  blockRows <- 0L # complete lower-triangular rows those values make up
   for (l in line) {
-    if (grepl("^\\s*\\$[A-Za-z]+", l)) in_omega <- grepl("^\\s*\\$OMEGA", l, ignore.case = TRUE)
-    if (in_omega && grepl(";", l)) {
-      if (idx <= iNumOM) {
-        om_comment[idx] <- paste0(" ; ", trimws(sub("^[^;]*;\\s*", "", l)))
-        idx <- idx + 1
+    isRecord <- grepl("^\\s*\\$[A-Za-z]+", l)
+    if (isRecord) {
+      in_omega <- grepl("^\\s*\\$OMEGA", l, ignore.case = TRUE)
+      in_block <- in_omega && grepl("BLOCK\\s*\\(", l, ignore.case = TRUE)
+      blockVals <- 0L
+      blockRows <- 0L
+    }
+    if (!in_omega || idx > iNumOM) next
+    n <- .fremCountOmegaValues(l)
+    if (n == 0L) next
+    cmt <- if (grepl(";", l)) paste0(" ; ", trimws(sub("^[^;]*;\\s*", "", l))) else NA_character_
+
+    if (in_block) {
+      # A block row may wrap over several physical lines, and only the last of
+      # them carries the comment - so rows cannot be counted by line. Row j of a
+      # lower-triangular block holds j values, so j(j+1)/2 values complete row j;
+      # invert that to see how many rows the values so far account for.
+      blockVals <- blockVals + n
+      newRows <- as.integer(floor((sqrt(8 * blockVals + 1) - 1) / 2))
+      done <- newRows - blockRows
+      if (done > 0L) {
+        # the comment on the line that *completes* a row labels that row
+        if (!is.na(cmt) && idx + done - 1L <= iNumOM) om_comment[idx + done - 1L] <- cmt
+        idx <- idx + done
+        blockRows <- newRows
       }
+    } else {
+      if (!is.na(cmt)) om_comment[idx] <- cmt
+      idx <- idx + n
     }
   }
-  
+
   # --- PK and ERROR Block Logic ---
   strinput <- c()
   loop_start <- noBaseThetas + 1
@@ -116,7 +163,7 @@ generateFremModel <- function(final_df,
       strinput <- c(strinput, paste0("      COV", mu_count, " = MU_", mu_count, " + ETA(", mu_count, ")"))
     }
   }
-  
+
   mu_indices <- grep(pattern = "MU_\\d+ = THETA", x = line)
   cov_indices <- grep(pattern = "COV\\d+ = MU_", x = line)
   if (length(mu_indices) > 0 && length(cov_indices) > 0) {
@@ -128,14 +175,14 @@ generateFremModel <- function(final_df,
       if (end_line < length(line)) line[(end_line + 1):length(line)] else NULL
     )
   }
-  
+
   # --- FREMTYPE Block Generation ---
   iFremTypeIncrease <- 100
   fremTypes <- seq(from = iFremTypeIncrease, by = iFremTypeIncrease, length.out = length(strNewCovNames))
   strinput_frem <- c(";;;FREM CODE BEGIN COMPACT", ";;;DO NOT MODIFY")
-  
+
   if (length(strNewCovNames) > 0) {
-    for (i in 1:length(strNewCovNames)) {
+    for (i in seq_along(strNewCovNames)) {
       strinput_frem <- c(strinput_frem, paste0("      IF(FREMTYPE.EQ.", fremTypes[i], ") THEN"))
       strinput_frem <- c(strinput_frem, paste0(";        ", strNewCovNames[i], " 1"))
       strinput_frem <- c(strinput_frem, paste0("         Y = COV", i + numSkipOm + numParCov, " + EPS(", covEpsNum, ")"))
@@ -144,36 +191,37 @@ generateFremModel <- function(final_df,
     }
   }
   strinput_frem <- c(strinput_frem, ";;;FREM CODE END COMPACT")
-  
+
   line <- safeFindRecord(line, record = ";;;FREM CODE BEGIN COMPACT", replace = strinput_frem)
-  
+
   # --- Matrix Expansion & Comment Appending ---
   if (!is.null(addedList) && length(addedList) > 0) {
     if (is.null(OM)) stop("OM missing, must provide .ext file when adding covariates")
     OMNEW <- matrix(dDefaultCovValue, ncol(OM) + length(addedList), nrow(OM) + length(addedList))
-    OMNEW[1:ncol(OM), 1:nrow(OM)] <- OM
+    OMNEW[seq_len(ncol(OM)), seq_len(nrow(OM))] <- OM
     OM <- OMNEW
   }
-  
+
   OM[OM == 0] <- dDefaultCovValue
-  
+
   if (!is.null(addedList) && length(addedList) > 0) {
     for (i in seq_along(addedList)) {
       strcov <- addedList[i]
       l <- covList[[strcov]]
-      
+
       fix_val <- if (!is.null(l[["Fix"]])) l[["Fix"]] else 0
-      
-      THETA <- c(THETA, l[["Mean"]]); THETAFIX <- c(THETAFIX, fix_val)
+
+      THETA <- c(THETA, l[["Mean"]])
+      THETAFIX <- c(THETAFIX, fix_val)
       theta_comment <- c(theta_comment, paste0(" ; ", iNumTHETA + 1, " TV_", l[["Name"]]))
       iNumTHETA <- iNumTHETA + 1
-      
+
       OM[iNumOM + 1, iNumOM + 1] <- l[["Var"]]
       om_comment <- c(om_comment, paste0(" ; ", iNumOM + 1, " BSV_", l[["Name"]]))
       iNumOM <- iNumOM + 1
     }
   }
-  
+
   # --- Splicing OMEGA Matrix with FIX retention ---
   skipped_omegas_lines <- c()
   if (numSkipOm > 0) {
@@ -183,18 +231,18 @@ generateFremModel <- function(final_df,
       if (grepl("^\\s*\\$[A-Za-z]+", l)) in_omega <- grepl("^\\s*\\$OMEGA", l, ignore.case = TRUE)
       if (in_omega && grepl("[0-9]", sub(";.*", "", l))) omega_param_lines <- c(omega_param_lines, l)
     }
-    
+
     for (i in 1:numSkipOm) {
       is_fixed <- if (i <= length(omega_param_lines)) grepl("FIX", omega_param_lines[i], ignore.case = TRUE) else FALSE
       fix_text <- if (is_fixed) " FIX" else ""
       skipped_omegas_lines <- c(skipped_omegas_lines, paste0("$OMEGA BLOCK(1) ", OM[i, i], fix_text, om_comment[i]))
     }
   }
-  
+
   frem_mat_indices <- (numSkipOm + 1):nrow(OM)
   frem_matrix <- as.matrix(OM[frem_mat_indices, frem_mat_indices])
   frem_block_lines <- buildmatrix(frem_matrix, forceSingleBlock = TRUE)
-  
+
   if (length(frem_block_lines) > 0) {
     comment_idx <- numSkipOm + 1
     for (j in 2:length(frem_block_lines)) {
@@ -204,29 +252,78 @@ generateFremModel <- function(final_df,
       }
     }
   }
-  
+
   newommatrix <- c(skipped_omegas_lines, frem_block_lines)
-  
+
   strinput_theta <- c()
   for (i in 1:iNumTHETA) {
     strFIX <- if (!is.na(THETAFIX[i]) && THETAFIX[i] == 1 && bWriteFIX) " FIX" else ""
     strinput_theta <- c(strinput_theta, paste0("$THETA ", THETA[i], strFIX, theta_comment[i]))
   }
-  
+
   line <- safeFindRecord(line, record = "\\$THETA", replace = strinput_theta)
   line <- safeFindRecord(line, record = "\\$OMEGA", replace = newommatrix)
-  
+
   if (strUpdateType != "NoData") {
     line <- safeFindRecord(line, record = "\\$DATA", replace = paste0("$DATA ", basename(strNewFREMData), " IGNORE=@"))
     if (!is.null(final_df)) {
       line <- safeFindRecord(line, record = "\\$INPUT", replace = paste0("$INPUT ", paste0(names(final_df), collapse = " ")))
     }
   }
-  
+
   if (bWriteMod) {
     strNewModelFileName <- paste0(tools::file_path_sans_ext(strFREMModel), "_new.mod")
     writeLines(line, strNewModelFileName)
   }
-  
+
   return(line)
+}
+
+#' Count the parameter values a $THETA line carries
+#'
+#' Comment text, the `$THETA` keyword and `FIX` / `FIXED` flags are stripped;
+#' a bounded record `(low, init, up)` counts as one value.
+#' @keywords internal
+#' @noRd
+.fremCountThetaValues <- function(l) {
+  b <- sub(";.*$", "", l)
+  b <- sub("^\\s*\\$THETA\\b", "", b, ignore.case = TRUE)
+  b <- gsub("\\bFIXED?\\b", "", b, ignore.case = TRUE)
+  length(regmatches(b, gregexpr("\\([^)]*\\)|[-+]?[0-9.][-+0-9.eE]*", b))[[1]])
+}
+
+
+#' Count the numeric values an $OMEGA record carries
+#'
+#' Comment text, the `$OMEGA` keyword, `BLOCK(k)` / `DIAGONAL(k)` sizes and the
+#' option flags are stripped, so the `k` of a `BLOCK(k)` header is never counted
+#' as a value. `(v ...)xN` repetition is expanded first, so a record written
+#' that way reports the values it stands for rather than the two it is spelt
+#' with.
+#'
+#' `l` may be one line or the several a record spans.
+#' @keywords internal
+#' @noRd
+.fremCountOmegaValues <- function(l) {
+  b <- paste(sub(";.*$", "", l), collapse = " ")
+  b <- sub("^\\s*\\$OMEGA\\b", "", b, ignore.case = TRUE)
+  b <- gsub("BLOCK\\s*\\([^)]*\\)|DIAGONAL\\s*\\([^)]*\\)", "", b, ignore.case = TRUE)
+  b <- gsub(
+    paste0(
+      "\\b(FIXED?|SAME|VALUES|CORRELATION|CHOLESKY|STANDARD|SD|",
+      "VARIANCE|COVARIANCE)\\b"
+    ),
+    "", b,
+    ignore.case = TRUE
+  )
+  ## (value ...)xN repeats the parenthesised group N times
+  repeat {
+    m <- regexpr("\\(([^()]*)\\)\\s*[xX]\\s*([0-9]+)", b)
+    if (m == -1L) break
+    hit <- regmatches(b, m)
+    inner <- sub("\\(([^()]*)\\)\\s*[xX]\\s*([0-9]+)", "\\1", hit)
+    times <- as.integer(sub("\\(([^()]*)\\)\\s*[xX]\\s*([0-9]+)", "\\2", hit))
+    regmatches(b, m) <- paste(rep(inner, times), collapse = " ")
+  }
+  length(regmatches(b, gregexpr("[-+]?[0-9.][-+0-9.eE]*", b))[[1]])
 }

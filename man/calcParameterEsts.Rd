@@ -35,6 +35,11 @@ model file.}
 \item{numSkipOm}{Number of diagonal omegas that should not be part of the
 FREM calculations. Such omegas has to come before the large FREM omega
 block in the FREM model file.}
+
+\item{...}{Additional arguments, passed on to \code{calcFFEM()} (e.g.
+\code{covNames}, \code{availCov}, \code{quiet}). Unlike
+\code{calcFFEM()}'s former \code{...}, this one is genuinely forwarded -
+\code{fremParameterTable()} relies on it.}
 }
 \value{
 A vector of parameter estimates corresponding to \code{thetaNum},
@@ -46,8 +51,9 @@ computing FFEM parameter estimates from FREM results.
 }
 \examples{
 \dontrun{
- fremParEsts <- calcParameterEsts(extRes,thetaNum,omegaNum,sigmaNum,numNonFREMThetas,numSkipOm,
-covNames=covNames, availCov=availCov,quiet=quiet)
+fremParEsts <- calcParameterEsts(extRes, thetaNum, omegaNum, sigmaNum, numNonFREMThetas, numSkipOm,
+  covNames = covNames, availCov = availCov, quiet = quiet
+)
 }
 }
 \seealso{

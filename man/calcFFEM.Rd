@@ -17,8 +17,7 @@ calcFFEM(
   quiet = FALSE,
   fremETA = NULL,
   eqFile = "",
-  omFile = "",
-  ...
+  omFile = ""
 )
 }
 \arguments{
@@ -57,11 +56,11 @@ model. Should be covariate names used in the FREM model.}
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
 STDOUT.}
 
+\item{fremETA}{NULL or a vector of individual ETAs from the FREM model.}
+
 \item{eqFile}{File name to save the FFEM equations in.}
 
 \item{omFile}{File name to save the omega prim matrix in.}
-
-\item{fremEta}{NULL or a vector of individual ETAs from the FREM model.}
 }
 \value{
 A list with components Coefficients, Vars and Expr:
@@ -101,15 +100,18 @@ Only one set of ETA prims will be computed (for one individual). To compute
 the ETA prims for all subjects at the same ime, please use \code{\link[=calcEtas]{calcEtas()}}.
 }
 \examples{
-extFile         <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
-dfExt           <- getExt(extFile = extFile)
+library(dplyr)
+extFile <- system.file("extdata/SimNeb/run31.ext", package = "PMXFrem")
+dfExt <- getExt(extFile = extFile)
 calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE)
 
 ## Use fremETA to also compute the ETA prim
-phiFile         <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
-dfPhi           <- getPhi(phiFile) \%>\% select(starts_with("ETA"))
-calcFFEMtestout <- calcFFEM(dfExt, numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
-  etaFREM = as.numeric(dfPhi[1, ]))
+phiFile <- system.file("extdata/SimNeb/run31.phi", package = "PMXFrem")
+dfPhi <- getPhi(phiFile) \%>\% select(starts_with("ETA"))
+calcFFEMtestout <- calcFFEM(dfExt,
+  numNonFREMThetas = 7, numSkipOm = 2, quiet = TRUE,
+  fremETA = as.numeric(dfPhi[1, ])
+)
 
 }
 \seealso{

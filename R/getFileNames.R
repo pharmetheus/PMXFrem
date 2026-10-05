@@ -30,12 +30,11 @@
 #'
 #' @family NONMEM Parsers
 #' @concept nonmem_parsers
-getFileNames <- function(runno     = NULL,
-                         modName   = NULL,
+getFileNames <- function(runno = NULL,
+                         modName = NULL,
                          modDevDir = ".",
-                         modExt    = ".mod",
-                         lstExt    = ".lst") {
-
+                         modExt = ".mod",
+                         lstExt = ".lst") {
   if (is.null(runno) & is.null(modName)) stop("One of runno and modName needs to have a non-null value.")
   if (is.null(modDevDir)) stop("modDevDir must be a non-NULL value.")
 

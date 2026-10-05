@@ -47,3 +47,6 @@
 
 inst/doc
 docs
+
+# Rscript writes this when a plot is drawn with no device open
+Rplots.pdf

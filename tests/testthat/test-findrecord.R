@@ -1,15 +1,15 @@
 test_that("findrecord works", {
-
-  basemodel      <- system.file("extdata/SimNeb/run30.mod", package = "PMXFrem")
+  basemodel <- system.file("extdata/SimNeb/run30.mod", package = "PMXFrem")
 
   expect_snapshot_value(
-    stabilize(findrecord(basemodel, record = "\\$PROBLEM", replace = "$PROBLEM FFEM model", quiet = T)),
-    style = "serialize"
+    stabilize(findrecord(basemodel, record = "\\$PROBLEM", replace = "$PROBLEM FFEM model", quiet = TRUE)),
+    style = "serialize",
+    cran = TRUE
   )
 
   expect_snapshot_value(
-    stabilize(findrecord(basemodel, record = "\\$INPUT", quiet = T)),
-    style = "serialize"
+    stabilize(findrecord(basemodel, record = "\\$INPUT", quiet = TRUE)),
+    style = "serialize",
+    cran = TRUE
   )
-
 })

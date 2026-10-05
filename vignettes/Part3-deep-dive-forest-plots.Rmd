@@ -1,7 +1,10 @@
 ---
 title: "3. Deep Dive: Forest Plots"
 
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
 vignette: >
   %\VignetteIndexEntry{3. Deep Dive: Forest Plots}
   %\VignetteEngine{knitr::rmarkdown}
@@ -19,7 +22,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Introduction
+# Introduction
 
 This vignette explains how to use the `PMXFrem` and `PMXForest` packages to create a Forest plot based on a FREM run, incorporating its associated uncertainty. 
 
@@ -30,11 +33,11 @@ The workflow is divided into four stages:
 1. **Pre-requisite Setup:** Loading models, estimates, and parameter samples.
 2. **Covariate Scenarios:** Defining the specific covariate combinations to visualize.
 3. **Data Generation:** Computing the relative parameter changes and their confidence intervals.
-4. **Visualization:** Rendering the Forest plot with programmatic, robust labeling.
+4. **Visualization:** Drawing the plot, with the row labels generated rather than typed.
 
 ---
 
-## 1. Pre-requisite Setup
+# 1. Pre-requisite Setup
 
 First, we load the required packages and extract the base file paths, parameter estimates, and covariate names from our converged FREM model.
 
@@ -45,9 +48,9 @@ library(ggplot2)
 library(dplyr)
 library(data.table)
 
-# Enforce a clean global theme
+# One theme for every figure below
 theme_set(theme_bw(base_size = 14))
-set.seed(865765) 
+set.seed(865765)
 
 # Identify the FREM run and collect file paths
 runname <- "run31"
@@ -55,8 +58,8 @@ modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
 fremFiles <- getFileNames(modName = runname, modDevDir = modDevDir)
 
 # Extract final parameter estimates and annotated covariate names
-dfExt <- subset(getExt(extFile = fremFiles$ext), ITERATION == "-1000000000") 
-covNames <- getCovNames(modFile = fremFiles$mod)                             
+dfExt <- subset(getExt(extFile = fremFiles$ext), ITERATION == "-1000000000")
+covNames <- getCovNames(modFile = fremFiles$mod)
 ```
 
 Next, we extract the uncertainty distribution. In this example, we draw 175 multivariate normal samples using the variance-covariance matrix from the NONMEM `.cov` file. 
@@ -65,12 +68,12 @@ Next, we extract the uncertainty distribution. In this example, we draw 175 mult
 # Get 175 samples from the .cov file
 dfParameters <- getSamples(fremFiles$cov, extFile = fremFiles$ext, n = 175)
 
-# Enforce the first row as the final deterministic estimates
+# Row 1 is the final estimates, so the plot has a deterministic reference
 dfParameters[1, ] <- dfExt[1, -1]
 ```
 
-### The Parameter Function
-We must define a list of functions specifying how the parameters are calculated. Because we are plotting the *typical* parameter value for a given covariate, these functions only utilize the fixed effects. 
+## The Parameter Function
+We must define a list of functions specifying how the parameters are calculated. Because we are plotting the *typical* parameter value for a given covariate, these functions use the fixed effects only. 
 
 Note that the functional form for the covariate-parameter relationships depends on the parameter functional form (usually log-normal):
 $$CL = \theta_{CL} \cdot \exp(\eta_{CL})$$
@@ -79,49 +82,83 @@ As well as the covariate form in the FREM model (usually normal):
 $$COV = \theta_{COV} + \eta_{COV}$$
 
 ```{r define_functions}
-# The parameter function list for log-normal parameters
+# The parameter function list for log-normal parameters. The indices are the
+# model's own: in run31 THETA(1) is TVFREL, so CL is basethetas[2], and CL is
+# the model's first FREM parameter, so its covariate effect is covthetas[1].
 functionList <- list(
-  function(basethetas, covthetas, ...) { return(basethetas[1] * exp(covthetas[1])) }, 
-  function(basethetas, covthetas, ...) { return(basethetas[2] * exp(covthetas[2])) }
+  function(basethetas, covthetas, ...) {
+    return(basethetas[2] * exp(covthetas[1]))
+  },
+  function(basethetas, covthetas, ...) {
+    return(basethetas[3] * exp(covthetas[2]))
+  }
 )
 
-functionListName <- c("CL", "V1")
+functionListName <- c("CL", "V")
 ```
+
+Getting those two index sets right is the fiddly part of writing a parameter
+function, and nothing downstream can tell you when they are wrong: a Forest plot
+shows ratios to a reference, so a structural theta taken from the wrong index
+cancels out and the plot looks entirely reasonable.
+
+`createFREMParamFunction()` removes that risk by transliterating the model's own
+`$PK` instead, and one generated function serves both plot types -- call it with
+`etas = 0` for a Forest plot, with sampled etas for an explained-variability
+plot. It is not used here because this deep dive is about the *inputs* to a
+Forest plot, and a two-line function keeps the contract those inputs have to
+satisfy visible. The Secondary Parameters deep dive generates the function and
+draws the Forest plot from it; the Explained Variability deep dive does the
+same for the other plot type.
 
 ---
 
-## 2. Defining Covariate Scenarios
+# 2. Defining Covariate Scenarios
 
 We need to define the specific covariate combinations (univariable or multivariable) to plot. A value of `-99` or `NA` indicates that the covariate is at the reference (population typical) value. 
 
-While you can build this matrix manually, `PMXForest::getCovStats()` is the recommended approach. It automatically scans your clinical dataset and calculates the 5th and 95th percentiles (or your chosen quantiles) for continuous covariates, and identifies categorical levels.
+While you can build this matrix by hand, `PMXForest::setupDfCovs()` does it from the data: the 5th and 90th percentiles (or whichever quantiles you ask for) of each continuous covariate, one row per level of each categorical one, and the `<cov>_<level>` columns the FREM model uses. Statistics are taken one record per `idVar`, so longitudinal data does not skew them.
 
 ```{r define_scenarios}
 # Load clinical data
-data <- fread(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package="PMXFrem"))
+data <- fread(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"))
 
-# Generate covariate matrix dynamically using the 5th and 90th percentiles
-dfCovs <- createInputForestData(
-  getCovStats(data, covNames$orgCovNames, probs = c(0.05, 0.90), missVal = -99),
-  iMiss = -99
+# Build the covariate matrix from the data, at the 5th and 90th percentiles
+dfCovs <- setupDfCovs(
+  data       = data,
+  covariates = covNames$orgCovNames,
+  probs      = c(0.05, 0.90),
+  idVar      = "ID",
+  missVal    = -99
 )
 
 head(dfCovs, 5)
 ```
 
+`setupDfCovs()` composes the two primitives this used to call directly,
+`getCovStats()` and `createInputForestData()`, and gives the same matrix. Use
+those two when you want to inspect or adjust the statistics before they become
+scenario rows. The composed call also records what it did in an attribute,
+which `setupDfRefRow()` reads back to build a matching reference row -- the
+`dfRefRow` argument of `getForestDFFREM()`.
+
 ---
 
-## 3. Generate Forest Plot Data
+# 3. Generate Forest Plot Data
 
 With our scenarios defined, we pass everything to `getForestDFFREM()`. This function computes the relative parameter changes across all bootstrapped/sampled parameter vectors to construct the confidence intervals.
+
+We point it at the FREM model with `modName` / `modDevDir` (or `runno`), so
+`numNonFREMThetas`, `numSkipOm` and `covNames` are derived from the model and
+its `.ext` (via `fremModelInfo()`) rather than passed by hand. Supply them
+explicitly only to override the derived values.
 
 ```{r compute_forest}
 dfres <- getForestDFFREM(
   dfCovs           = dfCovs,
-  numNonFREMThetas = 7,
-  numSkipOm        = 2,
+  modName          = runname,
+  modDevDir        = modDevDir,
   dfParameters     = dfParameters,
-  covNames         = covNames$covNames,
   functionList     = functionList,
   functionListName = functionListName,
   quiet            = TRUE
@@ -130,39 +167,61 @@ dfres <- getForestDFFREM(
 
 ---
 
-## 4. Visualization & Labeling
+# 4. Visualization & Labeling
 
-Hardcoding dozens of row labels is dangerous and non-reproducible. Instead, we use `PMXFrem::generateCovNames()`. This utility function parses the `dfCovs` scenarios and applies user-defined unit mappings and categorical translations dynamically.
+Typing dozens of row labels out by hand means they drift away from `dfCovs` the first time a covariate is added or dropped. `generateCovNames()` reads the scenarios and applies the unit and level mappings given below, so the labels follow the data.
 
-```{r plot_forest, fig.height=14, fig.width=16, out.width="100%"}
-# 1. Define translation maps
+It is meant to be used in two steps. Run it first with `print_template = TRUE`:
+it prints an empty mapping skeleton listing every covariate group, and every
+covariate level, that this `dfCovs` actually contains.
+
+<details>
+<summary>The mapping template for this `dfCovs` (click to expand)</summary>
+
+```{r label_template, comment = ""}
+generateCovNames(dfCovs, print_template = TRUE)
+```
+
+</details>
+
+That skeleton is worth starting from rather than writing the maps from memory.
+A map written by hand goes stale quietly: a key for a covariate that is not in
+`dfCovs` matches nothing, and a level that *is* in `dfCovs` but not in the map
+falls through to its raw code (`SEX=2`) in the finished plot. The template can
+only list what is there, so both mistakes are visible before anything is
+plotted.
+
+Filled in, it gives the three maps below.
+
+```{r plot_forest, fig.height=20, fig.width=16, out.width="100%"}
+# 1. The maps, filled in from the template above
 unit_map <- c(
-  AGE = "years", WT = "kg", BMI = "kg/m2", BSA = "m2", 
-  CRCL = "mL/min", BILI = "mg/dL", AST = "IU", ALT = "IU", 
+  AGE = "years", WT = "kg", BMI = "kg/m2", BSA = "m2",
+  CRCL = "mL/min", BILI = "mg/dL", AST = "IU", ALT = "IU",
   HT = "cm", LBM = "kg"
 )
 
 label_map <- c(
-  "SEX=0" = "Male", "SEX=1" = "Female", 
-  "RACEL=1" = "Caucasian", "RACEL=2" = "Black", "RACEL=3" = "Other", "RACEL=4" = "Hispanic",
-  "SMOK=0" = "Non-smoking", "SMOK=1" = "Smoking", 
-  "NCIL=0" = "NCI Grade 0", "NCIL=1" = "NCI Grade 1", "NCIL=2" = "NCI Grade 2", 
-  "GENO2=0" = "Poor Metabolizer", "GENO2=1" = "Extensive Metabolizer"
+  "SEX=1" = "Male", "SEX=2" = "Female",
+  "RACEL=1" = "Caucasian", "RACEL=2" = "Black", "RACEL=3" = "Other",
+  "SMOK=0" = "Non-smoking", "SMOK=1" = "Smoking",
+  "NCIL=0" = "NCI Grade 0", "NCIL=1" = "NCI Grade 1", "NCIL=2" = "NCI Grade 2",
+  "GENO2=1" = "Poor metab.", "GENO2=2" = "Extensive metab."
 )
 
 group_map <- c(
-  "AGE" = "Age", "ALT" = "ALT", "AST" = "AST", "BILI" = "Total Bilirubin", 
-  "BMI" = "BMI", "BSA" = "BSA", "CRCL" = "Creatinine Clearance", 
-  "ETHN" = "Ethnicity", "GENO2" = "Genotype", "HT" = "Height", 
-  "LBM" = "Lean Body Weight", "NCIL" = "NCI", "RACEL" = "Race", 
+  "AGE" = "Age", "ALT" = "ALT", "AST" = "AST", "BILI" = "Total Bilirubin",
+  "BMI" = "BMI", "BSA" = "BSA", "CRCL" = "Creatinine CL",
+  "ETHNIC" = "Ethnicity", "GENO2" = "Genotype", "HT" = "Height",
+  "LBWT" = "Lean Body Wt", "NCIL" = "NCI", "RACEL" = "Race",
   "SEX" = "Sex", "SMOK" = "Smoking Status", "WT" = "Weight"
 )
 
-# 2. Programmatically generate and map robust labels and groups directly to the results
+# 2. Generate the labels and groups from dfCovs, and attach them to the results
 dfres_formatted <- generateCovNames(
-  dfCovs, 
-  dfres = dfres, 
-  unit_map = unit_map, 
+  dfCovs,
+  dfres = dfres,
+  unit_map = unit_map,
   label_map = label_map,
   group_map = group_map
 )
@@ -171,6 +230,6 @@ dfres_formatted <- generateCovNames(
 PMXForest::forestPlot(
   dfres_formatted,
   tabTextSize = 14,
-  strip_right_size = 11
+  strip_right_size = 9
 )
 ```
