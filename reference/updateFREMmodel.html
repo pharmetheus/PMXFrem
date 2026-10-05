@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -24,13 +24,15 @@
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quick-Start: 5-Minute FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-createFREMmodel.html">3. Deep Dive: Creating FREM Models</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard Diagnostics and ETAs</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">3. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plot-references.html">3. Deep Dive: Reconciling FREM and SCM Forest Plots</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-secondary-parameters.html">3. Deep Dive: Secondary Parameters</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-missing-covariates.html">3. Deep Dive: Subject-Specific Variances for Missing Covariates</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -72,8 +74,8 @@
 <span>  strID <span class="op">=</span> <span class="st">"ID"</span>,</span>
 <span>  basenames_th <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  basenames_om <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  <span class="va">numNonFREMThetas</span>,</span>
-<span>  numSkipOm <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  numNonFREMThetas <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  numSkipOm <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  numParCov <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cstrKeepCols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ID"</span>, <span class="st">"TIME"</span>, <span class="st">"AMT"</span>, <span class="st">"DV"</span>, <span class="st">"II"</span>, <span class="st">"EVID"</span>, <span class="st">"SS"</span>, <span class="st">"RATE"</span>, <span class="st">"FREMTYPE"</span><span class="op">)</span>,</span>
 <span>  cstrSetToZero <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AMT"</span>, <span class="st">"II"</span>, <span class="st">"SS"</span>, <span class="st">"EVID"</span>, <span class="st">"RATE"</span><span class="op">)</span>,</span>
@@ -135,6 +137,12 @@ default=paste0(strFREMData_without_extension,"new",".",extension), (not
 used with strUpdateType "NoData").</p></dd>
 
 
+<dt>filterString</dt>
+<dd><p>Optional string with an R filter expression applied to
+the FFEM data before it is used, e.g. <code>"STUDYID == 1"</code>. Default
+<code>NULL</code> (no filtering).</p></dd>
+
+
 <dt>strUpdateType</dt>
 <dd><p>Update function to run: "DataAndModel" - Create new data
 and add/remove variables from the model (with updated inits). "NoData" - Do
@@ -164,23 +172,18 @@ numSkipOm+numParCov in the model, if NULL, BASE1,BASE2,etc are used as
 names.</p></dd>
 
 
-<dt>numNonFREMThetas</dt>
-<dd><p>Number of thetas in the FREM model that are not FREM
-covariates. These need to come before the FREM covariate thetas in the FREM
-model file.</p></dd>
-
-
-<dt>numSkipOm</dt>
-<dd><p>Number of diagonal omegas that should not be part of the
-FREM calculations. Such omegas has to come before the large FREM omega
-block in the FREM model file.</p></dd>
+<dt>numNonFREMThetas, numSkipOm</dt>
+<dd><p>The number of structural (non-FREM) THETAs
+and the number of skipped OMEGAs in <code>strFREMModel</code>. <code>NULL</code> (default) derives
+both from the model and its <code>.ext</code> via <code><a href="fremModelInfo.html">fremModelInfo()</a></code>. If the model's
+<code>;;;FREM CODE</code> markers / final <code>$OMEGA BLOCK(N)</code> and the <code>.ext</code> column counts
+do not agree, the derivation <strong>stops</strong> - pass explicit values to override.
+When <code><a href="createFREMmodel.html">createFREMmodel()</a></code> calls this it always supplies both.</p></dd>
 
 
 <dt>numParCov</dt>
-<dd><p>Number of parameters for which covariate relations are
-sought (often the same as numNonFREMThetas). default (NULL) indicates that
-this is guessed by the function by assuming that each covariate effect is
-modeled as one theta and one eta.</p></dd>
+<dd><p>Optional. The number of FREM covariate parameters; derived
+from the <code>.ext</code> when <code>NULL</code>.</p></dd>
 
 
 <dt>cstrKeepCols</dt>
@@ -288,12 +291,15 @@ model file name will be 'stem'_new.mod).</p>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p>Other FREM model management: 
+<code><a href="addFremIIV.html">addFremIIV</a>()</code>,
+<code><a href="addFremStructuralTheta.html">addFremStructuralTheta</a>()</code>,
 <code><a href="createFREMmodel.html">createFREMmodel</a>()</code></p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">## Example 1: Remove Covariates from a Model</span></span></span>
 <span class="r-in"><span><span class="co"># This example removes "SEX" from the model and data set.</span></span></span>
 <span class="r-in"><span><span class="va">td</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span> <span class="co"># Create a temporary directory for output files</span></span></span>
@@ -356,7 +362,7 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-in"><span>  strFREMData       <span class="op">=</span> <span class="va">frem_data_path</span>,</span></span>
 <span class="r-in"><span>  strFFEMData       <span class="op">=</span> <span class="va">ffem_df</span>, <span class="co"># Use the modified data frame with SITE</span></span></span>
 <span class="r-in"><span>  strNewFREMData    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"frem_data_with_SITE.csv"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  cstrCatCovsToAdd  <span class="op">=</span> <span class="st">"SITE"</span>,  <span class="co"># Add the new SITE covariate</span></span></span>
+<span class="r-in"><span>  cstrCatCovsToAdd  <span class="op">=</span> <span class="st">"SITE"</span>, <span class="co"># Add the new SITE covariate</span></span></span>
 <span class="r-in"><span>  numNonFREMThetas  <span class="op">=</span> <span class="fl">7</span>,</span></span>
 <span class="r-in"><span>  numSkipOm         <span class="op">=</span> <span class="fl">2</span>,</span></span>
 <span class="r-in"><span>  bWriteData        <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
@@ -381,10 +387,10 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-in"><span><span class="co"># Load the original data as data frames</span></span></span>
 <span class="r-in"><span><span class="va">frem_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fread.html" class="external-link">fread</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/frem_dataset.dta"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span>LNDV<span class="op">=</span><span class="va">ODV</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span>LNDV <span class="op">=</span> <span class="va">ODV</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ffem_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fread.html" class="external-link">fread</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">)</span><span class="op">)</span> </span></span>
+<span class="r-in"><span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Simulate new individuals by taking 50 rows and giving them new IDs</span></span></span>
 <span class="r-in"><span><span class="va">ffem_new_ids</span> <span class="op">&lt;-</span> <span class="va">ffem_df</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">50</span>, <span class="op">]</span></span></span>
@@ -395,7 +401,7 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">updateFREMmodel</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  strFREMModel      <span class="op">=</span> <span class="va">model_path</span>,</span></span>
-<span class="r-in"><span>  strFREMData       <span class="op">=</span> <span class="va">frem_df</span>,      <span class="co"># Pass original data as a data frame</span></span></span>
+<span class="r-in"><span>  strFREMData       <span class="op">=</span> <span class="va">frem_df</span>, <span class="co"># Pass original data as a data frame</span></span></span>
 <span class="r-in"><span>  strFFEMData       <span class="op">=</span> <span class="va">ffem_new_ids</span>, <span class="co"># Pass the new individuals' data</span></span></span>
 <span class="r-in"><span>  strNewFREMData    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"frem_data_with_new_ids.csv"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  numNonFREMThetas  <span class="op">=</span> <span class="fl">7</span>,</span></span>
@@ -453,8 +459,8 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-in"><span><span class="fu">updateFREMmodel</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  strFREMModel       <span class="op">=</span> <span class="va">model_in_td</span>,</span></span>
 <span class="r-in"><span>  strUpdateType      <span class="op">=</span> <span class="st">"NoData"</span>,</span></span>
-<span class="r-in"><span>  basenames_th       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL"</span>,<span class="st">"V"</span>,<span class="st">"MAT"</span>,<span class="st">"D1"</span>,<span class="st">"FRELFOOD"</span>,<span class="st">"MATFOOD"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  basenames_om       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"RUV"</span>,<span class="st">"D1"</span>,<span class="st">"CL"</span>,<span class="st">"V"</span>,<span class="st">"MAT"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  basenames_th       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL"</span>, <span class="st">"V"</span>, <span class="st">"MAT"</span>, <span class="st">"D1"</span>, <span class="st">"FRELFOOD"</span>, <span class="st">"MATFOOD"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  basenames_om       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"RUV"</span>, <span class="st">"D1"</span>, <span class="st">"CL"</span>, <span class="st">"V"</span>, <span class="st">"MAT"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  numNonFREMThetas   <span class="op">=</span> <span class="fl">7</span>,</span></span>
 <span class="r-in"><span>  numSkipOm          <span class="op">=</span> <span class="fl">2</span>,</span></span>
 <span class="r-in"><span>  bWriteData         <span class="op">=</span> <span class="cn">FALSE</span>,</span></span>

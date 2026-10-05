@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -24,13 +24,15 @@
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quick-Start: 5-Minute FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-createFREMmodel.html">3. Deep Dive: Creating FREM Models</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard Diagnostics and ETAs</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">3. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plot-references.html">3. Deep Dive: Reconciling FREM and SCM Forest Plots</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-secondary-parameters.html">3. Deep Dive: Secondary Parameters</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-missing-covariates.html">3. Deep Dive: Subject-Specific Variances for Missing Covariates</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -52,110 +54,112 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="2.1.0" id="pmxfrem-2-1-0">PMXFrem 2.1.0<a class="anchor" aria-label="anchor" href="#pmxfrem-2-1-0"></a></h2>
+<h2 class="pkg-version" data-toc-text="2.2.0" id="pmxfrem-2-2-0">PMXFrem 2.2.0<a class="anchor" aria-label="anchor" href="#pmxfrem-2-2-0"></a></h2>
+<p>PMXFrem 2.1.0 was published but never promoted, so its changes are described here together with 2.2.0’s.</p>
 <div class="section level3">
-<h3 id="new-features-2-1-0">New Features<a class="anchor" aria-label="anchor" href="#new-features-2-1-0"></a></h3>
+<h3 id="automatically-generate-the-parameter-function-from-the-nonmem-code-2-2-0">Automatically generate the parameter function from the NONMEM code<a class="anchor" aria-label="anchor" href="#automatically-generate-the-parameter-function-from-the-nonmem-code-2-2-0"></a></h3>
+<p><code><a href="../reference/createFREMParamFunction.html">createFREMParamFunction()</a></code> writes the parameter function <code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code> and <code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code> need, by translating the FREM model’s <code>$PK</code> block, similar to what <code><a href="https://rdrr.io/pkg/PMXForest/man/createParamFunction.html" class="external-link">PMXForest::createParamFunction()</a></code> does for non-FREM models.</p>
+<p>One generated function serves both Forest plots and explained variability plots: <code>etas = 0</code> for a Forest plot, sampled etas for explained variability.</p>
+<p><code><a href="../reference/verifyFREMParamFunction.html">verifyFREMParamFunction()</a></code> is the check to run before trusting it. It compares the function against the FFEM version of the same model.</p>
+</div>
+<div class="section level3">
+<h3 id="extending-an-established-frem-model-2-2-0">Extending an established FREM model<a class="anchor" aria-label="anchor" href="#extending-an-established-frem-model-2-2-0"></a></h3>
+<p><code><a href="../reference/addFremStructuralTheta.html">addFremStructuralTheta()</a></code> adds a structural <code>$THETA</code>, and with <code>addEta = TRUE</code> a matching IIV. <code><a href="../reference/addFremIIV.html">addFremIIV()</a></code> adds the random effect on its own.</p>
+<p>The THETAs and ETAs are added before the FREM part of the model and renumber every <code>THETA()</code>, <code>ETA()</code>, <code>MU_</code> and <code>COV</code> reference that follows.</p>
+</div>
+<div class="section level3">
+<h3 id="individual-variances-for-each-missing-covariate-pattern-2-2-0">Individual variances for each missing covariate pattern<a class="anchor" aria-label="anchor" href="#individual-variances-for-each-missing-covariate-pattern-2-2-0"></a></h3>
+<p><code>omegaToData = TRUE</code> in <code><a href="../reference/createFFEMdata.html">createFFEMdata()</a></code> / <code><a href="../reference/createFFEMmodel.html">createFFEMmodel()</a></code> use Cholesky decomposition to write each subject’s variance-covariance elements into the data set and sets <code>$OMEGA</code> to an identity matrix. Each subject’s variance then follows their own missing-covariate pattern, instead assuming that there are no missing covariates.</p>
+</div>
+<div class="section level3">
+<h3 id="other-notable-additions-2-2-0">Other notable additions<a class="anchor" aria-label="anchor" href="#other-notable-additions-2-2-0"></a></h3>
 <ul><li>
-<strong>Cholesky Decomposition Support</strong>: Added the <code>omegaToData</code> argument to <code><a href="../reference/createFFEMdata.html">createFFEMdata()</a></code> and <code><a href="../reference/createFFEMmodel.html">createFFEMmodel()</a></code>. When set to <code>TRUE</code>, this extracts the variance-covariance matrix elements as <code>V</code>-columns (e.g., <code>V11</code>, <code>V21</code>) directly into the dataset. It rewrites the NONMEM <code>$OMEGA</code> block as an identity matrix and adds equations (<span class="math inline"><em>V</em> = <em>L</em><em>L</em><sup><em>T</em></sup></span>) in the <code>$PK</code>/<code>$PRED</code> blocks to map independent standard normal <code>ETA</code>s to correlated <code>MYETA</code>s.</li>
+<strong><code>numNonFREMThetas</code> and <code>numSkipOm</code> no longer have to be specified by the user.</strong> <code><a href="../reference/fremModelInfo.html">fremModelInfo()</a></code> works them out from a model and its <code>.ext</code>, so they no longer have to be passed to <code><a href="../reference/fremParameterTable.html">fremParameterTable()</a></code>, <code><a href="../reference/createFFEMmodel.html">createFFEMmodel()</a></code>, <code><a href="../reference/createFFEMdata.html">createFFEMdata()</a></code>, <code><a href="../reference/calcEtas.html">calcEtas()</a></code> or <code><a href="../reference/updateFREMmodel.html">updateFREMmodel()</a></code>.</li>
 <li>
-<strong>Automated Fixing of Covariate Parameters</strong>: Added the <code>fixTheta</code> argument (default <code>TRUE</code>) to core data assembly functions. The functions now automatically add the <code>FIX</code> flag to initial <code>$THETA</code> estimates for fully observed covariates. Covariates with missing data remain estimated, which improves overall EM algorithm stability.</li>
+<code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> warns about <code>$EST</code> settings FREM struggles with: <code>SAEM</code> with missing covariates, no <code>IMP</code> / <code>IMPMAP</code>, <code>NITER</code> below 150, <code>PHITYPE=0</code>.</li>
 <li>
-<strong>Estimation Block Validation</strong>: Added evaluation checks for the base NONMEM model’s <code>$EST</code> block prior to FREM generation. The package now warns users about sub-optimal configurations, including the use of SAEM with missing covariates, absence of IMP/IMPMAP methods, <code>NITER</code> &lt; 150, or incorrect <code>PHITYPE</code> settings.</li>
+<code>missVal</code> replaces the hardcoded <code>-99</code> through the data assembly functions.</li>
+<li>
+<code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code> one-hot encodes categorical covariates if requested (<code>oneHot</code> / <code>oneHotSep</code>).</li>
+<li>
+<code>add.stamp</code> on <code><a href="../reference/plotExplainedVar.html">plotExplainedVar()</a></code>, <code><a href="../reference/traceplot.html">traceplot()</a></code>, <code><a href="../reference/plotEtasCov.html">plotEtasCov()</a></code> and <code><a href="../reference/plotCovDist.html">plotCovDist()</a></code> records where and when a figure was made.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="under-the-hood-refactoring-2-1-0">Under the Hood &amp; Refactoring<a class="anchor" aria-label="anchor" href="#under-the-hood-refactoring-2-1-0"></a></h3>
+<h3 id="changes-to-existing-behaviour-2-2-0">Changes to existing behaviour<a class="anchor" aria-label="anchor" href="#changes-to-existing-behaviour-2-2-0"></a></h3>
 <ul><li>
-<strong>Missing Value Handling</strong>: Removed hardcoded <code>-99</code> values across the core data assembly functions (<code>createFREMmodel</code>, <code>updateFREMmodel</code>, <code>prepareNewCovariates</code>, <code>createFREMData</code>, <code>augmentFremData</code>, <code>calcEtas</code>, <code>addFREMcovariates</code>, <code>setupDfCovsEV</code>). These are replaced with a <code>missVal</code> argument, allowing the package to handle alternative sponsor data conventions for missingness (e.g., <code>-999</code>, <code>NA</code>).</li>
-<li>
-<strong>Parameter Dimension Checks</strong>: Added length checks in <code><a href="../reference/calcFFEM.html">calcFFEM()</a></code> to ensure that the number of provided parameter and covariate labels exactly matches the parsed <code>numParCov</code> and <code>numFREMThetas</code> derived from the model. This prevents vector-recycling errors and matrix-dimension mismatches.</li>
-<li>
-<strong>Matrix Formatting</strong>: Added the <code>forceSingleBlock</code> argument to <code><a href="../reference/buildmatrix.html">buildmatrix()</a></code> to override block-diagonal detection. This formats expanded <code>$OMEGA</code> blocks as a single dense block, preventing the matrix from splitting when structural zeros are added during minimal model creation.</li>
-<li>
-<strong>Parsing Improvements</strong>: Updated NONMEM <code>.ext</code> file parsing in <code>initializeModelParameters</code> to avoid factor-coercion issues in legacy R versions (version &lt; 4.0). Prevented <code>write.table</code> from automatically applying scientific notation to <code>ITERATION</code> strings.</li>
-<li>
-<strong>Parallel Execution Updates</strong>: Explicitly mapped arguments (<code>omegaToData</code>, <code>numSkipOm</code>) into the <code>foreach</code> closures in <code><a href="../reference/createFFEMdata.html">createFFEMdata()</a></code> to prevent variable scoping issues across different parallel backends.</li>
-<li>
-<strong>Function Signature Updates</strong>: Resolved recursive lazy evaluation caused by parameterizing default arguments, and corrected positional argument matching in internal functions.</li>
+<strong><code><a href="../reference/setupDfCovsEV.html">setupDfCovsEV()</a></code>’s <code>additionalCovs</code> is renamed <code>conditionalCovs</code>, and they are on in every row.</strong> Each FREM covariate’s row now reports what it explains with them in the model, which includes their own contribution. <code>additionalCovs</code> still works, with a deprecation warning.</li>
+<li><strong>PMXFrem now requires PMXForest v1.3.0 or later.</strong></li>
 </ul></div>
 <div class="section level3">
-<h3 id="documentation-testing-2-1-0">Documentation &amp; Testing<a class="anchor" aria-label="anchor" href="#documentation-testing-2-1-0"></a></h3>
-<ul><li>Updated <code>roxygen2</code> documentation and executable <code>@examples</code> for <code>createFFEMmodel</code> and <code>createFFEMdata</code> to comply with CRAN file I/O policies.</li>
-<li>Improved the <code>testthat</code> suite by scoping missingness tokens during mock data generation, using a recursive object stabilization helper (<code>stabilize()</code>), and updating test snapshots to reflect dynamic parameter labeling and Cholesky matrix outputs.</li>
+<h3 id="bug-fixes-2-2-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-2-2-0"></a></h3>
+<p>A careful code review surfaced a number of edge cases in which <code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code> did not behave as intended. The same review found the single-covariate and underscore problems below.</p>
+<ul><li>
+<strong><code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code> returned wrong numbers, silently, in five cases:</strong> a missing covariate blanked others whose names contain it (<code>WT</code> removed <code>LBWT</code>); type 1 paired phi etas with subjects by row position rather than by ID; type 3 passed the sample index into the parameter function; <code>availCov = "RACEL"</code> was dropped instead of expanded; a function returning nothing for a covariate row shifted later values onto the wrong parameter.</li>
+<li>
+<strong><code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code> rejected calls it should have accepted:</strong> extra arguments meant for the parameter function, a single function given instead of a list of functions, parameter names given without their number, and a <code>dfCovs</code> row holding only non-FREM covariates.</li>
+<li>
+<strong>A single-covariate <code>dfCovs</code></strong> reported no explained variability at all, and two internal calls passed a too-short eta vector.</li>
+<li>
+<strong>An underscore in a covariate’s own name</strong> (<code>BL_BILI</code>) was read as a binarized level, leaving the covariate out.</li>
+<li>
+<strong>Parallel runs on Windows could use another installed PMXFrem.</strong> With <code>ncores &gt; 1</code>, <code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code>, <code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code> and <code><a href="../reference/createFFEMdata.html">createFFEMdata()</a></code> start fresh R sessions on Windows, and these loaded the first PMXFrem on <code><a href="https://rdrr.io/r/base/libPaths.html" class="external-link">.libPaths()</a></code> rather than the one the session uses - for example one loaded from a versioned library. They now load the session’s copy, and stop with both versions named when they cannot. macOS and Linux were not affected.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="under-the-hood-2-2-0">Under the hood<a class="anchor" aria-label="anchor" href="#under-the-hood-2-2-0"></a></h3>
+<ul><li>
+<code><a href="../reference/addFREMcovariates.html">addFREMcovariates()</a></code> binarises through <code><a href="https://rdrr.io/pkg/PMXForest/man/oneHotEncode.html" class="external-link">PMXForest::oneHotEncode()</a></code>, so the <code>&lt;cov&gt;_&lt;level&gt;</code> convention has one implementation across the two packages.</li>
+<li>
+<code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code> builds its result once instead of growing it in a loop, which shortens run times.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="two-numbers-you-have-seen-before-change-2-2-0">Two numbers you have seen before change<a class="anchor" aria-label="anchor" href="#two-numbers-you-have-seen-before-change-2-2-0"></a></h3>
+<ul><li>
+<strong>RSE and CI are reproducible.</strong> <code>seed</code> defaults to <code>1</code> rather than <code>NULL</code>, so the sampled uncertainty no longer depends on the random number state the caller happens to arrive with.</li>
+<li>
+<strong>A negative shrinkage is reported as in NONMEM.</strong> By default a negative shrinkage is reported as <code>1.0000e-10</code>. Setting <code>rawShrinkage = TRUE</code> will report the shrinkage as it is calculated, even if negative.</li>
 </ul></div>
 </div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.0.0" id="pmxfrem-2-0-0">PMXFrem 2.0.0<a class="anchor" aria-label="anchor" href="#pmxfrem-2-0-0"></a></h2>
 <div class="section level3">
-<h3 id="new-features-2-0-0">New Features<a class="anchor" aria-label="anchor" href="#new-features-2-0-0"></a></h3>
+<h3 id="build-a-frem-model-without-psn-2-0-0">Build a FREM model without PsN<a class="anchor" aria-label="anchor" href="#build-a-frem-model-without-psn-2-0-0"></a></h3>
+<p><code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> builds the FREM model and its data set from a base model and a data file, so an analysis no longer has to start by running PsN’s <code>frem</code> command. <code>keepDoseOnlySubjects</code> (default <code>FALSE</code>) retains subjects that have no PK observations.</p>
+</div>
+<div class="section level3">
+<h3 id="parameter-tables-with-uncertainty-and-shrinkage-2-0-0">Parameter tables with uncertainty and shrinkage<a class="anchor" aria-label="anchor" href="#parameter-tables-with-uncertainty-and-shrinkage-2-0-0"></a></h3>
+<p><code><a href="../reference/fremParameterTable.html">fremParameterTable()</a></code> draws base parameters and covariate coefficients from the same sample space. <code>uncertainty</code> reports <code>"RSE"</code> or <code>"CI"</code>; <code>includeShrinkage</code> adds shrinkage, with <code>shrinkageType</code>, <code>shkDigs</code> and <code>rawShrinkage</code> deciding what is shown.</p>
+</div>
+<div class="section level3">
+<h3 id="covariate-coefficient-tables-2-0-0">Covariate coefficient tables<a class="anchor" aria-label="anchor" href="#covariate-coefficient-tables-2-0-0"></a></h3>
+<p><code><a href="../reference/fremParameterTable.html">fremParameterTable()</a></code> also returns <code>coefficientTable_long</code> for programmatic use and <code>coefficientTable_wide</code> for reports.</p>
+</div>
+<div class="section level3">
+<h3 id="diagnostic-plots-for-etas-and-covariates-2-0-0">Diagnostic plots for ETAs and covariates<a class="anchor" aria-label="anchor" href="#diagnostic-plots-for-etas-and-covariates-2-0-0"></a></h3>
+<p><code><a href="../reference/plotEtasCov.html">plotEtasCov()</a></code> plots FREM ETAs, ETA_PRIMs and FFEM EBEs against the covariates in facets; <code><a href="../reference/plotCovDist.html">plotCovDist()</a></code> plots the distributions of the estimated covariates. Both group the data by whether the covariate was observed.</p>
+</div>
+<div class="section level3">
+<h3 id="forest-plot-labels-built-from-the-covariate-table-2-0-0">Forest plot labels built from the covariate table<a class="anchor" aria-label="anchor" href="#forest-plot-labels-built-from-the-covariate-table-2-0-0"></a></h3>
+<p><code><a href="../reference/generateCovNames.html">generateCovNames()</a></code> builds them from the covariate table, rather than having them typed out and kept in step by hand.</p>
+</div>
+<div class="section level3">
+<h3 id="vignettes-2-0-0">Vignettes<a class="anchor" aria-label="anchor" href="#vignettes-2-0-0"></a></h3>
+<p>A quick start and a walk-through, plus deep dives for <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code>, diagnostics, Forest plots, explained variability and <code><a href="../reference/updateFREMmodel.html">updateFREMmodel()</a></code>.</p>
+</div>
+<div class="section level3">
+<h3 id="changes-to-existing-behaviour-2-0-0">Changes to existing behaviour<a class="anchor" aria-label="anchor" href="#changes-to-existing-behaviour-2-0-0"></a></h3>
 <ul><li>
-<strong>Create FREM models:</strong> Added <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code>, a robust function for FREM model generation that can replace PsNs frem command.</li>
-<li>Added <code>keepDoseOnlySubjects</code> toggle across the pipeline to allow retention of subjects without PK observations (defaults to <code>FALSE</code> for legacy compatibility).</li>
+<strong>Output data sets are sorted stably</strong>, by <code>ORIG_ROW_IDX</code> and <code>FREMTYPE</code>, so the record order within a subject survives. <code><a href="../reference/updateFREMmodel.html">updateFREMmodel()</a></code>’s <code>cstrSortCols</code> was deprecated with it.</li>
 <li>
-<strong>Unified Parameter Engine:</strong> Refactored <code><a href="../reference/fremParameterTable.html">fremParameterTable()</a></code> to guarantee base parameters and covariate coefficients are derived from the exact same bootstrap sample space.</li>
-<li>
-<strong>Covariate Coefficient Tables:</strong> Added <code>coefficientTable_long</code> (API-ready) and <code>coefficientTable_wide</code> (document-ready) outputs.</li>
-<li>
-<strong>Dynamic Uncertainty Formatting:</strong> Added <code>uncertainty</code> (<code>"RSE"</code> or <code>"CI"</code>), <code>ciLevel</code>, and <code>sigDigs</code> arguments to <code><a href="../reference/fremParameterTable.html">fremParameterTable()</a></code> with trailing zero preservation (<code>%#</code>).</li>
-<li>
-<strong>Covariate Label Generator:</strong> Added <code><a href="../reference/generateCovNames.html">generateCovNames()</a></code> for dynamic/interactive Forest Plot label generation.</li>
-<li>
-<strong>Integrated Shrinkage Reporting:</strong> <code><a href="../reference/fremParameterTable.html">fremParameterTable()</a></code> now natively reports parameter shrinkages via the <code>includeShrinkage = TRUE</code> and <code>ffemModName</code> arguments. Users can control the reported metric (<code>shrinkageType</code>), decimal precision (<code>shkDigs</code>), and choose to report raw mathematical values or NONMEM-style floored values (<code>rawShrinkage</code>).</li>
-<li>
-<strong>New Features:</strong> Added diagnostic plotting functions <code><a href="../reference/plotEtasCov.html">plotEtasCov()</a></code> and <code><a href="../reference/plotCovDist.html">plotCovDist()</a></code>. <code><a href="../reference/plotEtasCov.html">plotEtasCov()</a></code> creates faceted scatter plots to compare FREM ETAs, ETA_PRIMs, and FFEM EBEs against covariates. <code><a href="../reference/plotCovDist.html">plotCovDist()</a></code> generates distribution plots for estimated covariates. Both automatically visualize and group data based on original covariate missingness.</li>
-<li>
-<strong>New Vignettes:</strong> Added Tier 1 (<code>quick-start.Rmd</code>) and Tier 2 (<code>walk-through.Rmd</code>) workflows. Deep-dive vignettes for <code>createFREMmodel</code>, standard diagnostics, forest plots, explained variability plots and <code>updateFREMmodel</code>.</li>
+<strong>A dichotomous covariate coded <code>1</code>/<code>2</code> is an error</strong>, since FREM expects <code>0</code>/<code>1</code>. <code>allowNon01 = TRUE</code> or <code>bRecodeDichotomous = TRUE</code> restores the PsN behaviour.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="architecture-performance-2-0-0">Architecture &amp; Performance<a class="anchor" aria-label="anchor" href="#architecture-performance-2-0-0"></a></h3>
+<h3 id="bug-fixes-2-0-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-2-0-0"></a></h3>
 <ul><li>
-<strong>Modularized Variance Engines:</strong> The monolithic <code>getExplainedVar.R</code> script has been completely decoupled. The Delta Rule approximation (<code>type=0</code>) and empirical variance evaluations (<code>type=1,2,3</code>) are now isolated into pure, standalone helper functions within <code>R/utils-getExplainedVar.R</code>.</li>
+<strong>Covariates with overlapping names overwrote each other</strong> - <code>AGE</code> blanked <code>PAGE</code>, dropping valid data and pushing <code>TOTCOVVAR</code> below <code>COVVAR</code>.</li>
 <li>
-<strong>Eradicated <code>rbind</code> Memory Leaks:</strong> Completely removed iterative <code>rbind</code> and <code><a href="https://dplyr.tidyverse.org/reference/bind.html" class="external-link">dplyr::bind_rows</a></code> calls from inside the deep ETA sampling and permutation loops in <code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code>. Data frames are now accumulated via pre-allocated lists and bound exactly once per execution block, removing exponential memory reallocation and drastically reducing execution time for large pharmacometric cohorts.</li>
+<strong><code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code> failed on Windows</strong> with <code>ncores &gt; 1</code>, and left its cluster running if the calculation errored.</li>
 <li>
-<strong>Removed Regex AST Hacks:</strong> Eliminated the computationally expensive and brittle <code>jxrtp47</code> string replacement loop. FFEM expressions are now natively and securely evaluated using isolated environment scoping (<code>eval(..., envir = list(data = datatmp))</code>).</li>
-</ul></div>
-<div class="section level3">
-<h3 id="deprecations-guardrails-2-0-0">Deprecations &amp; Guardrails<a class="anchor" aria-label="anchor" href="#deprecations-guardrails-2-0-0"></a></h3>
-<ul><li>
-<strong>Stable Dataset Sorting:</strong> Output datasets are now automatically sorted using a stable index (<code>ORIG_ROW_IDX</code>) and <code>FREMTYPE</code> to protect intra-subject sequences. The <code>cstrSortCols</code> argument in <code>updateFREMmodel</code> is deprecated and will be safely ignored with a warning.</li>
-<li>
-<strong>Strict Covariate Validation:</strong> To ensure data hygiene, dichotomous covariates coded as <code>1/2</code> will now trigger a validation error by default. Legacy PsN compatibility can be maintained by explicitly setting <code>allowNon01 = TRUE</code> or <code>bRecodeDichotomous = TRUE</code>.</li>
-<li>
-<strong>API Cleanup:</strong> Internal pipeline functions (e.g., <code>augmentFremData</code>, <code>prepareAndValidateData</code>) have been moved to the internal namespace to declutter the user-facing API.</li>
-<li>renames <code>setypdfCovs()</code> to <code><a href="../reference/setupDfCovsEV.html">setupDfCovsEV()</a></code>
-</li>
-</ul></div>
-<div class="section level3">
-<h3 id="bug-fixes-2-0-0">Bug Fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-2-0-0"></a></h3>
-<ul><li>
-<strong>Covariate Cross-Contamination (<code>TOTCOVVAR</code> Anomaly):</strong> Fixed a critical regex bug (<code>length(grepl(...))</code>) in the missing data mapping function that caused covariates with overlapping substrings (e.g., <code>AGE</code> and <code>PAGE</code>) to be incorrectly overwritten with <code>-99</code>. This resolves an anomaly where <code>TOTCOVVAR</code> was artificially suppressed below <code>COVVAR</code> due to valid data being silently dropped.</li>
-<li>
-<strong>Windows PSOCK Parallelization:</strong> Resolved “Object not found” crashes on Windows machines when using <code>ncores &gt; 1</code> in <code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code>. By isolating the empirical variance engine, the local environment is now explicitly bundled and exported (<code>.export = c(ls(environment()), ...)</code>) to <code>foreach</code> workers, bypassing fragile static code analysis.</li>
-<li>
-<strong>Orphaned Cluster Teardown:</strong> Parallel backend clusters in <code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code> are now safely terminated via an <code>on.exit(doParallel::stopImplicitCluster(), add = TRUE)</code> handler, preventing memory locks if the variance calculation throws a fatal error.</li>
-<li>
-<strong>Lazy-Evaluation Signature Traps:</strong> Removed dependencies on <code>dfext</code> from the default arguments in the <code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code> function signature (e.g., <code>numFREMThetas</code>, <code>numSigmas</code>). These are now explicitly calculated in the function body <em>after</em> <code>dfext</code> is validated, preventing silent scoping crashes.</li>
-<li>
-<strong>SD Scale Transformation:</strong> Fixed <code><a href="../reference/fremParameterTable.html">fremParameterTable()</a></code> logic so SD transformations occur <em>before</em> CI/RSE calculations, ensuring uncertainties match the reported scale.</li>
-<li>
-<strong>ETA Mismatch in EV:</strong> Fixed longitudinal subsetting (<code>!duplicated(data[[strID]])</code>) to prevent ETA length mismatches in <code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code>.</li>
-<li>
-<strong>Missing Covariate Failsafe:</strong> Added explicit <code><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop()</a></code> errors for missing categorical covariates in <code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code>.</li>
-<li>
-<strong>NSE Scoping in data.table:</strong> Fixed <code>j symbol</code> scoping errors by coercing inputs to base <code>data.frame</code> with strict <code>drop=FALSE</code> subsetting in variance calculations.</li>
-<li>
-<strong>Exact List Extraction:</strong> Replaced bracket subsetting with <code>[[cov]][1]</code> to fix vulnerability in dummy column mapping.</li>
-</ul></div>
-<div class="section level3">
-<h3 id="chores-documentation-2-0-0">Chores &amp; Documentation<a class="anchor" aria-label="anchor" href="#chores-documentation-2-0-0"></a></h3>
-<ul><li>
-<strong>Deprecations:</strong> Deprecated <code>cstrSortCols</code> in <code><a href="../reference/updateFREMmodel.html">updateFREMmodel()</a></code> (sorting is now native to PMXFrem v2).</li>
-<li>
-<strong>CRAN Compliance:</strong> Refactored examples to use base R (<code>read.csv</code>) and <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code>.</li>
-<li>
-<strong>Roxygen:</strong> Injected extensive <code>@family</code> and <code>@concept</code> tags across all functions for <code>pkgdown</code> organization.</li>
-<li>
-<strong>Documentation:</strong> Added a new vignette (<code>walkthrough-createFREMmodel.Rmd</code>) demonstrating the end-to-end process of building a Full Random Effects Model and dataset from scratch using <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code>.</li>
+<strong><code><a href="../reference/fremParameterTable.html">fremParameterTable()</a></code> transformed to the SD scale after computing the CI / RSE</strong>, so the uncertainties did not match the scale they were reported on.</li>
 </ul></div>
 </div>
     <div class="section level2">

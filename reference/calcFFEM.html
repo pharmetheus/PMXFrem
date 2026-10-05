@@ -12,7 +12,7 @@ covariates."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -26,13 +26,15 @@ covariates."><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quick-Start: 5-Minute FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-createFREMmodel.html">3. Deep Dive: Creating FREM Models</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard Diagnostics and ETAs</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">3. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plot-references.html">3. Deep Dive: Reconciling FREM and SCM Forest Plots</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-secondary-parameters.html">3. Deep Dive: Secondary Parameters</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-missing-covariates.html">3. Deep Dive: Subject-Specific Variances for Missing Covariates</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -74,8 +76,7 @@ covariates.</p>
 <span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  fremETA <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  eqFile <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  omFile <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="va">...</span></span>
+<span>  omFile <span class="op">=</span> <span class="st">""</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -136,16 +137,16 @@ model. Should be covariate names used in the FREM model.</p></dd>
 STDOUT.</p></dd>
 
 
+<dt>fremETA</dt>
+<dd><p>NULL or a vector of individual ETAs from the FREM model.</p></dd>
+
+
 <dt>eqFile</dt>
 <dd><p>File name to save the FFEM equations in.</p></dd>
 
 
 <dt>omFile</dt>
 <dd><p>File name to save the omega prim matrix in.</p></dd>
-
-
-<dt>fremEta</dt>
-<dd><p>NULL or a vector of individual ETAs from the FREM model.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -198,15 +199,18 @@ the ETA prims for all subjects at the same ime, please use <code><a href="calcEt
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">extFile</span>         <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/run31.ext"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">dfExt</span>           <span class="op">&lt;-</span> <span class="fu"><a href="getExt.html">getExt</a></span><span class="op">(</span>extFile <span class="op">=</span> <span class="va">extFile</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">extFile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/run31.ext"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">dfExt</span> <span class="op">&lt;-</span> <span class="fu"><a href="getExt.html">getExt</a></span><span class="op">(</span>extFile <span class="op">=</span> <span class="va">extFile</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">calcFFEMtestout</span> <span class="op">&lt;-</span> <span class="fu">calcFFEM</span><span class="op">(</span><span class="va">dfExt</span>, numNonFREMThetas <span class="op">=</span> <span class="fl">7</span>, numSkipOm <span class="op">=</span> <span class="fl">2</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">## Use fremETA to also compute the ETA prim</span></span></span>
-<span class="r-in"><span><span class="va">phiFile</span>         <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/run31.phi"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">dfPhi</span>           <span class="op">&lt;-</span> <span class="fu"><a href="getPhi.html">getPhi</a></span><span class="op">(</span><span class="va">phiFile</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"ETA"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">calcFFEMtestout</span> <span class="op">&lt;-</span> <span class="fu">calcFFEM</span><span class="op">(</span><span class="va">dfExt</span>, numNonFREMThetas <span class="op">=</span> <span class="fl">7</span>, numSkipOm <span class="op">=</span> <span class="fl">2</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>  etaFREM <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">dfPhi</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">phiFile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/run31.phi"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">dfPhi</span> <span class="op">&lt;-</span> <span class="fu"><a href="getPhi.html">getPhi</a></span><span class="op">(</span><span class="va">phiFile</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"ETA"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">calcFFEMtestout</span> <span class="op">&lt;-</span> <span class="fu">calcFFEM</span><span class="op">(</span><span class="va">dfExt</span>,</span></span>
+<span class="r-in"><span>  numNonFREMThetas <span class="op">=</span> <span class="fl">7</span>, numSkipOm <span class="op">=</span> <span class="fl">2</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  fremETA <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">dfPhi</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

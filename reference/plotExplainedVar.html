@@ -18,7 +18,7 @@ TOTCOVVAR and multiplied by 100."><!-- mathjax --><script src="https://cdnjs.clo
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,13 +32,15 @@ TOTCOVVAR and multiplied by 100."><!-- mathjax --><script src="https://cdnjs.clo
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quick-Start: 5-Minute FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-createFREMmodel.html">3. Deep Dive: Creating FREM Models</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard Diagnostics and ETAs</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">3. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plot-references.html">3. Deep Dive: Reconciling FREM and SCM Forest Plots</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-secondary-parameters.html">3. Deep Dive: Secondary Parameters</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-missing-covariates.html">3. Deep Dive: Subject-Specific Variances for Missing Covariates</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -75,15 +77,14 @@ TOTCOVVAR and multiplied by 100.</p>
 <span>  parameters <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">dfres</span><span class="op">$</span><span class="va">PARAMETER</span><span class="op">)</span>,</span>
 <span>  parameterLabels <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  covariateLabels <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  labelfun <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">:::</span><span class="va"><a href="https://ggplot2.tidyverse.org/reference/labellers.html" class="external-link">label_value</a></span>,</span>
+<span>  labelfun <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="va"><a href="https://ggplot2.tidyverse.org/reference/labellers.html" class="external-link">label_value</a></span>,</span>
 <span>  fill_col <span class="op">=</span> <span class="st">"lightgrey"</span>,</span>
 <span>  x_scale <span class="op">=</span> <span class="st">"free_x"</span>,</span>
 <span>  maxVar <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  xlb <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">maxVar</span> <span class="op">==</span> <span class="fl">1</span>, <span class="st">"Explained part of total variability (%)"</span>,</span>
 <span>    <span class="st">"Explained part of explainable variability (%)"</span><span class="op">)</span>,</span>
 <span>  reordFun <span class="op">=</span> <span class="st">"mean"</span>,</span>
-<span>  add.stamp <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  <span class="va">...</span></span>
+<span>  add.stamp <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -119,6 +120,12 @@ format <code>parameterLabels</code> used as row facet labels in the plot.</p></d
 <dd><p>The fill color of the bars.</p></dd>
 
 
+<dt>x_scale</dt>
+<dd><p>Passed to <code>facet_wrap(scales = )</code>; one of
+<code>"fixed"</code>, <code>"free"</code>, <code>"free_x"</code> (default) or
+<code>"free_y"</code>.</p></dd>
+
+
 <dt>maxVar</dt>
 <dd><p>maxVar=1 (default): Visualize the explained part of the total
 variability. maxVar=2: Visualize the explained part of the explainable
@@ -135,18 +142,9 @@ in the plots. Default is mean.</p></dd>
 
 
 <dt>add.stamp</dt>
-<dd><p>if <strong>TRUE</strong> adds a stamp with the source directory and
-time of generation at the bottom of the plot using <code>add_stamp</code>
-function. Default is <strong>FALSE</strong>. If there is any variable defined in
-the global environment with the same name, ie. <code>add.stamp</code>, this
-argument will assume the globally defined value of <code>add.stamp</code>, unless
-<code>add.stamp</code> argument is explicitly defined when this function is
-called.</p></dd>
-
-
-<dt>...</dt>
-<dd><p>is optional arguments that are passed tp <code>add_stamp</code>
-and further to <code><a href="https://ggplot2.tidyverse.org/reference/ggsave.html" class="external-link">ggplot2::ggsave</a></code></p></dd>
+<dd><p>Logical. If <code>TRUE</code>, adds a caption recording the
+source directory and time of generation via
+<code><a href="https://rdrr.io/pkg/PMXForest/man/addStamp.html" class="external-link">PMXForest::addStamp()</a></code>. Default <code>FALSE</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -160,52 +158,60 @@ and further to <code><a href="https://ggplot2.tidyverse.org/reference/ggsave.htm
     <div class="dont-index"><p>Other Diagnostics &amp; Plotting: 
 <code><a href="calcEtas.html">calcEtas</a>()</code>,
 <code><a href="calcFremShrinkage.html">calcFremShrinkage</a>()</code>,
+<code><a href="createFREMParamFunction.html">createFREMParamFunction</a>()</code>,
 <code><a href="fremParameterTable.html">fremParameterTable</a>()</code>,
 <code><a href="getExplainedVar.html">getExplainedVar</a>()</code>,
 <code><a href="getForestDFFREM.html">getForestDFFREM</a>()</code>,
 <code><a href="plotCovDist.html">plotCovDist</a>()</code>,
 <code><a href="plotEtasCov.html">plotEtasCov</a>()</code>,
-<code><a href="traceplot.html">traceplot</a>()</code></p></div>
+<code><a href="traceplot.html">traceplot</a>()</code>,
+<code><a href="verifyFREMParamFunction.html">verifyFREMParamFunction</a>()</code></p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">modDevDir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb"</span>,package<span class="op">=</span><span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">modDevDir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fremRunno</span> <span class="op">&lt;-</span> <span class="fl">31</span></span></span>
-<span class="r-in"><span><span class="va">modFile</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">modDevDir</span>,<span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"run"</span>,<span class="va">fremRunno</span>,<span class="st">".mod"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">covNames</span>  <span class="op">&lt;-</span> <span class="fu"><a href="getCovNames.html">getCovNames</a></span><span class="op">(</span>modFile <span class="op">=</span> <span class="va">modFile</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">modFile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">modDevDir</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"run"</span>, <span class="va">fremRunno</span>, <span class="st">".mod"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">covNames</span> <span class="op">&lt;-</span> <span class="fu"><a href="getCovNames.html">getCovNames</a></span><span class="op">(</span>modFile <span class="op">=</span> <span class="va">modFile</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">## Set up dfCovs</span></span></span>
 <span class="r-in"><span><span class="va">dfData</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">BLQ</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/distinct.html" class="external-link">distinct</a></span><span class="op">(</span><span class="va">ID</span>,.keep_all <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/distinct.html" class="external-link">distinct</a></span><span class="op">(</span><span class="va">ID</span>, .keep_all <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">dfCovs</span> <span class="op">&lt;-</span> <span class="fu"><a href="setupDfCovsEV.html">setupDfCovsEV</a></span><span class="op">(</span><span class="va">modFile</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">cstrCovariates</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"All"</span>,<span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">dfCovs</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">cstrCovariates</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"All"</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">dfCovs</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">## A list of functions</span></span></span>
 <span class="r-in"><span><span class="va">functionList2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  <span class="kw">function</span><span class="op">(</span><span class="va">basethetas</span>,<span class="va">covthetas</span>, <span class="va">dfrow</span>, <span class="va">etas</span>, <span class="va">...</span><span class="op">)</span><span class="op">{</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">basethetas</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">*</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">covthetas</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">+</span> <span class="va">etas</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">}</span>,</span></span>
-<span class="r-in"><span>  <span class="kw">function</span><span class="op">(</span><span class="va">basethetas</span>,<span class="va">covthetas</span>, <span class="va">dfrow</span>, <span class="va">etas</span>, <span class="va">...</span><span class="op">)</span><span class="op">{</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">basethetas</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span><span class="op">*</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">covthetas</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span> <span class="op">+</span> <span class="va">etas</span><span class="op">[</span><span class="fl">4</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">}</span></span></span>
+<span class="r-in"><span>  <span class="kw">function</span><span class="op">(</span><span class="va">basethetas</span>, <span class="va">covthetas</span>, <span class="va">dfrow</span>, <span class="va">etas</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">basethetas</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">covthetas</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">+</span> <span class="va">etas</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="op">}</span>,</span></span>
+<span class="r-in"><span>  <span class="kw">function</span><span class="op">(</span><span class="va">basethetas</span>, <span class="va">covthetas</span>, <span class="va">dfrow</span>, <span class="va">etas</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">basethetas</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">covthetas</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span> <span class="op">+</span> <span class="va">etas</span><span class="op">[</span><span class="fl">4</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="op">}</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">functionListName2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL"</span>,<span class="st">"V"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">functionListName2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL"</span>, <span class="st">"V"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">dfres1</span> <span class="op">&lt;-</span> <span class="fu"><a href="getExplainedVar.html">getExplainedVar</a></span><span class="op">(</span>type             <span class="op">=</span> <span class="fl">0</span>,</span></span>
-<span class="r-in"><span>                          data             <span class="op">=</span> <span class="va">dfData</span>,</span></span>
-<span class="r-in"><span>                          dfCovs           <span class="op">=</span> <span class="va">dfCovs</span>,</span></span>
-<span class="r-in"><span>                          numNonFREMThetas <span class="op">=</span> <span class="fl">7</span>,</span></span>
-<span class="r-in"><span>                          numSkipOm        <span class="op">=</span> <span class="fl">2</span>,</span></span>
-<span class="r-in"><span>                          functionList     <span class="op">=</span> <span class="va">functionList2</span>,</span></span>
-<span class="r-in"><span>                          functionListName <span class="op">=</span> <span class="va">functionListName2</span>,</span></span>
-<span class="r-in"><span>                          cstrCovariates   <span class="op">=</span> <span class="va">cstrCovariates</span>,</span></span>
-<span class="r-in"><span>                          modDevDir        <span class="op">=</span> <span class="va">modDevDir</span>,</span></span>
-<span class="r-in"><span>                          runno            <span class="op">=</span> <span class="va">fremRunno</span>,</span></span>
-<span class="r-in"><span>                          ncores           <span class="op">=</span> <span class="fl">2</span>,</span></span>
-<span class="r-in"><span>                          quiet            <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>                          seed             <span class="op">=</span> <span class="fl">123</span></span></span>
+<span class="r-in"><span><span class="va">dfres1</span> <span class="op">&lt;-</span> <span class="fu"><a href="getExplainedVar.html">getExplainedVar</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  type <span class="op">=</span> <span class="fl">0</span>,</span></span>
+<span class="r-in"><span>  data <span class="op">=</span> <span class="va">dfData</span>,</span></span>
+<span class="r-in"><span>  dfCovs <span class="op">=</span> <span class="va">dfCovs</span>,</span></span>
+<span class="r-in"><span>  numNonFREMThetas <span class="op">=</span> <span class="fl">7</span>,</span></span>
+<span class="r-in"><span>  numSkipOm <span class="op">=</span> <span class="fl">2</span>,</span></span>
+<span class="r-in"><span>  functionList <span class="op">=</span> <span class="va">functionList2</span>,</span></span>
+<span class="r-in"><span>  functionListName <span class="op">=</span> <span class="va">functionListName2</span>,</span></span>
+<span class="r-in"><span>  cstrCovariates <span class="op">=</span> <span class="va">cstrCovariates</span>,</span></span>
+<span class="r-in"><span>  modDevDir <span class="op">=</span> <span class="va">modDevDir</span>,</span></span>
+<span class="r-in"><span>  runno <span class="op">=</span> <span class="va">fremRunno</span>,</span></span>
+<span class="r-in"><span>  ncores <span class="op">=</span> <span class="fl">2</span>,</span></span>
+<span class="r-in"><span>  quiet <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  seed <span class="op">=</span> <span class="fl">123</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">plotExplainedVar</span><span class="op">(</span><span class="va">dfres1</span><span class="op">)</span></span></span>

@@ -16,7 +16,7 @@ Covariate Effects) mapping each covariate to each structural parameter."><!-- ma
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,13 +30,15 @@ Covariate Effects) mapping each covariate to each structural parameter."><!-- ma
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quick-Start: 5-Minute FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-createFREMmodel.html">3. Deep Dive: Creating FREM Models</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard Diagnostics and ETAs</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">3. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plot-references.html">3. Deep Dive: Reconciling FREM and SCM Forest Plots</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-secondary-parameters.html">3. Deep Dive: Secondary Parameters</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-missing-covariates.html">3. Deep Dive: Subject-Specific Variances for Missing Covariates</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -70,8 +72,8 @@ Covariate Effects) mapping each covariate to each structural parameter.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">fremParameterTable</span><span class="op">(</span></span>
 <span>  runno <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  modDevDir <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  <span class="va">numNonFREMThetas</span>,</span>
-<span>  numSkipOm <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  numNonFREMThetas <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  numSkipOm <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">thetaNum</span>,</span>
 <span>  <span class="va">omegaNum</span>,</span>
 <span>  <span class="va">sigmaNum</span>,</span>
@@ -99,7 +101,7 @@ Covariate Effects) mapping each covariate to each structural parameter.</p>
 <span>  modExt <span class="op">=</span> <span class="st">".mod"</span>,</span>
 <span>  lstExt <span class="op">=</span> <span class="st">".lst"</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -119,15 +121,17 @@ directory, i.e. ".".</p></dd>
 
 
 <dt>numNonFREMThetas</dt>
-<dd><p>Number of thetas in the FREM model that are not FREM
-covariates. These need to come before the FREM covariate thetas in the FREM
-model file.</p></dd>
+<dd><p>Number of structural (non-FREM-covariate) THETAs in
+the FREM model. If <code>NULL</code> (default) it is derived from the model file (found
+via <code>runno</code> / <code>modName</code> / <code>modDevDir</code>) and the ext via <code><a href="fremModelInfo.html">fremModelInfo()</a></code>; a
+supplied value that disagrees with the derived one triggers a warning and is
+kept.</p></dd>
 
 
 <dt>numSkipOm</dt>
-<dd><p>Number of diagonal omegas that should not be part of the
-FREM calculations. Such omegas has to come before the large FREM omega
-block in the FREM model file.</p></dd>
+<dd><p>Number of diagonal OMEGAs before the FREM block that are not
+part of the FREM calculations. If <code>NULL</code> (default) it is derived via
+<code><a href="fremModelInfo.html">fremModelInfo()</a></code> (warn-and-keep on a disagreeing explicit value).</p></dd>
 
 
 <dt>thetaNum</dt>
@@ -248,8 +252,18 @@ ext, phi and cov to form the NONMEM file names, for example
 STDOUT.</p></dd>
 
 
+<dt>seed</dt>
+<dd><p>Integer seed set before the uncertainty sampling, so that RSE and
+CI are reproducible for the same inputs. Defaults to <code>1</code>. RSE and CI
+are Monte-Carlo quantities computed from <code>n</code> sampled parameter
+vectors; left unseeded they depend on whatever random numbers were drawn
+earlier in the session, and consecutive calls can differ by 20%. Pass
+<code>NULL</code> to inherit the session's RNG state instead. The caller's
+random stream is restored afterwards either way.</p></dd>
+
+
 <dt>...</dt>
-<dd><p>Additional arguments passed directly to <code><a href="https://rdrr.io/pkg/PMXForest/man/getSamples.html" class="external-link">PMXForest::getSamples()</a></code> (e.g., <code>seed</code> for reproducibility).</p></dd>
+<dd><p>Additional arguments passed directly to <code><a href="https://rdrr.io/pkg/PMXForest/man/getSamples.html" class="external-link">PMXForest::getSamples()</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -268,61 +282,77 @@ STDOUT.</p></dd>
 <p>Other Diagnostics &amp; Plotting: 
 <code><a href="calcEtas.html">calcEtas</a>()</code>,
 <code><a href="calcFremShrinkage.html">calcFremShrinkage</a>()</code>,
+<code><a href="createFREMParamFunction.html">createFREMParamFunction</a>()</code>,
 <code><a href="getExplainedVar.html">getExplainedVar</a>()</code>,
 <code><a href="getForestDFFREM.html">getForestDFFREM</a>()</code>,
 <code><a href="plotCovDist.html">plotCovDist</a>()</code>,
 <code><a href="plotEtasCov.html">plotEtasCov</a>()</code>,
 <code><a href="plotExplainedVar.html">plotExplainedVar</a>()</code>,
-<code><a href="traceplot.html">traceplot</a>()</code></p></div>
+<code><a href="traceplot.html">traceplot</a>()</code>,
+<code><a href="verifyFREMParamFunction.html">verifyFREMParamFunction</a>()</code></p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"kableExtra"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://haozhu233.github.io/kableExtra/" class="external-link">kableExtra</a></span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://haozhu233.github.io/kableExtra/" class="external-link">kableExtra</a></span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">runno</span>            <span class="op">&lt;-</span> <span class="fl">31</span></span></span>
-<span class="r-in"><span><span class="va">modName</span>          <span class="op">&lt;-</span> <span class="st">"run31"</span></span></span>
-<span class="r-in"><span><span class="va">ffemModName</span>      <span class="op">&lt;-</span> <span class="st">"run31max0"</span></span></span>
-<span class="r-in"><span><span class="va">modDevDir</span>        <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/"</span>,package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">numNonFREMThetas</span> <span class="op">&lt;-</span> <span class="fl">7</span></span></span>
-<span class="r-in"><span><span class="va">numSkipOm</span>        <span class="op">&lt;-</span> <span class="fl">2</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">runno</span> <span class="op">&lt;-</span> <span class="fl">31</span></span></span>
+<span class="r-in"><span>  <span class="va">modName</span> <span class="op">&lt;-</span> <span class="st">"run31"</span></span></span>
+<span class="r-in"><span>  <span class="va">ffemModName</span> <span class="op">&lt;-</span> <span class="st">"run31max0"</span></span></span>
+<span class="r-in"><span>  <span class="va">modDevDir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">numNonFREMThetas</span> <span class="op">&lt;-</span> <span class="fl">7</span></span></span>
+<span class="r-in"><span>  <span class="va">numSkipOm</span> <span class="op">&lt;-</span> <span class="fl">2</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co">## Generate the raw output</span></span></span>
-<span class="r-in"><span><span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu">fremParameterTable</span><span class="op">(</span></span></span>
-<span class="r-in"><span>      runno            <span class="op">=</span> <span class="va">runno</span>,</span></span>
-<span class="r-in"><span>      modName          <span class="op">=</span> <span class="va">modName</span>,</span></span>
-<span class="r-in"><span>      modDevDir        <span class="op">=</span> <span class="va">modDevDir</span>,</span></span>
-<span class="r-in"><span>      thetaNum         <span class="op">=</span> <span class="fl">2</span><span class="op">:</span><span class="fl">7</span>,</span></span>
-<span class="r-in"><span>      omegaNum         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">3</span>,<span class="fl">4</span>,<span class="fl">5</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>      sigmaNum         <span class="op">=</span> <span class="fl">1</span>,</span></span>
-<span class="r-in"><span>      thetaLabels      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL (L/h)"</span>,<span class="st">"V (L)"</span>,<span class="st">"MAT (h)"</span>,<span class="st">"D1 (h)"</span>,<span class="st">"Food on Frel"</span>,<span class="st">"Food on MAT"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>      omegaLabels      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"IIV on RUV"</span>,<span class="st">"IIV on CL"</span>,<span class="st">"IIV on V"</span>,<span class="st">"IIV on MAT"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>      sigmaLabels      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"RUV"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>      parNames         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL"</span>, <span class="st">"V"</span>, <span class="st">"MAT"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>      includeRSE       <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>      includeShrinkage <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>      shrinkageType    <span class="op">=</span> <span class="st">"ETA_SD"</span>,</span></span>
-<span class="r-in"><span>      rawShrinkage     <span class="op">=</span> <span class="cn">FALSE</span>,</span></span>
-<span class="r-in"><span>      ffemModName      <span class="op">=</span> <span class="va">ffemModName</span>,</span></span>
-<span class="r-in"><span>      shkDigs          <span class="op">=</span> <span class="fl">2</span>,</span></span>
-<span class="r-in"><span>      uncertainty      <span class="op">=</span> <span class="st">"CI"</span>,</span></span>
-<span class="r-in"><span>      numNonFREMThetas <span class="op">=</span> <span class="va">numNonFREMThetas</span>,</span></span>
-<span class="r-in"><span>      numSkipOm        <span class="op">=</span> <span class="va">numSkipOm</span>,</span></span>
-<span class="r-in"><span>      availCov         <span class="op">=</span> <span class="st">"all"</span>,</span></span>
-<span class="r-in"><span>      quiet            <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="co">## numNonFREMThetas / numSkipOm omitted: derived from the model located via</span></span></span>
+<span class="r-in"><span>  <span class="co">## runno / modDevDir (see fremModelInfo())</span></span></span>
+<span class="r-in"><span>  <span class="va">tmpDerived</span> <span class="op">&lt;-</span> <span class="fu">fremParameterTable</span><span class="op">(</span></span></span>
+<span class="r-in"><span>    runno     <span class="op">=</span> <span class="va">runno</span>,</span></span>
+<span class="r-in"><span>    modDevDir <span class="op">=</span> <span class="va">modDevDir</span>,</span></span>
+<span class="r-in"><span>    thetaNum  <span class="op">=</span> <span class="fl">2</span><span class="op">:</span><span class="fl">7</span>,</span></span>
+<span class="r-in"><span>    omegaNum  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">4</span>, <span class="fl">5</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    sigmaNum  <span class="op">=</span> <span class="fl">1</span>,</span></span>
+<span class="r-in"><span>    parNames  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL"</span>, <span class="st">"V"</span>, <span class="st">"MAT"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    availCov  <span class="op">=</span> <span class="st">"all"</span>,</span></span>
+<span class="r-in"><span>    quiet     <span class="op">=</span> <span class="cn">TRUE</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co">## Use kable_extra to generate a nice looking table of the main parameters</span></span></span>
-<span class="r-in"><span><span class="va">tmp</span><span class="op">$</span><span class="va">parameterTable</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>Estimate<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="va">Estimate</span>,<span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span>  <span class="co">## Full output, numNonFREMThetas / numSkipOm passed explicitly</span></span></span>
+<span class="r-in"><span>  <span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu">fremParameterTable</span><span class="op">(</span></span></span>
+<span class="r-in"><span>    runno            <span class="op">=</span> <span class="va">runno</span>,</span></span>
+<span class="r-in"><span>    modName          <span class="op">=</span> <span class="va">modName</span>,</span></span>
+<span class="r-in"><span>    modDevDir        <span class="op">=</span> <span class="va">modDevDir</span>,</span></span>
+<span class="r-in"><span>    thetaNum         <span class="op">=</span> <span class="fl">2</span><span class="op">:</span><span class="fl">7</span>,</span></span>
+<span class="r-in"><span>    omegaNum         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">4</span>, <span class="fl">5</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    sigmaNum         <span class="op">=</span> <span class="fl">1</span>,</span></span>
+<span class="r-in"><span>    thetaLabels      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL (L/h)"</span>, <span class="st">"V (L)"</span>, <span class="st">"MAT (h)"</span>, <span class="st">"D1 (h)"</span>, <span class="st">"Food on Frel"</span>, <span class="st">"Food on MAT"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    omegaLabels      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"IIV on RUV"</span>, <span class="st">"IIV on CL"</span>, <span class="st">"IIV on V"</span>, <span class="st">"IIV on MAT"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    sigmaLabels      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"RUV"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    parNames         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL"</span>, <span class="st">"V"</span>, <span class="st">"MAT"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    includeRSE       <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>    includeShrinkage <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>    shrinkageType    <span class="op">=</span> <span class="st">"ETA_SD"</span>,</span></span>
+<span class="r-in"><span>    rawShrinkage     <span class="op">=</span> <span class="cn">FALSE</span>,</span></span>
+<span class="r-in"><span>    ffemModName      <span class="op">=</span> <span class="va">ffemModName</span>,</span></span>
+<span class="r-in"><span>    shkDigs          <span class="op">=</span> <span class="fl">2</span>,</span></span>
+<span class="r-in"><span>    uncertainty      <span class="op">=</span> <span class="st">"CI"</span>,</span></span>
+<span class="r-in"><span>    numNonFREMThetas <span class="op">=</span> <span class="va">numNonFREMThetas</span>,</span></span>
+<span class="r-in"><span>    numSkipOm        <span class="op">=</span> <span class="va">numSkipOm</span>,</span></span>
+<span class="r-in"><span>    availCov         <span class="op">=</span> <span class="st">"all"</span>,</span></span>
+<span class="r-in"><span>    quiet            <span class="op">=</span> <span class="cn">TRUE</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span>  <span class="co">## Use kable_extra to generate a nice looking table of the main parameters</span></span></span>
+<span class="r-in"><span>  <span class="va">tmp</span><span class="op">$</span><span class="va">parameterTable</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>Estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="va">Estimate</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
 <span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/pkg/kableExtra/man/kbl.html" class="external-link">kbl</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
 <span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/pkg/kableExtra/man/kable_classic.html" class="external-link">kable_classic</a></span><span class="op">(</span>full_width <span class="op">=</span> <span class="cn">FALSE</span>, html_font <span class="op">=</span> <span class="st">"Cambria"</span><span class="op">)</span></span></span>
-<span class="r-in"><span>    </span></span>
-<span class="r-in"><span><span class="co">## Use kable_extra to generate a nice looking table of the covariate coefficients</span></span></span>
-<span class="r-in"><span><span class="va">tmp</span><span class="op">$</span><span class="va">coefficientTable_wide</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span>  <span class="co">## Use kable_extra to generate a nice looking table of the covariate coefficients</span></span></span>
+<span class="r-in"><span>  <span class="va">tmp</span><span class="op">$</span><span class="va">coefficientTable_wide</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
 <span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/pkg/kableExtra/man/kbl.html" class="external-link">kbl</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
 <span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/pkg/kableExtra/man/kable_classic.html" class="external-link">kable_classic</a></span><span class="op">(</span>full_width <span class="op">=</span> <span class="cn">FALSE</span>, html_font <span class="op">=</span> <span class="st">"Cambria"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
@@ -347,164 +377,164 @@ STDOUT.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; WT &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.00591 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0334 - 0.0166] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0272 - 0.0125] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.0265 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0567 - -0.00872] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0509 - -0.00545] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.00556 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0239 - 0.0326] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0301 - 0.0284] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; HT &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.0287 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0566 - 0.00653] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0561 - -0.00648] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.0279 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0701 - -0.00379] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0584 - 0.00294] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.0102 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0596 - 0.0303] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0642 - 0.0242] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; LBWT &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.0181 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0434 - 0.00489] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0431 - 0.000625] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.0111 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0535 - 0.0133] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0438 - 0.0136] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.000679 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0295 - 0.0327] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0377 - 0.0308] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; BSA &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 2.75 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.684 - 6.36] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [0.112 - 6.09] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 4.01 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [0.844 - 9.18] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [0.851 - 8.14] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.202 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-4.75 - 5.50] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-3.27 - 6.08] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; AGE &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.00215 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00128 - 0.00551] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00152 - 0.00622] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.000617 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00466 - 0.00296] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00492 - 0.00363] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.00319 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.000881 - 0.00796] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00168 - 0.00821] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; AST &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.00466 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0119 - -0.000369] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0111 - -0.000728] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.000291 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00512 - 0.00509] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00476 - 0.00636] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.00894 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0186 - -0.00237] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0163 - -0.00190] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; ALT &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.00427 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [0.00101 - 0.00896] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [0.00115 - 0.00809] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.000161 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00319 - 0.00452] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00380 - 0.00373] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.00616 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [0.00232 - 0.0129] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [0.00199 - 0.0120] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; BILI &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.00201 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00615 - 0.0112] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00816 - 0.0119] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.000162 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00904 - 0.00895] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00673 - 0.0111] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.00228 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00683 - 0.0133] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00808 - 0.0152] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; CRCL &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.00117 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.000874 - 0.00310] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00124 - 0.00316] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.000471 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00279 - 0.00154] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.00291 - 0.00166] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.00189 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.000470 - 0.00418] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.000381 - 0.00450] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; BMI &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.0500 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.108 - 0.0208] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.106 - 0.00535] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.0146 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0963 - 0.0362] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0748 - 0.0455] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.0274 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.116 - 0.0577] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.133 - 0.0526] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; SEX &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.168 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.367 - 0.0507] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.361 - -0.0112] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.153 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.145 - 0.342] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.106 - 0.347] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.0419 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.247 - 0.248] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.298 - 0.202] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; RACEL_3 &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.00281 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.108 - 0.142] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.107 - 0.155] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.0197 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.132 - 0.154] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.152 - 0.147] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.0160 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.175 - 0.199] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.160 - 0.171] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; RACEL_2 &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.00800 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0602 - 0.0752] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0593 - 0.0765] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.00167 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0815 - 0.0727] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0742 - 0.0822] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.0392 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0300 - 0.127] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0356 - 0.136] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; NCIL_2 &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.517 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.788 - -0.291] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.763 - -0.227] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.0215 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.414 - 0.235] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.340 - 0.243] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.174 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.421 - 0.119] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.510 - 0.102] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; NCIL_1 &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.238 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.349 - -0.139] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.343 - -0.133] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.0227 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0962 - 0.116] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.100 - 0.122] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.106 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.238 - 0.00490] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.246 - 0.00972] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; GENO2 &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.737 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [0.690 - 0.792] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [0.703 - 0.786] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.734 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [0.686 - 0.792] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [0.681 - 0.791] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.0128 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0575 - 0.0712] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0453 - 0.0759] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; ETHNIC &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.0533 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.106 - 6.12e-05] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.106 - -0.00474] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.0631 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.123 - 0.00600] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.112 - -0.00334] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; -0.0158 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0773 - 0.0501] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0827 - 0.0478] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; SMOK &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.367 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [0.265 - 0.466] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [0.256 - 0.490] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.250 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [0.116 - 0.401] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [0.120 - 0.393] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; 0.0664 &lt;/td&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0839 - 0.218] &lt;/td&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;td style="text-align:left;"&gt; [-0.0979 - 0.214] &lt;/td&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/tr&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;/tbody&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;/table&gt;</span>

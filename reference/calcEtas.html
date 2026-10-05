@@ -14,7 +14,7 @@ computes the ETA_prims. Optionally appends the true Empirical Bayes Estimates
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -28,13 +28,15 @@ computes the ETA_prims. Optionally appends the true Empirical Bayes Estimates
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quick-Start: 5-Minute FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-createFREMmodel.html">3. Deep Dive: Creating FREM Models</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard Diagnostics and ETAs</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">3. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plot-references.html">3. Deep Dive: Reconciling FREM and SCM Forest Plots</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-secondary-parameters.html">3. Deep Dive: Secondary Parameters</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-missing-covariates.html">3. Deep Dive: Subject-Specific Variances for Missing Covariates</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -66,9 +68,9 @@ computes the ETA_prims. Optionally appends the true Empirical Bayes Estimates
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">calcEtas</span><span class="op">(</span></span>
 <span>  runno <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  <span class="va">numNonFREMThetas</span>,</span>
+<span>  numNonFREMThetas <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  modName <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  numSkipOm <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  numSkipOm <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  idvar <span class="op">=</span> <span class="st">"ID"</span>,</span>
 <span>  modDevDir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  FFEMData <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -93,9 +95,11 @@ named run# followed by the appropriate suffix (where # is <code>runno</code>).</
 
 
 <dt>numNonFREMThetas</dt>
-<dd><p>Number of thetas in the FREM model that are not FREM
-covariates. These need to come before the FREM covariate thetas in the FREM
-model file.</p></dd>
+<dd><p>Number of structural (non-FREM-covariate) THETAs in the
+FREM model. If <code>NULL</code> (default) it is derived from the FREM model file (found
+via <code>runno</code> / <code>modName</code> / <code>modDevDir</code>) and the ext via <code><a href="fremModelInfo.html">fremModelInfo()</a></code>; a
+supplied value that disagrees with the derived one triggers a warning and is
+kept.</p></dd>
 
 
 <dt>modName</dt>
@@ -105,9 +109,9 @@ ext, phi and cov to form the NONMEM file names, for example
 
 
 <dt>numSkipOm</dt>
-<dd><p>Number of diagonal omegas that should not be part of the
-FREM calculations. Such omegas has to come before the large FREM omega
-block in the FREM model file.</p></dd>
+<dd><p>Number of diagonal OMEGAs before the FREM block that are not
+part of the FREM calculations. If <code>NULL</code> (default) it is derived via
+<code><a href="fremModelInfo.html">fremModelInfo()</a></code> (warn-and-keep on a disagreeing explicit value).</p></dd>
 
 
 <dt>idvar</dt>
@@ -193,13 +197,15 @@ EBEs are extracted from the FFEM model and merged by <code>ID</code>.</p>
     <div class="dont-index"><p><code><a href="createFFEMdata.html">createFFEMdata()</a></code> for information about creating the FFEMData object</p>
 <p>Other Diagnostics &amp; Plotting: 
 <code><a href="calcFremShrinkage.html">calcFremShrinkage</a>()</code>,
+<code><a href="createFREMParamFunction.html">createFREMParamFunction</a>()</code>,
 <code><a href="fremParameterTable.html">fremParameterTable</a>()</code>,
 <code><a href="getExplainedVar.html">getExplainedVar</a>()</code>,
 <code><a href="getForestDFFREM.html">getForestDFFREM</a>()</code>,
 <code><a href="plotCovDist.html">plotCovDist</a>()</code>,
 <code><a href="plotEtasCov.html">plotEtasCov</a>()</code>,
 <code><a href="plotExplainedVar.html">plotExplainedVar</a>()</code>,
-<code><a href="traceplot.html">traceplot</a>()</code></p></div>
+<code><a href="traceplot.html">traceplot</a>()</code>,
+<code><a href="verifyFREMParamFunction.html">verifyFREMParamFunction</a>()</code></p></div>
     </div>
 
     <div class="section level2">
@@ -210,7 +216,8 @@ EBEs are extracted from the FFEM model and merged by <code>ID</code>.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># 2. Load and prepare the dataset also included with the package</span></span></span>
 <span class="r-in"><span><span class="va">data_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>,</span></span>
-<span class="r-in"><span>                         package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  package <span class="op">=</span> <span class="st">"PMXFrem"</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">my_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">data_path</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
@@ -297,6 +304,15 @@ EBEs are extracted from the FFEM model and merged by <code>ID</code>.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4            0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5            0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6            0</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># 5. The same call with numNonFREMThetas / numSkipOm omitted -- derived from</span></span></span>
+<span class="r-in"><span><span class="co"># the FREM model located via modName / modDevDir (see fremModelInfo())</span></span></span>
+<span class="r-in"><span><span class="va">individual_etas_derived</span> <span class="op">&lt;-</span> <span class="fu">calcEtas</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  modName   <span class="op">=</span> <span class="st">"run31"</span>,</span></span>
+<span class="r-in"><span>  modDevDir <span class="op">=</span> <span class="va">model_dir</span>,</span></span>
+<span class="r-in"><span>  dataFile  <span class="op">=</span> <span class="va">my_data</span>,</span></span>
+<span class="r-in"><span>  parNames  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL"</span>, <span class="st">"V"</span>, <span class="st">"MAT"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

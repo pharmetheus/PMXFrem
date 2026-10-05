@@ -12,7 +12,7 @@ implemented with EM algorithms."><!-- mathjax --><script src="https://cdnjs.clou
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -26,13 +26,15 @@ implemented with EM algorithms."><!-- mathjax --><script src="https://cdnjs.clou
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quick-Start: 5-Minute FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-createFREMmodel.html">3. Deep Dive: Creating FREM Models</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard Diagnostics and ETAs</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">3. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plot-references.html">3. Deep Dive: Reconciling FREM and SCM Forest Plots</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-secondary-parameters.html">3. Deep Dive: Secondary Parameters</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-missing-covariates.html">3. Deep Dive: Subject-Specific Variances for Missing Covariates</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -77,7 +79,8 @@ implemented with EM algorithms.</p>
 <span>  includeShapedOFV <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  pvalue <span class="op">=</span> <span class="fl">0.05</span>,</span>
 <span>  df <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  meanShapeLastIter <span class="op">=</span> <span class="fl">30</span></span>
+<span>  meanShapeLastIter <span class="op">=</span> <span class="fl">30</span>,</span>
+<span>  add.stamp <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -99,6 +102,12 @@ ext, phi and cov to form the NONMEM file names, for example
 <dt>modDevDir</dt>
 <dd><p>The directory where the files reside. Default is the current
 directory, i.e. ".".</p></dd>
+
+
+<dt>extFileName</dt>
+<dd><p>Path to the NONMEM <code>.ext</code> file. Default <code>NULL</code>,
+in which case it is resolved from <code>runno</code> / <code>modName</code> /
+<code>modDevDir</code> via <code><a href="getFileNames.html">getFileNames()</a></code>.</p></dd>
 
 
 <dt>set</dt>
@@ -154,6 +163,13 @@ used to define the height of the shaded region. Must be between 0 and 1.</p></dd
 <dd><p>The number of final iterations (default is 30) used to
 calculate the mean OFV, which centers the shaded region.</p></dd>
 
+
+<dt>add.stamp</dt>
+<dd><p>Logical. If <code>TRUE</code>, adds a caption recording the
+source directory and time of generation via
+<code><a href="https://rdrr.io/pkg/PMXForest/man/addStamp.html" class="external-link">PMXForest::addStamp()</a></code> to every returned plot. Default
+<code>FALSE</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -173,12 +189,14 @@ the end of a run.</p>
     <div class="dont-index"><p>Other Diagnostics &amp; Plotting: 
 <code><a href="calcEtas.html">calcEtas</a>()</code>,
 <code><a href="calcFremShrinkage.html">calcFremShrinkage</a>()</code>,
+<code><a href="createFREMParamFunction.html">createFREMParamFunction</a>()</code>,
 <code><a href="fremParameterTable.html">fremParameterTable</a>()</code>,
 <code><a href="getExplainedVar.html">getExplainedVar</a>()</code>,
 <code><a href="getForestDFFREM.html">getForestDFFREM</a>()</code>,
 <code><a href="plotCovDist.html">plotCovDist</a>()</code>,
 <code><a href="plotEtasCov.html">plotEtasCov</a>()</code>,
-<code><a href="plotExplainedVar.html">plotExplainedVar</a>()</code></p></div>
+<code><a href="plotExplainedVar.html">plotExplainedVar</a>()</code>,
+<code><a href="verifyFREMParamFunction.html">verifyFREMParamFunction</a>()</code></p></div>
     </div>
 
     <div class="section level2">
@@ -208,7 +226,7 @@ the end of a run.</p>
 <span class="r-in"><span>  includeShapedOFV <span class="op">=</span> <span class="cn">FALSE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span>  <span class="va">trace_plots_no_shape</span><span class="op">$</span><span class="va">OFV</span></span></span>
+<span class="r-in"><span><span class="va">trace_plots_no_shape</span><span class="op">$</span><span class="va">OFV</span></span></span>
 <span class="r-plt img"><img src="traceplot-4.png" alt="" width="700" height="433"></span>
 </code></pre></div>
     </div>

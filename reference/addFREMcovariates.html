@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -24,13 +24,15 @@
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quick-Start: 5-Minute FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-createFREMmodel.html">3. Deep Dive: Creating FREM Models</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard Diagnostics and ETAs</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">3. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plot-references.html">3. Deep Dive: Reconciling FREM and SCM Forest Plots</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-secondary-parameters.html">3. Deep Dive: Secondary Parameters</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-missing-covariates.html">3. Deep Dive: Subject-Specific Variances for Missing Covariates</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -93,11 +95,7 @@ reference level as well (default: FALSE).</p></dd>
 
 <dt>imputeMissing</dt>
 <dd><p>Logical. If TRUE (default), missing values are imputed to 0
-(the reference category). If FALSE, missing values are preserved as iMiss.</p></dd>
-
-
-<dt>iMiss</dt>
-<dd><p>The integer/numeric value representing missing data (default: -99).</p></dd>
+(the reference category). If FALSE, missing values are preserved as missVal.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -121,6 +119,9 @@ value of NCIL is not 1/2 and 1 when the in NCIL is 1 or 2, respectively. If
 an ID has a missing value of NCIL, then NCIL_1 and NCIL_2 will both be 0,
 effectively imputing the missing NCIL with the lowest level of the NCIL
 covariate.</p>
+<p>The binarisation itself is performed by <code><a href="https://rdrr.io/pkg/PMXForest/man/oneHotEncode.html" class="external-link">PMXForest::oneHotEncode()</a></code>; this
+function is the FREM-aware wrapper that derives the columns to create from a
+model file or a covariate vector.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -147,10 +148,11 @@ covariate.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Load the base dataset</span></span></span>
 <span class="r-in"><span><span class="va">dfFFEM</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package<span class="op">=</span><span class="st">"PMXFrem"</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">BLQ</span> <span class="op">!=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">modFile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/run31.mod"</span>, package<span class="op">=</span><span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">modFile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/run31.mod"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">## Example 1: Add covariates automatically based on a FREM model file</span></span></span>
 <span class="r-in"><span><span class="va">dfFFEM_mod</span> <span class="op">&lt;-</span> <span class="fu">addFREMcovariates</span><span class="op">(</span><span class="va">dfFFEM</span>, modFile <span class="op">=</span> <span class="va">modFile</span><span class="op">)</span></span></span>

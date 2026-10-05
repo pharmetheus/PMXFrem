@@ -14,7 +14,7 @@ data frame will be computed."><!-- mathjax --><script src="https://cdnjs.cloudfl
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -28,13 +28,15 @@ data frame will be computed."><!-- mathjax --><script src="https://cdnjs.cloudfl
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quick-Start: 5-Minute FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-createFREMmodel.html">3. Deep Dive: Creating FREM Models</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard Diagnostics and ETAs</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">3. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plot-references.html">3. Deep Dive: Reconciling FREM and SCM Forest Plots</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-secondary-parameters.html">3. Deep Dive: Secondary Parameters</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-missing-covariates.html">3. Deep Dive: Subject-Specific Variances for Missing Covariates</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -71,11 +73,14 @@ data frame will be computed.</p>
 <span>    </span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">basethetas</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">covthetas</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span> <span class="op">}</span><span class="op">)</span>,</span>
-<span>  <span class="va">covNames</span>,</span>
+<span>  covNames <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  functionListName <span class="op">=</span> <span class="st">"PAR1"</span>,</span>
-<span>  numSkipOm <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  <span class="va">numNonFREMThetas</span>,</span>
+<span>  numSkipOm <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  numNonFREMThetas <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">dfParameters</span>,</span>
+<span>  runno <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  modName <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  modDevDir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  parNames <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Par"</span>, <span class="fl">1</span><span class="op">:</span><span class="va">numParCov</span>, sep <span class="op">=</span> <span class="st">""</span><span class="op">)</span>,</span>
 <span>  availCov <span class="op">=</span> <span class="va">covNames</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -86,7 +91,9 @@ data frame will be computed.</p>
 <span>  ncores <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  cstrPackages <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cstrExports <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  iMiss <span class="op">=</span> <span class="va">missVal</span>,</span>
+<span>  missVal <span class="op">=</span> <span class="op">-</span><span class="fl">99</span>,</span>
+<span>  oneHot <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  oneHotSep <span class="op">=</span> <span class="st">"_"</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -115,7 +122,9 @@ all return for all functions in the functionList</p></dd>
 
 
 <dt>covNames</dt>
-<dd><p>Names of the covariates</p></dd>
+<dd><p>Names of the covariates. If <code>NULL</code> (default), locate the model
+file via <code>runno</code> / <code>modName</code> / <code>modDevDir</code> so they can be derived; otherwise
+required.</p></dd>
 
 
 <dt>functionListName</dt>
@@ -126,12 +135,17 @@ each function in the functionList</p></dd>
 <dt>numSkipOm</dt>
 <dd><p>Number of diag omegas (variances) that should not be part of
 the FREM calculations. Such omegas has to come before the large FREM omega
-block.</p></dd>
+block. If <code>NULL</code> (default) and the model file is located via <code>runno</code> /
+<code>modName</code> / <code>modDevDir</code>, it is derived via <code><a href="fremModelInfo.html">fremModelInfo()</a></code> (warn-and-keep
+on a disagreeing explicit value); otherwise it defaults to 0.</p></dd>
 
 
 <dt>numNonFREMThetas</dt>
 <dd><p>Number of thetas that are not FREM covariates. These
-need to come before the FREM covariate thetas.</p></dd>
+need to come before the FREM covariate thetas. If <code>NULL</code> (default) and the
+model file is located via <code>runno</code> / <code>modName</code> / <code>modDevDir</code>, it is derived
+via <code><a href="fremModelInfo.html">fremModelInfo()</a></code>; an explicit value that disagrees with the derived one
+triggers a warning and is kept. Required when the model file is not given.</p></dd>
 
 
 <dt>dfParameters</dt>
@@ -139,6 +153,24 @@ need to come before the FREM covariate thetas.</p></dd>
 distribution. The vector of final parameter estimates is assumed to be in
 the first row. The column order is assumed the same as in the NONMEM ext
 file except the ITERATION and OBJ columns whichshould not be included.</p></dd>
+
+
+<dt>runno</dt>
+<dd><p>The run number. Must be provided if <code>modName</code> is NULL. Will be
+used to create NONMEM model and results file names  with the structure
+run#.mod and run#. NONMEM ext, phi and cov files will be assumed to be
+named run# followed by the appropriate suffix (where # is <code>runno</code>).</p></dd>
+
+
+<dt>modName</dt>
+<dd><p>The model name. Will be used together with <code>modExt</code>, <code>lstExt</code>,
+ext, phi and cov to form the NONMEM file names, for example
+<code>modName</code>.mod for the model file.</p></dd>
+
+
+<dt>modDevDir</dt>
+<dd><p>The directory where the files reside. Default is the current
+directory, i.e. ".".</p></dd>
 
 
 <dt>parNames</dt>
@@ -183,7 +215,10 @@ dfCovs. If NULL (default) an educated guess of the grouping will be set</p></dd>
 
 <dt>ncores</dt>
 <dd><p>the number of cores to use for the calculations, default = 1
-which means no parallellization</p></dd>
+which means no parallellization.
+On Windows the workers are new R sessions. They load the same package
+versions as this session, including a package loaded from a folder that
+is not on <code><a href="https://rdrr.io/r/base/libPaths.html" class="external-link">.libPaths()</a></code>, and the run stops if they cannot.</p></dd>
 
 
 <dt>cstrPackages</dt>
@@ -196,8 +231,24 @@ calculations in parallel, default = NULL</p></dd>
 calculations in parallel, default = NULL</p></dd>
 
 
-<dt>iMiss</dt>
+<dt>missVal</dt>
 <dd><p>The missing value number. -99 by default.</p></dd>
+
+
+<dt>oneHot</dt>
+<dd><p>An optional one-hot encoding specification (see
+<code><a href="https://rdrr.io/pkg/PMXForest/man/oneHotEncode.html" class="external-link">PMXForest::oneHotEncode()</a></code>). When supplied, raw multi-level categorical
+columns in <code>dfCovs</code> (and in <code>dfRefRow</code> when it is a data frame) are one-hot
+encoded before the FFEM expressions are evaluated, so <code>dfCovs</code> can be built
+with a raw covariate column instead of the FREM <code>&lt;cov&gt;_&lt;level&gt;</code> dummy
+columns. The raw column is dropped after encoding. Default <code>NULL</code> (no
+encoding).</p></dd>
+
+
+<dt>oneHotSep</dt>
+<dd><p>The separator between covariate name and level in the dummy
+column names created when <code>oneHot</code> is used. Defaults to <code>"_"</code>, matching the
+FREM convention.</p></dd>
 
 
 <dt>...</dt>
@@ -217,52 +268,68 @@ covariate combinations:</p>
     <div class="dont-index"><p>Other Diagnostics &amp; Plotting: 
 <code><a href="calcEtas.html">calcEtas</a>()</code>,
 <code><a href="calcFremShrinkage.html">calcFremShrinkage</a>()</code>,
+<code><a href="createFREMParamFunction.html">createFREMParamFunction</a>()</code>,
 <code><a href="fremParameterTable.html">fremParameterTable</a>()</code>,
 <code><a href="getExplainedVar.html">getExplainedVar</a>()</code>,
 <code><a href="plotCovDist.html">plotCovDist</a>()</code>,
 <code><a href="plotEtasCov.html">plotEtasCov</a>()</code>,
 <code><a href="plotExplainedVar.html">plotExplainedVar</a>()</code>,
-<code><a href="traceplot.html">traceplot</a>()</code></p></div>
+<code><a href="traceplot.html">traceplot</a>()</code>,
+<code><a href="verifyFREMParamFunction.html">verifyFREMParamFunction</a>()</code></p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span>  <span class="co"># 1. Setup paths to model and bootstrap results</span></span></span>
-<span class="r-in"><span>  <span class="va">modDevDir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb"</span>, package<span class="op">=</span><span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="va">modFile</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">modDevDir</span>, <span class="st">"run31.mod"</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="va">extFile</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">modDevDir</span>, <span class="st">"run31.ext"</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="va">bsFile</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">modDevDir</span>, <span class="st">"bs31.dir/raw_results_run31.csv"</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  </span></span>
-<span class="r-in"><span>  <span class="co"># 2. Setup Covariates</span></span></span>
-<span class="r-in"><span>  <span class="va">dfCovs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    COVARIATEGROUPS <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AGE"</span>, <span class="st">"AGE"</span>, <span class="st">"SEX"</span>, <span class="st">"SEX"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    AGE <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">30</span>, <span class="fl">60</span>, <span class="op">-</span><span class="fl">99</span>, <span class="op">-</span><span class="fl">99</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    SEX <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">99</span>, <span class="op">-</span><span class="fl">99</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="op">)</span></span></span>
-<span class="r-in"><span>  </span></span>
-<span class="r-in"><span>  <span class="co"># 3. Define a simple parameter function</span></span></span>
-<span class="r-in"><span>  <span class="va">paramFunction</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">basethetas</span>, <span class="va">covthetas</span>, <span class="va">dfrow</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">basethetas</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">covthetas</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="op">}</span></span></span>
-<span class="r-in"><span>  </span></span>
-<span class="r-in"><span>  <span class="co"># 4. Use PMXForest to extract 25 samples from bootstrap results</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="va">samples</span> <span class="op">&lt;-</span> <span class="fu">PMXForest</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/PMXForest/man/getSamples.html" class="external-link">getSamples</a></span><span class="op">(</span><span class="va">bsFile</span>, extFile <span class="op">=</span> <span class="va">extFile</span>, n <span class="op">=</span> <span class="fl">25</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  </span></span>
-<span class="r-in"><span>  <span class="co"># 5. Generate Forest Plot Data</span></span></span>
-<span class="r-in"><span>  <span class="va">dfresFREM</span> <span class="op">&lt;-</span> <span class="fu">getForestDFFREM</span><span class="op">(</span></span></span>
-<span class="r-in"><span>    dfCovs           <span class="op">=</span> <span class="va">dfCovs</span>,</span></span>
-<span class="r-in"><span>    covNames         <span class="op">=</span> <span class="fu"><a href="getCovNames.html">getCovNames</a></span><span class="op">(</span><span class="va">modFile</span><span class="op">)</span><span class="op">$</span><span class="va">covNames</span>,</span></span>
-<span class="r-in"><span>    functionList     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">paramFunction</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    functionListName <span class="op">=</span> <span class="st">"CL"</span>,</span></span>
-<span class="r-in"><span>    numSkipOm        <span class="op">=</span> <span class="fl">2</span>,</span></span>
-<span class="r-in"><span>    numNonFREMThetas <span class="op">=</span> <span class="fl">7</span>,</span></span>
-<span class="r-in"><span>    dfParameters     <span class="op">=</span> <span class="va">samples</span>,</span></span>
-<span class="r-in"><span>    quiet            <span class="op">=</span> <span class="cn">TRUE</span></span></span>
-<span class="r-in"><span>  <span class="op">)</span></span></span>
-<span class="r-in"><span>  </span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">dfresFREM</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># 1. Setup paths to model and bootstrap results</span></span></span>
+<span class="r-in"><span><span class="va">modDevDir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">modFile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">modDevDir</span>, <span class="st">"run31.mod"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">extFile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">modDevDir</span>, <span class="st">"run31.ext"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">bsFile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">modDevDir</span>, <span class="st">"bs31.dir/raw_results_run31.csv"</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># 2. Setup Covariates</span></span></span>
+<span class="r-in"><span><span class="va">dfCovs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  COVARIATEGROUPS <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AGE"</span>, <span class="st">"AGE"</span>, <span class="st">"SEX"</span>, <span class="st">"SEX"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  AGE <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">30</span>, <span class="fl">60</span>, <span class="op">-</span><span class="fl">99</span>, <span class="op">-</span><span class="fl">99</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  SEX <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">99</span>, <span class="op">-</span><span class="fl">99</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># 3. Define a simple parameter function</span></span></span>
+<span class="r-in"><span><span class="va">paramFunction</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">basethetas</span>, <span class="va">covthetas</span>, <span class="va">dfrow</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">basethetas</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">covthetas</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># 4. Use PMXForest to extract 25 samples from bootstrap results</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">samples</span> <span class="op">&lt;-</span> <span class="fu">PMXForest</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/PMXForest/man/getSamples.html" class="external-link">getSamples</a></span><span class="op">(</span><span class="va">bsFile</span>, extFile <span class="op">=</span> <span class="va">extFile</span>, n <span class="op">=</span> <span class="fl">25</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># 5a. Generate Forest Plot Data -- covNames / numSkipOm / numNonFREMThetas</span></span></span>
+<span class="r-in"><span><span class="co">#     passed explicitly</span></span></span>
+<span class="r-in"><span><span class="va">dfresFREM</span> <span class="op">&lt;-</span> <span class="fu">getForestDFFREM</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  dfCovs           <span class="op">=</span> <span class="va">dfCovs</span>,</span></span>
+<span class="r-in"><span>  covNames         <span class="op">=</span> <span class="fu"><a href="getCovNames.html">getCovNames</a></span><span class="op">(</span><span class="va">modFile</span><span class="op">)</span><span class="op">$</span><span class="va">covNames</span>,</span></span>
+<span class="r-in"><span>  functionList     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">paramFunction</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  functionListName <span class="op">=</span> <span class="st">"CL"</span>,</span></span>
+<span class="r-in"><span>  numSkipOm        <span class="op">=</span> <span class="fl">2</span>,</span></span>
+<span class="r-in"><span>  numNonFREMThetas <span class="op">=</span> <span class="fl">7</span>,</span></span>
+<span class="r-in"><span>  dfParameters     <span class="op">=</span> <span class="va">samples</span>,</span></span>
+<span class="r-in"><span>  quiet            <span class="op">=</span> <span class="cn">TRUE</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># 5b. Same result -- covNames / numSkipOm / numNonFREMThetas omitted and</span></span></span>
+<span class="r-in"><span><span class="co">#     derived from the model file located via runno / modDevDir</span></span></span>
+<span class="r-in"><span><span class="co">#     (see fremModelInfo())</span></span></span>
+<span class="r-in"><span><span class="va">dfresFREM2</span> <span class="op">&lt;-</span> <span class="fu">getForestDFFREM</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  dfCovs           <span class="op">=</span> <span class="va">dfCovs</span>,</span></span>
+<span class="r-in"><span>  functionList     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">paramFunction</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  functionListName <span class="op">=</span> <span class="st">"CL"</span>,</span></span>
+<span class="r-in"><span>  dfParameters     <span class="op">=</span> <span class="va">samples</span>,</span></span>
+<span class="r-in"><span>  runno            <span class="op">=</span> <span class="fl">31</span>,</span></span>
+<span class="r-in"><span>  modDevDir        <span class="op">=</span> <span class="va">modDevDir</span>,</span></span>
+<span class="r-in"><span>  quiet            <span class="op">=</span> <span class="cn">TRUE</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">dfresFREM</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   AGE SEX  WT  HT LBWT BSA AST ALT BILI CRCL BMI RACEL_3 RACEL_2 NCIL_2 NCIL_1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1  30 -99 -99 -99  -99 -99 -99 -99  -99  -99 -99     -99     -99    -99    -99</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2  60 -99 -99 -99  -99 -99 -99 -99  -99  -99 -99     -99     -99    -99    -99</span>

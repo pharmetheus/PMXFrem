@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,13 +41,15 @@
 <li class="active nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quick-Start: 5-Minute FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-createFREMmodel.html">3. Deep Dive: Creating FREM Models</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard Diagnostics and ETAs</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">3. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plot-references.html">3. Deep Dive: Reconciling FREM and SCM Forest Plots</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-secondary-parameters.html">3. Deep Dive: Secondary Parameters</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-missing-covariates.html">3. Deep Dive: Subject-Specific Variances for Missing Covariates</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -80,14 +82,15 @@
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>The Full Random Effects Model (FREM) relies on a highly interdependent architecture between the NONMEM control stream and the underlying dataset. Manually editing these files to add or remove covariates can be time-consuming and introduces a risk for human error into the pharmacometric workflow.</p>
-<p>The <code>PMXFrem</code> package provides the <code><a href="../reference/updateFREMmodel.html">updateFREMmodel()</a></code> function to programmatically manage these complex structural updates.</p>
-<p>This deep dive demonstrates four primary capabilities:</p>
+<p>A FREM model and its data set are tightly coupled: the covariates live in the data as dummy observations, and the control stream indexes them by <code>FREMTYPE</code>. Editing both by hand to add or remove a covariate is slow and easy to get wrong.</p>
+<p><code><a href="../reference/updateFREMmodel.html">updateFREMmodel()</a></code> makes those changes for you.</p>
+<p>This deep dive demonstrates five capabilities:</p>
 <ul>
 <li>Removing covariates from an existing model.</li>
 <li>Adding new covariates to a model.</li>
 <li>Appending new individuals to an existing FREM dataset.</li>
 <li>Updating a model’s initial parameter estimates directly from a converged <code>.ext</code> file.</li>
+<li>Adding a structural <code>$THETA</code> or an IIV to a converged model.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -104,9 +107,9 @@
 <span></span>
 <span><span class="co"># Define paths to validated example files</span></span>
 <span><span class="va">frem_model_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/run31.mod"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span>
-<span><span class="va">frem_ext_path</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/run31.ext"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span>
-<span><span class="va">frem_data_path</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/frem_dataset.dta"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span>
-<span><span class="va">ffem_data_path</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span>
+<span><span class="va">frem_ext_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/run31.ext"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span>
+<span><span class="va">frem_data_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/frem_dataset.dta"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span>
+<span><span class="va">ffem_data_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Copy base model and ext files into the temporary directory for safe manipulation</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.copy</a></span><span class="op">(</span><span class="va">frem_model_path</span>, <span class="va">td</span><span class="op">)</span></span>
@@ -120,7 +123,7 @@
 <h2 id="use-case-1-removing-covariates">2. Use Case 1: Removing Covariates<a class="anchor" aria-label="anchor" href="#use-case-1-removing-covariates"></a>
 </h2>
 <p>You may sometimes need to remove covariates from an existing model. Here, we remove <code>WT</code>, <code>SEX</code>, and <code>AGE</code> from <code>run31.mod</code>.</p>
-<p>The function requires the base model’s structural configuration: <code>numNonFREMThetas</code> (the number of structural fixed effects) and <code>numSkipOm</code> (the number of standard variances, such as IIV or RUV, that precede the FREM <code>$OMEGA BLOCK</code>).</p>
+<p>The function needs the model’s structural configuration: <code>numNonFREMThetas</code> (the number of structural fixed effects) and <code>numSkipOm</code> (the number of standard variances, such as IIV or RUV, that precede the FREM <code>$OMEGA BLOCK</code>). Left as <code>NULL</code> (the default) they are derived from the FREM model and its <code>.ext</code> via <code><a href="../reference/fremModelInfo.html">fremModelInfo()</a></code>; if the model’s <code>;;;FREM CODE</code> markers / <code>$OMEGA BLOCK(N)</code> disagree with the <code>.ext</code> the derivation stops and asks for explicit values. We pass them here for clarity.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result_remove</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/updateFREMmodel.html">updateFREMmodel</a></span><span class="op">(</span></span>
 <span>  strFREMModel      <span class="op">=</span> <span class="va">model_in_td</span>,</span>
@@ -130,18 +133,18 @@
 <span>  strNewFREMData    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"frem_data_simplified.csv"</span><span class="op">)</span>,</span>
 <span>  numNonFREMThetas  <span class="op">=</span> <span class="fl">7</span>,</span>
 <span>  numSkipOm         <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>  bWriteData        <span class="op">=</span> <span class="cn">TRUE</span>,   <span class="co"># Generate the updated dataset</span></span>
-<span>  bWriteMod         <span class="op">=</span> <span class="cn">TRUE</span>,   <span class="co"># Generate the updated control stream</span></span>
+<span>  bWriteData        <span class="op">=</span> <span class="cn">TRUE</span>, <span class="co"># Generate the updated dataset</span></span>
+<span>  bWriteMod         <span class="op">=</span> <span class="cn">TRUE</span>, <span class="co"># Generate the updated control stream</span></span>
 <span>  quiet             <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  cstrKeepCols      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ID"</span>, <span class="st">"TIME"</span>, <span class="st">"AMT"</span>, <span class="st">"EVID"</span>, <span class="st">"RATE"</span>, <span class="st">"DV"</span>, <span class="st">"FOOD"</span>, <span class="st">"FREMTYPE"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">new_model_path_remove</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"run31_new.mod"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Simplified model successfully written to:"</span>, <span class="va">new_model_path_remove</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "Simplified model successfully written to: /tmp/Rtmpp0iZxG/run31_new.mod"</span></span></code></pre></div>
-<p><strong>Architectural Operations:</strong></p>
+<span><span class="co">#&gt; [1] "Simplified model successfully written to: /tmp/Rtmpz5N0JE/run31_new.mod"</span></span></code></pre></div>
+<p><strong>What the call did:</strong></p>
 <ul>
-<li>The algorithm drops dataset rows associated with the removed covariates and dynamically re-indexes the remaining <code>FREMTYPE</code> identifiers to prevent gaps in the NONMEM <code>$ERROR</code> block.</li>
+<li>The data set rows for the removed covariates are dropped and the remaining <code>FREMTYPE</code> values re-indexed, so the <code>$ERROR</code> block has no gaps to handle.</li>
 <li>The covariance matrix (<code>$OMEGA</code>) and typical values (<code>$THETA</code>) are systematically adjusted.</li>
 </ul>
 <hr>
@@ -149,11 +152,11 @@
 <div class="section level2">
 <h2 id="use-case-2-adding-covariates">3. Use Case 2: Adding Covariates<a class="anchor" aria-label="anchor" href="#use-case-2-adding-covariates"></a>
 </h2>
-<p>Next, we take the simplified model generated above and insert a new covariate (<code>AGE</code>) back into the architecture. We explicitly set <code>bRecodeDichotomous = TRUE</code> as a standard practice to ensure any 2-level categorical covariates are safely zero-indexed.</p>
+<p>Next, we take the simplified model generated above and add a covariate (<code>AGE</code>) back. We explicitly set <code>bRecodeDichotomous = TRUE</code> as a standard practice to ensure any 2-level categorical covariates are safely zero-indexed.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Utilize the newly generated model and dataset as our baseline</span></span>
+<code class="sourceCode R"><span><span class="co"># Start from the model and data set written above</span></span>
 <span><span class="va">model_to_add_to</span> <span class="op">&lt;-</span> <span class="va">new_model_path_remove</span></span>
-<span><span class="va">data_to_add_to</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"frem_data_simplified.csv"</span><span class="op">)</span></span>
+<span><span class="va">data_to_add_to</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"frem_data_simplified.csv"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># The function requires the corresponding .ext file for the input model</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.copy</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"run31.ext"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"run31_new.ext"</span><span class="op">)</span><span class="op">)</span></span>
@@ -163,7 +166,7 @@
 <span>  strFREMModel       <span class="op">=</span> <span class="va">model_to_add_to</span>,</span>
 <span>  strFREMData        <span class="op">=</span> <span class="va">data_to_add_to</span>,</span>
 <span>  strFFEMData        <span class="op">=</span> <span class="va">ffem_data_path</span>,</span>
-<span>  cstrContCovsToAdd  <span class="op">=</span> <span class="st">"AGE"</span>, </span>
+<span>  cstrContCovsToAdd  <span class="op">=</span> <span class="st">"AGE"</span>,</span>
 <span>  strNewFREMData     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"frem_data_with_age.csv"</span><span class="op">)</span>,</span>
 <span>  numNonFREMThetas   <span class="op">=</span> <span class="fl">7</span>,</span>
 <span>  numSkipOm          <span class="op">=</span> <span class="fl">2</span>,</span>
@@ -175,8 +178,8 @@
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Expanded model successfully written to:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"run31_new_new.mod"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "Expanded model successfully written to: /tmp/Rtmpp0iZxG/run31_new_new.mod"</span></span></code></pre></div>
-<p><strong>Architectural Operations:</strong></p>
+<span><span class="co">#&gt; [1] "Expanded model successfully written to: /tmp/Rtmpz5N0JE/run31_new_new.mod"</span></span></code></pre></div>
+<p><strong>What the call did:</strong></p>
 <ul>
 <li>The base clinical data (<code>strFFEMData</code>) is scanned to extract the new covariate’s mean and variance, which seed the new <code>$THETA</code> and <code>$OMEGA</code> parameters.</li>
 <li>Dummy observation rows (<code>EVID=2</code>) are appended to the dataset for the new covariate under a newly assigned <code>FREMTYPE</code>.</li>
@@ -186,26 +189,26 @@
 <div class="section level2">
 <h2 id="use-case-3-adding-new-individuals">4. Use Case 3: Adding New Individuals<a class="anchor" aria-label="anchor" href="#use-case-3-adding-new-individuals"></a>
 </h2>
-<p>An advantage of the FREM architecture is the ability to process new subjects through a converged model without altering the matrix structure. Here, we simulate 10 new individuals and fold them into the dataset.</p>
+<p>New subjects can be added to a converged model without changing the covariate matrix. Here, we simulate 10 new individuals and fold them into the dataset.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># 1. Load the pristine FREM and FFEM datasets</span></span>
+<code class="sourceCode R"><span><span class="co"># 1. Load the unmodified FREM and FFEM data sets</span></span>
 <span><span class="va">frem_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fread.html" class="external-link">fread</a></span><span class="op">(</span><span class="va">frem_data_path</span>, data.table <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="op">-</span><span class="va">ODV</span><span class="op">)</span></span>
 <span><span class="va">ffem_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fread.html" class="external-link">fread</a></span><span class="op">(</span><span class="va">ffem_data_path</span>, data.table <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 2. Simulate 10 new individuals by shifting IDs</span></span>
-<span><span class="va">ffem_new_ids</span> <span class="op">&lt;-</span> <span class="va">ffem_df</span><span class="op">[</span><span class="va">ffem_df</span><span class="op">$</span><span class="va">ID</span> <span class="op">&lt;=</span> <span class="fl">10</span>, <span class="op">]</span> </span>
+<span><span class="va">ffem_new_ids</span> <span class="op">&lt;-</span> <span class="va">ffem_df</span><span class="op">[</span><span class="va">ffem_df</span><span class="op">$</span><span class="va">ID</span> <span class="op">&lt;=</span> <span class="fl">10</span>, <span class="op">]</span></span>
 <span><span class="va">ffem_new_ids</span><span class="op">$</span><span class="va">ID</span> <span class="op">&lt;-</span> <span class="va">ffem_new_ids</span><span class="op">$</span><span class="va">ID</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">frem_df</span><span class="op">$</span><span class="va">ID</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 3. Append the individuals to the dataset</span></span>
 <span><span class="va">result_new_ids</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/updateFREMmodel.html">updateFREMmodel</a></span><span class="op">(</span></span>
 <span>  strFREMModel      <span class="op">=</span> <span class="va">model_in_td</span>,</span>
-<span>  strFREMData       <span class="op">=</span> <span class="va">frem_df</span>,        <span class="co"># Pass dataset directly via memory</span></span>
-<span>  strFFEMData       <span class="op">=</span> <span class="va">ffem_new_ids</span>,   <span class="co"># Include the new IDs</span></span>
+<span>  strFREMData       <span class="op">=</span> <span class="va">frem_df</span>, <span class="co"># Pass dataset directly via memory</span></span>
+<span>  strFFEMData       <span class="op">=</span> <span class="va">ffem_new_ids</span>, <span class="co"># Include the new IDs</span></span>
 <span>  strNewFREMData    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"frem_data_appended.csv"</span><span class="op">)</span>,</span>
 <span>  numNonFREMThetas  <span class="op">=</span> <span class="fl">7</span>,</span>
 <span>  numSkipOm         <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>  bWriteData        <span class="op">=</span> <span class="cn">TRUE</span>, </span>
-<span>  bWriteMod         <span class="op">=</span> <span class="cn">FALSE</span>,          <span class="co"># The NONMEM model logic does not change</span></span>
+<span>  bWriteData        <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  bWriteMod         <span class="op">=</span> <span class="cn">FALSE</span>, <span class="co"># The NONMEM model logic does not change</span></span>
 <span>  quiet             <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  cstrKeepCols      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ID"</span>, <span class="st">"TIME"</span>, <span class="st">"AMT"</span>, <span class="st">"DV"</span>, <span class="st">"EVID"</span>, <span class="st">"RATE"</span>, <span class="st">"FREMTYPE"</span><span class="op">)</span>,</span>
 <span>  cstrSetToZero     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AMT"</span>, <span class="st">"EVID"</span>, <span class="st">"RATE"</span><span class="op">)</span></span>
@@ -213,7 +216,7 @@
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Original Max ID:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">frem_df</span><span class="op">$</span><span class="va">ID</span><span class="op">)</span>, <span class="st">"| New Max ID:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">result_new_ids</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">ID</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Original Max ID: 964 | New Max ID: 974"</span></span></code></pre></div>
-<p><strong>Architectural Operations:</strong></p>
+<p><strong>What the call did:</strong></p>
 <ul>
 <li>The algorithm expands the dataset horizontally, mapping the structural and covariate dummy rows for the new IDs while keeping the control stream untouched (<code>bWriteMod = FALSE</code>).</li>
 </ul>
@@ -226,24 +229,75 @@
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result_inits</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/updateFREMmodel.html">updateFREMmodel</a></span><span class="op">(</span></span>
 <span>  strFREMModel       <span class="op">=</span> <span class="va">model_in_td</span>,</span>
-<span>  strUpdateType      <span class="op">=</span> <span class="st">"NoData"</span>,     <span class="co"># Skip dataset processing entirely</span></span>
+<span>  strUpdateType      <span class="op">=</span> <span class="st">"NoData"</span>, <span class="co"># Skip dataset processing entirely</span></span>
 <span>  basenames_th       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL"</span>, <span class="st">"V"</span>, <span class="st">"MAT"</span>, <span class="st">"D1"</span>, <span class="st">"FRELFOOD"</span>, <span class="st">"MATFOOD"</span><span class="op">)</span>,</span>
 <span>  basenames_om       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"RUV"</span>, <span class="st">"D1"</span>, <span class="st">"CL"</span>, <span class="st">"V"</span>, <span class="st">"MAT"</span><span class="op">)</span>,</span>
 <span>  numNonFREMThetas   <span class="op">=</span> <span class="fl">7</span>,</span>
 <span>  numSkipOm          <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  bWriteData         <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  bWriteMod          <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  bWriteFIX          <span class="op">=</span> <span class="cn">TRUE</span>,         <span class="co"># Explicitly carry over FIX flags</span></span>
+<span>  bWriteFIX          <span class="op">=</span> <span class="cn">TRUE</span>, <span class="co"># Explicitly carry over FIX flags</span></span>
 <span>  quiet              <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="st">"Control stream initial estimates successfully updated from the .ext file."</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Control stream initial estimates successfully updated from the .ext file."</span></span></code></pre></div>
-<p><strong>Architectural Operations:</strong></p>
+<p><strong>What the call did:</strong></p>
 <ul>
 <li>
 <code><a href="../reference/updateFREMmodel.html">updateFREMmodel()</a></code> parses the <code>-1000000000</code> iteration row from the provided <code>.ext</code> file.</li>
-<li>The <code>$THETA</code>, <code>$OMEGA</code>, and <code>$SIGMA</code> blocks in the <code>.mod</code> file are surgically replaced, and user-defined <code>basenames</code> are appended as clean comments for maximum readability.</li>
+<li>The <code>$THETA</code>, <code>$OMEGA</code> and <code>$SIGMA</code> blocks are replaced, with the <code>basenames</code> written alongside them as comments.</li>
+</ul>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="use-case-5-adding-a-structural-theta-or-an-iiv">6. Use Case 5: Adding a Structural THETA or an IIV<a class="anchor" aria-label="anchor" href="#use-case-5-adding-a-structural-theta-or-an-iiv"></a>
+</h2>
+<p>The updates above change the covariates or the data. A model sometimes needs a change to its structural part instead: one more <code>$THETA</code>, or one more IIV on a parameter that did not have one.</p>
+<p>By hand that means renumbering every <code>THETA()</code>, <code>ETA()</code>, <code>MU_</code> and <code>COV</code> reference after the new one – including the references inside the <code>;;;FREM CODE</code> block and the <code>ETAn</code> columns of <code>$TABLE</code> – and putting the new <code>$OMEGA</code> inside the skip region rather than after the FREM block, where it would join the covariate matrix. <code><a href="../reference/addFremStructuralTheta.html">addFremStructuralTheta()</a></code> and <code><a href="../reference/addFremIIV.html">addFremIIV()</a></code> do that.</p>
+<p><code><a href="../reference/addFremStructuralTheta.html">addFremStructuralTheta()</a></code> inserts the new <code>$THETA</code> at <code>numNonFREMThetas + 1</code>, immediately before the FREM covariate means, and with <code>addEta = TRUE</code> adds a matching IIV:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">res_theta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/addFremStructuralTheta.html">addFremStructuralTheta</a></span><span class="op">(</span></span>
+<span>  strFREMModel <span class="op">=</span> <span class="va">model_in_td</span>,</span>
+<span>  parameter    <span class="op">=</span> <span class="st">"KA2"</span>,</span>
+<span>  thetaInit    <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  addEta       <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  omegaInit    <span class="op">=</span> <span class="fl">0.04</span>,</span>
+<span>  bWriteMod    <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  quiet        <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>thetaIndex <span class="op">=</span> <span class="va">res_theta</span><span class="op">$</span><span class="va">thetaIndex</span>, etaIndex <span class="op">=</span> <span class="va">res_theta</span><span class="op">$</span><span class="va">etaIndex</span><span class="op">)</span></span>
+<span><span class="co">#&gt; thetaIndex   etaIndex </span></span>
+<span><span class="co">#&gt;          8          3</span></span></code></pre></div>
+<p><code>KA2</code> is not assigned anywhere in <code>$PK</code>, so it is defined rather than modified. The definition is delimited, so it is clear what the function added:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">i &lt;-<span class="st"> </span><span class="kw">grep</span>(<span class="st">";; Begin added THETA"</span>, res_theta<span class="op">$</span>model)</a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">j &lt;-<span class="st"> </span><span class="kw">grep</span>(<span class="st">";; End added THETA"</span>, res_theta<span class="op">$</span>model)</a>
+<a class="sourceLine" id="cb7-3" data-line-number="3"><span class="kw">cat</span>(res_theta<span class="op">$</span>model[i<span class="op">:</span>j], <span class="dt">sep =</span> <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</a>
+<a class="sourceLine" id="cb7-4" data-line-number="4">     ;; Begin added THETA</a>
+<a class="sourceLine" id="cb7-5" data-line-number="5">     TVKA2 =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">8</span>)</a>
+<a class="sourceLine" id="cb7-6" data-line-number="6">     MU_<span class="dv">3</span> =<span class="st"> </span><span class="kw">LOG</span>(TVKA2)</a>
+<a class="sourceLine" id="cb7-7" data-line-number="7">     KA2 =<span class="st"> </span><span class="kw">EXP</span>(MU_<span class="dv">3</span> <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">3</span>))</a>
+<a class="sourceLine" id="cb7-8" data-line-number="8">     ;; End added THETA</a></code></pre></div>
+<p>A parameter that <code>$PK</code> already assigns is modified in place instead. That is what <code><a href="../reference/addFremIIV.html">addFremIIV()</a></code> does on its own, for the case where the new random effect needs no new structural parameter:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">res_iiv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/addFremIIV.html">addFremIIV</a></span><span class="op">(</span></span>
+<span>  strFREMModel <span class="op">=</span> <span class="va">model_in_td</span>,</span>
+<span>  parameter    <span class="op">=</span> <span class="st">"FREL"</span>,</span>
+<span>  omegaInit    <span class="op">=</span> <span class="fl">0.04</span>,</span>
+<span>  bWriteMod    <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  quiet        <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"^\\s*FREL\\s*="</span>, <span class="va">res_iiv</span><span class="op">$</span><span class="va">model</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, sep <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span>
+<span><span class="va">FREL</span> <span class="op">=</span> <span class="op">(</span><span class="va">TVFREL</span><span class="op">*</span><span class="va">FRELCOVTIME</span><span class="op">)</span> <span class="op">*</span> <span class="fu">EXP</span><span class="op">(</span><span class="fu">ETA</span><span class="op">(</span><span class="fl">3</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Both take the new eta at <code>numSkipOm + 1</code> and return the updated counts, so the value to pass to the next call comes back with the result.</p>
+<p>Two things to know before using either on a real model:</p>
+<ul>
+<li>
+<strong>The <code>.ext</code> and <code>.phi</code> are not migrated.</strong> Only the control stream is rewritten, so the model has to be re-estimated. Pairing the rewritten model with the old <code>.ext</code> is easy to do by accident, and <code><a href="../reference/fremModelInfo.html">fremModelInfo()</a></code> warns when it sees it.</li>
+<li>
+<strong>They refuse rather than write a model that is quietly wrong.</strong> A parameter assigned inside an <code>IF</code> would take the eta on one branch only; a model using <code>$ABBR REPLACE</code> labels cannot be renumbered safely; a <code>$THETA</code> line whose values straddle the insertion point is ambiguous. Each of these stops with a message naming the record and the line.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>

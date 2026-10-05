@@ -7,6 +7,9 @@
     <loc>/LICENSE.html</loc>
   </url>
   <url>
+    <loc>/TODO.html</loc>
+  </url>
+  <url>
     <loc>/articles/Part1-quick-start.html</loc>
   </url>
   <url>
@@ -22,10 +25,16 @@
     <loc>/articles/Part3-deep-dive-explained-variability.html</loc>
   </url>
   <url>
+    <loc>/articles/Part3-deep-dive-forest-plot-references.html</loc>
+  </url>
+  <url>
     <loc>/articles/Part3-deep-dive-forest-plots.html</loc>
   </url>
   <url>
-    <loc>/articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html</loc>
+    <loc>/articles/Part3-deep-dive-secondary-parameters.html</loc>
+  </url>
+  <url>
+    <loc>/articles/Part3-deep-dive-subject-specific-variances-for-missing-covariates.html</loc>
   </url>
   <url>
     <loc>/articles/Part3-deep-dive-updateFREMmodel.html</loc>
@@ -47,6 +56,12 @@
   </url>
   <url>
     <loc>/reference/addFREMcovariates.html</loc>
+  </url>
+  <url>
+    <loc>/reference/addFremIIV.html</loc>
+  </url>
+  <url>
+    <loc>/reference/addFremStructuralTheta.html</loc>
   </url>
   <url>
     <loc>/reference/augmentFremData.html</loc>
@@ -79,6 +94,9 @@
     <loc>/reference/createFREMData.html</loc>
   </url>
   <url>
+    <loc>/reference/createFREMParamFunction.html</loc>
+  </url>
+  <url>
     <loc>/reference/createFREMmodel.html</loc>
   </url>
   <url>
@@ -95,6 +113,9 @@
   </url>
   <url>
     <loc>/reference/findrecord.html</loc>
+  </url>
+  <url>
+    <loc>/reference/fremModelInfo.html</loc>
   </url>
   <url>
     <loc>/reference/fremParameterTable.html</loc>
@@ -164,5 +185,8 @@
   </url>
   <url>
     <loc>/reference/validateFremData.html</loc>
+  </url>
+  <url>
+    <loc>/reference/verifyFREMParamFunction.html</loc>
   </url>
 </urlset>

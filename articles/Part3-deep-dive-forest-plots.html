@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,13 +41,15 @@
 <li class="active nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quickstart: 5-Minute FREM Workflow</a>
+    <a class="dropdown-item" href="../articles/Part1-quick-start.html">1. Quick-Start: 5-Minute FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part2-walkthrough-frem-workflow.html">2. Walkthrough: Complete FREM Workflow</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-createFREMmodel.html">3. Deep Dive: Creating FREM Models</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard diagnostics and ETAs</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">4. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-diagnostics-and-etas.html">3. Deep Dive: Standard Diagnostics and ETAs</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-explained-variability.html">3. Deep Dive: Explained Variability</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plot-references.html">3. Deep Dive: Reconciling FREM and SCM Forest Plots</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-forest-plots.html">3. Deep Dive: Forest Plots</a>
-    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-issing-ovariates.html">Deep Dive: Subject-Specific Variances for Missing Covariates (`omegaToData`)</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-secondary-parameters.html">3. Deep Dive: Secondary Parameters</a>
+    <a class="dropdown-item" href="../articles/Part3-deep-dive-subject-specific-variances-for-missing-covariates.html">3. Deep Dive: Subject-Specific Variances for Missing Covariates</a>
     <a class="dropdown-item" href="../articles/Part3-deep-dive-updateFREMmodel.html">3. Deep Dive: Modifying FREM Models</a>
   </div>
 </li>
@@ -91,7 +93,7 @@
 <li>
 <strong>Data Generation:</strong> Computing the relative parameter changes and their confidence intervals.</li>
 <li>
-<strong>Visualization:</strong> Rendering the Forest plot with programmatic, robust labeling.</li>
+<strong>Visualization:</strong> Drawing the plot, with the row labels generated rather than typed.</li>
 </ol>
 <hr>
 </div>
@@ -106,9 +108,9 @@
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Enforce a clean global theme</span></span>
+<span><span class="co"># One theme for every figure below</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme_get.html" class="external-link">theme_set</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">14</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">865765</span><span class="op">)</span> </span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">865765</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Identify the FREM run and collect file paths</span></span>
 <span><span class="va">runname</span> <span class="op">&lt;-</span> <span class="st">"run31"</span></span>
@@ -116,29 +118,37 @@
 <span><span class="va">fremFiles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getFileNames.html">getFileNames</a></span><span class="op">(</span>modName <span class="op">=</span> <span class="va">runname</span>, modDevDir <span class="op">=</span> <span class="va">modDevDir</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Extract final parameter estimates and annotated covariate names</span></span>
-<span><span class="va">dfExt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="fu"><a href="../reference/getExt.html">getExt</a></span><span class="op">(</span>extFile <span class="op">=</span> <span class="va">fremFiles</span><span class="op">$</span><span class="va">ext</span><span class="op">)</span>, <span class="va">ITERATION</span> <span class="op">==</span> <span class="st">"-1000000000"</span><span class="op">)</span> </span>
-<span><span class="va">covNames</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getCovNames.html">getCovNames</a></span><span class="op">(</span>modFile <span class="op">=</span> <span class="va">fremFiles</span><span class="op">$</span><span class="va">mod</span><span class="op">)</span>                             </span></code></pre></div>
+<span><span class="va">dfExt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="fu"><a href="../reference/getExt.html">getExt</a></span><span class="op">(</span>extFile <span class="op">=</span> <span class="va">fremFiles</span><span class="op">$</span><span class="va">ext</span><span class="op">)</span>, <span class="va">ITERATION</span> <span class="op">==</span> <span class="st">"-1000000000"</span><span class="op">)</span></span>
+<span><span class="va">covNames</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getCovNames.html">getCovNames</a></span><span class="op">(</span>modFile <span class="op">=</span> <span class="va">fremFiles</span><span class="op">$</span><span class="va">mod</span><span class="op">)</span></span></code></pre></div>
 <p>Next, we extract the uncertainty distribution. In this example, we draw 175 multivariate normal samples using the variance-covariance matrix from the NONMEM <code>.cov</code> file.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Get 175 samples from the .cov file</span></span>
 <span><span class="va">dfParameters</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/PMXForest/man/getSamples.html" class="external-link">getSamples</a></span><span class="op">(</span><span class="va">fremFiles</span><span class="op">$</span><span class="va">cov</span>, extFile <span class="op">=</span> <span class="va">fremFiles</span><span class="op">$</span><span class="va">ext</span>, n <span class="op">=</span> <span class="fl">175</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Enforce the first row as the final deterministic estimates</span></span>
+<span><span class="co"># Row 1 is the final estimates, so the plot has a deterministic reference</span></span>
 <span><span class="va">dfParameters</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="va">dfExt</span><span class="op">[</span><span class="fl">1</span>, <span class="op">-</span><span class="fl">1</span><span class="op">]</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="the-parameter-function">The Parameter Function<a class="anchor" aria-label="anchor" href="#the-parameter-function"></a>
 </h3>
-<p>We must define a list of functions specifying how the parameters are calculated. Because we are plotting the <em>typical</em> parameter value for a given covariate, these functions only utilize the fixed effects.</p>
+<p>We must define a list of functions specifying how the parameters are calculated. Because we are plotting the <em>typical</em> parameter value for a given covariate, these functions use the fixed effects only.</p>
 <p>Note that the functional form for the covariate-parameter relationships depends on the parameter functional form (usually log-normal): <span class="math display">\[CL = \theta_{CL} \cdot \exp(\eta_{CL})\]</span></p>
 <p>As well as the covariate form in the FREM model (usually normal): <span class="math display">\[COV = \theta_{COV} + \eta_{COV}\]</span></p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># The parameter function list for log-normal parameters</span></span>
+<code class="sourceCode R"><span><span class="co"># The parameter function list for log-normal parameters. The indices are the</span></span>
+<span><span class="co"># model's own: in run31 THETA(1) is TVFREL, so CL is basethetas[2], and CL is</span></span>
+<span><span class="co"># the model's first FREM parameter, so its covariate effect is covthetas[1].</span></span>
 <span><span class="va">functionList</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  <span class="kw">function</span><span class="op">(</span><span class="va">basethetas</span>, <span class="va">covthetas</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">basethetas</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">covthetas</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op">}</span>, </span>
-<span>  <span class="kw">function</span><span class="op">(</span><span class="va">basethetas</span>, <span class="va">covthetas</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">basethetas</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">covthetas</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op">}</span></span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">basethetas</span>, <span class="va">covthetas</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">basethetas</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">covthetas</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span>,</span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">basethetas</span>, <span class="va">covthetas</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">basethetas</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">covthetas</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">functionListName</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL"</span>, <span class="st">"V1"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">functionListName</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL"</span>, <span class="st">"V"</span><span class="op">)</span></span></code></pre></div>
+<p>Getting those two index sets right is the fiddly part of writing a parameter function, and nothing downstream can tell you when they are wrong: a Forest plot shows ratios to a reference, so a structural theta taken from the wrong index cancels out and the plot looks entirely reasonable.</p>
+<p><code><a href="../reference/createFREMParamFunction.html">createFREMParamFunction()</a></code> removes that risk by transliterating the model’s own <code>$PK</code> instead, and one generated function serves both plot types – call it with <code>etas = 0</code> for a Forest plot, with sampled etas for an explained-variability plot. It is not used here because this deep dive is about the <em>inputs</em> to a Forest plot, and a two-line function keeps the contract those inputs have to satisfy visible. The Secondary Parameters deep dive generates the function and draws the Forest plot from it; the Explained Variability deep dive does the same for the other plot type.</p>
 <hr>
 </div>
 </div>
@@ -146,15 +156,18 @@
 <h2 id="defining-covariate-scenarios">2. Defining Covariate Scenarios<a class="anchor" aria-label="anchor" href="#defining-covariate-scenarios"></a>
 </h2>
 <p>We need to define the specific covariate combinations (univariable or multivariable) to plot. A value of <code>-99</code> or <code>NA</code> indicates that the covariate is at the reference (population typical) value.</p>
-<p>While you can build this matrix manually, <code><a href="https://rdrr.io/pkg/PMXForest/man/getCovStats.html" class="external-link">PMXForest::getCovStats()</a></code> is the recommended approach. It automatically scans your clinical dataset and calculates the 5th and 95th percentiles (or your chosen quantiles) for continuous covariates, and identifies categorical levels.</p>
+<p>While you can build this matrix by hand, <code><a href="https://rdrr.io/pkg/PMXForest/man/setupDfCovs.html" class="external-link">PMXForest::setupDfCovs()</a></code> does it from the data: the 5th and 90th percentiles (or whichever quantiles you ask for) of each continuous covariate, one row per level of each categorical one, and the <code>&lt;cov&gt;_&lt;level&gt;</code> columns the FREM model uses. Statistics are taken one record per <code>idVar</code>, so longitudinal data does not skew them.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load clinical data</span></span>
-<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fread.html" class="external-link">fread</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package<span class="op">=</span><span class="st">"PMXFrem"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fread.html" class="external-link">fread</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Generate covariate matrix dynamically using the 5th and 90th percentiles</span></span>
-<span><span class="va">dfCovs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/PMXForest/man/createInputForestData.html" class="external-link">createInputForestData</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/PMXForest/man/getCovStats.html" class="external-link">getCovStats</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">covNames</span><span class="op">$</span><span class="va">orgCovNames</span>, probs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.90</span><span class="op">)</span>, missVal <span class="op">=</span> <span class="op">-</span><span class="fl">99</span><span class="op">)</span>,</span>
-<span>  iMiss <span class="op">=</span> <span class="op">-</span><span class="fl">99</span></span>
+<span><span class="co"># Build the covariate matrix from the data, at the 5th and 90th percentiles</span></span>
+<span><span class="va">dfCovs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/PMXForest/man/setupDfCovs.html" class="external-link">setupDfCovs</a></span><span class="op">(</span></span>
+<span>  data       <span class="op">=</span> <span class="va">data</span>,</span>
+<span>  covariates <span class="op">=</span> <span class="va">covNames</span><span class="op">$</span><span class="va">orgCovNames</span>,</span>
+<span>  probs      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.90</span><span class="op">)</span>,</span>
+<span>  idVar      <span class="op">=</span> <span class="st">"ID"</span>,</span>
+<span>  missVal    <span class="op">=</span> <span class="op">-</span><span class="fl">99</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">dfCovs</span>, <span class="fl">5</span><span class="op">)</span></span>
@@ -170,19 +183,20 @@
 <span><span class="co">#&gt; 3     -99 -99  -99 -99             ALT</span></span>
 <span><span class="co">#&gt; 4     -99 -99  -99 -99             ALT</span></span>
 <span><span class="co">#&gt; 5     -99 -99  -99 -99             AST</span></span></code></pre></div>
+<p><code><a href="https://rdrr.io/pkg/PMXForest/man/setupDfCovs.html" class="external-link">setupDfCovs()</a></code> composes the two primitives this used to call directly, <code><a href="https://rdrr.io/pkg/PMXForest/man/getCovStats.html" class="external-link">getCovStats()</a></code> and <code><a href="https://rdrr.io/pkg/PMXForest/man/createInputForestData.html" class="external-link">createInputForestData()</a></code>, and gives the same matrix. Use those two when you want to inspect or adjust the statistics before they become scenario rows. The composed call also records what it did in an attribute, which <code><a href="https://rdrr.io/pkg/PMXForest/man/setupDfRefRow.html" class="external-link">setupDfRefRow()</a></code> reads back to build a matching reference row – the <code>dfRefRow</code> argument of <code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code>.</p>
 <hr>
 </div>
 <div class="section level2">
 <h2 id="generate-forest-plot-data">3. Generate Forest Plot Data<a class="anchor" aria-label="anchor" href="#generate-forest-plot-data"></a>
 </h2>
 <p>With our scenarios defined, we pass everything to <code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code>. This function computes the relative parameter changes across all bootstrapped/sampled parameter vectors to construct the confidence intervals.</p>
+<p>We point it at the FREM model with <code>modName</code> / <code>modDevDir</code> (or <code>runno</code>), so <code>numNonFREMThetas</code>, <code>numSkipOm</code> and <code>covNames</code> are derived from the model and its <code>.ext</code> (via <code><a href="../reference/fremModelInfo.html">fremModelInfo()</a></code>) rather than passed by hand. Supply them explicitly only to override the derived values.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dfres</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getForestDFFREM.html">getForestDFFREM</a></span><span class="op">(</span></span>
 <span>  dfCovs           <span class="op">=</span> <span class="va">dfCovs</span>,</span>
-<span>  numNonFREMThetas <span class="op">=</span> <span class="fl">7</span>,</span>
-<span>  numSkipOm        <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  modName          <span class="op">=</span> <span class="va">runname</span>,</span>
+<span>  modDevDir        <span class="op">=</span> <span class="va">modDevDir</span>,</span>
 <span>  dfParameters     <span class="op">=</span> <span class="va">dfParameters</span>,</span>
-<span>  covNames         <span class="op">=</span> <span class="va">covNames</span><span class="op">$</span><span class="va">covNames</span>,</span>
 <span>  functionList     <span class="op">=</span> <span class="va">functionList</span>,</span>
 <span>  functionListName <span class="op">=</span> <span class="va">functionListName</span>,</span>
 <span>  quiet            <span class="op">=</span> <span class="cn">TRUE</span></span>
@@ -192,36 +206,121 @@
 <div class="section level2">
 <h2 id="visualization-labeling">4. Visualization &amp; Labeling<a class="anchor" aria-label="anchor" href="#visualization-labeling"></a>
 </h2>
-<p>Hardcoding dozens of row labels is dangerous and non-reproducible. Instead, we use <code><a href="../reference/generateCovNames.html">PMXFrem::generateCovNames()</a></code>. This utility function parses the <code>dfCovs</code> scenarios and applies user-defined unit mappings and categorical translations dynamically.</p>
+<p>Typing dozens of row labels out by hand means they drift away from <code>dfCovs</code> the first time a covariate is added or dropped. <code><a href="../reference/generateCovNames.html">generateCovNames()</a></code> reads the scenarios and applies the unit and level mappings given below, so the labels follow the data.</p>
+<p>It is meant to be used in two steps. Run it first with <code>print_template = TRUE</code>: it prints an empty mapping skeleton listing every covariate group, and every covariate level, that this <code>dfCovs</code> actually contains.</p>
+<details><p><summary>The mapping template for this <code>dfCovs</code> (click to expand)</summary></p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># 1. Define translation maps</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/generateCovNames.html">generateCovNames</a></span><span class="op">(</span><span class="va">dfCovs</span>, print_template <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co"># Copy and paste this mapping template into your script:</span></span>
+<span></span>
+<span><span class="va">group_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  <span class="st">"AGE"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"ALT"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"AST"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"BILI"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"BMI"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"BSA"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"CRCL"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"ETHNIC"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"GENO2"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"HT"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"LBWT"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"NCIL"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"RACEL"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"SEX"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"SMOK"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"WT"</span> <span class="op">=</span> <span class="st">""</span></span>
+<span></span>
+<span><span class="op">)</span></span>
+<span></span>
 <span><span class="va">unit_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  AGE <span class="op">=</span> <span class="st">"years"</span>, WT <span class="op">=</span> <span class="st">"kg"</span>, BMI <span class="op">=</span> <span class="st">"kg/m2"</span>, BSA <span class="op">=</span> <span class="st">"m2"</span>, </span>
-<span>  CRCL <span class="op">=</span> <span class="st">"mL/min"</span>, BILI <span class="op">=</span> <span class="st">"mg/dL"</span>, AST <span class="op">=</span> <span class="st">"IU"</span>, ALT <span class="op">=</span> <span class="st">"IU"</span>, </span>
+<span>  <span class="st">"AGE"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"ALT"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"AST"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"BILI"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"BMI"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"BSA"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"CRCL"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"ETHNIC"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"GENO2"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"HT"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"LBWT"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"NCIL"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"RACEL"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"SEX"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"SMOK"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"WT"</span> <span class="op">=</span> <span class="st">""</span></span>
+<span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">label_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  <span class="st">"AGE=20"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"AGE=60"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"ALT=11.4"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"ALT=49"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"AST=14"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"AST=37"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"BILI=5.13"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"BILI=17.1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"BMI=20.7"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"BMI=38.2"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"BSA=1.59"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"BSA=2.38"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"CRCL=74.7"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"CRCL=150"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"ETHNIC=0"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"ETHNIC=1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"GENO2=1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"GENO2=2"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"HT=154"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"HT=183"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"LBWT=42.1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"LBWT=72.7"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"NCIL=0"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"NCIL=1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"NCIL=2"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"RACEL=1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"RACEL=2"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"RACEL=3"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"SEX=1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"SEX=2"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"SMOK=0"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"SMOK=1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"WT=56"</span> <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  <span class="st">"WT=116"</span> <span class="op">=</span> <span class="st">""</span></span>
+<span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</details><p>That skeleton is worth starting from rather than writing the maps from memory. A map written by hand goes stale quietly: a key for a covariate that is not in <code>dfCovs</code> matches nothing, and a level that <em>is</em> in <code>dfCovs</code> but not in the map falls through to its raw code (<code>SEX=2</code>) in the finished plot. The template can only list what is there, so both mistakes are visible before anything is plotted.</p>
+<p>Filled in, it gives the three maps below.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># 1. The maps, filled in from the template above</span></span>
+<span><span class="va">unit_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  AGE <span class="op">=</span> <span class="st">"years"</span>, WT <span class="op">=</span> <span class="st">"kg"</span>, BMI <span class="op">=</span> <span class="st">"kg/m2"</span>, BSA <span class="op">=</span> <span class="st">"m2"</span>,</span>
+<span>  CRCL <span class="op">=</span> <span class="st">"mL/min"</span>, BILI <span class="op">=</span> <span class="st">"mg/dL"</span>, AST <span class="op">=</span> <span class="st">"IU"</span>, ALT <span class="op">=</span> <span class="st">"IU"</span>,</span>
 <span>  HT <span class="op">=</span> <span class="st">"cm"</span>, LBM <span class="op">=</span> <span class="st">"kg"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">label_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  <span class="st">"SEX=0"</span> <span class="op">=</span> <span class="st">"Male"</span>, <span class="st">"SEX=1"</span> <span class="op">=</span> <span class="st">"Female"</span>, </span>
-<span>  <span class="st">"RACEL=1"</span> <span class="op">=</span> <span class="st">"Caucasian"</span>, <span class="st">"RACEL=2"</span> <span class="op">=</span> <span class="st">"Black"</span>, <span class="st">"RACEL=3"</span> <span class="op">=</span> <span class="st">"Other"</span>, <span class="st">"RACEL=4"</span> <span class="op">=</span> <span class="st">"Hispanic"</span>,</span>
-<span>  <span class="st">"SMOK=0"</span> <span class="op">=</span> <span class="st">"Non-smoking"</span>, <span class="st">"SMOK=1"</span> <span class="op">=</span> <span class="st">"Smoking"</span>, </span>
-<span>  <span class="st">"NCIL=0"</span> <span class="op">=</span> <span class="st">"NCI Grade 0"</span>, <span class="st">"NCIL=1"</span> <span class="op">=</span> <span class="st">"NCI Grade 1"</span>, <span class="st">"NCIL=2"</span> <span class="op">=</span> <span class="st">"NCI Grade 2"</span>, </span>
-<span>  <span class="st">"GENO2=0"</span> <span class="op">=</span> <span class="st">"Poor Metabolizer"</span>, <span class="st">"GENO2=1"</span> <span class="op">=</span> <span class="st">"Extensive Metabolizer"</span></span>
+<span>  <span class="st">"SEX=1"</span> <span class="op">=</span> <span class="st">"Male"</span>, <span class="st">"SEX=2"</span> <span class="op">=</span> <span class="st">"Female"</span>,</span>
+<span>  <span class="st">"RACEL=1"</span> <span class="op">=</span> <span class="st">"Caucasian"</span>, <span class="st">"RACEL=2"</span> <span class="op">=</span> <span class="st">"Black"</span>, <span class="st">"RACEL=3"</span> <span class="op">=</span> <span class="st">"Other"</span>,</span>
+<span>  <span class="st">"SMOK=0"</span> <span class="op">=</span> <span class="st">"Non-smoking"</span>, <span class="st">"SMOK=1"</span> <span class="op">=</span> <span class="st">"Smoking"</span>,</span>
+<span>  <span class="st">"NCIL=0"</span> <span class="op">=</span> <span class="st">"NCI Grade 0"</span>, <span class="st">"NCIL=1"</span> <span class="op">=</span> <span class="st">"NCI Grade 1"</span>, <span class="st">"NCIL=2"</span> <span class="op">=</span> <span class="st">"NCI Grade 2"</span>,</span>
+<span>  <span class="st">"GENO2=1"</span> <span class="op">=</span> <span class="st">"Poor metab."</span>, <span class="st">"GENO2=2"</span> <span class="op">=</span> <span class="st">"Extensive metab."</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">group_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  <span class="st">"AGE"</span> <span class="op">=</span> <span class="st">"Age"</span>, <span class="st">"ALT"</span> <span class="op">=</span> <span class="st">"ALT"</span>, <span class="st">"AST"</span> <span class="op">=</span> <span class="st">"AST"</span>, <span class="st">"BILI"</span> <span class="op">=</span> <span class="st">"Total Bilirubin"</span>, </span>
-<span>  <span class="st">"BMI"</span> <span class="op">=</span> <span class="st">"BMI"</span>, <span class="st">"BSA"</span> <span class="op">=</span> <span class="st">"BSA"</span>, <span class="st">"CRCL"</span> <span class="op">=</span> <span class="st">"Creatinine Clearance"</span>, </span>
-<span>  <span class="st">"ETHN"</span> <span class="op">=</span> <span class="st">"Ethnicity"</span>, <span class="st">"GENO2"</span> <span class="op">=</span> <span class="st">"Genotype"</span>, <span class="st">"HT"</span> <span class="op">=</span> <span class="st">"Height"</span>, </span>
-<span>  <span class="st">"LBM"</span> <span class="op">=</span> <span class="st">"Lean Body Weight"</span>, <span class="st">"NCIL"</span> <span class="op">=</span> <span class="st">"NCI"</span>, <span class="st">"RACEL"</span> <span class="op">=</span> <span class="st">"Race"</span>, </span>
+<span>  <span class="st">"AGE"</span> <span class="op">=</span> <span class="st">"Age"</span>, <span class="st">"ALT"</span> <span class="op">=</span> <span class="st">"ALT"</span>, <span class="st">"AST"</span> <span class="op">=</span> <span class="st">"AST"</span>, <span class="st">"BILI"</span> <span class="op">=</span> <span class="st">"Total Bilirubin"</span>,</span>
+<span>  <span class="st">"BMI"</span> <span class="op">=</span> <span class="st">"BMI"</span>, <span class="st">"BSA"</span> <span class="op">=</span> <span class="st">"BSA"</span>, <span class="st">"CRCL"</span> <span class="op">=</span> <span class="st">"Creatinine CL"</span>,</span>
+<span>  <span class="st">"ETHNIC"</span> <span class="op">=</span> <span class="st">"Ethnicity"</span>, <span class="st">"GENO2"</span> <span class="op">=</span> <span class="st">"Genotype"</span>, <span class="st">"HT"</span> <span class="op">=</span> <span class="st">"Height"</span>,</span>
+<span>  <span class="st">"LBWT"</span> <span class="op">=</span> <span class="st">"Lean Body Wt"</span>, <span class="st">"NCIL"</span> <span class="op">=</span> <span class="st">"NCI"</span>, <span class="st">"RACEL"</span> <span class="op">=</span> <span class="st">"Race"</span>,</span>
 <span>  <span class="st">"SEX"</span> <span class="op">=</span> <span class="st">"Sex"</span>, <span class="st">"SMOK"</span> <span class="op">=</span> <span class="st">"Smoking Status"</span>, <span class="st">"WT"</span> <span class="op">=</span> <span class="st">"Weight"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 2. Programmatically generate and map robust labels and groups directly to the results</span></span>
+<span><span class="co"># 2. Generate the labels and groups from dfCovs, and attach them to the results</span></span>
 <span><span class="va">dfres_formatted</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generateCovNames.html">generateCovNames</a></span><span class="op">(</span></span>
-<span>  <span class="va">dfCovs</span>, </span>
-<span>  dfres <span class="op">=</span> <span class="va">dfres</span>, </span>
-<span>  unit_map <span class="op">=</span> <span class="va">unit_map</span>, </span>
+<span>  <span class="va">dfCovs</span>,</span>
+<span>  dfres <span class="op">=</span> <span class="va">dfres</span>,</span>
+<span>  unit_map <span class="op">=</span> <span class="va">unit_map</span>,</span>
 <span>  label_map <span class="op">=</span> <span class="va">label_map</span>,</span>
 <span>  group_map <span class="op">=</span> <span class="va">group_map</span></span>
 <span><span class="op">)</span></span>
@@ -230,7 +329,7 @@
 <span><span class="fu">PMXForest</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/PMXForest/man/forestPlot.html" class="external-link">forestPlot</a></span><span class="op">(</span></span>
 <span>  <span class="va">dfres_formatted</span>,</span>
 <span>  tabTextSize <span class="op">=</span> <span class="fl">14</span>,</span>
-<span>  strip_right_size <span class="op">=</span> <span class="fl">11</span></span>
+<span>  strip_right_size <span class="op">=</span> <span class="fl">9</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><img src="Part3-deep-dive-forest-plots_files/figure-html/plot_forest-1.png" width="100%"></p>
 </div>
