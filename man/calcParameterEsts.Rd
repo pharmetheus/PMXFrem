@@ -58,9 +58,6 @@ fremParEsts <- calcParameterEsts(extRes, thetaNum, omegaNum, sigmaNum, numNonFRE
 }
 \seealso{
 \code{\link[=fremParameterTable]{fremParameterTable()}}
-
-Other Diagnostics & Plotting Internal: 
-\code{\link{generateCovNames}()}
 }
 \concept{Diagnostics & Plotting Internal}
 \concept{diagnostics}

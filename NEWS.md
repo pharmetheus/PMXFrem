@@ -1,3 +1,11 @@
+# PMXFrem (development version)
+
+## Changes to existing behaviour
+
+- `generateCovNames()` now lives in PMXForest (1.4.0 or later is required) and
+  is re-exported here, so `generateCovNames()` and
+  `PMXFrem::generateCovNames()` work as before. Its help page is PMXForest's.
+
 # PMXFrem 2.2.0
 
 PMXFrem 2.1.0 was published but never promoted, so its changes are described
