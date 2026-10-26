@@ -644,6 +644,56 @@ library loading, so the likely cause is that PMXForest was not on the library
 path PMXRenv set up. Get the error message before changing anything; if it is
 PMXRenv, the fix belongs in the installation instructions, not the vignette.
 
+## T41 — `IGNORE` / `ACCEPT` lists: `.EQ.` compares text in NONMEM, numbers here
+
+Found while doing T34. The NONMEM 7.5 help (`$DATA`) says that with `=`,
+`==`, `/=`, `.EQ.` and `.NE.` "the value in the data record and the value in
+the list are compared as character strings"; only `.EQN.` / `.NEN.` (and the
+ordering operators) compare numerically. `filterDataFromModel()`'s
+`translate_condition()` turns `.EQ.` and `.EQN.` alike into R's `==` on the
+numeric column read by `fread()`, so a data value written `1.0` matches
+`BLQ.EQ.1` here but not in NONMEM, and the FREM data set's cohort can differ
+from the model's. Check with a fixture whose file holds `1.0`, then compare as
+text where NONMEM does (needs the column as written - read it as character).
+
+## T42 — `$THETA (value)xN` is not expanded
+
+The NONMEM 7.5 help (`$THETA`) allows `(2)x4` for four THETAs.
+`.fremCountThetaValues()` - and `.fremThetaBounds()`, which walks the same
+tokens - counts it as one value plus a stray `4`, so every later THETA comment
+and bound shifts. Rare in practice; expand `(…)xN` before counting.
+
+## T43 — `createFFEMmodel` snapshots fail on Windows: the temp-path placeholder
+
+Three `test-createFFEMmodel.R` snapshots fail on a Windows machine only (CI on
+Linux passes). `stabilize()` (`tests/testthat/helper-stabilize.R`) should
+replace the temporary data path with `[placeholder_path]`, but the path's
+backslashes are stripped first (`C:UsersniclasjAppData…`), so it no longer
+matches. Normalise the path the same way on both sides.
+
+## T44 — `$INPUT label=synonym`: which name the data column gets
+
+`.fremInputItems()` (like the code before it) names a column by the label
+before `=`. The NONMEM help (`$INPUT`, sample `CP=DV`) makes the synonym
+equally valid, and a reserved synonym gives the item its meaning - so with
+`CP=DV` PMXFrem names the column `CP` and does not find `DV`. Decide which name
+to use (or accept both), with a test on `CP=DV`.
+
+## T45 — recoding writes `-99`, not `missVal`
+
+`prepareNewCovariates()` (line 85) and `createFREMData()` (line 175) write a
+literal `-99` for a missing value when recoding a dichotomous covariate, so a
+non-default `missVal` is not honoured there.
+
+## T46 — tests with `ncores > 1` fail on Windows under `load_all()`
+
+`createFFEMdata`, `getExplainedVar` and `getForestDFFREM` each have a test
+with `ncores > 1`. On Windows the workers are fresh R sessions; they load the
+installed PMXFrem, the session runs the source tree, and the version check in
+`.fremStartWorkers()` stops them - correctly. CI (Linux, forked workers) is
+unaffected. Skip those tests when PMXFrem is not loaded from an installed
+library, as `test-parallelWorkers.R` already does for its end-to-end test.
+
 ## Done
 
 - **T29** — `plotEtasCov()` line width on older ggplot2. It passed `linewidth`,
