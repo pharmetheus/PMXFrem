@@ -292,7 +292,10 @@ createFREMmodel <- function(runno = NULL,
     contCovsToAdd <- cov_to_add[!(cov_to_add %in% catCovs)]
     catCovsToAdd <- cov_to_add[cov_to_add %in% catCovs]
 
-    update_out <- updateFREMmodel(
+    ## Phase 2 reads the minimal model, whose $DATA IGNORE=@ PMXFrem wrote for
+    ## its own data file: never warn about it. Phase 1 has already warned
+    ## about the base model's.
+    update_out <- .fremQuietOwnIgnore(updateFREMmodel(
       strFREMModel = phase1_out$minimalModelFile,
       strFREMData = phase1_out$minimalDataFile,
       strFFEMData = phase1_out$validatedData,
@@ -313,7 +316,7 @@ createFREMmodel <- function(runno = NULL,
       roundMeanTo = roundMeanTo,
       fixTheta = fixTheta,
       quiet = quiet
-    )
+    ))
 
     if ("model" %in% names(update_out)) writeLines(update_out$model, finalModelPath)
   } else {
@@ -352,4 +355,14 @@ createFREMmodel <- function(runno = NULL,
 
   if (!quiet) message("FREM model generation complete.")
   return(invisible(list(model = finalModelPath, data = finalDataPath)))
+}
+
+#' Evaluate an expression without the single-character IGNORE warning
+#'
+#' For calls on a model whose `$DATA` record PMXFrem wrote itself.
+#' @param expr The expression.
+#' @keywords internal
+#' @noRd
+.fremQuietOwnIgnore <- function(expr) {
+  withCallingHandlers(expr, pmxfrem_single_char_ignore = function(w) invokeRestart("muffleWarning"))
 }

@@ -167,7 +167,9 @@ test_that("filterDataFromModel warns for single-character IGNOREs and can be sil
   # Setup
   td <- withr::local_tempdir()
   model_path <- file.path(td, "model.mod")
-  wide_data <- data.frame(ID = 1, DV = 10)
+  # A character first column: IGNORE=@ could drop data records (those starting
+  # with a letter), not just the header, so the warning applies.
+  wide_data <- data.frame(ID = "A1", DV = 10)
 
   writeLines(c(
     "$PROBLEM Test",
