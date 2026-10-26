@@ -48,6 +48,10 @@ in the $INPUT record. This function is robust to multi-line, abbreviated,
 and commented $INPUT records.
 }
 \details{
+An item \code{label=synonym} is a column named by whichever of the two
+is a reserved NONMEM label (\code{CP=DV} gives \code{DV}), and by the label when
+neither is; \code{covariates} and \code{cstrKeepCols} may use either name.
+
 \verb{$INPUT} names every column of the data file in order, so the
 columns are named by position. Items marked \verb{=DROP} or \verb{=SKIP}, or a bare
 \code{DROP}, are dropped - after the \code{IGNORE} / \code{ACCEPT} filters are applied,

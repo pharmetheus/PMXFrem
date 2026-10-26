@@ -289,7 +289,9 @@ generateFremModel <- function(final_df,
       ## A $TABLE may not list a data item the new data set lacks.
       if (!is.null(oldInput)) {
         line <- .fremCarryTables(line,
-          oldInput = .fremInputItems(oldInput)$name, newInput = names(final_df), quiet = quiet
+          oldInput = .fremInputItems(oldInput)$name,
+          oldSynonyms = .fremInputSynonyms(.fremInputItems(oldInput)),
+          newInput = names(final_df), quiet = quiet
         )
       }
     }

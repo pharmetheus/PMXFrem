@@ -12,13 +12,19 @@
 #' @param lines The model's lines.
 #' @param oldInput The data item labels the table could refer to before.
 #' @param newInput The data item labels of the FREM data set.
+#' @param oldSynonyms Named character vector: for an `$INPUT` `label=synonym`
+#'   item, the synonym (name) and the column name the data sets use (value).
+#'   A table token for either name is that item: it goes with the item, and
+#'   when kept is written as the column name, the only one the new `$INPUT`
+#'   has.
 #' @param renameFile A function from the old file name to the new one, or
 #'   `NULL` to keep it.
 #' @param quiet Suppress the message naming the removed items.
 #' @return The lines with the `$TABLE` records rewritten.
 #' @keywords internal
 #' @noRd
-.fremCarryTables <- function(lines, oldInput, newInput, renameFile = NULL, quiet = FALSE) {
+.fremCarryTables <- function(lines, oldInput, newInput, renameFile = NULL, quiet = FALSE,
+                             oldSynonyms = NULL) {
   starts <- grep("^\\s*\\$TAB", lines, ignore.case = TRUE)
   if (length(starts) == 0) {
     return(lines)
@@ -34,9 +40,16 @@
     keyword <- words[1]
     words <- words[-1]
 
-    drop <- toupper(words) %in% gone
+    ## A synonym stands for its item.
+    isSyn <- toupper(words) %in% toupper(names(oldSynonyms)) & !toupper(words) %in% toupper(oldInput)
+    asItem <- words
+    asItem[isSyn] <- oldSynonyms[match(toupper(words[isSyn]), toupper(names(oldSynonyms)))]
+    drop <- toupper(asItem) %in% gone
     removed <- c(removed, words[drop])
-    words <- words[!drop]
+    words <- asItem[!drop]
+    ## Both names of an item in one table list it once.
+    viaSyn <- isSyn[!drop]
+    words <- words[!(duplicated(toupper(words)) & (viaSyn | toupper(words) %in% toupper(words[viaSyn])))]
     ## A BY or EXCLUDE_BY left without items goes too.
     isOption <- function(w) grepl("=", w) | toupper(w) %in% .fremTableOptions
     for (kw in c("BY", "EXCLUDE_BY")) {
