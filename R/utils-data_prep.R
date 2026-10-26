@@ -23,7 +23,11 @@
 #'   will keep; checked here only so that a column the base model drops is
 #'   reported as such.
 #'
-#' @details `$INPUT` names every column of the data file in order, so the
+#' @details An item `label=synonym` is a column named by whichever of the two
+#'   is a reserved NONMEM label (`CP=DV` gives `DV`), and by the label when
+#'   neither is; `covariates` and `cstrKeepCols` may use either name.
+#'
+#'   `$INPUT` names every column of the data file in order, so the
 #'   columns are named by position. Items marked `=DROP` or `=SKIP`, or a bare
 #'   `DROP`, are dropped - after the `IGNORE` / `ACCEPT` filters are applied,
 #'   since those may refer to them (NONMEM help, `$DATA`). Columns beyond the
@@ -63,6 +67,9 @@ prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quie
   items <- .fremInputItems(inputBlock)
   inputNames <- items$name[!items$dropped]
   droppedNames <- items$name[items$dropped]
+  # Either name of a `label=synonym` item may be given.
+  covariates <- .fremColumnNames(covariates, items)
+  cstrKeepCols <- .fremColumnNames(cstrKeepCols, items)
 
   # 4. Perform validation checks. $INPUT names the data file's columns in
   # order, dropped ones included, so a data file with fewer columns cannot be
@@ -118,7 +125,10 @@ prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quie
 
   # --- Apply IGNORE/ACCEPT statements ---
   if (exists("filterDataFromModel")) {
-    df <- filterDataFromModel(baseModelFile = baseModelFile, wideData = df, quiet = quiet, rawData = rawDf)
+    df <- filterDataFromModel(
+      baseModelFile = baseModelFile, wideData = df, quiet = quiet, rawData = rawDf,
+      synonyms = .fremInputSynonyms(items)
+    )
   } else {
     warning("filterDataFromModel function not found. Skipping IGNORE/ACCEPT filtering.")
   }
@@ -144,10 +154,16 @@ prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quie
 
 #' The items of a `$INPUT` record
 #'
+#' An item is `label` or `label=synonym`; either name may be used, and a
+#' reserved one gives the item its reserved meaning (NONMEM help, `$INPUT`).
+#' The data column is named by the reserved one of the two when exactly one is
+#' reserved, and by the label otherwise; the other name is returned as `synonym`.
+#'
 #' @param inputBlock The `$INPUT` record's lines, as [findrecord()] returns them.
-#' @return A data frame with one row per item, in order: `name` (the label
-#'   before any `=`; a bare `DROP` gets a placeholder) and `dropped` (`TRUE` for
-#'   `=DROP`, `=SKIP` or a bare `DROP` / `SKIP`).
+#' @return A data frame with one row per item, in order: `name` (the column
+#'   name; a bare `DROP` gets a placeholder), `synonym` (the other name, or
+#'   `""`) and `dropped` (`TRUE` for `=DROP`, `=SKIP` or a bare `DROP` /
+#'   `SKIP`; a dropped item has no synonym).
 #' @keywords internal
 #' @noRd
 .fremInputItems <- function(inputBlock) {
@@ -156,12 +172,62 @@ prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quie
   tokens <- strsplit(trimws(record), "\\s+")[[1]]
   tokens <- tokens[nchar(tokens) > 0]
 
-  name <- sub("=.*", "", tokens)
+  label <- sub("=.*", "", tokens)
   value <- ifelse(grepl("=", tokens), sub("^[^=]*=", "", tokens), "")
-  dropped <- toupper(value) %in% c("DROP", "SKIP") |
-    (value == "" & toupper(name) %in% c("DROP", "SKIP"))
-  bare <- value == "" & toupper(name) %in% c("DROP", "SKIP")
+  isDrop <- function(x) toupper(x) %in% c("DROP", "SKIP")
+  dropped <- isDrop(label) | isDrop(value)
+
+  ## label=synonym: the reserved one names the column, the label when both or
+  ## neither are reserved.
+  swap <- !dropped & value != "" & !.fremIsReserved(label) & .fremIsReserved(value)
+  name <- ifelse(swap, value, label)
+  synonym <- ifelse(swap, label, value)
+
+  ## A dropped item is named by its label, or by the value of DROP=name; a bare
+  ## DROP has no name and gets a placeholder.
+  other <- dropped & isDrop(label) & value != ""
+  name[other] <- value[other]
+  synonym[dropped] <- ""
+  bare <- dropped & isDrop(name)
   name[bare] <- paste0(".DROP", seq_len(sum(bare)))
 
-  data.frame(name = name, dropped = dropped, stringsAsFactors = FALSE)
+  data.frame(name = name, synonym = synonym, dropped = dropped, stringsAsFactors = FALSE)
+}
+
+## The data item labels with a reserved meaning in $INPUT: the reserved and
+## semi-reserved lists of the NONMEM 7.5 help, $INPUT.
+.fremReservedLabels <- c(
+  "ID", "L1", "L2", "DV", "MDV", "RAW_", "MRG_", "RPT_",
+  "TIME", "DATE", "DAT1", "DAT2", "DAT3", "DROP", "SKIP", "EVID", "AMT", "RATE",
+  "SS", "II", "ADDL", "CMT", "PCMT", "CALL", "CONT",
+  "XVID1", "XVID2", "XVID3", "XVID4", "XVID5", "REPL_"
+)
+
+.fremIsReserved <- function(x) toupper(x) %in% .fremReservedLabels
+
+#' Read a name given as either side of an `$INPUT` `label=synonym` as the column name
+#'
+#' A name that is a column name is kept, so it wins over a synonym of another
+#' item; one that is only a synonym becomes its item's column name.
+#'
+#' @param x Character vector of names, or `NULL`.
+#' @param items The result of [.fremInputItems()].
+#' @keywords internal
+#' @noRd
+.fremColumnNames <- function(x, items) {
+  if (is.null(x)) {
+    return(x)
+  }
+  bySynonym <- items$name[match(x, items$synonym)]
+  ifelse(x %in% items$name | x == "" | is.na(bySynonym), x, bySynonym)
+}
+
+#' The synonyms of an `$INPUT` record's items, named by the column they stand for
+#' @param items The result of [.fremInputItems()].
+#' @return A named character vector: names are synonyms, values column names.
+#' @keywords internal
+#' @noRd
+.fremInputSynonyms <- function(items) {
+  has <- items$synonym != ""
+  stats::setNames(items$name[has], items$synonym[has])
 }

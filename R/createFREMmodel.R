@@ -12,6 +12,7 @@
 #' @param modDevDir Standard PMX model development directory.
 #' @param ffemDataFile Character. Path to the Full Fixed Effects Model (FFEM) dataset.
 #' @param covariates Character vector. The full list of covariates to include in the FREM model.
+#'   For a base model `$INPUT` item `label=synonym` either name may be given.
 #'   The first element is processed during Phase 1 (bootstrapping), and the remainder during Phase 2.
 #' @param numNonFREMThetas Numeric, or `NULL` (default). The number of THETAs in
 #'   the base model. When `NULL` it is read from the base model's `.ext` (the
@@ -30,7 +31,9 @@
 #'   variances that precede the FREM block) to skip when appending the FREM
 #'   parameters. Defaults to `0`. This cannot be deduced from a base model - it
 #'   has no FREM structure yet - so set it correctly for your model.
-#' @param cstrKeepCols Character vector. Columns to strictly retain in the generated FREM dataset. Note: `"FREMTYPE"` is managed internally and injected between phases.
+#' @param cstrKeepCols Character vector. Columns to strictly retain in the generated FREM dataset.
+#'   Either name of an `$INPUT` `label=synonym` item may be given; the data column is named by
+#'   the reserved one of the two (`CP=DV` gives `DV`), the label if neither is reserved. Note: `"FREMTYPE"` is managed internally and injected between phases.
 #' @param bRecodeDichotomous Logical. Should dichotomous covariates be automatically
 #'   recoded to 0/1? Defaults to FALSE. If FALSE, inputs must be strictly 0/1.
 #' @param allowNon01 Logical. If TRUE, allows non-0/1 dichotomous covariates (like 1/2)
@@ -139,6 +142,22 @@ createFREMmodel <- function(runno = NULL,
   }
 
   if (length(covariates) == 0) stop("At least one covariate must be provided.")
+
+  # --- Names given as the synonym of an $INPUT `label=synonym` item ---
+  # The FREM data names such a column by the reserved one of the two (`CP=DV`
+  # gives DV), so the column arguments are read as that name from here on.
+  inputBlock <- if (!is.null(modName) || !is.null(runno)) {
+    modFile <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)$mod
+    if (file.exists(modFile)) findrecord(modFile, record = "^\\$INP(U(T)?)?\\s", quiet = TRUE)
+  }
+  if (!is.null(inputBlock)) {
+    inputItems <- .fremInputItems(inputBlock)
+    covariates <- .fremColumnNames(covariates, inputItems)
+    catCovs <- .fremColumnNames(catCovs, inputItems)
+    logtCovs <- .fremColumnNames(logtCovs, inputItems)
+    cstrKeepCols <- .fremColumnNames(cstrKeepCols, inputItems)
+    keepColsGiven <- .fremColumnNames(keepColsGiven, inputItems)
+  }
 
   # --- Base Model Diagnostics Check (Pre-flight Validation) ---
   fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)
@@ -352,10 +371,11 @@ createFREMmodel <- function(runno = NULL,
     sub("^run", "", modName)
   }
   finalModel <- .fremCarryTables(finalModel,
-    oldInput   = names(phase1_out$validatedData),
-    newInput   = .fremInputItems(findrecord(finalModel, record = "\\$INPUT", quiet = TRUE))$name,
+    oldInput = names(phase1_out$validatedData),
+    oldSynonyms = if (!is.null(inputBlock)) .fremInputSynonyms(inputItems),
+    newInput = .fremInputItems(findrecord(finalModel, record = "\\$INPUT", quiet = TRUE))$name,
     renameFile = function(f) .fremTableFileName(f, baseRunNo, fremModName),
-    quiet      = quiet
+    quiet = quiet
   )
   writeLines(finalModel, finalModelPath)
 
