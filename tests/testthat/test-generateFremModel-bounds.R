@@ -100,3 +100,27 @@ test_that(".fremThetaBounds() reads the bounds of every THETA form", {
   expect_equal(b$low, c(0, NA, 0, NA, NA, NA, -1, 0, 0))
   expect_equal(b$up, c(NA, NA, 1, NA, 0, NA, 3, 5, 10))
 })
+
+test_that("$THETA (value)xn is expanded when counting and reading bounds", {
+  ## The NONMEM 7.5 help's own sample: 4 + 3 + 2 = 9 THETAs, bounds on 5-7.
+  l <- "$THETA (2)x4 (0.001,0.1,1000)x3 (0.5 FIXED)x2"
+  expect_equal(.fremCountThetaValues(l), 9L)
+  b <- .fremThetaBounds(l)
+  expect_equal(b$low, c(NA, NA, NA, NA, rep(0.001, 3), NA, NA))
+  expect_equal(b$up, c(NA, NA, NA, NA, rep(1000, 3), NA, NA))
+  ## spacing, case and a trailing comment
+  expect_equal(.fremCountThetaValues("$THETA (0,1)X2 3 ; c"), 3L)
+  expect_equal(.fremCountThetaValues("$THETA (1) x 2"), 2L)
+  ## a later line stays aligned
+  b2 <- .fremThetaBounds(c("$THETA (2)x4", "$THETA (0,1,5)"))
+  expect_equal(b2$low, c(rep(NA, 4), 0))
+  expect_equal(b2$up, c(rep(NA, 4), 5))
+})
+
+test_that("$THETA labels and the other forms count one value each", {
+  expect_equal(.fremCountThetaValues("$THETA CL=(0,7) V2=3 FIXED K10=(0,1,2)x2"), 4L)
+  expect_equal(.fremCountThetaValues("$THETA (0,1,5) UNINT 2 FIXED (-INF,3,INF) UNINT"), 3L)
+  b <- .fremThetaBounds("$THETA V2=(0,3) T1=2")
+  expect_equal(b$low, c(0, NA))
+  expect_equal(b$up, c(NA_real_, NA_real_))
+})

@@ -15,7 +15,11 @@ prepareAndValidateData(
 )
 }
 \arguments{
-\item{ffemDataFile}{A character string path to the FFEM dataset, or a data.frame.}
+\item{ffemDataFile}{A character string path to the FFEM dataset, or a data.frame.
+A file is also read as text, so that \code{IGNORE} / \code{ACCEPT} conditions that
+compare strings (\code{.EQ.}, \code{=}, \code{==}, \code{.NE.}, \verb{/=}) see the values as
+written in it; for a data.frame they see \code{as.character()} of the values,
+an approximation (see \code{\link[=filterDataFromModel]{filterDataFromModel()}}).}
 
 \item{baseModelFile}{A character string path to the base NONMEM model file.}
 
@@ -48,6 +52,10 @@ in the $INPUT record. This function is robust to multi-line, abbreviated,
 and commented $INPUT records.
 }
 \details{
+An item \code{label=synonym} is a column named by whichever of the two
+is a reserved NONMEM label (\code{CP=DV} gives \code{DV}), and by the label when
+neither is; \code{covariates} and \code{cstrKeepCols} may use either name.
+
 \verb{$INPUT} names every column of the data file in order, so the
 columns are named by position. Items marked \verb{=DROP} or \verb{=SKIP}, or a bare
 \code{DROP}, are dropped - after the \code{IGNORE} / \code{ACCEPT} filters are applied,

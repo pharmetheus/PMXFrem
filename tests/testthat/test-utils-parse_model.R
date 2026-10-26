@@ -145,3 +145,29 @@ test_that("parseBaseModel throws correct errors for unsuitable structures", {
     regexp = "does not match the specified numSkipOm"
   )
 })
+
+test_that("parseBaseModel counts THETA values, not $THETA lines", {
+  td <- withr::local_tempdir()
+  model_path <- file.path(td, "base.mod")
+  writeLines(c(
+    "$PROBLEM Base Model",
+    "$INPUT ID TIME DV AMT",
+    "$PK",
+    "  CL = THETA(1) * EXP(ETA(1))",
+    "$ERROR",
+    "  Y = F + EPS(1)",
+    "$THETA (2)x4 (0.001,0.1,1000)x3 (0.5 FIXED)x2",
+    "$THETA 80 ; V",
+    "$OMEGA 0.1 ; IIV RES (skipped)",
+    "$OMEGA BLOCK(2) 0.2 0.01 0.3 ; IIV CL, IIV V"
+  ), model_path)
+  parsedInfo <- parseBaseModel(baseModelFile = model_path, numSkipOm = 1)
+  expect_equal(parsedInfo$numThetas, 10)
+  expect_equal(parsedInfo$lastThetaLine, 8)
+})
+
+test_that(".fremInsertThetaRecord counts labelled and repeated THETAs", {
+  lines <- c("$PROBLEM x", "$THETA T1=2 (1)x2", "$THETA (0,3) ; four", "$OMEGA 1")
+  out <- .fremInsertThetaRecord(lines, at = 5, newLine = "$THETA 9 ; new")
+  expect_equal(out[4], "$THETA 9 ; new")
+})
