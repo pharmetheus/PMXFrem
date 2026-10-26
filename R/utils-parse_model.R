@@ -49,7 +49,10 @@ parseBaseModel <- function(baseModelFile, numSkipOm, muInsertLineUser = NULL, fr
 
   # thetaInfo <- .parse_param_block(findrecord(modelLines, record = "\\$THETA", quiet = TRUE))
   thetaBlock <- findrecord(modelLines, record = "\\$THETA", quiet = TRUE)
-  thetaInfo <- list(count = length(thetaBlock), lines = thetaBlock)
+  thetaInfo <- list(
+    count = sum(vapply(thetaBlock, .fremCountThetaValues, integer(1))),
+    lines = thetaBlock
+  )
   omegaBlock <- findrecord(modelLines, record = "\\$OMEGA", quiet = TRUE)
   sigmaBlock <- findrecord(modelLines, record = "\\$SIGMA", quiet = TRUE) # Find SIGMA
 

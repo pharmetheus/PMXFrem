@@ -172,7 +172,7 @@ createFREMData <- function(strFFEMData,
         if (bRecodeDichotomous) {
           covVal <- sort(valid_vals)[2]
           new_name <- paste0(cov, "_", covVal)
-          dfFFEM[[new_name]] <- ifelse(dfFFEM[[cov]] == missVal, -99, ifelse(dfFFEM[[cov]] == covVal, 1, 0))
+          dfFFEM[[new_name]] <- ifelse(dfFFEM[[cov]] == missVal, missVal, ifelse(dfFFEM[[cov]] == covVal, 1, 0))
           final_CatCovs <- c(final_CatCovs, new_name)
         } else {
           # Strict validation only fires if the kill-switch is NOT overridden

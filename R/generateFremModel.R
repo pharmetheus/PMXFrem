@@ -311,8 +311,8 @@ generateFremModel <- function(final_df,
 #' one entry per THETA, in order. `(low, init)`, `(low, init, up)` and
 #' `(low,,up)` give bounds, with commas or spaces between and `FIXED` inside
 #' or outside the parentheses (NONMEM help, `$THETA`); `-INF` / `INF` and a
-#' bare value give none (`NA`). The `(value)xn` repetition form is not
-#' expanded, as [.fremCountThetaValues()] does not expand it either.
+#' bare value give none (`NA`). `(value)xn` is expanded, by the tokeniser
+#' [.fremCountThetaValues()] shares.
 #'
 #' @param th_lines The `$THETA` record lines.
 #' @return A list of numeric vectors `low` and `up`.
@@ -323,10 +323,7 @@ generateFremModel <- function(final_df,
   up <- numeric(0)
   asBound <- function(x) if (is.na(x) || grepl("INF", x, ignore.case = TRUE)) NA_real_ else as.numeric(x)
   for (l in th_lines) {
-    b <- sub(";.*$", "", l)
-    b <- sub("^\\s*\\$THETA\\b", "", b, ignore.case = TRUE)
-    b <- gsub("\\bFIXED?\\b", "", b, ignore.case = TRUE)
-    for (tok in regmatches(b, gregexpr("\\([^)]*\\)|[-+]?[0-9.][-+0-9.eE]*", b))[[1]]) {
+    for (tok in .fremThetaTokens(l)) {
       ## Commas are optional, but when present they are kept as separators so
       ## that (low,,up) - no initial value - still puts `up` third.
       parts <- if (startsWith(tok, "(")) {
@@ -376,10 +373,39 @@ generateFremModel <- function(final_df,
 #' @keywords internal
 #' @noRd
 .fremCountThetaValues <- function(l) {
+  length(.fremThetaTokens(l))
+}
+
+#' The THETA values of a $THETA line, one token per THETA
+#'
+#' The one tokeniser behind [.fremCountThetaValues()] and
+#' [.fremThetaBounds()], so they cannot disagree. Comment text, the `$THETA`
+#' keyword, `FIX` / `FIXED` and `UNINT` flags and `label=` prefixes are
+#' stripped; a bare number or a parenthesised group `(low, init, up)` is one
+#' token; and `(value)xN` is expanded to N copies of the group (NONMEM help,
+#' `$THETA`, "repeated value").
+#'
+#' @param l One `$THETA` line.
+#' @return A character vector, empty for a line with no values.
+#' @keywords internal
+#' @noRd
+.fremThetaTokens <- function(l) {
   b <- sub(";.*$", "", l)
   b <- sub("^\\s*\\$THETA\\b", "", b, ignore.case = TRUE)
-  b <- gsub("\\bFIXED?\\b", "", b, ignore.case = TRUE)
-  length(regmatches(b, gregexpr("\\([^)]*\\)|[-+]?[0-9.][-+0-9.eE]*", b))[[1]])
+  b <- gsub("\\b(FIXED?|UNINT)\\b", "", b, ignore.case = TRUE)
+  ## A label (CL=, K10=) may contain digits that are not values.
+  b <- gsub("[A-Za-z_][A-Za-z0-9_]*\\s*=", "", b)
+  ## (value)xN repeats the parenthesised group N times
+  pat <- "\\(([^()]*)\\)\\s*[xX]\\s*([0-9]+)"
+  repeat {
+    m <- regexpr(pat, b)
+    if (m == -1L) break
+    hit <- regmatches(b, m)
+    inner <- sub(pat, "(\\1)", hit)
+    times <- as.integer(sub(pat, "\\2", hit))
+    regmatches(b, m) <- paste(rep(inner, times), collapse = " ")
+  }
+  regmatches(b, gregexpr("\\([^)]*\\)|[-+]?[0-9.][-+0-9.eE]*", b))[[1]]
 }
 
 
