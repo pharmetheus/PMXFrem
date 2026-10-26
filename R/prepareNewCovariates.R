@@ -103,8 +103,8 @@ prepareNewCovariates <- function(dfFFEM,
 
     if (strCov %in% cstrContCovsToAdd) { # Add a continuous covariate
       if (!strCov %in% existingCovNames$covNames || overrideExistingCheck == TRUE) {
-        # Evaluate missingness *before* filtering out -99 rows
-        has_missing <- any(dfFFEM[[strCov]] == missVal | is.na(dfFFEM[[strCov]]))
+        # Estimated, not fixed, when some subject has no value at all
+        has_missing <- .fremCovHasMissing(dfFFEM, strCov, strID = strID, missVal = missVal)
         shouldFix <- if (fixTheta && !has_missing) 1 else 0
 
         tmp <- dfFFEM[dfFFEM[[strCov]] != missVal, ]
@@ -126,7 +126,7 @@ prepareNewCovariates <- function(dfFFEM,
 
         if (!strCov2 %in% existingCovNames$covNames || overrideExistingCheck == TRUE) {
           # Evaluate missingness on the parent categorical variable
-          has_missing <- any(dfFFEM[[strCov]] == missVal | is.na(dfFFEM[[strCov]]))
+          has_missing <- .fremCovHasMissing(dfFFEM, strCov, strID = strID, missVal = missVal)
           shouldFix <- if (fixTheta && !has_missing) 1 else 0
 
           dfFFEM[[strCov2]] <- dfFFEM[[strCov]]
