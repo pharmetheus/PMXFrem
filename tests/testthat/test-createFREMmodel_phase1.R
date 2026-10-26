@@ -137,8 +137,10 @@ test_that("createFREMmodel_phase1 handles a binary (0/1) categorical covariate",
   )
 
   mod_lines <- readLines(result$minimalModelFile)
-  # a single dummy for the higher level, and only one FREMTYPE for it
-  expect_true(any(grepl("TV_SEX_1", mod_lines)))
+  # kept under its own name, as the data column and phase 2 call it, with only
+  # one FREMTYPE for it
+  expect_true(any(grepl("TV_SEX\\b", mod_lines)))
+  expect_false(any(grepl("TV_SEX_1", mod_lines)))
   expect_true(any(grepl("FREMTYPE\\.EQ\\.100", mod_lines)))
   expect_false(any(grepl("FREMTYPE\\.EQ\\.200", mod_lines)))
 })
