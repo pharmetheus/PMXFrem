@@ -312,7 +312,25 @@ createFREMmodel <- function(runno = NULL,
 
     if ("model" %in% names(update_out)) writeLines(update_out$model, finalModelPath)
   } else {
-    file.copy(phase1_out$minimalModelFile, finalModelPath, overwrite = TRUE)
+    ## One covariate: there is nothing for phase 2 to add, but the model still
+    ## goes through updateFREMmodel() so that it starts from the base model's
+    ## final estimates, within their bounds, as a model with more covariates
+    ## does. Its $DATA must name the final data file, not the minimal one
+    ## removed below.
+    update_out <- updateFREMmodel(
+      strFREMModel     = phase1_out$minimalModelFile,
+      numNonFREMThetas = numNonFREMThetas,
+      numSkipOm        = numSkipOm,
+      bWriteData       = FALSE,
+      bWriteMod        = FALSE,
+      strUpdateType    = "NoData",
+      quiet            = quiet
+    )
+    finalModel <- findrecord(update_out$model,
+      record = "\\$DATA",
+      replace = paste0("$DATA ", basename(finalDataPath), " IGNORE=@"), quiet = TRUE
+    )
+    writeLines(finalModel, finalModelPath)
     file.copy(phase1_out$minimalDataFile, finalDataPath, overwrite = TRUE)
   }
 

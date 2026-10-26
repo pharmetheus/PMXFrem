@@ -468,7 +468,8 @@ updateFREMmodel <- function(strFREMModel,
     basenames_th        = basenames_th,
     basenames_om        = basenames_om,
     dDefaultCovValue    = 1E-05,
-    strUpdateType       = strUpdateType
+    strUpdateType       = strUpdateType,
+    quiet               = quiet
   )
 
   # --- 5. Return Final Objects ---
