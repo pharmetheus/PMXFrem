@@ -129,3 +129,22 @@ test_that("createFREMmodel() prunes a table synonym whose item the FREM data lac
   expect_false("RATE" %in% names(read.csv(res$data)))
   expect_false("RT" %in% synTableWords(readLines(res$model))[[1]])
 })
+
+test_that("an IGNORE condition may use either name of a label=synonym item", {
+  ## NONMEM accepts either name; the column is named DV here, but the base
+  ## model's IGNORE refers to CP.
+  td <- withr::local_tempdir()
+  write.csv(data.frame(A = c(1, 1, 2), B = c(0, 1, 1), C = c(0, 5, 6)),
+    file.path(td, "data.csv"),
+    row.names = FALSE, quote = FALSE
+  )
+  writeLines(
+    c("$PROBLEM test", "$INPUT ID TIME CP=DV", "$DATA data.csv IGNORE=(CP.EQN.0)"),
+    file.path(td, "model.mod")
+  )
+  res <- prepareAndValidateData(file.path(td, "data.csv"), file.path(td, "model.mod"),
+    covariates = NULL, quiet = TRUE, keepDoseOnlySubjects = TRUE
+  )
+  expect_equal(names(res$validatedData), c("ID", "TIME", "DV"))
+  expect_equal(res$validatedData$DV, c(5, 6))
+})

@@ -125,7 +125,10 @@ prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quie
 
   # --- Apply IGNORE/ACCEPT statements ---
   if (exists("filterDataFromModel")) {
-    df <- filterDataFromModel(baseModelFile = baseModelFile, wideData = df, quiet = quiet, rawData = rawDf)
+    df <- filterDataFromModel(
+      baseModelFile = baseModelFile, wideData = df, quiet = quiet, rawData = rawDf,
+      synonyms = .fremInputSynonyms(items)
+    )
   } else {
     warning("filterDataFromModel function not found. Skipping IGNORE/ACCEPT filtering.")
   }

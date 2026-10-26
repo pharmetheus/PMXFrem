@@ -4,7 +4,13 @@
 \alias{filterDataFromModel}
 \title{Filter a dataset based on IGNORE/ACCEPT list statements in a NONMEM model file.}
 \usage{
-filterDataFromModel(baseModelFile, wideData, quiet = FALSE, rawData = NULL)
+filterDataFromModel(
+  baseModelFile,
+  wideData,
+  quiet = FALSE,
+  rawData = NULL,
+  synonyms = NULL
+)
 }
 \arguments{
 \item{baseModelFile}{The path to the NONMEM model file (.mod).}
@@ -17,6 +23,11 @@ IGNORE statements. Defaults to FALSE.}
 \item{rawData}{Optional data frame with the data values as written in the
 file (every column character), the same number of rows as \code{wideData} and
 at least its columns. See Details. Defaults to \code{NULL}.}
+
+\item{synonyms}{Optional named character vector mapping the other name of a
+\verb{$INPUT} \code{label=synonym} item to the column name (as
+\code{.fremInputSynonyms()} returns it), so that a condition may use either
+name. Defaults to \code{NULL}.}
 }
 \value{
 A data frame containing the data after all applicable IGNORE/ACCEPT

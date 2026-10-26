@@ -16,6 +16,10 @@
 #' @param rawData Optional data frame with the data values as written in the
 #'   file (every column character), the same number of rows as `wideData` and
 #'   at least its columns. See Details. Defaults to `NULL`.
+#' @param synonyms Optional named character vector mapping the other name of a
+#'   `$INPUT` `label=synonym` item to the column name (as
+#'   `.fremInputSynonyms()` returns it), so that a condition may use either
+#'   name. Defaults to `NULL`.
 #'
 #' @details Following the NONMEM 7.5 help (`$DATA`, `IGNORE=(list)`): with
 #'   `=`, `==`, `/=`, `.EQ.` and `.NE.` the value in the data record and the
@@ -36,7 +40,7 @@
 #' @family Data Assembly Internal
 #' @concept data_assembly
 #' @keywords internal
-filterDataFromModel <- function(baseModelFile, wideData, quiet = FALSE, rawData = NULL) {
+filterDataFromModel <- function(baseModelFile, wideData, quiet = FALSE, rawData = NULL, synonyms = NULL) {
   # --- 1. Find and clean the $DATA record from the model file ---
   dataRecord <- findrecord(baseModelFile, record = "\\$DATA", quiet = TRUE)
   if (is.null(dataRecord)) {
@@ -106,6 +110,11 @@ filterDataFromModel <- function(baseModelFile, wideData, quiet = FALSE, rawData 
   # help says so for IGNORE and is silent for ACCEPT.
   hit <- rep(FALSE, nrow(wideData))
   for (cond in conditions) {
+    ## A condition may name either side of a label=synonym item; the column
+    ## carries only one of them.
+    if (!cond$label %in% names(wideData) && cond$label %in% names(synonyms)) {
+      cond$label <- synonyms[[cond$label]]
+    }
     if (!cond$label %in% names(wideData)) {
       stop(
         "The ", kind, " condition '", cond$text, "' in $DATA refers to '", cond$label,
