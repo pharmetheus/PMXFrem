@@ -115,6 +115,10 @@ createFREMmodel <- function(runno = NULL,
                             allowNon01 = FALSE,
                             keepDoseOnlySubjects = FALSE,
                             ...) {
+  # Only columns the user asked to keep are checked against the base model's
+  # dropped ones; a default keep column the data lacks is skipped with a warning.
+  keepColsGiven <- if (missing(cstrKeepCols)) NULL else cstrKeepCols
+
   # Default to modDevDir if outputDir isn't specified
   if (is.null(outputDir)) {
     outputDir <- if (!is.null(modDevDir)) modDevDir else getwd()
@@ -271,6 +275,7 @@ createFREMmodel <- function(runno = NULL,
     allowNon01 = allowNon01,
     quiet = quiet,
     keepDoseOnlySubjects = keepDoseOnlySubjects,
+    userKeepCols = keepColsGiven,
     ...
   )
 

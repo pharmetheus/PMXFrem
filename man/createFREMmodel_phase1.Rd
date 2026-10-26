@@ -26,6 +26,7 @@ createFREMmodel_phase1(
   allowNon01 = FALSE,
   keepDoseOnlySubjects = FALSE,
   quiet = FALSE,
+  userKeepCols = NULL,
   ...
 )
 }
@@ -75,6 +76,10 @@ only dosing records) are completely excluded from the generated dataset. If \cod
 these subjects are retained and their covariates are included as observations.}
 
 \item{quiet}{Logical. Should the function execute silently without console messages? Defaults to \code{FALSE}.}
+
+\item{userKeepCols}{Character vector or \code{NULL}. The \code{cstrKeepCols} the user
+supplied to \code{\link[=createFREMmodel]{createFREMmodel()}}, if any; a column among them that the base
+model drops is an error. \code{NULL} (the default columns) skips that check.}
 
 \item{...}{Additional arguments passed down to internal helper functions (e.g., \code{createFREMData}, \code{prepareAndValidateData}).}
 }

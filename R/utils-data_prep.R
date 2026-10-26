@@ -15,6 +15,15 @@
 #'   only dosing records) are completely excluded from the generated dataset. If TRUE,
 #'   these subjects are retained and their covariates are included as observations.
 #' @param strID Character. The name of the subject identifier column. Defaults to "ID".
+#' @param cstrKeepCols Character vector or `NULL`. The columns the FREM data set
+#'   will keep; checked here only so that a column the base model drops is
+#'   reported as such.
+#'
+#' @details `$INPUT` names every column of the data file in order, so the
+#'   columns are named by position. Items marked `=DROP` or `=SKIP`, or a bare
+#'   `DROP`, are dropped - after the `IGNORE` / `ACCEPT` filters are applied,
+#'   since those may refer to them. Columns beyond the last `$INPUT` item are
+#'   ignored, as NONMEM ignores them.
 #'
 #' @return A list containing three elements:
 #'   \item{validatedData}{The data frame with column names replaced by the parsed $INPUT names.}
@@ -24,7 +33,8 @@
 #' @family Data Assembly Internal
 #' @concept data_assembly
 #' @keywords internal
-prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quiet = FALSE, keepDoseOnlySubjects = FALSE, strID = "ID") {
+prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quiet = FALSE, keepDoseOnlySubjects = FALSE, strID = "ID",
+                                   cstrKeepCols = NULL) {
   # 1. Read the data and stash original names
   if (is.data.frame(ffemDataFile)) {
     df <- as.data.frame(ffemDataFile)
@@ -42,26 +52,44 @@ prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quie
     stop("Could not find the $INPUT record in the base model file: ", baseModelFile, call. = FALSE)
   }
 
-  # 3. Parse the $INPUT record robustly
-  inputBlock[1] <- gsub("(?i)^\\$INP(U(T)?)?\\s+", "", inputBlock[1], perl = TRUE)
-  linesWithoutComments <- sapply(inputBlock, function(line) gsub(";.*", "", line), USE.NAMES = FALSE)
-  fullRecordString <- paste(linesWithoutComments, collapse = " ")
+  # 3. Parse the $INPUT record: one item per data column, in order
+  items <- .fremInputItems(inputBlock)
+  inputNames <- items$name[!items$dropped]
+  droppedNames <- items$name[items$dropped]
 
-  inputItems <- strsplit(fullRecordString, "\\s+")[[1]]
-  inputItems <- inputItems[nchar(inputItems) > 0]
-
-  inputNames <- sapply(inputItems, function(item) sub("=.*", "", item), USE.NAMES = FALSE)
-  inputNames <- inputNames[!grepl("DROP", inputItems, ignore.case = TRUE)]
-
-  # 4. Perform validation checks
-  if (length(originalNames) != length(inputNames)) {
+  # 4. Perform validation checks. NONMEM reads as many columns as $INPUT has
+  # items, dropped ones included; a data file with fewer cannot be read, and
+  # columns beyond the last item are not used.
+  if (length(originalNames) < nrow(items)) {
     stop(
       paste0(
         "The number of columns in the data file (", length(originalNames), ") ",
-        "does not match the number of items in the $INPUT record (", length(inputNames), ")."
+        "does not match the number of items in the $INPUT record (", nrow(items), "). ",
+        "$INPUT lists every column of the data file, =DROP columns included."
       ),
       call. = FALSE
     )
+  }
+  if (length(originalNames) > nrow(items)) {
+    extra <- originalNames[(nrow(items) + 1):length(originalNames)]
+    if (!quiet) {
+      message(
+        "The data file has ", length(extra), " column(s) more than the $INPUT record has items; ",
+        "like NONMEM, ignoring ", paste(extra, collapse = ", "), "."
+      )
+    }
+    df <- df[, seq_len(nrow(items)), drop = FALSE]
+  }
+
+  # A dropped column is not in the model, so it can be neither modelled nor kept.
+  for (arg in c("covariates", "cstrKeepCols")) {
+    clash <- intersect(get(arg), droppedNames)
+    if (length(clash) > 0) {
+      stop("`", arg, "` names ", paste(clash, collapse = ", "),
+        ", which the base model's $INPUT marks =DROP or =SKIP.",
+        call. = FALSE
+      )
+    }
   }
 
   if (!is.null(covariates) && length(covariates) > 0) {
@@ -74,8 +102,9 @@ prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quie
     }
   }
 
-  # 5. Apply the new names
-  names(df) <- inputNames
+  # 5. Name the columns by position, dropped ones included, so that IGNORE /
+  # ACCEPT conditions on a dropped column still apply.
+  names(df) <- items$name
 
   # --- Apply IGNORE/ACCEPT statements ---
   if (exists("filterDataFromModel")) {
@@ -83,6 +112,9 @@ prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quie
   } else {
     warning("filterDataFromModel function not found. Skipping IGNORE/ACCEPT filtering.")
   }
+
+  # Then remove the dropped columns: the model never sees them.
+  df <- df[, !items$dropped, drop = FALSE]
 
   # 5.5 OPTIONAL FILTER (Remove subjects without observations) ---
   if (!keepDoseOnlySubjects) {
@@ -98,4 +130,28 @@ prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quie
     originalNames = originalNames,
     inputNames = inputNames
   ))
+}
+
+#' The items of a `$INPUT` record
+#'
+#' @param inputBlock The `$INPUT` record's lines, as [findrecord()] returns them.
+#' @return A data frame with one row per item, in order: `name` (the label
+#'   before any `=`; a bare `DROP` gets a placeholder) and `dropped` (`TRUE` for
+#'   `=DROP`, `=SKIP` or a bare `DROP` / `SKIP`).
+#' @keywords internal
+#' @noRd
+.fremInputItems <- function(inputBlock) {
+  inputBlock[1] <- gsub("(?i)^\\$INP(U(T)?)?\\s*", "", inputBlock[1], perl = TRUE)
+  record <- paste(gsub(";.*", "", inputBlock), collapse = " ")
+  tokens <- strsplit(trimws(record), "\\s+")[[1]]
+  tokens <- tokens[nchar(tokens) > 0]
+
+  name <- sub("=.*", "", tokens)
+  value <- ifelse(grepl("=", tokens), sub("^[^=]*=", "", tokens), "")
+  dropped <- toupper(value) %in% c("DROP", "SKIP") |
+    (value == "" & toupper(name) %in% c("DROP", "SKIP"))
+  bare <- value == "" & toupper(name) %in% c("DROP", "SKIP")
+  name[bare] <- paste0(".DROP", seq_len(sum(bare)))
+
+  data.frame(name = name, dropped = dropped, stringsAsFactors = FALSE)
 }

@@ -30,6 +30,9 @@
 #' @param allowNon01 Logical. If TRUE, allows non-0/1 dichotomous covariates (like 1/2)
 #'   to pass through untouched for PsN compatibility. Defaults to FALSE.
 #' @param quiet Logical. Should the function execute silently without console messages? Defaults to `FALSE`.
+#' @param userKeepCols Character vector or `NULL`. The `cstrKeepCols` the user
+#'   supplied to [createFREMmodel()], if any; a column among them that the base
+#'   model drops is an error. `NULL` (the default columns) skips that check.
 #' @param ... Additional arguments passed down to internal helper functions (e.g., `createFREMData`, `prepareAndValidateData`).
 #' @param keepDoseOnlySubjects Logical. If \code{FALSE} (default), subjects without any valid PK observations (e.g.,
 #' only dosing records) are completely excluded from the generated dataset. If \code{TRUE},
@@ -69,6 +72,7 @@ createFREMmodel_phase1 <- function(runno = NULL,
                                    allowNon01 = FALSE,
                                    keepDoseOnlySubjects = FALSE,
                                    quiet = FALSE,
+                                   userKeepCols = NULL,
                                    ...) {
   # --- 1. Resolve Paths via Standard PMX Utilities ---
   fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)
@@ -95,7 +99,8 @@ createFREMmodel_phase1 <- function(runno = NULL,
     covariates           = covariates,
     quiet                = quiet,
     keepDoseOnlySubjects = keepDoseOnlySubjects,
-    strID                = IDvar
+    strID                = IDvar,
+    cstrKeepCols         = userKeepCols
   )
   wideData <- validationResult$validatedData
 

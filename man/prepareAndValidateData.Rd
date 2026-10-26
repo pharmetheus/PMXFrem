@@ -10,7 +10,8 @@ prepareAndValidateData(
   covariates,
   quiet = FALSE,
   keepDoseOnlySubjects = FALSE,
-  strID = "ID"
+  strID = "ID",
+  cstrKeepCols = NULL
 )
 }
 \arguments{
@@ -28,6 +29,10 @@ only dosing records) are completely excluded from the generated dataset. If TRUE
 these subjects are retained and their covariates are included as observations.}
 
 \item{strID}{Character. The name of the subject identifier column. Defaults to "ID".}
+
+\item{cstrKeepCols}{Character vector or \code{NULL}. The columns the FREM data set
+will keep; checked here only so that a column the base model drops is
+reported as such.}
 }
 \value{
 A list containing three elements:
@@ -41,6 +46,13 @@ column names with those specified in the model's $INPUT record. It validates
 that the column count matches and that all specified covariates are present
 in the $INPUT record. This function is robust to multi-line, abbreviated,
 and commented $INPUT records.
+}
+\details{
+\verb{$INPUT} names every column of the data file in order, so the
+columns are named by position. Items marked \verb{=DROP} or \verb{=SKIP}, or a bare
+\code{DROP}, are dropped - after the \code{IGNORE} / \code{ACCEPT} filters are applied,
+since those may refer to them. Columns beyond the last \verb{$INPUT} item are
+ignored, as NONMEM ignores them.
 }
 \seealso{
 Other Data Assembly Internal: 
