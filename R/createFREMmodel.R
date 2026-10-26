@@ -339,6 +339,23 @@ createFREMmodel <- function(runno = NULL,
     file.copy(phase1_out$minimalDataFile, finalDataPath, overwrite = TRUE)
   }
 
+  # --- 2.4 The base model's $TABLE records, fitted to the FREM data set ---
+  # Data items the FREM data does not carry are left out, FREMTYPE is added,
+  # and the table file renamed so that the base run's tables survive.
+  finalModel <- readLines(finalModelPath)
+  baseRunNo <- if (!is.null(runno)) {
+    as.character(runno)
+  } else if (!is.null(modName) && grepl("^run[0-9]+$", modName)) {
+    sub("^run", "", modName)
+  }
+  finalModel <- .fremCarryTables(finalModel,
+    oldInput   = names(phase1_out$validatedData),
+    newInput   = .fremInputItems(findrecord(finalModel, record = "\\$INPUT", quiet = TRUE))$name,
+    renameFile = function(f) .fremTableFileName(f, baseRunNo, fremModName),
+    quiet      = quiet
+  )
+  writeLines(finalModel, finalModelPath)
+
   # --- 2.5 STRICT DATA VALIDATION ---
   final_frem_data <- read.csv(finalDataPath)
   validateFremData(originalData = phase1_out$validatedData, fremData = final_frem_data, strID = IDvar, missVal = missVal, quiet = quiet)

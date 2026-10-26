@@ -284,7 +284,14 @@ generateFremModel <- function(final_df,
   if (strUpdateType != "NoData") {
     line <- safeFindRecord(line, record = "\\$DATA", replace = paste0("$DATA ", basename(strNewFREMData), " IGNORE=@"))
     if (!is.null(final_df)) {
+      oldInput <- findrecord(line, record = "\\$INPUT", quiet = TRUE)
       line <- safeFindRecord(line, record = "\\$INPUT", replace = paste0("$INPUT ", paste0(names(final_df), collapse = " ")))
+      ## A $TABLE may not list a data item the new data set lacks.
+      if (!is.null(oldInput)) {
+        line <- .fremCarryTables(line,
+          oldInput = .fremInputItems(oldInput)$name, newInput = names(final_df), quiet = quiet
+        )
+      }
     }
   }
 

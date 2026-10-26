@@ -183,23 +183,7 @@ createMinimalFremModel <- function(baseModelInfo,
     line <- findrecord(line, "\\$SIGMA", replace = newSigmaBlock, quiet = TRUE)
   }
 
-  # Strip out all $TABLE records
-  table_start_indices <- grep("^\\s*\\$TAB", line, ignore.case = TRUE)
-  if (length(table_start_indices) > 0) {
-    lines_to_remove <- c()
-    for (start_idx in table_start_indices) {
-      end_idx <- length(line)
-      next_records <- grep("^\\s*\\$", line)
-      subsequent_records <- next_records[next_records > start_idx]
-
-      if (length(subsequent_records) > 0) {
-        end_idx <- subsequent_records[1] - 1
-      }
-      lines_to_remove <- c(lines_to_remove, start_idx:end_idx)
-    }
-    if (length(lines_to_remove) > 0) {
-      line <- line[-unique(lines_to_remove)]
-    }
-  }
+  # The base model's $TABLE records are kept as they are; createFREMmodel()
+  # fits them to the final FREM data set (.fremCarryTables()).
   return(line)
 }
