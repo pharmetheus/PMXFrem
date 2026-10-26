@@ -4,7 +4,7 @@
 \alias{filterDataFromModel}
 \title{Filter a dataset based on IGNORE/ACCEPT list statements in a NONMEM model file.}
 \usage{
-filterDataFromModel(baseModelFile, wideData, quiet = FALSE)
+filterDataFromModel(baseModelFile, wideData, quiet = FALSE, rawData = NULL)
 }
 \arguments{
 \item{baseModelFile}{The path to the NONMEM model file (.mod).}
@@ -13,6 +13,10 @@ filterDataFromModel(baseModelFile, wideData, quiet = FALSE)
 
 \item{quiet}{Logical. If TRUE, suppresses the warning for single-character
 IGNORE statements. Defaults to FALSE.}
+
+\item{rawData}{Optional data frame with the data values as written in the
+file (every column character), the same number of rows as \code{wideData} and
+at least its columns. See Details. Defaults to \code{NULL}.}
 }
 \value{
 A data frame containing the data after all applicable IGNORE/ACCEPT
@@ -27,6 +31,19 @@ to a provided data frame.
 NOTE: This function does NOT handle single-character IGNORE statements (e.g.,
 IGNORE=@, IGNORE=C). If such a statement is detected, a warning will be issued
 unless suppressed.
+
+Following the NONMEM 7.5 help (\verb{$DATA}, \code{IGNORE=(list)}): with
+\code{=}, \code{==}, \verb{/=}, \code{.EQ.} and \code{.NE.} the value in the data record and the
+value in the list are compared \strong{as character strings}, so a data value
+written \code{1.0} does not satisfy \code{.EQ.1}; with \code{.EQN.}, \code{.NEN.} and the
+ordering operators (\code{>}, \code{.GT.}, \code{>=}, \code{.GE.}, \code{<}, \code{.LT.}, \code{<=}, \code{.LE.})
+they are compared numerically. A record that satisfies at least one
+condition of the list is dropped (\code{IGNORE}) or accepted (\code{ACCEPT}).
+
+Text comparison needs the values as written. The callers that read a data
+file pass them in \code{rawData}. When \code{rawData} is \code{NULL} (the data came as a
+data frame) the text is \code{as.character()} of the values, an approximation:
+a numeric \code{1.0} reads \code{"1"}, and so does \code{1}.
 }
 \seealso{
 Other Data Assembly Internal: 

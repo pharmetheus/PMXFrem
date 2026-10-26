@@ -7,6 +7,10 @@
 #' and commented $INPUT records.
 #'
 #' @param ffemDataFile A character string path to the FFEM dataset, or a data.frame.
+#'   A file is also read as text, so that `IGNORE` / `ACCEPT` conditions that
+#'   compare strings (`.EQ.`, `=`, `==`, `.NE.`, `/=`) see the values as
+#'   written in it; for a data.frame they see `as.character()` of the values,
+#'   an approximation (see [filterDataFromModel()]).
 #' @param baseModelFile A character string path to the base NONMEM model file.
 #' @param covariates A character vector of covariate names (must match the names
 #'   in the $INPUT record) that the user intends to model.
@@ -35,11 +39,14 @@
 #' @keywords internal
 prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quiet = FALSE, keepDoseOnlySubjects = FALSE, strID = "ID",
                                    cstrKeepCols = NULL) {
-  # 1. Read the data and stash original names
+  # 1. Read the data and stash original names. A file is read a second time as
+  # text, for the IGNORE / ACCEPT operators that compare strings.
+  rawDf <- NULL
   if (is.data.frame(ffemDataFile)) {
     df <- as.data.frame(ffemDataFile)
   } else if (is.character(ffemDataFile) && file.exists(ffemDataFile)) {
     df <- data.table::fread(ffemDataFile, header = TRUE, data.table = FALSE)
+    rawDf <- .readDataAsText(ffemDataFile)
   } else {
     stop("Cannot find or read FFEM dataset.", call. = FALSE)
   }
@@ -80,6 +87,7 @@ prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quie
       )
     }
     df <- df[, seq_len(nrow(items)), drop = FALSE]
+    if (!is.null(rawDf)) rawDf <- rawDf[, seq_len(nrow(items)), drop = FALSE]
   }
 
   # A dropped column is not in the model, so it can be neither modelled nor kept.
@@ -106,10 +114,11 @@ prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quie
   # 5. Name the columns by position, dropped ones included, so that IGNORE /
   # ACCEPT conditions on a dropped column still apply.
   names(df) <- items$name
+  if (!is.null(rawDf)) names(rawDf) <- items$name
 
   # --- Apply IGNORE/ACCEPT statements ---
   if (exists("filterDataFromModel")) {
-    df <- filterDataFromModel(baseModelFile = baseModelFile, wideData = df, quiet = quiet)
+    df <- filterDataFromModel(baseModelFile = baseModelFile, wideData = df, quiet = quiet, rawData = rawDf)
   } else {
     warning("filterDataFromModel function not found. Skipping IGNORE/ACCEPT filtering.")
   }

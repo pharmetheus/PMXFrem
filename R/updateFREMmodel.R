@@ -284,17 +284,19 @@ updateFREMmodel <- function(strFREMModel,
   # --- 1. Initial Setup ---
   if (strUpdateType != "NoData") {
     # 1A. Load and filter FFEM Data
+    rawFFEM <- NULL # the file's text, for the IGNORE / ACCEPT string comparisons
     if (is.data.frame(strFFEMData)) {
       dfFFEM <- as.data.frame(strFFEMData)
     } else if (file.exists(strFFEMData)) {
       dfFFEM <- as.data.frame(data.table::fread(strFFEMData, h = TRUE, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
+      rawFFEM <- .readDataAsText(strFFEMData, check.names = TRUE, showProgress = FALSE)
     } else {
       stop("Cannot find FFEM dataset: ", strFFEMData)
     }
 
     # Apply IGNORE filters so dfFFEM perfectly matches the base data cohort rules
     if (exists("filterDataFromModel")) {
-      dfFFEM <- filterDataFromModel(baseModelFile = strFREMModel, wideData = dfFFEM, quiet = quiet)
+      dfFFEM <- filterDataFromModel(baseModelFile = strFREMModel, wideData = dfFFEM, quiet = quiet, rawData = rawFFEM)
     }
 
     if (!keepDoseOnlySubjects && "EVID" %in% names(dfFFEM) && strID %in% names(dfFFEM)) {
