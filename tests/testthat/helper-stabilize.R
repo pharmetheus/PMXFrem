@@ -126,6 +126,32 @@ extract_core_messages <- function(text) {
   paste(trimws(core_lines), collapse = "\n")
 }
 
+#' Replace a temporary directory in text with `[placeholder_path]`
+#'
+#' The directory is a random name that differs on every run, so it cannot go
+#' into a snapshot. What the text holds depends on the platform, though: on
+#' Windows `tempdir()` has backslashes (`C:\\Users\\me\\...`), and the `$DATA`
+#' line that `createFFEMmodel()` writes has them consumed (`C:UsersmeAppData...`)
+#' because the path goes through the replacement argument of `gsub()`, where a
+#' backslash is an escape. Matching the directory exactly therefore found
+#' nothing there, and the random name ended up in the snapshot.
+#'
+#' All three spellings are replaced: as given, with forward slashes, and with
+#' the backslashes removed. On a POSIX system they are one and the same.
+#'
+#' @param x A character vector.
+#' @param dir The temporary directory, as `withr::local_tempdir()` returned it.
+#' @return `x` with `dir` replaced by `[placeholder_path]`.
+replaceTempPath <- function(x, dir) {
+  spellings <- unique(c(dir, gsub("\\", "/", dir, fixed = TRUE), gsub("\\", "", dir, fixed = TRUE)))
+  ## longest first, so a spelling that contains another is not left half done
+  spellings <- spellings[order(-nchar(spellings))]
+  for (s in spellings) {
+    x <- gsub(s, "[placeholder_path]", x, fixed = TRUE)
+  }
+  x
+}
+
 #' Standardize ggplot_build() data for snapshotting
 #'
 #' Handles changes in ggplot2's internal data structures across versions,
