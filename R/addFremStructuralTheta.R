@@ -392,20 +392,11 @@ addFremStructuralTheta <- function(strFREMModel,
   nonTheta <- recAfter[!grepl("^\\s*\\$THETA\\b", lines[recAfter], ignore.case = TRUE)]
   tEnd <- if (length(nonTheta)) nonTheta[1] - 1L else length(lines)
 
-  ## Values per line: (lo,init,hi) is one, (v)xN is N, FIX and comments are
-  ## not values. Counting (v)x3 as one put the new record after the wrong line
-  ## while THETA() references were renumbered as if it were in the right place.
-  nValues <- function(line) {
-    body <- sub(";.*$", "", line)
-    body <- sub("^\\s*\\$THETA\\b", "", body, ignore.case = TRUE)
-    tok <- regmatches(body, gregexpr(
-      "\\([^)]*\\)(\\s*[xX]\\s*[0-9]+)?|[-+]?[0-9.][-+0-9.eE]*", body
-    ))[[1]]
-    sum(vapply(tok, function(t) {
-      r <- regmatches(t, regexpr("[xX]\\s*[0-9]+$", t))
-      if (length(r)) as.integer(gsub("[^0-9]", "", r)) else 1L
-    }, integer(1)))
-  }
+  ## Values per line, by the tokeniser the other $THETA parsers share:
+  ## (lo,init,hi) is one, (v)xN is N, FIX, labels and comments are not values.
+  ## Counting (v)x3 as one put the new record after the wrong line while
+  ## THETA() references were renumbered as if it were in the right place.
+  nValues <- .fremCountThetaValues
 
   want <- at - 1L # values that must precede the new record
   if (want == 0L) {
