@@ -234,12 +234,13 @@ createFFEMmodel <- function(runno = NULL,
   ## Replace $DATA
   strData <- findrecord(basemodel, record = "\\$DATA", quiet = TRUE)
 
-  if (grepl("^(\\$DATA )(.*)(\\s+.+)$", strData[1]) == FALSE) { # Only filename
-    strData[1] <- gsub("^(\\$DATA )(.*)$", paste0("\\1", newDataFile, "\\3"), strData[1])
-  } else if (grepl("IGNORE", strData[1]) == TRUE) { # There is one or more IGNOREs
-    strData[1] <- gsub("^(\\$DATA )(.*)(\\s+.+)$", paste0("\\1", newDataFile, "\\3"), strData[1])
-  } else { # There are no IGNOREs
-    strData[1] <- gsub("^(\\$DATA )(.*)(\\s+.+)$", paste0("\\1", newDataFile, "\\2"), strData[1])
+  ## The file name is the first word after $DATA (quoted if it holds spaces);
+  ## swap it for the new file and keep the rest of the line - options and
+  ## IGNOREs - as it was. Built with paste0(), not a regex replacement, so a
+  ## Windows path keeps its backslashes.
+  parts <- regmatches(strData[1], regexec("^(\\s*\\$DATA\\s+)(\"[^\"]*\"|'[^']*'|\\S+)(.*)$", strData[1]))[[1]]
+  if (length(parts) == 4) {
+    strData[1] <- paste0(parts[2], newDataFile, parts[4])
   }
 
   tmp <- findrecord(tmp, record = "\\$DATA", replace = strData, quiet = TRUE)
