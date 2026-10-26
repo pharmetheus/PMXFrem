@@ -32,16 +32,31 @@ filterDataFromModel <- function(baseModelFile, wideData, quiet = FALSE) {
   fullRecordString <- gsub("\\s+", " ", fullRecordString)
 
   # --- 2. Check for and warn about unsupported single-character IGNOREs ---
-  # This looks for an IGNORE that is NOT followed by a parenthesis.
-  char_ignore_match <- regexec("IGNORE\\s*=\\s*['\"]?([^\\s\\(])['\"]?", fullRecordString, ignore.case = TRUE)
+  # This looks for an IGNORE that is NOT followed by a parenthesis. It is not
+  # applied here, so warn when it could remove data records. Per the NONMEM
+  # help ($DATA), IGNORE=c skips records whose first character is c, and
+  # IGNORE=@ those whose first non-blank character is a letter or @. A numeric
+  # first column without NA (written as letters) starts with a digit, sign or
+  # point, so then only the header goes - unless c itself is one of those.
+  char_ignore_match <- regmatches(
+    fullRecordString,
+    regexec("IGNORE\\s*=\\s*['\"]?([^[:space:](])['\"]?", fullRecordString, ignore.case = TRUE)
+  )[[1]]
 
-  if (char_ignore_match[[1]][1] != -1 && !quiet) {
-    warning(
-      "A single-character IGNORE statement was found in the $DATA record.\n",
-      "If this filter is used for anything else than managing the header line, ",
-      "you will have to pre-filter the data or use IGNORE=(list).",
-      call. = FALSE
-    )
+  if (length(char_ignore_match) > 0 && !quiet) {
+    ignoreChar <- char_ignore_match[2]
+    firstCol <- wideData[[1]]
+    headerOnly <- is.numeric(firstCol) && !anyNA(firstCol) && !grepl("^[0-9.+-]$", ignoreChar)
+    if (!headerOnly) {
+      warning(warningCondition(
+        paste0(
+          "A single-character IGNORE statement was found in the $DATA record.\n",
+          "If this filter is used for anything else than managing the header line, ",
+          "you will have to pre-filter the data or use IGNORE=(list)."
+        ),
+        class = "pmxfrem_single_char_ignore", call = NULL
+      ))
+    }
   }
 
   # --- 3. Apply Post-Parsing Filter (List-based IGNORE/ACCEPT) ---
