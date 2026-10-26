@@ -3,6 +3,66 @@
 Items parked for future consideration. Not a substitute for GitHub issues; move an
 item there when it becomes active work.
 
+## Release plan: next release after PMXForest 1.4.0
+
+Agreed 2026-10-26: release PMXForest 1.4.0 and the next PMXFrem as soon as
+possible, PMXForest first (its plan is in PMXForest's `TODO.md`). PR #78
+re-exports `generateCovNames()` from PMXForest and requires
+`PMXForest (>= 1.4.0)`; its CI fails until the `v1.4.0` tag exists, which is
+expected, not a fault in the PR.
+
+1. Create an epic branch from `main`, bump `DESCRIPTION` to `2.2.0.9000`, and
+   retarget #78 to it (it targets `main` today).
+2. Land there: T34-T36 (bugs), T39 (`$TABLE`), T38 (vignette); T33 if
+   PMXForest 1.4.0 exports the worker startup. PRs into the epic branch get no
+   CI, so test locally against PMXForest's `epic/1.4.0`.
+3. Before merging #78, fix its NEWS entry: `print_template = TRUE` now prints
+   PMXForest's new template (`name_map` / `unit_map` / `level_map`) instead of
+   `group_map` / `label_map`, so "work as before" is not true for it. PMXFrem's
+   old `generateCovNames()` tests otherwise all pass against PMXForest's
+   version (21 of 24 assertions; the 3 failures are the template).
+4. Once `v1.4.0` is tagged: epic -> `main` PR, CI green, dev release, tag -
+   each on Niclas's go-ahead. Proposed version 2.3.0 (new behaviour, not only
+   fixes); the number is Niclas's call.
+
+Decided 2026-10-26 (Niclas), after the planning pass:
+
+- Version **2.3.0**, branch `epic/2.3.0`; one release, no 2.2.1.
+- T34: a data file with more columns than `$INPUT` items is accepted (the
+  first N named, a message names the rest); fewer is an error. A `DROP` item
+  named in `cstrKeepCols` or `covariates` is an error. Filter on `IGNORE` /
+  `ACCEPT` before removing dropped columns.
+- T35: a covariate counts as missing only for a subject with no non-missing
+  value. Align phase 1 with phase 2 in the same PR: a first 0/1 covariate is
+  named `SEX`, not `SEX_1`, and phase 1 uses the first non-missing value.
+- T36: an initial value on or outside a bound is nudged inside, with a
+  message naming the THETA. The one-covariate path starts from the `.ext`
+  final estimates too, as the multi-covariate path does.
+- T37: keep the single-character `IGNORE` warning (no implementation of it);
+  silent when the first column is numeric, and once per call.
+- T39: `$TABLE` items the FREM data does not carry are dropped with a message.
+  `FILE=`: swap the run number when it ends in the base run number and
+  `fremModName` is `run<N>` (`xptab30` -> `xptab31`), otherwise append
+  `_<fremModName>`; `FREMTYPE` goes at the end.
+- #78: Claude retargets, rebases and corrects its NEWS on Ari's branch, and
+  says so in the PR. T33 keeps the `PMXFrem.freshWorkers` option working.
+- T38: the `DROP` example is derived from `run30` inside the vignette.
+- NEWS: one consolidated PR at the end, reviewed on a doc-review page.
+
+Also found while planning, beyond T34-T40: recoding writes `-99` rather than
+`missVal` (`R/prepareNewCovariates.R:85`, `R/createFREMData.R:175`); T37's
+cause is that the minimal model writes `$DATA <file> IGNORE=@`
+(`R/createMinimalFremModel.R:168`), so phase 2 warns even when the base
+model has none; `tests/testthat/test-utils-data_prep.R:21` encodes the old
+`DROP` behaviour and is rewritten in T34. `make check-format` ends with
+`git checkout -- .`, which discards uncommitted edits - commit first.
+
+Later, not this release: PMXForest 1.4.0's `filterByModel()` identifies
+observations and applies `$DATA` filters the way NONMEM does. Reusing it in
+`createFREMmodel()` instead of PMXFrem's own `$INPUT` / `IGNORE` / dose-only
+handling (where T34 lives) would give one implementation - but PMXForest's
+friction item 3 questions `filterByModel()` itself, so settle that first.
+
 ## Deep-dive vignette — extending a FREM model with THETAs and IIVs
 
 Now unblocked: T3 / T4 landed in PR #62, so the signatures and output shape are
@@ -471,6 +531,118 @@ PMXFrem imports PMXForest, so once PMXForest 1.4.0 ships with it:
 
 Same timing as T31: after 2.2.0 ships, together with the `ci.yml` PMXForest
 pin update.
+
+## T34 — `createFREMmodel()` stops on any `=DROP` item in `$INPUT`
+
+From user feedback on 2.2.0 (T34-T40). `prepareAndValidateData()`
+(`R/utils-data_prep.R:53-65`) removes the `DROP` items from the `$INPUT` names
+and then requires the data file to have exactly that many columns, so every
+dropped column is counted as a mismatch:
+
+    The number of columns in the data file (34) does not match the number of
+    items in the $INPUT record (33).
+
+Reproduced with the bundled `run30` by changing `SMOK` to `SMOK=DROP`. Dropping
+trailing date and subject-ID columns this way is routine, so this blocks most
+real models; the workaround is to delete the columns from the data first.
+
+- Name the columns positionally from all `$INPUT` items, then remove the
+  dropped ones from `df`. Check whether `IGNORE`/`ACCEPT` may refer to a
+  dropped item in NONMEM; if so, filter before removing them.
+- Treat `=SKIP` as `DROP` (it currently passes only because it is not
+  recognised), and match `=DROP` / `=SKIP` as the value, not `grepl("DROP")`,
+  which would also drop a column named e.g. `DROPOUT`.
+- Check whether NONMEM accepts a data file with more columns than `$INPUT`
+  items; if it does, the equality check is stricter than NONMEM.
+- No bundled model uses `DROP`, which is why the tests never saw this. Add a
+  fixture that does.
+
+## T35 — phase 1 fixes a categorical first covariate's THETA despite missing values
+
+The rule is to fix a covariate's THETA only when the covariate has no missing
+values. Phase 2 (`prepareNewCovariates()`) applies it to both kinds; phase 1
+(`createFREMmodel_phase1()`, lines 112-143) applies it only to a continuous
+first covariate and uses `shouldFixTheta = fixTheta` for a categorical one.
+With the bundled data (`RACEL` missing for 42 subjects):
+
+- `covariates = c("AGE", "RACEL")`: `TV_RACEL_2`, `TV_RACEL_3` estimated.
+- `covariates = c("RACEL", "AGE")`: both written `FIX`.
+
+So the result depends on the order of `covariates`. Phase 1 also checks
+missingness on each subject's first record only, phase 2 on all rows; use one
+rule. Write the test first: it should go red on the reordered call.
+
+## T36 — the generated FREM model loses the base model's `$THETA` bounds
+
+`generateFremModel()` (`R/generateFremModel.R:259-261`) rewrites every
+`$THETA` as `$THETA <value> [FIX] ; comment`, so the bounds in the base model
+are gone - in `run30`, `(0,7.62228)` on `TVCL` becomes `6.17206`, and the
+`(-1, …, 3)` bounds on the covariate effects are dropped too. A structural
+parameter can then be estimated negative. Carry each base THETA's lower/upper
+bound through, with the initial value from the `.ext` clamped inside them.
+This affects `updateFREMmodel()` on an existing FREM model as well.
+
+## T37 — the single-character `IGNORE` warning: twice, and for `IGNORE=@`
+
+`filterDataFromModel()` warns about `IGNORE=@` / `IGNORE=C`, and is called
+from both `prepareAndValidateData()` (phase 1, on the base model) and
+`updateFREMmodel()` (phase 2, on the minimal model). The minimal model writes
+its own `$DATA <file> IGNORE=@` (`R/createMinimalFremModel.R:168`), so phase 2
+warns on every call - even when the base model has no single-character
+`IGNORE` at all - and a base model with `IGNORE=@` warns twice. Warn once per
+call, and not for an `IGNORE` PMXFrem wrote itself. Also don't warn when the
+data's first column is numeric: then `@` or `#` can only skip the header,
+which is how nearly every model uses it.
+
+## T38 — `createFREMmodel()` vignette: what users had to find out for themselves
+
+Part 3 does not cover several things the feedback asked about. Add:
+
+- **What the base model needs.** MU referencing, `$ESTIMATION` set up for
+  FREM (IMP/IMPMAP, `NITER`, `PHITYPE=1` - the pre-flight warnings), and how to
+  choose `numSkipOm`.
+- **`cstrKeepCols` takes `$INPUT` names**, not the data file's header names
+  (`prepareAndValidateData()` renames the columns to the `$INPUT` names).
+  Also say so in `@param cstrKeepCols`.
+- **Design decisions, stated as such:** covariate THETAs are fixed when the
+  covariate has no missing values (`fixTheta`); subjects with no observations
+  are left out (`keepDoseOnlySubjects`), as agreed with the PsN developers for
+  newer PsN versions. Once T39 lands, say how the `$TABLE` is carried over.
+- **Recoding moves the covariate's mean THETA.** With `bRecodeDichotomous =
+  TRUE`, a 1/2-coded covariate's `TV_` THETA is its mean on the 0/1 scale, one
+  lower than a PsN model on the original coding gives. Make the generated
+  comment say what `SEX_2 = 1` means.
+- **The example call.** Drop `numNonFREMThetas = 7` (the prose already says it
+  is read from the `.ext`, and the call contradicts it), and stop hiding the
+  warnings with `warning = FALSE` - users will get them.
+- **The example data** has no `DROP` columns and none of the standard date and
+  subject-ID columns that real data sets carry. Use one that does, once T34 is
+  fixed.
+
+## T39 — carry the base model's `$TABLE` records into the FREM model
+
+Decided: keep the base model's `$TABLE` records. Today
+`createMinimalFremModel()` (`R/createMinimalFremModel.R:186`) strips every
+one of them. Points to handle:
+
+- Items that are data columns of the base `$INPUT` but not of the FREM
+  `$INPUT` (anything outside `cstrKeepCols` and the covariates) would stop
+  NM-TRAN. `run30`'s table lists `NO`, `STUDYID`, `TAD` and others the FREM
+  data set does not carry. Drop those items, and say which.
+- Rename `FILE=` so the FREM run does not overwrite the base run's tables
+  (`run30` writes `xptab30`).
+- Add `FREMTYPE`, so the covariate rows can be told apart from the
+  observations.
+- `updateFREMmodel()` on an existing FREM model must keep its `$TABLE` too.
+
+## T40 — a report that `createFREMmodel()` needs PMXForest attached
+
+A user had to load PMXForest as well as PMXFrem. Not reproduced: the package
+calls PMXForest only as `PMXForest::`, and `createFREMmodel()` runs with
+PMXForest loaded but not attached. The report used `PMXRenv`'s versioned
+library loading, so the likely cause is that PMXForest was not on the library
+path PMXRenv set up. Get the error message before changing anything; if it is
+PMXRenv, the fix belongs in the installation instructions, not the vignette.
 
 ## Done
 
