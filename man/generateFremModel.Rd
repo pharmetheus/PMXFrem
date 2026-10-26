@@ -21,7 +21,8 @@ generateFremModel(
   basenames_th,
   basenames_om,
   dDefaultCovValue,
-  strUpdateType
+  strUpdateType,
+  quiet = FALSE
 )
 }
 \arguments{
@@ -58,6 +59,9 @@ generateFremModel(
 \item{dDefaultCovValue}{Numeric. The default covariance value (typically 1e-05) used to populate structural zeros, ensuring the \verb{$OMEGA} block remains positive-definite.}
 
 \item{strUpdateType}{A character string specifying the update mode (e.g., "DataAndModel", "NoData").}
+
+\item{quiet}{Logical. If \code{FALSE}, say which THETA initial values were moved
+inside their bounds.}
 }
 \value{
 A character vector containing the lines of the newly generated FREM model file.
