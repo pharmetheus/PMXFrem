@@ -208,17 +208,42 @@ test_that("getForestDFFREM covers edge cases", {
       ),
       regexp = "The number of reference rows"
     )
-
-    # Test case: ncores > 1
-    if (requireNamespace("doParallel", quietly = TRUE)) {
-      res_parallel <- getForestDFFREM(
-        dfCovs = dfCovs, covNames = covNames$covNames, functionList = list(paramFun),
-        numNonFREMThetas = 13, dfParameters = dfSamplesCOV,
-        ncores = 2, cstrPackages = c("PMXFrem", "dplyr"), quiet = TRUE
-      )
-      expect_s3_class(res_parallel, "data.frame")
-    }
   }) # End of suppressWarnings
+})
+
+## Apart from the cores this is the same call as in the test above; it is a test
+## of its own so that it can be skipped where the workers cannot load the
+## source tree (see skip_if_workers_load_source_tree()) without dropping the
+## argument checks above.
+test_that("getForestDFFREM runs with ncores > 1", {
+  skip_if_workers_load_source_tree()
+  runno <- "22-3"
+  extFile <- system.file("extdata", paste0("SimVal/run", runno, ".ext"), package = "PMXForest")
+  covFile <- system.file("extdata", paste0("SimVal/run", runno, ".cov"), package = "PMXForest")
+  modFile <- system.file("extdata", paste0("SimVal/run", runno, ".mod"), package = "PMXForest")
+  datFile <- system.file("extdata", paste0("SimVal/DAT-1-MI-PMX-2.csv"), package = "PMXForest")
+  dfData <- read.csv(datFile)
+  covNames <- getCovNames(modFile = modFile)
+  dfCovs <- PMXForest::createInputForestData(PMXForest::getCovStats(dfData, covNames$orgCovNames, probs = c(0.05, 0.95)))
+  paramFun <- function(basethetas, covthetas, dfrow, ...) {
+    return(basethetas[1] * exp(covthetas[1]))
+  }
+  set.seed(123)
+  dfSamplesCOV <- PMXForest::getSamples(covFile, extFile = extFile, n = 5)
+  args <- list(
+    dfCovs = dfCovs, covNames = covNames$covNames, functionList = list(paramFun),
+    numNonFREMThetas = 13, dfParameters = dfSamplesCOV, quiet = TRUE
+  )
+
+  res_parallel <- suppressWarnings(do.call(
+    getForestDFFREM, c(args, list(ncores = 2, cstrPackages = c("PMXFrem", "dplyr")))
+  ))
+  expect_s3_class(res_parallel, "data.frame")
+  ## the same rows and columns as on one core; the sampled columns are not
+  ## compared, as they differ with the draws (see forestSampledCols)
+  res_serial <- suppressWarnings(do.call(getForestDFFREM, args))
+  expect_equal(dim(res_parallel), dim(res_serial))
+  expect_equal(names(res_parallel), names(res_serial))
 })
 
 test_that("getForestDFFREM oneHot matches a manually pre-encoded dfCovs", {
