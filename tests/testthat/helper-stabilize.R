@@ -18,8 +18,12 @@
 #'
 #' @return The stabilized character vector.
 stabilize_text_snapshot <- function(text_vector, sig_figs = 8) {
-  # A robust regex to find numbers (including integers, decimals, and sci-notation)
-  num_regex <- "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
+  # A robust regex to find numbers (including integers, decimals, and
+  # sci-notation). A leading "." only starts a number when no letter precedes
+  # it: NM-TRAN writes its operators as .EQ. .NE. .GT. and so on, and in
+  # IF(FOOD.EQ.1) the "." that closes the operator is not the start of ".1".
+  # The lookbehind needs perl = TRUE below.
+  num_regex <- "[+-]?(?:\\d+\\.\\d+|\\d+|(?<![A-Za-z])\\.\\d+)(?:[Ee][+-]?\\d+)?"
 
   sapply(text_vector, FUN = function(line) {
     if (!is.character(line) || is.na(line)) {
@@ -27,7 +31,7 @@ stabilize_text_snapshot <- function(text_vector, sig_figs = 8) {
     }
 
     # 1. Find the positions of all numbers
-    matches <- gregexpr(num_regex, line)
+    matches <- gregexpr(num_regex, line, perl = TRUE)
     if (matches[[1]][1] == -1) {
       return(line) # No numbers found, return line as-is
     }
@@ -503,11 +507,14 @@ expect_frame_snapshot <- function(x, head = 8) {
 #' what made the serialized snapshot 26 MB. The model goes in as text; the data
 #' goes in as [columnDigest()] plus its first rows.
 expect_model_snapshot <- function(x, head = 8) {
-  ## The model goes in as written. stabilize() rewrites every number-like
-  ## substring, which turns NM-TRAN's IF(FOOD.EQ.1) into IF(FOOD.EQ0.1) - a
-  ## snapshot of something the function never produced, and a confusing thing
-  ## to hand a reviewer. Only the $DATA path needs neutralising, and it is a
-  ## temporary directory rather than a number.
+  ## The model goes in as written, not through stabilize(). stabilize() used to
+  ## mangle NM-TRAN's .EQ. operators (T25), which was the reason; that is fixed,
+  ## but it would still reformat every number in a control stream - 1.0 becomes
+  ## 1, 0.10 becomes 0.1 - and the layout of those numbers is part of what these
+  ## snapshots exist to pin. A control stream is text the function writes, not
+  ## a floating-point result that varies between machines, so it needs no
+  ## rounding. Only the $DATA path needs neutralising, and it is a temporary
+  ## directory rather than a number.
   model <- x$model
   if (!is.null(model)) {
     i <- grep("^\\$DATA", model)
