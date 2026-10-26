@@ -51,8 +51,8 @@ and commented $INPUT records.
 \verb{$INPUT} names every column of the data file in order, so the
 columns are named by position. Items marked \verb{=DROP} or \verb{=SKIP}, or a bare
 \code{DROP}, are dropped - after the \code{IGNORE} / \code{ACCEPT} filters are applied,
-since those may refer to them. Columns beyond the last \verb{$INPUT} item are
-ignored, as NONMEM ignores them.
+since those may refer to them (NONMEM help, \verb{$DATA}). Columns beyond the
+last \verb{$INPUT} item are ignored, with a message naming them.
 }
 \seealso{
 Other Data Assembly Internal: 

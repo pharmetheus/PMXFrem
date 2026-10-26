@@ -22,8 +22,8 @@
 #' @details `$INPUT` names every column of the data file in order, so the
 #'   columns are named by position. Items marked `=DROP` or `=SKIP`, or a bare
 #'   `DROP`, are dropped - after the `IGNORE` / `ACCEPT` filters are applied,
-#'   since those may refer to them. Columns beyond the last `$INPUT` item are
-#'   ignored, as NONMEM ignores them.
+#'   since those may refer to them (NONMEM help, `$DATA`). Columns beyond the
+#'   last `$INPUT` item are ignored, with a message naming them.
 #'
 #' @return A list containing three elements:
 #'   \item{validatedData}{The data frame with column names replaced by the parsed $INPUT names.}
@@ -57,9 +57,10 @@ prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quie
   inputNames <- items$name[!items$dropped]
   droppedNames <- items$name[items$dropped]
 
-  # 4. Perform validation checks. NONMEM reads as many columns as $INPUT has
-  # items, dropped ones included; a data file with fewer cannot be read, and
-  # columns beyond the last item are not used.
+  # 4. Perform validation checks. $INPUT names the data file's columns in
+  # order, dropped ones included, so a data file with fewer columns cannot be
+  # what the model reads. Columns beyond the last item are ignored with a
+  # message (decided 2026-10-26; the NONMEM help does not cover this case).
   if (length(originalNames) < nrow(items)) {
     stop(
       paste0(
@@ -75,7 +76,7 @@ prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quie
     if (!quiet) {
       message(
         "The data file has ", length(extra), " column(s) more than the $INPUT record has items; ",
-        "like NONMEM, ignoring ", paste(extra, collapse = ", "), "."
+        "ignoring ", paste(extra, collapse = ", "), "."
       )
     }
     df <- df[, seq_len(nrow(items)), drop = FALSE]
