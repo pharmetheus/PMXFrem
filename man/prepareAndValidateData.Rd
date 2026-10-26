@@ -15,7 +15,11 @@ prepareAndValidateData(
 )
 }
 \arguments{
-\item{ffemDataFile}{A character string path to the FFEM dataset, or a data.frame.}
+\item{ffemDataFile}{A character string path to the FFEM dataset, or a data.frame.
+A file is also read as text, so that \code{IGNORE} / \code{ACCEPT} conditions that
+compare strings (\code{.EQ.}, \code{=}, \code{==}, \code{.NE.}, \verb{/=}) see the values as
+written in it; for a data.frame they see \code{as.character()} of the values,
+an approximation (see \code{\link[=filterDataFromModel]{filterDataFromModel()}}).}
 
 \item{baseModelFile}{A character string path to the base NONMEM model file.}
 
