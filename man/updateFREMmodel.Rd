@@ -174,8 +174,12 @@ library(dplyr)
 # This example removes "SEX" from the model and data set.
 td <- tempdir() # Create a temporary directory for output files
 
+# Work on copies: bWriteMod = TRUE writes run31_new.mod next to the model.
+file.copy(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), td)
+file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
+
 updateFREMmodel(
-  strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+  strFREMModel      = file.path(td, "run31.mod"),
   strFREMData       = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
   strFFEMData       = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
   cstrRemoveCov     = c("SEX"),
