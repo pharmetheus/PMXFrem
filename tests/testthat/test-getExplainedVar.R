@@ -88,7 +88,7 @@ test_that("getExplainedVar works on main paths", {
     cstrCovariates = cstrCovariates,
     modDevDir = modDevDir,
     runno = fremRunno,
-    ncores = 2,
+    ncores = 1,
     quiet = TRUE,
     seed = 123
   )
@@ -157,7 +157,7 @@ test_that("getExplainedVar works on main paths", {
       cstrCovariates = cstrCovariates,
       modDevDir = modDevDir,
       runno = fremRunno,
-      ncores = 2,
+      ncores = 1,
       numETASamples = 10,
       quiet = TRUE,
       seed = 123
@@ -177,12 +177,42 @@ test_that("getExplainedVar works on main paths", {
     cstrCovariates = cstrCovariates,
     modDevDir = modDevDir,
     runno = fremRunno,
-    ncores = 2,
+    ncores = 1,
     numETASamples = 10,
     quiet = TRUE,
     seed = 123
   )
   expect_snapshot_value(stabilize(as.data.frame(dfres3)), style = "serialize", cran = TRUE)
+})
+
+## The calls above run on one core so that everything this test asserts runs
+## wherever the suite does. That ncores > 1 changes nothing is asserted here,
+## where it can be skipped: on Windows the workers are fresh R sessions that
+## load the installed PMXFrem, which is not the source tree under test_local().
+test_that("getExplainedVar gives the same result on two cores as on one, in every type", {
+  skip_if_workers_load_source_tree()
+  modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+  dfData <- read.csv(file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")) %>%
+    dplyr::filter(BLQ == 0) %>%
+    dplyr::distinct(ID, .keep_all = TRUE)
+  dfCovs <- setupDfCovsEV(file.path(modDevDir, "run31.mod"))
+  functionList <- list(
+    function(basethetas, covthetas, dfrow, etas, ...) basethetas[2] * exp(covthetas[1] + etas[3]),
+    function(basethetas, covthetas, dfrow, etas, ...) basethetas[3] * exp(covthetas[2] + etas[4])
+  )
+  ev <- function(type, ncores) {
+    ## type 2 warns that FFEM covariates are present; that is not what is
+    ## under test here
+    suppressWarnings(getExplainedVar(
+      type = type, data = dfData, dfCovs = dfCovs, numNonFREMThetas = 7,
+      numSkipOm = 2, functionList = functionList, functionListName = c("CL", "V"),
+      cstrCovariates = c("All", names(dfCovs)), modDevDir = modDevDir, runno = 31,
+      ncores = ncores, numETASamples = 10, quiet = TRUE, seed = 123
+    ))
+  }
+  for (type in 1:3) {
+    expect_equal(ev(type, 2), ev(type, 1), info = paste("type", type))
+  }
 })
 
 

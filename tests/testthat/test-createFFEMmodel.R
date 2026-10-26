@@ -54,7 +54,7 @@ test_that("createFFEMmodel works", {
   # Verify that the file was actually written as a side effect
   expect_true(file.exists(new_data_path))
   # Use the generic stabilize() for a character vector, but replace the temp path first
-  ffemMod1_stabilized <- gsub(td, "[placeholder_path]", ffemMod1, fixed = TRUE)
+  ffemMod1_stabilized <- replaceTempPath(ffemMod1, td)
   expect_snapshot_value(stabilize(ffemMod1_stabilized), style = "serialize", cran = TRUE)
 
   ffemMod2 <- createFFEMmodel(
@@ -69,7 +69,7 @@ test_that("createFFEMmodel works", {
     baserunno = baseRun2
   )
   # Use the generic stabilize() for a character vector, but replace the temp path first
-  ffemMod2_stabilized <- gsub(td, "[placeholder_path]", ffemMod2, fixed = TRUE)
+  ffemMod2_stabilized <- replaceTempPath(ffemMod2, td)
   expect_snapshot_value(stabilize(ffemMod2_stabilized), style = "serialize", cran = TRUE)
 })
 
@@ -117,6 +117,6 @@ test_that("createFFEMmodel generates Cholesky code when omegaToData = TRUE", {
   expect_true(any(grepl("MYETA4 = L43 \\* ETA\\(3\\) \\+ L44 \\* ETA\\(4\\)", cholesky_model_lines)))
 
   # 4. Snapshot the final output to lock in the structural state
-  cholesky_stabilized <- gsub(td, "[placeholder_path]", cholesky_model_lines, fixed = TRUE)
+  cholesky_stabilized <- replaceTempPath(cholesky_model_lines, td)
   expect_snapshot_value(stabilize(cholesky_stabilized), style = "serialize", cran = TRUE)
 })

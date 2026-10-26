@@ -18,8 +18,12 @@
 #'
 #' @return The stabilized character vector.
 stabilize_text_snapshot <- function(text_vector, sig_figs = 8) {
-  # A robust regex to find numbers (including integers, decimals, and sci-notation)
-  num_regex <- "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
+  # A robust regex to find numbers (including integers, decimals, and
+  # sci-notation). A leading "." only starts a number when no letter precedes
+  # it: NM-TRAN writes its operators as .EQ. .NE. .GT. and so on, and in
+  # IF(FOOD.EQ.1) the "." that closes the operator is not the start of ".1".
+  # The lookbehind needs perl = TRUE below.
+  num_regex <- "[+-]?(?:\\d+\\.\\d+|\\d+|(?<![A-Za-z])\\.\\d+)(?:[Ee][+-]?\\d+)?"
 
   sapply(text_vector, FUN = function(line) {
     if (!is.character(line) || is.na(line)) {
@@ -27,7 +31,7 @@ stabilize_text_snapshot <- function(text_vector, sig_figs = 8) {
     }
 
     # 1. Find the positions of all numbers
-    matches <- gregexpr(num_regex, line)
+    matches <- gregexpr(num_regex, line, perl = TRUE)
     if (matches[[1]][1] == -1) {
       return(line) # No numbers found, return line as-is
     }
@@ -124,6 +128,32 @@ extract_core_messages <- function(text) {
 
   # Trim whitespace and paste back together
   paste(trimws(core_lines), collapse = "\n")
+}
+
+#' Replace a temporary directory in text with `[placeholder_path]`
+#'
+#' The directory is a random name that differs on every run, so it cannot go
+#' into a snapshot. What the text holds depends on the platform, though: on
+#' Windows `tempdir()` has backslashes (`C:\\Users\\me\\...`), and the `$DATA`
+#' line that `createFFEMmodel()` writes has them consumed (`C:UsersmeAppData...`)
+#' because the path goes through the replacement argument of `gsub()`, where a
+#' backslash is an escape. Matching the directory exactly therefore found
+#' nothing there, and the random name ended up in the snapshot.
+#'
+#' All three spellings are replaced: as given, with forward slashes, and with
+#' the backslashes removed. On a POSIX system they are one and the same.
+#'
+#' @param x A character vector.
+#' @param dir The temporary directory, as `withr::local_tempdir()` returned it.
+#' @return `x` with `dir` replaced by `[placeholder_path]`.
+replaceTempPath <- function(x, dir) {
+  spellings <- unique(c(dir, gsub("\\", "/", dir, fixed = TRUE), gsub("\\", "", dir, fixed = TRUE)))
+  ## longest first, so a spelling that contains another is not left half done
+  spellings <- spellings[order(-nchar(spellings))]
+  for (s in spellings) {
+    x <- gsub(s, "[placeholder_path]", x, fixed = TRUE)
+  }
+  x
 }
 
 #' Standardize ggplot_build() data for snapshotting
@@ -477,11 +507,14 @@ expect_frame_snapshot <- function(x, head = 8) {
 #' what made the serialized snapshot 26 MB. The model goes in as text; the data
 #' goes in as [columnDigest()] plus its first rows.
 expect_model_snapshot <- function(x, head = 8) {
-  ## The model goes in as written. stabilize() rewrites every number-like
-  ## substring, which turns NM-TRAN's IF(FOOD.EQ.1) into IF(FOOD.EQ0.1) - a
-  ## snapshot of something the function never produced, and a confusing thing
-  ## to hand a reviewer. Only the $DATA path needs neutralising, and it is a
-  ## temporary directory rather than a number.
+  ## The model goes in as written, not through stabilize(). stabilize() used to
+  ## mangle NM-TRAN's .EQ. operators (T25), which was the reason; that is fixed,
+  ## but it would still reformat every number in a control stream - 1.0 becomes
+  ## 1, 0.10 becomes 0.1 - and the layout of those numbers is part of what these
+  ## snapshots exist to pin. A control stream is text the function writes, not
+  ## a floating-point result that varies between machines, so it needs no
+  ## rounding. Only the $DATA path needs neutralising, and it is a temporary
+  ## directory rather than a number.
   model <- x$model
   if (!is.null(model)) {
     i <- grep("^\\$DATA", model)

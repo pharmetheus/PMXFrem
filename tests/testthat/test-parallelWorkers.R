@@ -118,10 +118,7 @@ test_that("getExplainedVar gives the same result on fresh workers as on one core
   ## Fresh workers load the installed PMXFrem, so the comparison is only
   ## meaningful when this session runs an installed copy - as under R CMD
   ## check - and not the source tree through load_all().
-  skip_if_not(
-    file.exists(file.path(getNamespaceInfo("PMXFrem", "path"), "Meta", "package.rds")),
-    "PMXFrem is not loaded from an installed library"
-  )
+  skip_if_not(pmxfremIsInstalled(), "PMXFrem is not loaded from an installed library")
   modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
   dfData <- read.csv(file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"))
   dfData <- dfData[dfData$BLQ == 0 & !duplicated(dfData$ID), ]
