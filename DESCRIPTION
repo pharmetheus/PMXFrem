@@ -30,13 +30,13 @@ Imports:
     stringr,
     tools,
     numDeriv,
-    parallel,
     PMXForest (>= 1.4.0)
 Suggests:
     GGally,
     gridExtra,
     kableExtra,
     knitr,
+    parallel,
     purrr,
     rmarkdown,
     testthat (>= 3.0.0),
