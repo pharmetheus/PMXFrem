@@ -232,25 +232,6 @@ and R.rsp, so it is slower and has more failure surface — or add a check that
 every package a test calls with `::` appears in `extra-packages`. Worth deciding
 deliberately rather than remembering.
 
-## T25 — `stabilize()` rewrites NM-TRAN operators, not just numbers
-
-`stabilize_text_snapshot()` (tests/testthat/helper-stabilize.R) finds every
-number-like substring and reformats it, which in a control stream turns
-
-    IF(FOOD.EQ.1) MATFOOD = 1
-    IF(FOOD.EQ.0) MATFOOD = ( 1 + THETA(6))
-
-into `IF(FOOD.EQ0.1)` / `IF(FOOD.EQ0)` - it reads `.1` as the number and eats
-the `.` that closes `.EQ.`. While snapshots were base64 this was invisible;
-now that model text is snapshotted as text it is not, and
-`expect_model_snapshot()` works around it by not stabilising the model at all.
-
-Two things to settle. The regex should not treat a `.` bounded by letters as
-part of a number, so `.EQ.`, `.NE.`, `.GT.` survive. And every other text
-snapshot that goes through `stabilize()` should be checked for the same
-mangling - `_snaps/createFFEMmodel.md` and `_snaps/generateFremModel.md` hold
-model text too.
-
 ## T26 — `_snaps/calcEtas.md` is still 871 kB of base64
 
 The three largest serialized snapshots were replaced with readable JSON;
@@ -299,109 +280,6 @@ OMEGA) with "NaNs produced"; the thread count makes no difference
 arithmetic coming out slightly negative under this BLAS before a `sqrt()`, but
 not yet traced to the line. Worth finding: a user on OpenBLAS gets the same `NA`.
 
-## T34 — `createFREMmodel()` stops on any `=DROP` item in `$INPUT`
-
-From user feedback on 2.2.0 (T34-T40). `prepareAndValidateData()`
-(`R/utils-data_prep.R:53-65`) removes the `DROP` items from the `$INPUT` names
-and then requires the data file to have exactly that many columns, so every
-dropped column is counted as a mismatch:
-
-    The number of columns in the data file (34) does not match the number of
-    items in the $INPUT record (33).
-
-Reproduced with the bundled `run30` by changing `SMOK` to `SMOK=DROP`. Dropping
-trailing date and subject-ID columns this way is routine, so this blocks most
-real models; the workaround is to delete the columns from the data first.
-
-- Name the columns positionally from all `$INPUT` items, then remove the
-  dropped ones from `df`. Check whether `IGNORE`/`ACCEPT` may refer to a
-  dropped item in NONMEM; if so, filter before removing them.
-- Treat `=SKIP` as `DROP` (it currently passes only because it is not
-  recognised), and match `=DROP` / `=SKIP` as the value, not `grepl("DROP")`,
-  which would also drop a column named e.g. `DROPOUT`.
-- Check whether NONMEM accepts a data file with more columns than `$INPUT`
-  items; if it does, the equality check is stricter than NONMEM.
-- No bundled model uses `DROP`, which is why the tests never saw this. Add a
-  fixture that does.
-
-## T35 — phase 1 fixes a categorical first covariate's THETA despite missing values
-
-The rule is to fix a covariate's THETA only when the covariate has no missing
-values. Phase 2 (`prepareNewCovariates()`) applies it to both kinds; phase 1
-(`createFREMmodel_phase1()`, lines 112-143) applies it only to a continuous
-first covariate and uses `shouldFixTheta = fixTheta` for a categorical one.
-With the bundled data (`RACEL` missing for 42 subjects):
-
-- `covariates = c("AGE", "RACEL")`: `TV_RACEL_2`, `TV_RACEL_3` estimated.
-- `covariates = c("RACEL", "AGE")`: both written `FIX`.
-
-So the result depends on the order of `covariates`. Phase 1 also checks
-missingness on each subject's first record only, phase 2 on all rows; use one
-rule. Write the test first: it should go red on the reordered call.
-
-## T36 — the generated FREM model loses the base model's `$THETA` bounds
-
-`generateFremModel()` (`R/generateFremModel.R:259-261`) rewrites every
-`$THETA` as `$THETA <value> [FIX] ; comment`, so the bounds in the base model
-are gone - in `run30`, `(0,7.62228)` on `TVCL` becomes `6.17206`, and the
-`(-1, …, 3)` bounds on the covariate effects are dropped too. A structural
-parameter can then be estimated negative. Carry each base THETA's lower/upper
-bound through, with the initial value from the `.ext` clamped inside them.
-This affects `updateFREMmodel()` on an existing FREM model as well.
-
-## T37 — the single-character `IGNORE` warning: twice, and for `IGNORE=@`
-
-`filterDataFromModel()` warns about `IGNORE=@` / `IGNORE=C`, and is called
-from both `prepareAndValidateData()` (phase 1, on the base model) and
-`updateFREMmodel()` (phase 2, on the minimal model). The minimal model writes
-its own `$DATA <file> IGNORE=@` (`R/createMinimalFremModel.R:168`), so phase 2
-warns on every call - even when the base model has no single-character
-`IGNORE` at all - and a base model with `IGNORE=@` warns twice. Warn once per
-call, and not for an `IGNORE` PMXFrem wrote itself. Also don't warn when the
-data's first column is numeric: then `@` or `#` can only skip the header,
-which is how nearly every model uses it.
-
-## T38 — `createFREMmodel()` vignette: what users had to find out for themselves
-
-Part 3 does not cover several things the feedback asked about. Add:
-
-- **What the base model needs.** MU referencing, `$ESTIMATION` set up for
-  FREM (IMP/IMPMAP, `NITER`, `PHITYPE=1` - the pre-flight warnings), and how to
-  choose `numSkipOm`.
-- **`cstrKeepCols` takes `$INPUT` names**, not the data file's header names
-  (`prepareAndValidateData()` renames the columns to the `$INPUT` names).
-  Also say so in `@param cstrKeepCols`.
-- **Design decisions, stated as such:** covariate THETAs are fixed when the
-  covariate has no missing values (`fixTheta`); subjects with no observations
-  are left out (`keepDoseOnlySubjects`), as agreed with the PsN developers for
-  newer PsN versions. Once T39 lands, say how the `$TABLE` is carried over.
-- **Recoding moves the covariate's mean THETA.** With `bRecodeDichotomous =
-  TRUE`, a 1/2-coded covariate's `TV_` THETA is its mean on the 0/1 scale, one
-  lower than a PsN model on the original coding gives. Make the generated
-  comment say what `SEX_2 = 1` means.
-- **The example call.** Drop `numNonFREMThetas = 7` (the prose already says it
-  is read from the `.ext`, and the call contradicts it), and stop hiding the
-  warnings with `warning = FALSE` - users will get them.
-- **The example data** has no `DROP` columns and none of the standard date and
-  subject-ID columns that real data sets carry. Use one that does, once T34 is
-  fixed.
-
-## T39 — carry the base model's `$TABLE` records into the FREM model
-
-Decided: keep the base model's `$TABLE` records. Today
-`createMinimalFremModel()` (`R/createMinimalFremModel.R:186`) strips every
-one of them. Points to handle:
-
-- Items that are data columns of the base `$INPUT` but not of the FREM
-  `$INPUT` (anything outside `cstrKeepCols` and the covariates) would stop
-  NM-TRAN. `run30`'s table lists `NO`, `STUDYID`, `TAD` and others the FREM
-  data set does not carry. Drop those items, and say which.
-- Rename `FILE=` so the FREM run does not overwrite the base run's tables
-  (`run30` writes `xptab30`).
-- Add `FREMTYPE`, so the covariate rows can be told apart from the
-  observations.
-- `updateFREMmodel()` on an existing FREM model must keep its `$TABLE` too.
-
 ## T40 — a report that `createFREMmodel()` needs PMXForest attached
 
 A user had to load PMXForest as well as PMXFrem. Not reproduced: the package
@@ -410,56 +288,6 @@ PMXForest loaded but not attached. The report used `PMXRenv`'s versioned
 library loading, so the likely cause is that PMXForest was not on the library
 path PMXRenv set up. Get the error message before changing anything; if it is
 PMXRenv, the fix belongs in the installation instructions, not the vignette.
-
-## T41 — `IGNORE` / `ACCEPT` lists: `.EQ.` compares text in NONMEM, numbers here
-
-Found while doing T34. The NONMEM 7.5 help (`$DATA`) says that with `=`,
-`==`, `/=`, `.EQ.` and `.NE.` "the value in the data record and the value in
-the list are compared as character strings"; only `.EQN.` / `.NEN.` (and the
-ordering operators) compare numerically. `filterDataFromModel()`'s
-`translate_condition()` turns `.EQ.` and `.EQN.` alike into R's `==` on the
-numeric column read by `fread()`, so a data value written `1.0` matches
-`BLQ.EQ.1` here but not in NONMEM, and the FREM data set's cohort can differ
-from the model's. Check with a fixture whose file holds `1.0`, then compare as
-text where NONMEM does (needs the column as written - read it as character).
-
-## T42 — `$THETA (value)xN` is not expanded
-
-The NONMEM 7.5 help (`$THETA`) allows `(2)x4` for four THETAs.
-`.fremCountThetaValues()` - and `.fremThetaBounds()`, which walks the same
-tokens - counts it as one value plus a stray `4`, so every later THETA comment
-and bound shifts. Rare in practice; expand `(…)xN` before counting.
-
-## T43 — `createFFEMmodel` snapshots fail on Windows: the temp-path placeholder
-
-Three `test-createFFEMmodel.R` snapshots fail on a Windows machine only (CI on
-Linux passes). `stabilize()` (`tests/testthat/helper-stabilize.R`) should
-replace the temporary data path with `[placeholder_path]`, but the path's
-backslashes are stripped first (`C:UsersniclasjAppData…`), so it no longer
-matches. Normalise the path the same way on both sides.
-
-## T44 — `$INPUT label=synonym`: which name the data column gets
-
-`.fremInputItems()` (like the code before it) names a column by the label
-before `=`. The NONMEM help (`$INPUT`, sample `CP=DV`) makes the synonym
-equally valid, and a reserved synonym gives the item its meaning - so with
-`CP=DV` PMXFrem names the column `CP` and does not find `DV`. Decide which name
-to use (or accept both), with a test on `CP=DV`.
-
-## T45 — recoding writes `-99`, not `missVal`
-
-`prepareNewCovariates()` (line 85) and `createFREMData()` (line 175) write a
-literal `-99` for a missing value when recoding a dichotomous covariate, so a
-non-default `missVal` is not honoured there.
-
-## T46 — tests with `ncores > 1` fail on Windows under `load_all()`
-
-`createFFEMdata`, `getExplainedVar` and `getForestDFFREM` each have a test
-with `ncores > 1`. On Windows the workers are fresh R sessions; they load the
-installed PMXFrem, the session runs the source tree, and the version check in
-`.fremStartWorkers()` stops them - correctly. CI (Linux, forked workers) is
-unaffected. Skip those tests when PMXFrem is not loaded from an installed
-library, as `test-parallelWorkers.R` already does for its end-to-end test.
 
 ## T47 — say in the generated model what a recoded covariate's level means
 
@@ -473,6 +301,14 @@ result) before and after, and a check of the snapshots that hold model text.
 
 ## Done
 
+- **T25, T34-T39, T41-T46** — released in 2.3.0; the NEWS entry and the PRs
+  (#80-#84, #86, #88-#90, #92-#94) hold the detail. `createFREMmodel()` reads
+  `=DROP` / `=SKIP`, keeps `$THETA` bounds and `$TABLE` records, applies
+  `IGNORE` / `ACCEPT` as NONMEM does (text comparison, synonyms, `(value)xN`),
+  fixes covariate THETAs by one rule in both phases, writes `missVal` when
+  recoding, and warns about a single-character `IGNORE` only when it matters.
+  The `createFREMmodel()` deep dive was rewritten, and the suite is clean on
+  Windows (temp-path placeholder, `stabilize()` operators, worker skips).
 - **T33** — PMXFrem starts its parallel workers with PMXForest 1.4.0's
   `startParallelWorkers()`. `.fremStartWorkers()` is now a wrapper passing
   `PMXFrem` as the package to load and the `PMXFrem.freshWorkers` option as
