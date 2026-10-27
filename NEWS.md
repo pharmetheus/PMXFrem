@@ -11,12 +11,14 @@ only the forms the bundled examples use:
 * `$THETA` bounds are kept, with the base model's final estimates as initial
   values. An estimate on a bound is moved just inside it, with a message.
 * `$TABLE` records are kept. Items the FREM data set does not carry are left
-  out with a message, `FREMTYPE` is added, and the table file is renamed so the
-  base run's tables are not overwritten.
+  out with a message, `FREMTYPE` is added, and the table file is renamed
+  (`xptab30` becomes `xptab31`, or `xptab30_<fremModName>`) so the base run's
+  tables are not overwritten.
 * `IGNORE` / `ACCEPT` compare values as text where NONMEM does (`=`, `.EQ.`,
   `.NE.`, `/=`), so `1.0` no longer equals `1`.
-* A `label=synonym` item such as `CP=DV` is read by its reserved name, and
-  either name may be used. `$THETA (value)xN` is expanded.
+* A `label=synonym` item such as `CP=DV` is read as the reserved name, `DV`,
+  and either name may be used in `covariates` and `cstrKeepCols`.
+* `$THETA (value)xN` is expanded to N THETAs.
 
 ## Forest plot labels from PMXForest
 
@@ -29,19 +31,19 @@ help page is PMXForest's.
 
 * **PMXFrem now requires PMXForest 1.4.0 or later.**
 * **A covariate's mean THETA is fixed only when every subject has a value for
-  it,** whichever position it has in `covariates`. A subject with a value on
-  some records is no longer counted as missing. A 0/1 first covariate keeps its
-  own name (`SMOK`, not `SMOK_1`), as the others do.
+  it.** A categorical first covariate was fixed despite missing values, and a
+  subject missing the covariate on some records counted as missing. A 0/1
+  first covariate is now named as the others are (`SMOK`, not `SMOK_1`).
 * `generateCovNames()` stops on a key given twice in a map, warns about map
-  entries that match nothing (`warn_unused = FALSE`), and labels a one-hot
-  covariate's reference row from `catRef`.
+  entries that match nothing (`warn_unused = FALSE` silences it), and labels a
+  one-hot covariate's reference row from `catRef`.
 * The warning about a single-character `IGNORE` is given once, and only when it
   could remove data records.
 
 ## Bug fixes
 
-* **Recoding a dichotomous covariate wrote `-99` for a missing value** instead
-  of `missVal`.
+* **Recoding a dichotomous covariate ignored a non-default `missVal`,** writing
+  `-99` for a missing value.
 * **`createFFEMmodel()` damaged the `$DATA` record:** a Windows path lost its
   backslashes, and options after the file name were lost.
 * **A one-covariate FREM model** named a deleted data file in `$DATA` and did
