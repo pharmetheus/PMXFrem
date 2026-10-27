@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -206,123 +206,86 @@
 <div class="section level2">
 <h2 id="visualization-labeling">4. Visualization &amp; Labeling<a class="anchor" aria-label="anchor" href="#visualization-labeling"></a>
 </h2>
-<p>Typing dozens of row labels out by hand means they drift away from <code>dfCovs</code> the first time a covariate is added or dropped. <code><a href="../reference/generateCovNames.html">generateCovNames()</a></code> reads the scenarios and applies the unit and level mappings given below, so the labels follow the data.</p>
-<p>It is meant to be used in two steps. Run it first with <code>print_template = TRUE</code>: it prints an empty mapping skeleton listing every covariate group, and every covariate level, that this <code>dfCovs</code> actually contains.</p>
+<p>Typing dozens of row labels out by hand means they drift away from <code>dfCovs</code> the first time a covariate is added or dropped. <code><a href="https://rdrr.io/pkg/PMXForest/man/generateCovNames.html" class="external-link">generateCovNames()</a></code> reads the scenarios and applies labels given once per covariate - a display name, a unit, a label per categorical level - so the labels follow the data. It is PMXForest’s, re-exported here; its Forest plot inputs deep dive covers every option.</p>
+<p>It is meant to be used in two steps. Run it first with <code>print_template = TRUE</code>: it prints an empty mapping skeleton listing every covariate, and every level of the categorical ones, that this <code>dfCovs</code> actually contains.</p>
 <details><p><summary>The mapping template for this <code>dfCovs</code> (click to expand)</summary></p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/generateCovNames.html">generateCovNames</a></span><span class="op">(</span><span class="va">dfCovs</span>, print_template <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/PMXForest/man/generateCovNames.html" class="external-link">generateCovNames</a></span><span class="op">(</span><span class="va">dfCovs</span>, print_template <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co"># Copy and paste this mapping template into your script:</span></span>
 <span></span>
-<span><span class="va">group_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  <span class="st">"AGE"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"ALT"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"AST"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"BILI"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"BMI"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"BSA"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"CRCL"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"ETHNIC"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"GENO2"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"HT"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"LBWT"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"NCIL"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"RACEL"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"SEX"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"SMOK"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"WT"</span> <span class="op">=</span> <span class="st">""</span></span>
-<span></span>
+<span><span class="va">name_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  AGE <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  ALT <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  AST <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  BILI <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  BMI <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  BSA <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  CRCL <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  ETHNIC <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  GENO2 <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  HT <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  LBWT <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  NCIL <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  RACEL <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  SEX <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  SMOK <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  WT <span class="op">=</span> <span class="st">""</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">unit_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  <span class="st">"AGE"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"ALT"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"AST"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"BILI"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"BMI"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"BSA"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"CRCL"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"ETHNIC"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"GENO2"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"HT"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"LBWT"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"NCIL"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"RACEL"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"SEX"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"SMOK"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"WT"</span> <span class="op">=</span> <span class="st">""</span></span>
-<span></span>
+<span>  AGE <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  ALT <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  AST <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  BILI <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  BMI <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  BSA <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  CRCL <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  HT <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  LBWT <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  WT <span class="op">=</span> <span class="st">""</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">label_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  <span class="st">"AGE=20"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"AGE=60"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"ALT=11.4"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"ALT=49"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"AST=14"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"AST=37"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"BILI=5.13"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"BILI=17.1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"BMI=20.7"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"BMI=38.2"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"BSA=1.59"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"BSA=2.38"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"CRCL=74.7"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"CRCL=150"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"ETHNIC=0"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"ETHNIC=1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"GENO2=1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"GENO2=2"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"HT=154"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"HT=183"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"LBWT=42.1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"LBWT=72.7"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"NCIL=0"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"NCIL=1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"NCIL=2"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"RACEL=1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"RACEL=2"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"RACEL=3"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"SEX=1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"SEX=2"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"SMOK=0"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"SMOK=1"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"WT=56"</span> <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  <span class="st">"WT=116"</span> <span class="op">=</span> <span class="st">""</span></span>
-<span></span>
+<span><span class="va">level_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  ETHNIC <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0"</span> <span class="op">=</span> <span class="st">""</span>, <span class="st">"1"</span> <span class="op">=</span> <span class="st">""</span><span class="op">)</span>,</span>
+<span>  GENO2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"1"</span> <span class="op">=</span> <span class="st">""</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">""</span><span class="op">)</span>,</span>
+<span>  NCIL <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0"</span> <span class="op">=</span> <span class="st">""</span>, <span class="st">"1"</span> <span class="op">=</span> <span class="st">""</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">""</span><span class="op">)</span>,</span>
+<span>  RACEL <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"1"</span> <span class="op">=</span> <span class="st">""</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">""</span>, <span class="st">"3"</span> <span class="op">=</span> <span class="st">""</span><span class="op">)</span>,</span>
+<span>  SEX <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"1"</span> <span class="op">=</span> <span class="st">""</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">""</span><span class="op">)</span>,</span>
+<span>  SMOK <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0"</span> <span class="op">=</span> <span class="st">""</span>, <span class="st">"1"</span> <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-</details><p>That skeleton is worth starting from rather than writing the maps from memory. A map written by hand goes stale quietly: a key for a covariate that is not in <code>dfCovs</code> matches nothing, and a level that <em>is</em> in <code>dfCovs</code> but not in the map falls through to its raw code (<code>SEX=2</code>) in the finished plot. The template can only list what is there, so both mistakes are visible before anything is plotted.</p>
-<p>Filled in, it gives the three maps below.</p>
+</details><p>That skeleton is worth starting from rather than writing the maps from memory. The template can only list what is there. A key that matches nothing in <code>dfCovs</code> - a covariate renamed, or not in this model - is warned about, and a level left out falls back to the display name and its code (<code>Ethnicity = 0</code> below), so neither mistake reaches the finished plot unnoticed.</p>
+<p>Filled in, it gives the three maps below. Continuous covariates need only a name and a unit: their rows read <code>Weight = 56 kg</code> whatever percentiles the data give.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># 1. The maps, filled in from the template above</span></span>
+<span><span class="va">name_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  AGE <span class="op">=</span> <span class="st">"Age"</span>, ALT <span class="op">=</span> <span class="st">"ALT"</span>, AST <span class="op">=</span> <span class="st">"AST"</span>, BILI <span class="op">=</span> <span class="st">"Total Bilirubin"</span>,</span>
+<span>  BMI <span class="op">=</span> <span class="st">"BMI"</span>, BSA <span class="op">=</span> <span class="st">"BSA"</span>, CRCL <span class="op">=</span> <span class="st">"Creatinine CL"</span>,</span>
+<span>  ETHNIC <span class="op">=</span> <span class="st">"Ethnicity"</span>, GENO2 <span class="op">=</span> <span class="st">"Genotype"</span>, HT <span class="op">=</span> <span class="st">"Height"</span>,</span>
+<span>  LBWT <span class="op">=</span> <span class="st">"Lean Body Wt"</span>, NCIL <span class="op">=</span> <span class="st">"NCI"</span>, RACEL <span class="op">=</span> <span class="st">"Race"</span>,</span>
+<span>  SEX <span class="op">=</span> <span class="st">"Sex"</span>, SMOK <span class="op">=</span> <span class="st">"Smoking Status"</span>, WT <span class="op">=</span> <span class="st">"Weight"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
 <span><span class="va">unit_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>  AGE <span class="op">=</span> <span class="st">"years"</span>, WT <span class="op">=</span> <span class="st">"kg"</span>, BMI <span class="op">=</span> <span class="st">"kg/m2"</span>, BSA <span class="op">=</span> <span class="st">"m2"</span>,</span>
 <span>  CRCL <span class="op">=</span> <span class="st">"mL/min"</span>, BILI <span class="op">=</span> <span class="st">"mg/dL"</span>, AST <span class="op">=</span> <span class="st">"IU"</span>, ALT <span class="op">=</span> <span class="st">"IU"</span>,</span>
-<span>  HT <span class="op">=</span> <span class="st">"cm"</span>, LBM <span class="op">=</span> <span class="st">"kg"</span></span>
+<span>  HT <span class="op">=</span> <span class="st">"cm"</span>, LBWT <span class="op">=</span> <span class="st">"kg"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">label_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  <span class="st">"SEX=1"</span> <span class="op">=</span> <span class="st">"Male"</span>, <span class="st">"SEX=2"</span> <span class="op">=</span> <span class="st">"Female"</span>,</span>
-<span>  <span class="st">"RACEL=1"</span> <span class="op">=</span> <span class="st">"Caucasian"</span>, <span class="st">"RACEL=2"</span> <span class="op">=</span> <span class="st">"Black"</span>, <span class="st">"RACEL=3"</span> <span class="op">=</span> <span class="st">"Other"</span>,</span>
-<span>  <span class="st">"SMOK=0"</span> <span class="op">=</span> <span class="st">"Non-smoking"</span>, <span class="st">"SMOK=1"</span> <span class="op">=</span> <span class="st">"Smoking"</span>,</span>
-<span>  <span class="st">"NCIL=0"</span> <span class="op">=</span> <span class="st">"NCI Grade 0"</span>, <span class="st">"NCIL=1"</span> <span class="op">=</span> <span class="st">"NCI Grade 1"</span>, <span class="st">"NCIL=2"</span> <span class="op">=</span> <span class="st">"NCI Grade 2"</span>,</span>
-<span>  <span class="st">"GENO2=1"</span> <span class="op">=</span> <span class="st">"Poor metab."</span>, <span class="st">"GENO2=2"</span> <span class="op">=</span> <span class="st">"Extensive metab."</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">group_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  <span class="st">"AGE"</span> <span class="op">=</span> <span class="st">"Age"</span>, <span class="st">"ALT"</span> <span class="op">=</span> <span class="st">"ALT"</span>, <span class="st">"AST"</span> <span class="op">=</span> <span class="st">"AST"</span>, <span class="st">"BILI"</span> <span class="op">=</span> <span class="st">"Total Bilirubin"</span>,</span>
-<span>  <span class="st">"BMI"</span> <span class="op">=</span> <span class="st">"BMI"</span>, <span class="st">"BSA"</span> <span class="op">=</span> <span class="st">"BSA"</span>, <span class="st">"CRCL"</span> <span class="op">=</span> <span class="st">"Creatinine CL"</span>,</span>
-<span>  <span class="st">"ETHNIC"</span> <span class="op">=</span> <span class="st">"Ethnicity"</span>, <span class="st">"GENO2"</span> <span class="op">=</span> <span class="st">"Genotype"</span>, <span class="st">"HT"</span> <span class="op">=</span> <span class="st">"Height"</span>,</span>
-<span>  <span class="st">"LBWT"</span> <span class="op">=</span> <span class="st">"Lean Body Wt"</span>, <span class="st">"NCIL"</span> <span class="op">=</span> <span class="st">"NCI"</span>, <span class="st">"RACEL"</span> <span class="op">=</span> <span class="st">"Race"</span>,</span>
-<span>  <span class="st">"SEX"</span> <span class="op">=</span> <span class="st">"Sex"</span>, <span class="st">"SMOK"</span> <span class="op">=</span> <span class="st">"Smoking Status"</span>, <span class="st">"WT"</span> <span class="op">=</span> <span class="st">"Weight"</span></span>
+<span><span class="va">level_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  SEX   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"1"</span> <span class="op">=</span> <span class="st">"Male"</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">"Female"</span><span class="op">)</span>,</span>
+<span>  RACEL <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"1"</span> <span class="op">=</span> <span class="st">"Caucasian"</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">"Black"</span>, <span class="st">"3"</span> <span class="op">=</span> <span class="st">"Other"</span><span class="op">)</span>,</span>
+<span>  SMOK  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0"</span> <span class="op">=</span> <span class="st">"Non-smoking"</span>, <span class="st">"1"</span> <span class="op">=</span> <span class="st">"Smoking"</span><span class="op">)</span>,</span>
+<span>  NCIL  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0"</span> <span class="op">=</span> <span class="st">"NCI Grade 0"</span>, <span class="st">"1"</span> <span class="op">=</span> <span class="st">"NCI Grade 1"</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">"NCI Grade 2"</span><span class="op">)</span>,</span>
+<span>  GENO2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"1"</span> <span class="op">=</span> <span class="st">"Poor metab."</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">"Extensive metab."</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 2. Generate the labels and groups from dfCovs, and attach them to the results</span></span>
-<span><span class="va">dfres_formatted</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generateCovNames.html">generateCovNames</a></span><span class="op">(</span></span>
+<span><span class="va">dfres_formatted</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/PMXForest/man/generateCovNames.html" class="external-link">generateCovNames</a></span><span class="op">(</span></span>
 <span>  <span class="va">dfCovs</span>,</span>
 <span>  dfres <span class="op">=</span> <span class="va">dfres</span>,</span>
+<span>  name_map <span class="op">=</span> <span class="va">name_map</span>,</span>
 <span>  unit_map <span class="op">=</span> <span class="va">unit_map</span>,</span>
-<span>  label_map <span class="op">=</span> <span class="va">label_map</span>,</span>
-<span>  group_map <span class="op">=</span> <span class="va">group_map</span></span>
+<span>  level_map <span class="op">=</span> <span class="va">level_map</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 3. Render Plot</span></span>

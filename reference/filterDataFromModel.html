@@ -14,7 +14,7 @@ to a provided data frame."><!-- mathjax --><script src="https://cdnjs.cloudflare
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -66,7 +66,13 @@ to a provided data frame.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">filterDataFromModel</span><span class="op">(</span><span class="va">baseModelFile</span>, <span class="va">wideData</span>, quiet <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">filterDataFromModel</span><span class="op">(</span></span>
+<span>  <span class="va">baseModelFile</span>,</span>
+<span>  <span class="va">wideData</span>,</span>
+<span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  rawData <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  synonyms <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -83,6 +89,19 @@ to a provided data frame.</p>
 <dd><p>Logical. If TRUE, suppresses the warning for single-character
 IGNORE statements. Defaults to FALSE.</p></dd>
 
+
+<dt>rawData</dt>
+<dd><p>Optional data frame with the data values as written in the
+file (every column character), the same number of rows as <code>wideData</code> and
+at least its columns. See Details. Defaults to <code>NULL</code>.</p></dd>
+
+
+<dt>synonyms</dt>
+<dd><p>Optional named character vector mapping the other name of a
+<code>$INPUT</code> <code>label=synonym</code> item to the column name (as
+<code>.fremInputSynonyms()</code> returns it), so that a condition may use either
+name. Defaults to <code>NULL</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -96,6 +115,17 @@ conditions have been applied.</p>
     <p>NOTE: This function does NOT handle single-character IGNORE statements (e.g.,
 IGNORE=@, IGNORE=C). If such a statement is detected, a warning will be issued
 unless suppressed.</p>
+<p>Following the NONMEM 7.5 help (<code>$DATA</code>, <code>IGNORE=(list)</code>): with
+<code>=</code>, <code>==</code>, <code>/=</code>, <code>.EQ.</code> and <code>.NE.</code> the value in the data record and the
+value in the list are compared <strong>as character strings</strong>, so a data value
+written <code>1.0</code> does not satisfy <code>.EQ.1</code>; with <code>.EQN.</code>, <code>.NEN.</code> and the
+ordering operators (<code>&gt;</code>, <code>.GT.</code>, <code>&gt;=</code>, <code>.GE.</code>, <code>&lt;</code>, <code>.LT.</code>, <code>&lt;=</code>, <code>.LE.</code>)
+they are compared numerically. A record that satisfies at least one
+condition of the list is dropped (<code>IGNORE</code>) or accepted (<code>ACCEPT</code>).</p>
+<p>Text comparison needs the values as written. The callers that read a data
+file pass them in <code>rawData</code>. When <code>rawData</code> is <code>NULL</code> (the data came as a
+data frame) the text is <code><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character()</a></code> of the values, an approximation:
+a numeric <code>1.0</code> reads <code>"1"</code>, and so does <code>1</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

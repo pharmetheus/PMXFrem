@@ -18,7 +18,7 @@ covariance matrices by replacing structural zeros."><!-- mathjax --><script src=
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -89,7 +89,8 @@ covariance matrices by replacing structural zeros.</p>
 <span>  <span class="va">basenames_th</span>,</span>
 <span>  <span class="va">basenames_om</span>,</span>
 <span>  <span class="va">dDefaultCovValue</span>,</span>
-<span>  <span class="va">strUpdateType</span></span>
+<span>  <span class="va">strUpdateType</span>,</span>
+<span>  quiet <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -161,6 +162,11 @@ covariance matrices by replacing structural zeros.</p>
 
 <dt>strUpdateType</dt>
 <dd><p>A character string specifying the update mode (e.g., "DataAndModel", "NoData").</p></dd>
+
+
+<dt>quiet</dt>
+<dd><p>Logical. If <code>FALSE</code>, say which THETA initial values were moved
+inside their bounds.</p></dd>
 
 </dl></div>
     <div class="section level2">

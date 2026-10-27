@@ -18,7 +18,7 @@ and commented $INPUT records."><!-- mathjax --><script src="https://cdnjs.cloudf
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -78,14 +78,19 @@ and commented $INPUT records.</p>
 <span>  <span class="va">covariates</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  keepDoseOnlySubjects <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  strID <span class="op">=</span> <span class="st">"ID"</span></span>
+<span>  strID <span class="op">=</span> <span class="st">"ID"</span>,</span>
+<span>  cstrKeepCols <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <dl><dt>ffemDataFile</dt>
-<dd><p>A character string path to the FFEM dataset, or a data.frame.</p></dd>
+<dd><p>A character string path to the FFEM dataset, or a data.frame.
+A file is also read as text, so that <code>IGNORE</code> / <code>ACCEPT</code> conditions that
+compare strings (<code>.EQ.</code>, <code>=</code>, <code>==</code>, <code>.NE.</code>, <code>/=</code>) see the values as
+written in it; for a data.frame they see <code><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character()</a></code> of the values,
+an approximation (see <code><a href="filterDataFromModel.html">filterDataFromModel()</a></code>).</p></dd>
 
 
 <dt>baseModelFile</dt>
@@ -110,6 +115,12 @@ these subjects are retained and their covariates are included as observations.</
 <dt>strID</dt>
 <dd><p>Character. The name of the subject identifier column. Defaults to "ID".</p></dd>
 
+
+<dt>cstrKeepCols</dt>
+<dd><p>Character vector or <code>NULL</code>. The columns the FREM data set
+will keep; checked here only so that a column the base model drops is
+reported as such.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -126,6 +137,17 @@ these subjects are retained and their covariates are included as observations.</
 <dd><p>The clean character vector of names parsed from the $INPUT record.</p></dd>
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>An item <code>label=synonym</code> is a column named by whichever of the two
+is a reserved NONMEM label (<code>CP=DV</code> gives <code>DV</code>), and by the label when
+neither is; <code>covariates</code> and <code>cstrKeepCols</code> may use either name.</p>
+<p><code>$INPUT</code> names every column of the data file in order, so the
+columns are named by position. Items marked <code>=DROP</code> or <code>=SKIP</code>, or a bare
+<code>DROP</code>, are dropped - after the <code>IGNORE</code> / <code>ACCEPT</code> filters are applied,
+since those may refer to them (NONMEM help, <code>$DATA</code>). Columns beyond the
+last <code>$INPUT</code> item are ignored, with a message naming them.</p>
+    </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p>Other Data Assembly Internal: 

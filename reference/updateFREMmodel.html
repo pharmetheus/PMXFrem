@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -304,8 +304,14 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-in"><span><span class="co"># This example removes "SEX" from the model and data set.</span></span></span>
 <span class="r-in"><span><span class="va">td</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span> <span class="co"># Create a temporary directory for output files</span></span></span>
 <span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Work on copies: bWriteMod = TRUE writes run31_new.mod next to the model.</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.copy</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/run31.mod"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span>, <span class="va">td</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.copy</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/run31.ext"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span>, <span class="va">td</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
+<span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">updateFREMmodel</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  strFREMModel      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/run31.mod"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  strFREMModel      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"run31.mod"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  strFREMData       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/frem_dataset.dta"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  strFFEMData       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  cstrRemoveCov     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"SEX"</span><span class="op">)</span>,</span></span>
@@ -318,8 +324,6 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-in"><span>  bWriteFIX         <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
 <span class="r-in"><span>  cstrKeepCols      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ID"</span>, <span class="st">"TIME"</span>, <span class="st">"AMT"</span>, <span class="st">"EVID"</span>, <span class="st">"RATE"</span>, <span class="st">"DV"</span>, <span class="st">"FOOD"</span>, <span class="st">"FREMTYPE"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>A single-character IGNORE statement was found in the $DATA record.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> If this filter is used for anything else than managing the header line, you will have to pre-filter the data or use IGNORE=(list).</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Found a continuous covariate to remove SEX with FREMTYPE=1100"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Removing all unwanted fremtypes from FREM dataset, in total 730 observations"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Recoding all remaining FREMTYPEs in FREM dataset..."</span>
@@ -335,6 +339,7 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Found 0 individuals that should be added to the FREM dataset"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "No observations for DV (fremtype=0); not adding any observations!"</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Data integrity validation passed: The FREM dataset perfectly mirrors the base dataset.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> $TABLE: left out NO, STUDYID, TAD, DAY, ODV, BLQ, DOSE, FORM, TYPE, WT, HT, LBWT, BSA, SEX, RACE, AGE, AST, ALT, BILI, CRCL, BMI, NCI, GENO2, ETHNIC, SMOK, NCIL, which the FREM data set does not carry. Add them to cstrKeepCols to keep them.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">## Example 2: Add Covariates to a Model</span></span></span>
 <span class="r-in"><span><span class="co"># This example adds a new categorical covariate, "SITE", to the model.</span></span></span>
@@ -352,9 +357,9 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Copy the .ext file to the temp directory so the function can find it</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.copy</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/run31.ext"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span>, <span class="va">td</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] FALSE</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.copy</a></span><span class="op">(</span><span class="va">model_path</span>, <span class="va">td</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] FALSE</span>
 <span class="r-in"><span><span class="va">model_in_td</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"run31.mod"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">updateFREMmodel</span><span class="op">(</span></span></span>
@@ -369,8 +374,6 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-in"><span>  bWriteMod         <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
 <span class="r-in"><span>  quiet             <span class="op">=</span> <span class="cn">FALSE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>A single-character IGNORE statement was found in the $DATA record.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> If this filter is used for anything else than managing the header line, you will have to pre-filter the data or use IGNORE=(list).</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Variables already in FREM model (n=16): AGE ALT AST BILI BMI BSA CRCL ETHNIC GENO2 HT LBWT NCIL RACEL SEX SMOK WT"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Categorical covariates that will be added to FREM (n=1): SITE"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Identifying new covariate: SITE_102 with fremtype 1900 (FIXED)"</span>
@@ -380,6 +383,7 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 732 covariate values (SITE_102) from 732 individuals as fremtype 1900"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 732 covariate values (SITE_103) from 732 individuals as fremtype 2000"</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Data integrity validation passed: The FREM dataset perfectly mirrors the base dataset.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> $TABLE: left out NO, STUDYID, TAD, DAY, ODV, BLQ, DOSE, FOOD, FORM, TYPE, WT, HT, LBWT, BSA, SEX, RACE, AGE, AST, ALT, BILI, CRCL, BMI, NCI, GENO2, ETHNIC, SMOK, NCIL, which the FREM data set does not carry. Add them to cstrKeepCols to keep them.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">## Example 3: Add New Individuals to an Existing FREM Dataset</span></span></span>
 <span class="r-in"><span><span class="va">td</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span></span>
@@ -410,8 +414,6 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-in"><span>  bWriteMod         <span class="op">=</span> <span class="cn">FALSE</span>, <span class="co"># Model structure doesn't change</span></span></span>
 <span class="r-in"><span>  quiet             <span class="op">=</span> <span class="cn">FALSE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>A single-character IGNORE statement was found in the $DATA record.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> If this filter is used for anything else than managing the header line, you will have to pre-filter the data or use IGNORE=(list).</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Variables already in FREM model (n=16): AGE ALT AST BILI BMI BSA CRCL ETHNIC GENO2 HT LBWT NCIL RACEL SEX SMOK WT"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Found 4 individuals that should be added to the FREM dataset"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 50 observations (DV) from 4 individuals as fremtype 0"</span>
@@ -434,6 +436,7 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "No observed covariate values for ETHNIC (fremtype=1700); not adding any covariate values!"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Adding 4 continuous covariate values (SMOK) from 4 individuals as fremtype 1800"</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Data integrity validation passed: The FREM dataset perfectly mirrors the base dataset.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> $TABLE: left out NO, STUDYID, TAD, DAY, ODV, BLQ, DOSE, FOOD, FORM, TYPE, WT, HT, LBWT, BSA, SEX, RACE, AGE, AST, ALT, BILI, CRCL, BMI, NCI, GENO2, ETHNIC, SMOK, NCIL, which the FREM data set does not carry. Add them to cstrKeepCols to keep them.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># The returned data frame now contains the new IDs</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">data</span><span class="op">)</span><span class="op">)</span></span></span>

@@ -121,9 +121,6 @@
     <loc>/reference/fremParameterTable.html</loc>
   </url>
   <url>
-    <loc>/reference/generateCovNames.html</loc>
-  </url>
-  <url>
     <loc>/reference/generateFremModel.html</loc>
   </url>
   <url>
@@ -170,6 +167,9 @@
   </url>
   <url>
     <loc>/reference/prepareNewCovariates.html</loc>
+  </url>
+  <url>
+    <loc>/reference/reexports.html</loc>
   </url>
   <url>
     <loc>/reference/removeFremCovariates.html</loc>

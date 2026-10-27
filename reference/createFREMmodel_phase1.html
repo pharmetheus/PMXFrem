@@ -20,7 +20,7 @@ and establishes the initial FREMTYPE sequencing."><!-- mathjax --><script src="h
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -97,6 +97,7 @@ and establishes the initial <code>FREMTYPE</code> sequencing.</p>
 <span>  allowNon01 <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  keepDoseOnlySubjects <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  userKeepCols <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -189,6 +190,12 @@ these subjects are retained and their covariates are included as observations.</
 
 <dt>quiet</dt>
 <dd><p>Logical. Should the function execute silently without console messages? Defaults to <code>FALSE</code>.</p></dd>
+
+
+<dt>userKeepCols</dt>
+<dd><p>Character vector or <code>NULL</code>. The <code>cstrKeepCols</code> the user
+supplied to <code><a href="createFREMmodel.html">createFREMmodel()</a></code>, if any; a column among them that the base
+model drops is an error. <code>NULL</code> (the default columns) skips that check.</p></dd>
 
 
 <dt>...</dt>

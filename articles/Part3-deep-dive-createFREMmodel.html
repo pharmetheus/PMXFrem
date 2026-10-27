@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -88,7 +88,7 @@
 <div class="section level2">
 <h2 id="how-createfremmodel-works-under-the-hood">How createFREMmodel Works Under the Hood<a class="anchor" aria-label="anchor" href="#how-createfremmodel-works-under-the-hood"></a>
 </h2>
-<p>Rather than adding every covariate at once, <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> builds the model one covariate at a time. It first writes a minimal FREM model from the first covariate in your <code>covariates</code> argument, rewriting the <code>$INPUT</code>, <code>$DATA</code>, <code>$PK</code> and <code>$ERROR</code> blocks for that one covariate. It then works through the rest, calling <code><a href="../reference/updateFREMmodel.html">updateFREMmodel()</a></code> for each, so every step is the same operation the update functions already perform.</p>
+<p>Rather than adding every covariate at once, <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> builds the model one covariate at a time. It first writes a minimal FREM model from the first covariate in your <code>covariates</code> argument, rewriting the <code>$INPUT</code>, <code>$DATA</code>, <code>$PK</code> and <code>$ERROR</code> blocks for that one covariate. It then works through the rest, calling <code><a href="../reference/updateFREMmodel.html">updateFREMmodel()</a></code> for each - the function that adds covariates to an existing FREM model, covered in <a href="Part3-deep-dive-updateFREMmodel.html">its own deep dive</a> - so every step is the same operation.</p>
 </div>
 <div class="section level2">
 <h2 id="setup-and-paths">1. Setup and Paths<a class="anchor" aria-label="anchor" href="#setup-and-paths"></a>
@@ -106,11 +106,45 @@
 <span><span class="va">td</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="designing-the-frem-model">2. Designing the FREM Model<a class="anchor" aria-label="anchor" href="#designing-the-frem-model"></a>
+<h2 id="what-the-base-model-needs">2. What the Base Model Needs<a class="anchor" aria-label="anchor" href="#what-the-base-model-needs"></a>
+</h2>
+<p><code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> starts from a converged base model: its control stream, its <code>.ext</code> file and the data set it was fitted to.</p>
+<ul>
+<li>
+<strong>The parameters’ IIVs in a final <code>$OMEGA BLOCK(N)</code>.</strong> The FREM covariates are correlated with the random effects in that block, so it must be the last <code>$OMEGA</code> record (<code>SAME</code> records aside). <code>numSkipOm</code> counts the OMEGAs before it - IIVs you do not want correlated with the covariates, or an IIV on the residual error - and must match the model; <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> stops and says so if it does not. It cannot be deduced from a base model, so you always give it.</li>
+<li>
+<strong>The number of structural THETAs is read from the <code>.ext</code>.</strong> <code>numNonFREMThetas</code> only needs to be given when there is no <code>.ext</code>.</li>
+<li>
+<strong>An estimation method suited to FREM.</strong> Before it builds anything, <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> reads the base model’s <code>$ESTIMATION</code> records and warns when they are not: use <code>IMP</code> or <code>IMPMAP</code> (<code>SAEM</code> cannot handle missing covariate values correctly), with <code>NITER</code> of at least 150, and <code>PHITYPE=1</code> so the results can be post-processed. These are warnings, not errors: <code>run30</code> below uses <code>NITER=50</code>, and the warning appears.</li>
+</ul>
+<p>MU referencing of the structural parameters is not required. The covariate parts <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> writes are MU-referenced (<code>useMuModeling = TRUE</code>, the default).</p>
+<p>The example model, <code>run30</code>, shows both: two OMEGAs - an IIV on the residual error and a fixed IIV on <code>D1</code> - before the final <code>$OMEGA BLOCK(3)</code>, so <code>numSkipOm = 2</code>; and the <code>$INPUT</code> that <code>cstrKeepCols</code> below refers to.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">base &lt;-<span class="st"> </span><span class="kw">readLines</span>(<span class="kw">file.path</span>(modDevDir, <span class="st">"run30.mod"</span>))</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">records &lt;-<span class="st"> </span><span class="kw">grep</span>(<span class="st">"^[$]"</span>, base)</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3"><span class="co"># Print every record of one kind, continuation lines included</span></a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">show &lt;-<span class="st"> </span><span class="cf">function</span>(rec) {</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">  <span class="cf">for</span> (s <span class="cf">in</span> <span class="kw">grep</span>(<span class="kw">paste0</span>(<span class="st">"^[$]"</span>, rec), base)) {</a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">    <span class="kw">cat</span>(base[s<span class="op">:</span>(<span class="kw">c</span>(records[records <span class="op">&gt;</span><span class="st"> </span>s], <span class="kw">length</span>(base) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>)[<span class="dv">1</span>] <span class="op">-</span><span class="st"> </span><span class="dv">1</span>)], <span class="dt">sep =</span> <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</a>
+<a class="sourceLine" id="cb2-7" data-line-number="7">  }</a>
+<a class="sourceLine" id="cb2-8" data-line-number="8">}</a>
+<a class="sourceLine" id="cb2-9" data-line-number="9"><span class="kw">show</span>(<span class="st">"INPUT"</span>)</a>
+<a class="sourceLine" id="cb2-10" data-line-number="10"><span class="op">$</span>INPUT      NO ID STUDYID TAD TIME DAY AMT RATE ODV DV EVID BLQ DOSE</a>
+<a class="sourceLine" id="cb2-11" data-line-number="11">            FOOD FORM TYPE WT HT LBWT BSA SEX RACE AGE AST ALT BILI</a>
+<a class="sourceLine" id="cb2-12" data-line-number="12">            CRCL BMI NCI GENO2 ETHNIC SMOK RACEL NCIL</a>
+<a class="sourceLine" id="cb2-13" data-line-number="13"><span class="kw">show</span>(<span class="st">"OMEGA"</span>)</a>
+<a class="sourceLine" id="cb2-14" data-line-number="14"><span class="op">$</span>OMEGA  <span class="fl">0.116842</span>  ; <span class="fl">1.</span> IIV on RUV</a>
+<a class="sourceLine" id="cb2-15" data-line-number="15"><span class="op">$</span>OMEGA  <span class="fl">0.0001</span>  FIX  ; <span class="fl">2.</span> IIV on D1</a>
+<a class="sourceLine" id="cb2-16" data-line-number="16"><span class="op">$</span>OMEGA  <span class="kw">BLOCK</span>(<span class="dv">3</span>)</a>
+<a class="sourceLine" id="cb2-17" data-line-number="17"> <span class="fl">0.488192</span>  ; <span class="fl">3.</span> IIV on CL</a>
+<a class="sourceLine" id="cb2-18" data-line-number="18"> <span class="fl">0.270746</span> <span class="fl">0.655494</span>  ; <span class="fl">4.</span> IIV on V</a>
+<a class="sourceLine" id="cb2-19" data-line-number="19"> <span class="fl">-0.025678</span> <span class="fl">0.0206116</span> <span class="fl">0.157579</span>  ; <span class="fl">5.</span> IIV on MAT</a></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="choosing-the-covariates">3. Choosing the Covariates<a class="anchor" aria-label="anchor" href="#choosing-the-covariates"></a>
 </h2>
 <p>We need to decide which covariates to include and how they should be handled. In FREM, continuous covariates can be modeled as-is or log-transformed, while categorical covariates must be identified so they can be binarized into dummy variables.</p>
-<p>We will also explicitly define <code>keep_cols</code> so that the columns the model needs carry over to the new FREM data set rows.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<p><code>cstrKeepCols</code> lists the columns of the original data set - the dose and observation records - that the FREM data set keeps; the covariate records <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> adds need none of them. Name them as the base model’s <code>$INPUT</code> names them - the column names in the data file do not count - and include every data item <code>$PK</code> and <code>$ERROR</code> use, here <code>FOOD</code>. A column the base model marks <code>=DROP</code> cannot be kept.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Define the complete list of covariates to include</span></span>
 <span><span class="va">frem_covariates</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AGE"</span>, <span class="st">"WT"</span>, <span class="st">"SEX"</span>, <span class="st">"RACEL"</span><span class="op">)</span></span>
 <span></span>
@@ -118,20 +152,21 @@
 <span><span class="va">categorical_covs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"RACEL"</span>, <span class="st">"SEX"</span><span class="op">)</span></span>
 <span><span class="va">log_transform_covs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WT"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Define which structural columns must be kept in the new FREM dataset rows</span></span>
+<span><span class="co"># The columns of the data set the FREM data set keeps, by their $INPUT names</span></span>
 <span><span class="va">keep_cols</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ID"</span>, <span class="st">"TIME"</span>, <span class="st">"AMT"</span>, <span class="st">"EVID"</span>, <span class="st">"RATE"</span>, <span class="st">"FOOD"</span>, <span class="st">"DV"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="generating-the-model">3. Generating the Model<a class="anchor" aria-label="anchor" href="#generating-the-model"></a>
-</h2>
-<p>We pass our specifications into <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code>. We use the <code>run30</code> base model, which has <code>7</code> structural THETAs (<code>numNonFREMThetas</code>) and <code>2</code> specific OMEGAs that we want to skip correlating with the covariates (<code>numSkipOm</code>). <code>numNonFREMThetas</code> can be left <code>NULL</code> – it is then read from the base model’s <code>.ext</code> – but <code>numSkipOm</code> cannot be deduced from a base model and must be given.</p>
 <div class="section level3">
 <h3 id="dichotomous-covariates">Dichotomous covariates<a class="anchor" aria-label="anchor" href="#dichotomous-covariates"></a>
 </h3>
-<p><code>bRecodeDichotomous = TRUE</code> recodes two-level categorical covariates from <code>1</code>/<code>2</code> - how many data sets code sex - to <code>0</code>/<code>1</code>, which makes <code>0</code> the reference level and the covariate effect the difference from it. Without it, FREM refuses a <code>1</code>/<code>2</code> coding: see <strong>Changes to existing behaviour</strong> in the 2.0.0 release notes.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Execute the creation of the FREM model and dataset</span></span>
-<span><span class="va">generated_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/createFREMmodel.html">createFREMmodel</a></span><span class="op">(</span></span>
+<p><code>bRecodeDichotomous = TRUE</code> recodes two-level categorical covariates from <code>1</code>/<code>2</code> - how many data sets code sex - to <code>0</code>/<code>1</code>, which makes <code>0</code> the reference level and the covariate effect the difference from it. Without it, a <code>1</code>/<code>2</code>-coded covariate stops <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> with an error asking for <code>0</code>/<code>1</code> (<code>allowNon01 = TRUE</code> lets it through unchanged).</p>
+<p>The covariate’s mean THETA moves with the coding. Recoded, <code>SEX</code> becomes <code>SEX_2</code> - <code>1</code> for level 2, <code>0</code> for level 1 - and its mean THETA <code>TV_SEX_2</code> is the proportion of subjects at level 2. A FREM model on the original <code>1</code>/<code>2</code> values, such as one from PsN, has a mean THETA exactly 1 higher; the model is the same.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="generating-the-model">4. Generating the Model<a class="anchor" aria-label="anchor" href="#generating-the-model"></a>
+</h2>
+<p>We pass our specifications into <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code>. <code>quiet = TRUE</code> silences the progress messages, not the warnings: the one about <code>NITER</code> appears below.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">generated_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/createFREMmodel.html">createFREMmodel</a></span><span class="op">(</span></span>
 <span>  modName <span class="op">=</span> <span class="st">"run30"</span>,</span>
 <span>  modDevDir <span class="op">=</span> <span class="va">modDevDir</span>,</span>
 <span>  ffemDataFile <span class="op">=</span> <span class="va">ffemDataFile</span>,</span>
@@ -143,30 +178,29 @@
 <span>  catCovs <span class="op">=</span> <span class="va">categorical_covs</span>,</span>
 <span>  logtCovs <span class="op">=</span> <span class="va">log_transform_covs</span>,</span>
 <span></span>
-<span>  <span class="co"># Structural columns</span></span>
-<span>  numNonFREMThetas <span class="op">=</span> <span class="fl">7</span>,</span>
+<span>  <span class="co"># The OMEGAs before the final $OMEGA BLOCK</span></span>
 <span>  numSkipOm <span class="op">=</span> <span class="fl">2</span>,</span>
 <span></span>
 <span>  <span class="co"># Dataset formatting</span></span>
 <span>  cstrKeepCols <span class="op">=</span> <span class="va">keep_cols</span>,</span>
 <span>  bRecodeDichotomous <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-</div>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: Consider increasing NITER to at least 150.</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="understanding-the-output">4. Understanding the Output<a class="anchor" aria-label="anchor" href="#understanding-the-output"></a>
+<h2 id="understanding-the-output">5. Understanding the Output<a class="anchor" aria-label="anchor" href="#understanding-the-output"></a>
 </h2>
-<p><code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> has now generated the newly expanded <code>.mod</code> and <code>.csv</code> files. Let’s inspect them directly from the disk.</p>
+<p><code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> has now generated the newly expanded <code>.mod</code> and <code>.csv</code> files. Both are read back from disk below.</p>
 <div class="section level3">
 <h3 id="the-generated-dataset">The Generated Dataset<a class="anchor" aria-label="anchor" href="#the-generated-dataset"></a>
 </h3>
-<p>The original dataset has been vertically expanded. For every subject, new rows (<code>EVID = 2</code>) have been appended containing the standardized covariate values in the <code>DV</code> column, mapped via the new <code>FREMTYPE</code> compartment column. Because we used <code>bRecodeDichotomous = TRUE</code>, <code>SEX</code> appears as <code>0</code> or <code>1</code>.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<p>The original dataset has been vertically expanded. For every subject, covariate records (<code>EVID = 2</code>) have been appended, one per covariate, holding the covariate’s value in the <code>DV</code> column - log-transformed for <code>WT</code>, as asked - and identified by the new <code>FREMTYPE</code> column. Because we used <code>bRecodeDichotomous = TRUE</code>, <code>SEX</code> appears as <code>0</code> or <code>1</code>.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Read the generated dataset</span></span>
 <span><span class="va">frem_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">generated_files</span><span class="op">$</span><span class="va">data</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Display the first 15 rows to show the structural PK data followed by the new FREM dummy rows</span></span>
+<span><span class="co"># The first 15 rows: the original records, followed by the covariate records</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">frem_data</span>, n <span class="op">=</span> <span class="fl">15</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    ID TIME AMT EVID RATE FOOD     DV FREMTYPE</span></span>
 <span><span class="co">#&gt; 1   1  0.0   5    4   -2    0  0.000        0</span></span>
@@ -189,137 +223,201 @@
 <h3 id="the-final-model-control-stream">The Final Model Control Stream<a class="anchor" aria-label="anchor" href="#the-final-model-control-stream"></a>
 </h3>
 <p>The control stream is substantially different. The <code>$PK</code> block now handles the structural <code>ETA</code>s alongside the covariate means, and the <code>$ERROR</code> block routes the dummy observations (via <code>FREMTYPE</code>) to their respective equations. Finally, a large <code>$OMEGA BLOCK</code> is appended to estimate the covariances.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="co"># Read the generated NONMEM control stream and print it in its entirety</span></a>
-<a class="sourceLine" id="cb5-2" data-line-number="2">frem_mod &lt;-<span class="st"> </span><span class="kw">readLines</span>(generated_files<span class="op">$</span>model)</a>
-<a class="sourceLine" id="cb5-3" data-line-number="3"><span class="kw">cat</span>(frem_mod, <span class="dt">sep =</span> <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</a>
-<a class="sourceLine" id="cb5-4" data-line-number="4">;; <span class="fl">1.</span> Based on<span class="op">:</span><span class="st"> </span><span class="dv">25</span></a>
-<a class="sourceLine" id="cb5-5" data-line-number="5">;; <span class="fl">2.</span> Description<span class="op">:</span></a>
-<a class="sourceLine" id="cb5-6" data-line-number="6">;;    New simulated data set</a>
-<a class="sourceLine" id="cb5-7" data-line-number="7">;; <span class="fl">3.</span> Label<span class="op">:</span></a>
-<a class="sourceLine" id="cb5-8" data-line-number="8">;;    SimVal base model</a>
-<a class="sourceLine" id="cb5-9" data-line-number="9">;<span class="op">------------------------------------------------------------------------------</span></a>
-<a class="sourceLine" id="cb5-10" data-line-number="10"><span class="er">$</span>PROBLEM    run <span class="dv">1</span></a>
-<a class="sourceLine" id="cb5-11" data-line-number="11"><span class="op">$</span>INPUT ID TIME AMT EVID RATE FOOD DV FREMTYPE</a>
-<a class="sourceLine" id="cb5-12" data-line-number="12"><span class="op">$</span>DATA run30_FREM_data.csv IGNORE=<span class="er">@</span></a>
-<a class="sourceLine" id="cb5-13" data-line-number="13"><span class="er">$</span>SUBROUTINE ADVAN2 TRANS2</a>
-<a class="sourceLine" id="cb5-14" data-line-number="14"><span class="op">$</span>PK</a>
-<a class="sourceLine" id="cb5-15" data-line-number="15">;;; MATFOOD<span class="op">-</span>DEFINITION START</a>
-<a class="sourceLine" id="cb5-16" data-line-number="16"><span class="kw">IF</span>(FOOD.EQ<span class="fl">.1</span>) MATFOOD =<span class="st"> </span><span class="dv">1</span>  ; Most common</a>
-<a class="sourceLine" id="cb5-17" data-line-number="17"><span class="kw">IF</span>(FOOD.EQ<span class="fl">.0</span>) MATFOOD =<span class="st"> </span>( <span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="kw">THETA</span>(<span class="dv">6</span>))</a>
-<a class="sourceLine" id="cb5-18" data-line-number="18">;;; MATFOOD<span class="op">-</span>DEFINITION END</a>
-<a class="sourceLine" id="cb5-19" data-line-number="19"></a>
-<a class="sourceLine" id="cb5-20" data-line-number="20">;;; MAT<span class="op">-</span>RELATION START</a>
-<a class="sourceLine" id="cb5-21" data-line-number="21">MATCOVTIME =<span class="st"> </span>MATFOOD</a>
-<a class="sourceLine" id="cb5-22" data-line-number="22">;;; MAT<span class="op">-</span>RELATION END</a>
-<a class="sourceLine" id="cb5-23" data-line-number="23"></a>
-<a class="sourceLine" id="cb5-24" data-line-number="24"></a>
-<a class="sourceLine" id="cb5-25" data-line-number="25">;;; FRELFOOD<span class="op">-</span>DEFINITION START</a>
-<a class="sourceLine" id="cb5-26" data-line-number="26"><span class="kw">IF</span>(FOOD.EQ<span class="fl">.1</span>) FRELFOOD =<span class="st"> </span><span class="dv">1</span>  ; Most common</a>
-<a class="sourceLine" id="cb5-27" data-line-number="27"><span class="kw">IF</span>(FOOD.EQ<span class="fl">.0</span>) FRELFOOD =<span class="st"> </span>( <span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="kw">THETA</span>(<span class="dv">7</span>))</a>
-<a class="sourceLine" id="cb5-28" data-line-number="28">;;; FRELFOOD<span class="op">-</span>DEFINITION END</a>
-<a class="sourceLine" id="cb5-29" data-line-number="29"></a>
-<a class="sourceLine" id="cb5-30" data-line-number="30">;;; FREL<span class="op">-</span>RELATION START</a>
-<a class="sourceLine" id="cb5-31" data-line-number="31">FRELCOVTIME =<span class="st"> </span>FRELFOOD</a>
-<a class="sourceLine" id="cb5-32" data-line-number="32">;;; FREL<span class="op">-</span>RELATION END</a>
-<a class="sourceLine" id="cb5-33" data-line-number="33"></a>
-<a class="sourceLine" id="cb5-34" data-line-number="34">TVFREL  =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">1</span>)</a>
-<a class="sourceLine" id="cb5-35" data-line-number="35">TVCL    =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">2</span>)</a>
-<a class="sourceLine" id="cb5-36" data-line-number="36">TVV     =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">3</span>)</a>
-<a class="sourceLine" id="cb5-37" data-line-number="37">TVMAT   =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">4</span>)</a>
-<a class="sourceLine" id="cb5-38" data-line-number="38">TVD1    =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">5</span>)</a>
-<a class="sourceLine" id="cb5-39" data-line-number="39"></a>
-<a class="sourceLine" id="cb5-40" data-line-number="40">;MU_<span class="dv">1</span>  =<span class="st"> </span><span class="kw">LOG</span>(TVRUV)</a>
-<a class="sourceLine" id="cb5-41" data-line-number="41">MU_<span class="dv">2</span>  =<span class="st"> </span>TVD1</a>
-<a class="sourceLine" id="cb5-42" data-line-number="42">MU_<span class="dv">3</span>  =<span class="st"> </span><span class="kw">LOG</span>(TVCL)</a>
-<a class="sourceLine" id="cb5-43" data-line-number="43">MU_<span class="dv">4</span>  =<span class="st"> </span><span class="kw">LOG</span>(TVV)</a>
-<a class="sourceLine" id="cb5-44" data-line-number="44">MU_<span class="dv">5</span>  =<span class="st"> </span><span class="kw">LOG</span>(TVMAT)</a>
-<a class="sourceLine" id="cb5-45" data-line-number="45"></a>
-<a class="sourceLine" id="cb5-46" data-line-number="46">D1FR  =<span class="st"> </span>MU_<span class="dv">2</span>                   <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">2</span>)</a>
-<a class="sourceLine" id="cb5-47" data-line-number="47">FREL  =<span class="st"> </span>TVFREL<span class="op">*</span>FRELCOVTIME</a>
-<a class="sourceLine" id="cb5-48" data-line-number="48">CL    =<span class="st"> </span><span class="kw">EXP</span>(MU_<span class="dv">3</span>               <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">3</span>))</a>
-<a class="sourceLine" id="cb5-49" data-line-number="49">V     =<span class="st"> </span><span class="kw">EXP</span>(MU_<span class="dv">4</span>               <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">4</span>))</a>
-<a class="sourceLine" id="cb5-50" data-line-number="50">MAT   =<span class="st"> </span>MATCOVTIME <span class="op">*</span><span class="st"> </span><span class="kw">EXP</span>(MU_<span class="dv">5</span>  <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">5</span>))</a>
-<a class="sourceLine" id="cb5-51" data-line-number="51">D1    =<span class="st"> </span>MAT<span class="op">*</span>(<span class="dv">1</span><span class="op">-</span>D1FR)</a>
-<a class="sourceLine" id="cb5-52" data-line-number="52"></a>
-<a class="sourceLine" id="cb5-53" data-line-number="53">F1    =<span class="st"> </span>FREL</a>
-<a class="sourceLine" id="cb5-54" data-line-number="54">KA    =<span class="st"> </span><span class="dv">1</span> <span class="op">/</span><span class="st"> </span>(MAT<span class="op">-</span>D1)</a>
-<a class="sourceLine" id="cb5-55" data-line-number="55">S2    =<span class="st"> </span>V</a>
-<a class="sourceLine" id="cb5-56" data-line-number="56"></a>
-<a class="sourceLine" id="cb5-57" data-line-number="57">      MU_<span class="dv">6</span> =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">8</span>)</a>
-<a class="sourceLine" id="cb5-58" data-line-number="58">      COV6 =<span class="st"> </span>MU_<span class="dv">6</span> <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">6</span>)</a>
-<a class="sourceLine" id="cb5-59" data-line-number="59">      MU_<span class="dv">7</span> =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">9</span>)</a>
-<a class="sourceLine" id="cb5-60" data-line-number="60">      COV7 =<span class="st"> </span>MU_<span class="dv">7</span> <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">7</span>)</a>
-<a class="sourceLine" id="cb5-61" data-line-number="61">      MU_<span class="dv">8</span> =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">10</span>)</a>
-<a class="sourceLine" id="cb5-62" data-line-number="62">      COV8 =<span class="st"> </span>MU_<span class="dv">8</span> <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">8</span>)</a>
-<a class="sourceLine" id="cb5-63" data-line-number="63">      MU_<span class="dv">9</span> =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">11</span>)</a>
-<a class="sourceLine" id="cb5-64" data-line-number="64">      COV9 =<span class="st"> </span>MU_<span class="dv">9</span> <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">9</span>)</a>
-<a class="sourceLine" id="cb5-65" data-line-number="65">      MU_<span class="dv">10</span> =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">12</span>)</a>
-<a class="sourceLine" id="cb5-66" data-line-number="66">      COV10 =<span class="st"> </span>MU_<span class="dv">10</span> <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">10</span>)</a>
-<a class="sourceLine" id="cb5-67" data-line-number="67"><span class="op">$</span>ERROR</a>
-<a class="sourceLine" id="cb5-68" data-line-number="68">CP    =<span class="st"> </span><span class="kw">A</span>(<span class="dv">2</span>)<span class="op">*</span><span class="dv">1000</span> <span class="op">/</span><span class="st"> </span>V</a>
-<a class="sourceLine" id="cb5-69" data-line-number="69">IPRED =<span class="st"> </span><span class="kw">LOG</span>(CP <span class="op">+</span><span class="st"> </span><span class="fl">0.00001</span>)</a>
-<a class="sourceLine" id="cb5-70" data-line-number="70">Y     =<span class="st"> </span>IPRED <span class="op">+</span><span class="st"> </span><span class="kw">EPS</span>(<span class="dv">1</span>) <span class="op">*</span><span class="st"> </span><span class="kw">EXP</span>(<span class="kw">ETA</span>(<span class="dv">1</span>))</a>
-<a class="sourceLine" id="cb5-71" data-line-number="71"></a>
-<a class="sourceLine" id="cb5-72" data-line-number="72">;;;FREM CODE BEGIN COMPACT</a>
-<a class="sourceLine" id="cb5-73" data-line-number="73">;;;DO NOT MODIFY</a>
-<a class="sourceLine" id="cb5-74" data-line-number="74">      <span class="kw">IF</span>(FREMTYPE.EQ<span class="fl">.100</span>) THEN</a>
-<a class="sourceLine" id="cb5-75" data-line-number="75">;        AGE <span class="dv">1</span></a>
-<a class="sourceLine" id="cb5-76" data-line-number="76">         Y =<span class="st"> </span>COV6 <span class="op">+</span><span class="st"> </span><span class="kw">EPS</span>(<span class="dv">2</span>)</a>
-<a class="sourceLine" id="cb5-77" data-line-number="77">         IPRED =<span class="st"> </span>COV6</a>
-<a class="sourceLine" id="cb5-78" data-line-number="78">      END IF</a>
-<a class="sourceLine" id="cb5-79" data-line-number="79">      <span class="kw">IF</span>(FREMTYPE.EQ<span class="fl">.200</span>) THEN</a>
-<a class="sourceLine" id="cb5-80" data-line-number="80">;        WT <span class="dv">1</span></a>
-<a class="sourceLine" id="cb5-81" data-line-number="81">         Y =<span class="st"> </span>COV7 <span class="op">+</span><span class="st"> </span><span class="kw">EPS</span>(<span class="dv">2</span>)</a>
-<a class="sourceLine" id="cb5-82" data-line-number="82">         IPRED =<span class="st"> </span>COV7</a>
-<a class="sourceLine" id="cb5-83" data-line-number="83">      END IF</a>
-<a class="sourceLine" id="cb5-84" data-line-number="84">      <span class="kw">IF</span>(FREMTYPE.EQ<span class="fl">.300</span>) THEN</a>
-<a class="sourceLine" id="cb5-85" data-line-number="85">;        SEX_<span class="dv">2</span> <span class="dv">1</span></a>
-<a class="sourceLine" id="cb5-86" data-line-number="86">         Y =<span class="st"> </span>COV8 <span class="op">+</span><span class="st"> </span><span class="kw">EPS</span>(<span class="dv">2</span>)</a>
-<a class="sourceLine" id="cb5-87" data-line-number="87">         IPRED =<span class="st"> </span>COV8</a>
-<a class="sourceLine" id="cb5-88" data-line-number="88">      END IF</a>
-<a class="sourceLine" id="cb5-89" data-line-number="89">      <span class="kw">IF</span>(FREMTYPE.EQ<span class="fl">.400</span>) THEN</a>
-<a class="sourceLine" id="cb5-90" data-line-number="90">;        RACEL_<span class="dv">2</span> <span class="dv">1</span></a>
-<a class="sourceLine" id="cb5-91" data-line-number="91">         Y =<span class="st"> </span>COV9 <span class="op">+</span><span class="st"> </span><span class="kw">EPS</span>(<span class="dv">2</span>)</a>
-<a class="sourceLine" id="cb5-92" data-line-number="92">         IPRED =<span class="st"> </span>COV9</a>
-<a class="sourceLine" id="cb5-93" data-line-number="93">      END IF</a>
-<a class="sourceLine" id="cb5-94" data-line-number="94">      <span class="kw">IF</span>(FREMTYPE.EQ<span class="fl">.500</span>) THEN</a>
-<a class="sourceLine" id="cb5-95" data-line-number="95">;        RACEL_<span class="dv">3</span> <span class="dv">1</span></a>
-<a class="sourceLine" id="cb5-96" data-line-number="96">         Y =<span class="st"> </span>COV10 <span class="op">+</span><span class="st"> </span><span class="kw">EPS</span>(<span class="dv">2</span>)</a>
-<a class="sourceLine" id="cb5-97" data-line-number="97">         IPRED =<span class="st"> </span>COV10</a>
-<a class="sourceLine" id="cb5-98" data-line-number="98">      END IF</a>
-<a class="sourceLine" id="cb5-99" data-line-number="99">;;;FREM CODE END COMPACT</a>
-<a class="sourceLine" id="cb5-100" data-line-number="100"><span class="op">$</span>THETA <span class="dv">1</span> FIX ; <span class="fl">1.</span> TVFREL</a>
-<a class="sourceLine" id="cb5-101" data-line-number="101"><span class="op">$</span>THETA <span class="fl">6.17206</span> ; <span class="fl">2.</span> TVCL</a>
-<a class="sourceLine" id="cb5-102" data-line-number="102"><span class="op">$</span>THETA <span class="fl">121.358</span> ; <span class="fl">3.</span> TVV</a>
-<a class="sourceLine" id="cb5-103" data-line-number="103"><span class="op">$</span>THETA <span class="fl">1.91756</span> ; <span class="fl">4.</span> TVMAT</a>
-<a class="sourceLine" id="cb5-104" data-line-number="104"><span class="op">$</span>THETA <span class="fl">0.676682</span> ; <span class="fl">5.</span> D1</a>
-<a class="sourceLine" id="cb5-105" data-line-number="105"><span class="op">$</span>THETA <span class="fl">-0.0521041</span> ; <span class="fl">6.</span> FRELFOOD1</a>
-<a class="sourceLine" id="cb5-106" data-line-number="106"><span class="op">$</span>THETA <span class="fl">0.152505</span> ; <span class="fl">7.</span> MATFOOD1</a>
-<a class="sourceLine" id="cb5-107" data-line-number="107"><span class="op">$</span>THETA <span class="fl">42.97</span> ; <span class="dv">8</span> TV_AGE</a>
-<a class="sourceLine" id="cb5-108" data-line-number="108"><span class="op">$</span>THETA <span class="fl">86.8</span> ; <span class="dv">9</span> TV_WT</a>
-<a class="sourceLine" id="cb5-109" data-line-number="109"><span class="op">$</span>THETA <span class="fl">0.44</span> FIX ; <span class="dv">10</span> TV_SEX_<span class="dv">2</span></a>
-<a class="sourceLine" id="cb5-110" data-line-number="110"><span class="op">$</span>THETA <span class="fl">0.2</span> ; <span class="dv">11</span> TV_RACEL_<span class="dv">2</span></a>
-<a class="sourceLine" id="cb5-111" data-line-number="111"><span class="op">$</span>THETA <span class="fl">0.02</span> ; <span class="dv">12</span> TV_RACEL_<span class="dv">3</span></a>
-<a class="sourceLine" id="cb5-112" data-line-number="112"><span class="op">$</span>OMEGA <span class="kw">BLOCK</span>(<span class="dv">1</span>) <span class="fl">0.054943</span> ; <span class="fl">1.</span> IIV on RUV</a>
-<a class="sourceLine" id="cb5-113" data-line-number="113"><span class="op">$</span>OMEGA <span class="kw">BLOCK</span>(<span class="dv">1</span>) <span class="fl">1e-04</span> FIX ; <span class="fl">2.</span> IIV on D1</a>
-<a class="sourceLine" id="cb5-114" data-line-number="114"><span class="op">$</span>OMEGA <span class="kw">BLOCK</span>(<span class="dv">8</span>) </a>
-<a class="sourceLine" id="cb5-115" data-line-number="115"><span class="fl">0.183099</span>  ; <span class="fl">3.</span> IIV on CL</a>
-<a class="sourceLine" id="cb5-116" data-line-number="116"><span class="fl">0.140718</span> <span class="fl">0.200553</span>  ; <span class="fl">4.</span> IIV on V</a>
-<a class="sourceLine" id="cb5-117" data-line-number="117"><span class="fl">0.012395</span> <span class="fl">0.0258711</span> <span class="fl">0.047017</span>  ; <span class="fl">5.</span> IIV on MAT</a>
-<a class="sourceLine" id="cb5-118" data-line-number="118"><span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">182.584</span>  ; <span class="dv">6</span> BSV_AGE</a>
-<a class="sourceLine" id="cb5-119" data-line-number="119"><span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">428.13879167982</span>  ; <span class="dv">7</span> BSV_WT</a>
-<a class="sourceLine" id="cb5-120" data-line-number="120"><span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">0.246868481876092</span>  ; <span class="dv">8</span> BSV_SEX_<span class="dv">2</span></a>
-<a class="sourceLine" id="cb5-121" data-line-number="121"><span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">0.157427798401812</span>  ; <span class="dv">9</span> BSV_RACEL_<span class="dv">2</span></a>
-<a class="sourceLine" id="cb5-122" data-line-number="122"><span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">0.0240315442857442</span>  ; <span class="dv">10</span> BSV_RACEL_<span class="dv">3</span></a>
-<a class="sourceLine" id="cb5-123" data-line-number="123"><span class="op">$</span>SIGMA  <span class="fl">0.0321471</span>  ;     <span class="fl">1.</span> RUV</a>
-<a class="sourceLine" id="cb5-124" data-line-number="124"><span class="op">$</span>SIGMA <span class="fl">0.0000001</span> FIX</a>
-<a class="sourceLine" id="cb5-125" data-line-number="125"><span class="op">$</span>ESTIMATION METHOD=IMPMAP AUTO=<span class="dv">1</span> RANMETHOD=3P INTER NOABORT PRINT=<span class="dv">1</span></a>
-<a class="sourceLine" id="cb5-126" data-line-number="126">            NOCOV=<span class="dv">1</span> ISAMPEND=<span class="dv">100</span> NITER=<span class="dv">50</span> ISAMPLE=<span class="dv">300</span></a>
-<a class="sourceLine" id="cb5-127" data-line-number="127"><span class="op">$</span>ESTIMATION METHOD=IMPMAP INTER EONLY=<span class="dv">1</span> NITER=<span class="dv">5</span> ISAMPLE=<span class="dv">10000</span> NOCOV=<span class="dv">0</span></a>
-<a class="sourceLine" id="cb5-128" data-line-number="128">            PHITYPE=<span class="dv">1</span></a>
-<a class="sourceLine" id="cb5-129" data-line-number="129">;<span class="op">$</span>COVARIANCE PRINT=E MATRIX=S UNCONDITIONAL</a></code></pre></div>
+<p>A few things carry over from the base model:</p>
+<ul>
+<li>
+<strong>The <code>$THETA</code> records keep their bounds</strong> - <code>(0, ...)</code> on <code>TVCL</code> - with the base model’s final estimates from the <code>.ext</code> as initial values. An estimate sitting on a bound is moved just inside it, with a message naming the THETA, since NM-TRAN needs an initial value strictly inside its bounds.</li>
+<li>
+<strong>The <code>$TABLE</code> records are kept</strong>, fitted to the FREM data set: data items it does not carry are left out (a message names them; add them to <code>cstrKeepCols</code> to keep them), <code>FREMTYPE</code> is added, and the table file is renamed so the base run’s tables are not overwritten - <code>xptab30</code> becomes <code>xptab30_run30_FREM</code> here, or <code>xptab31</code> if the FREM model were called <code>run31</code>.</li>
+</ul>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="co"># Read the generated NONMEM control stream and print it in its entirety</span></a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">frem_mod &lt;-<span class="st"> </span><span class="kw">readLines</span>(generated_files<span class="op">$</span>model)</a>
+<a class="sourceLine" id="cb6-3" data-line-number="3"><span class="kw">cat</span>(frem_mod, <span class="dt">sep =</span> <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</a>
+<a class="sourceLine" id="cb6-4" data-line-number="4">;; <span class="fl">1.</span> Based on<span class="op">:</span><span class="st"> </span><span class="dv">25</span></a>
+<a class="sourceLine" id="cb6-5" data-line-number="5">;; <span class="fl">2.</span> Description<span class="op">:</span></a>
+<a class="sourceLine" id="cb6-6" data-line-number="6">;;    New simulated data set</a>
+<a class="sourceLine" id="cb6-7" data-line-number="7">;; <span class="fl">3.</span> Label<span class="op">:</span></a>
+<a class="sourceLine" id="cb6-8" data-line-number="8">;;    SimVal base model</a>
+<a class="sourceLine" id="cb6-9" data-line-number="9">;<span class="op">------------------------------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb6-10" data-line-number="10"><span class="er">$</span>PROBLEM    run <span class="dv">1</span></a>
+<a class="sourceLine" id="cb6-11" data-line-number="11"><span class="op">$</span>INPUT ID TIME AMT EVID RATE FOOD DV FREMTYPE</a>
+<a class="sourceLine" id="cb6-12" data-line-number="12"><span class="op">$</span>DATA run30_FREM_data.csv IGNORE=<span class="er">@</span></a>
+<a class="sourceLine" id="cb6-13" data-line-number="13"><span class="er">$</span>SUBROUTINE ADVAN2 TRANS2</a>
+<a class="sourceLine" id="cb6-14" data-line-number="14"><span class="op">$</span>PK</a>
+<a class="sourceLine" id="cb6-15" data-line-number="15">;;; MATFOOD<span class="op">-</span>DEFINITION START</a>
+<a class="sourceLine" id="cb6-16" data-line-number="16"><span class="kw">IF</span>(FOOD.EQ<span class="fl">.1</span>) MATFOOD =<span class="st"> </span><span class="dv">1</span>  ; Most common</a>
+<a class="sourceLine" id="cb6-17" data-line-number="17"><span class="kw">IF</span>(FOOD.EQ<span class="fl">.0</span>) MATFOOD =<span class="st"> </span>( <span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="kw">THETA</span>(<span class="dv">6</span>))</a>
+<a class="sourceLine" id="cb6-18" data-line-number="18">;;; MATFOOD<span class="op">-</span>DEFINITION END</a>
+<a class="sourceLine" id="cb6-19" data-line-number="19"></a>
+<a class="sourceLine" id="cb6-20" data-line-number="20">;;; MAT<span class="op">-</span>RELATION START</a>
+<a class="sourceLine" id="cb6-21" data-line-number="21">MATCOVTIME =<span class="st"> </span>MATFOOD</a>
+<a class="sourceLine" id="cb6-22" data-line-number="22">;;; MAT<span class="op">-</span>RELATION END</a>
+<a class="sourceLine" id="cb6-23" data-line-number="23"></a>
+<a class="sourceLine" id="cb6-24" data-line-number="24"></a>
+<a class="sourceLine" id="cb6-25" data-line-number="25">;;; FRELFOOD<span class="op">-</span>DEFINITION START</a>
+<a class="sourceLine" id="cb6-26" data-line-number="26"><span class="kw">IF</span>(FOOD.EQ<span class="fl">.1</span>) FRELFOOD =<span class="st"> </span><span class="dv">1</span>  ; Most common</a>
+<a class="sourceLine" id="cb6-27" data-line-number="27"><span class="kw">IF</span>(FOOD.EQ<span class="fl">.0</span>) FRELFOOD =<span class="st"> </span>( <span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="kw">THETA</span>(<span class="dv">7</span>))</a>
+<a class="sourceLine" id="cb6-28" data-line-number="28">;;; FRELFOOD<span class="op">-</span>DEFINITION END</a>
+<a class="sourceLine" id="cb6-29" data-line-number="29"></a>
+<a class="sourceLine" id="cb6-30" data-line-number="30">;;; FREL<span class="op">-</span>RELATION START</a>
+<a class="sourceLine" id="cb6-31" data-line-number="31">FRELCOVTIME =<span class="st"> </span>FRELFOOD</a>
+<a class="sourceLine" id="cb6-32" data-line-number="32">;;; FREL<span class="op">-</span>RELATION END</a>
+<a class="sourceLine" id="cb6-33" data-line-number="33"></a>
+<a class="sourceLine" id="cb6-34" data-line-number="34">TVFREL  =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">1</span>)</a>
+<a class="sourceLine" id="cb6-35" data-line-number="35">TVCL    =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">2</span>)</a>
+<a class="sourceLine" id="cb6-36" data-line-number="36">TVV     =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">3</span>)</a>
+<a class="sourceLine" id="cb6-37" data-line-number="37">TVMAT   =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">4</span>)</a>
+<a class="sourceLine" id="cb6-38" data-line-number="38">TVD1    =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">5</span>)</a>
+<a class="sourceLine" id="cb6-39" data-line-number="39"></a>
+<a class="sourceLine" id="cb6-40" data-line-number="40">;MU_<span class="dv">1</span>  =<span class="st"> </span><span class="kw">LOG</span>(TVRUV)</a>
+<a class="sourceLine" id="cb6-41" data-line-number="41">MU_<span class="dv">2</span>  =<span class="st"> </span>TVD1</a>
+<a class="sourceLine" id="cb6-42" data-line-number="42">MU_<span class="dv">3</span>  =<span class="st"> </span><span class="kw">LOG</span>(TVCL)</a>
+<a class="sourceLine" id="cb6-43" data-line-number="43">MU_<span class="dv">4</span>  =<span class="st"> </span><span class="kw">LOG</span>(TVV)</a>
+<a class="sourceLine" id="cb6-44" data-line-number="44">MU_<span class="dv">5</span>  =<span class="st"> </span><span class="kw">LOG</span>(TVMAT)</a>
+<a class="sourceLine" id="cb6-45" data-line-number="45"></a>
+<a class="sourceLine" id="cb6-46" data-line-number="46">D1FR  =<span class="st"> </span>MU_<span class="dv">2</span>                   <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">2</span>)</a>
+<a class="sourceLine" id="cb6-47" data-line-number="47">FREL  =<span class="st"> </span>TVFREL<span class="op">*</span>FRELCOVTIME</a>
+<a class="sourceLine" id="cb6-48" data-line-number="48">CL    =<span class="st"> </span><span class="kw">EXP</span>(MU_<span class="dv">3</span>               <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">3</span>))</a>
+<a class="sourceLine" id="cb6-49" data-line-number="49">V     =<span class="st"> </span><span class="kw">EXP</span>(MU_<span class="dv">4</span>               <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">4</span>))</a>
+<a class="sourceLine" id="cb6-50" data-line-number="50">MAT   =<span class="st"> </span>MATCOVTIME <span class="op">*</span><span class="st"> </span><span class="kw">EXP</span>(MU_<span class="dv">5</span>  <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">5</span>))</a>
+<a class="sourceLine" id="cb6-51" data-line-number="51">D1    =<span class="st"> </span>MAT<span class="op">*</span>(<span class="dv">1</span><span class="op">-</span>D1FR)</a>
+<a class="sourceLine" id="cb6-52" data-line-number="52"></a>
+<a class="sourceLine" id="cb6-53" data-line-number="53">F1    =<span class="st"> </span>FREL</a>
+<a class="sourceLine" id="cb6-54" data-line-number="54">KA    =<span class="st"> </span><span class="dv">1</span> <span class="op">/</span><span class="st"> </span>(MAT<span class="op">-</span>D1)</a>
+<a class="sourceLine" id="cb6-55" data-line-number="55">S2    =<span class="st"> </span>V</a>
+<a class="sourceLine" id="cb6-56" data-line-number="56"></a>
+<a class="sourceLine" id="cb6-57" data-line-number="57">      MU_<span class="dv">6</span> =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">8</span>)</a>
+<a class="sourceLine" id="cb6-58" data-line-number="58">      COV6 =<span class="st"> </span>MU_<span class="dv">6</span> <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">6</span>)</a>
+<a class="sourceLine" id="cb6-59" data-line-number="59">      MU_<span class="dv">7</span> =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">9</span>)</a>
+<a class="sourceLine" id="cb6-60" data-line-number="60">      COV7 =<span class="st"> </span>MU_<span class="dv">7</span> <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">7</span>)</a>
+<a class="sourceLine" id="cb6-61" data-line-number="61">      MU_<span class="dv">8</span> =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">10</span>)</a>
+<a class="sourceLine" id="cb6-62" data-line-number="62">      COV8 =<span class="st"> </span>MU_<span class="dv">8</span> <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">8</span>)</a>
+<a class="sourceLine" id="cb6-63" data-line-number="63">      MU_<span class="dv">9</span> =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">11</span>)</a>
+<a class="sourceLine" id="cb6-64" data-line-number="64">      COV9 =<span class="st"> </span>MU_<span class="dv">9</span> <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">9</span>)</a>
+<a class="sourceLine" id="cb6-65" data-line-number="65">      MU_<span class="dv">10</span> =<span class="st"> </span><span class="kw">THETA</span>(<span class="dv">12</span>)</a>
+<a class="sourceLine" id="cb6-66" data-line-number="66">      COV10 =<span class="st"> </span>MU_<span class="dv">10</span> <span class="op">+</span><span class="st"> </span><span class="kw">ETA</span>(<span class="dv">10</span>)</a>
+<a class="sourceLine" id="cb6-67" data-line-number="67"><span class="op">$</span>ERROR</a>
+<a class="sourceLine" id="cb6-68" data-line-number="68">CP    =<span class="st"> </span><span class="kw">A</span>(<span class="dv">2</span>)<span class="op">*</span><span class="dv">1000</span> <span class="op">/</span><span class="st"> </span>V</a>
+<a class="sourceLine" id="cb6-69" data-line-number="69">IPRED =<span class="st"> </span><span class="kw">LOG</span>(CP <span class="op">+</span><span class="st"> </span><span class="fl">0.00001</span>)</a>
+<a class="sourceLine" id="cb6-70" data-line-number="70">Y     =<span class="st"> </span>IPRED <span class="op">+</span><span class="st"> </span><span class="kw">EPS</span>(<span class="dv">1</span>) <span class="op">*</span><span class="st"> </span><span class="kw">EXP</span>(<span class="kw">ETA</span>(<span class="dv">1</span>))</a>
+<a class="sourceLine" id="cb6-71" data-line-number="71"></a>
+<a class="sourceLine" id="cb6-72" data-line-number="72">;;;FREM CODE BEGIN COMPACT</a>
+<a class="sourceLine" id="cb6-73" data-line-number="73">;;;DO NOT MODIFY</a>
+<a class="sourceLine" id="cb6-74" data-line-number="74">      <span class="kw">IF</span>(FREMTYPE.EQ<span class="fl">.100</span>) THEN</a>
+<a class="sourceLine" id="cb6-75" data-line-number="75">;        AGE <span class="dv">1</span></a>
+<a class="sourceLine" id="cb6-76" data-line-number="76">         Y =<span class="st"> </span>COV6 <span class="op">+</span><span class="st"> </span><span class="kw">EPS</span>(<span class="dv">2</span>)</a>
+<a class="sourceLine" id="cb6-77" data-line-number="77">         IPRED =<span class="st"> </span>COV6</a>
+<a class="sourceLine" id="cb6-78" data-line-number="78">      END IF</a>
+<a class="sourceLine" id="cb6-79" data-line-number="79">      <span class="kw">IF</span>(FREMTYPE.EQ<span class="fl">.200</span>) THEN</a>
+<a class="sourceLine" id="cb6-80" data-line-number="80">;        WT <span class="dv">1</span></a>
+<a class="sourceLine" id="cb6-81" data-line-number="81">         Y =<span class="st"> </span>COV7 <span class="op">+</span><span class="st"> </span><span class="kw">EPS</span>(<span class="dv">2</span>)</a>
+<a class="sourceLine" id="cb6-82" data-line-number="82">         IPRED =<span class="st"> </span>COV7</a>
+<a class="sourceLine" id="cb6-83" data-line-number="83">      END IF</a>
+<a class="sourceLine" id="cb6-84" data-line-number="84">      <span class="kw">IF</span>(FREMTYPE.EQ<span class="fl">.300</span>) THEN</a>
+<a class="sourceLine" id="cb6-85" data-line-number="85">;        SEX_<span class="dv">2</span> <span class="dv">1</span></a>
+<a class="sourceLine" id="cb6-86" data-line-number="86">         Y =<span class="st"> </span>COV8 <span class="op">+</span><span class="st"> </span><span class="kw">EPS</span>(<span class="dv">2</span>)</a>
+<a class="sourceLine" id="cb6-87" data-line-number="87">         IPRED =<span class="st"> </span>COV8</a>
+<a class="sourceLine" id="cb6-88" data-line-number="88">      END IF</a>
+<a class="sourceLine" id="cb6-89" data-line-number="89">      <span class="kw">IF</span>(FREMTYPE.EQ<span class="fl">.400</span>) THEN</a>
+<a class="sourceLine" id="cb6-90" data-line-number="90">;        RACEL_<span class="dv">2</span> <span class="dv">1</span></a>
+<a class="sourceLine" id="cb6-91" data-line-number="91">         Y =<span class="st"> </span>COV9 <span class="op">+</span><span class="st"> </span><span class="kw">EPS</span>(<span class="dv">2</span>)</a>
+<a class="sourceLine" id="cb6-92" data-line-number="92">         IPRED =<span class="st"> </span>COV9</a>
+<a class="sourceLine" id="cb6-93" data-line-number="93">      END IF</a>
+<a class="sourceLine" id="cb6-94" data-line-number="94">      <span class="kw">IF</span>(FREMTYPE.EQ<span class="fl">.500</span>) THEN</a>
+<a class="sourceLine" id="cb6-95" data-line-number="95">;        RACEL_<span class="dv">3</span> <span class="dv">1</span></a>
+<a class="sourceLine" id="cb6-96" data-line-number="96">         Y =<span class="st"> </span>COV10 <span class="op">+</span><span class="st"> </span><span class="kw">EPS</span>(<span class="dv">2</span>)</a>
+<a class="sourceLine" id="cb6-97" data-line-number="97">         IPRED =<span class="st"> </span>COV10</a>
+<a class="sourceLine" id="cb6-98" data-line-number="98">      END IF</a>
+<a class="sourceLine" id="cb6-99" data-line-number="99">;;;FREM CODE END COMPACT</a>
+<a class="sourceLine" id="cb6-100" data-line-number="100"><span class="op">$</span>THETA <span class="dv">1</span> FIX ; <span class="fl">1.</span> TVFREL</a>
+<a class="sourceLine" id="cb6-101" data-line-number="101"><span class="op">$</span><span class="kw">THETA</span> (<span class="dv">0</span>,<span class="fl">6.17206</span>) ; <span class="fl">2.</span> TVCL</a>
+<a class="sourceLine" id="cb6-102" data-line-number="102"><span class="op">$</span><span class="kw">THETA</span> (<span class="dv">0</span>,<span class="fl">121.358</span>) ; <span class="fl">3.</span> TVV</a>
+<a class="sourceLine" id="cb6-103" data-line-number="103"><span class="op">$</span><span class="kw">THETA</span> (<span class="dv">0</span>,<span class="fl">1.91756</span>) ; <span class="fl">4.</span> TVMAT</a>
+<a class="sourceLine" id="cb6-104" data-line-number="104"><span class="op">$</span><span class="kw">THETA</span> (<span class="dv">0</span>,<span class="fl">0.676682</span>) ; <span class="fl">5.</span> D1</a>
+<a class="sourceLine" id="cb6-105" data-line-number="105"><span class="op">$</span><span class="kw">THETA</span> (<span class="op">-</span><span class="dv">1</span>,<span class="op">-</span><span class="fl">0.0521041</span>,<span class="dv">3</span>) ; <span class="fl">6.</span> FRELFOOD1</a>
+<a class="sourceLine" id="cb6-106" data-line-number="106"><span class="op">$</span><span class="kw">THETA</span> (<span class="op">-</span><span class="dv">1</span>,<span class="fl">0.152505</span>,<span class="dv">3</span>) ; <span class="fl">7.</span> MATFOOD1</a>
+<a class="sourceLine" id="cb6-107" data-line-number="107"><span class="op">$</span>THETA <span class="fl">42.97</span> ; <span class="dv">8</span> TV_AGE</a>
+<a class="sourceLine" id="cb6-108" data-line-number="108"><span class="op">$</span>THETA <span class="fl">86.8</span> ; <span class="dv">9</span> TV_WT</a>
+<a class="sourceLine" id="cb6-109" data-line-number="109"><span class="op">$</span>THETA <span class="fl">0.44</span> FIX ; <span class="dv">10</span> TV_SEX_<span class="dv">2</span></a>
+<a class="sourceLine" id="cb6-110" data-line-number="110"><span class="op">$</span>THETA <span class="fl">0.2</span> ; <span class="dv">11</span> TV_RACEL_<span class="dv">2</span></a>
+<a class="sourceLine" id="cb6-111" data-line-number="111"><span class="op">$</span>THETA <span class="fl">0.02</span> ; <span class="dv">12</span> TV_RACEL_<span class="dv">3</span></a>
+<a class="sourceLine" id="cb6-112" data-line-number="112"><span class="op">$</span>OMEGA <span class="kw">BLOCK</span>(<span class="dv">1</span>) <span class="fl">0.054943</span> ; <span class="fl">1.</span> IIV on RUV</a>
+<a class="sourceLine" id="cb6-113" data-line-number="113"><span class="op">$</span>OMEGA <span class="kw">BLOCK</span>(<span class="dv">1</span>) <span class="fl">1e-04</span> FIX ; <span class="fl">2.</span> IIV on D1</a>
+<a class="sourceLine" id="cb6-114" data-line-number="114"><span class="op">$</span>OMEGA <span class="kw">BLOCK</span>(<span class="dv">8</span>) </a>
+<a class="sourceLine" id="cb6-115" data-line-number="115"><span class="fl">0.183099</span>  ; <span class="fl">3.</span> IIV on CL</a>
+<a class="sourceLine" id="cb6-116" data-line-number="116"><span class="fl">0.140718</span> <span class="fl">0.200553</span>  ; <span class="fl">4.</span> IIV on V</a>
+<a class="sourceLine" id="cb6-117" data-line-number="117"><span class="fl">0.012395</span> <span class="fl">0.0258711</span> <span class="fl">0.047017</span>  ; <span class="fl">5.</span> IIV on MAT</a>
+<a class="sourceLine" id="cb6-118" data-line-number="118"><span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">182.584</span>  ; <span class="dv">6</span> BSV_AGE</a>
+<a class="sourceLine" id="cb6-119" data-line-number="119"><span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">428.13879167982</span>  ; <span class="dv">7</span> BSV_WT</a>
+<a class="sourceLine" id="cb6-120" data-line-number="120"><span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">0.246868481876092</span>  ; <span class="dv">8</span> BSV_SEX_<span class="dv">2</span></a>
+<a class="sourceLine" id="cb6-121" data-line-number="121"><span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">0.157427798401812</span>  ; <span class="dv">9</span> BSV_RACEL_<span class="dv">2</span></a>
+<a class="sourceLine" id="cb6-122" data-line-number="122"><span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">1e-05</span> <span class="fl">0.0240315442857442</span>  ; <span class="dv">10</span> BSV_RACEL_<span class="dv">3</span></a>
+<a class="sourceLine" id="cb6-123" data-line-number="123"><span class="op">$</span>SIGMA  <span class="fl">0.0321471</span>  ;     <span class="fl">1.</span> RUV</a>
+<a class="sourceLine" id="cb6-124" data-line-number="124"><span class="op">$</span>SIGMA <span class="fl">0.0000001</span> FIX</a>
+<a class="sourceLine" id="cb6-125" data-line-number="125"><span class="op">$</span>ESTIMATION METHOD=IMPMAP AUTO=<span class="dv">1</span> RANMETHOD=3P INTER NOABORT PRINT=<span class="dv">1</span></a>
+<a class="sourceLine" id="cb6-126" data-line-number="126">            NOCOV=<span class="dv">1</span> ISAMPEND=<span class="dv">100</span> NITER=<span class="dv">50</span> ISAMPLE=<span class="dv">300</span></a>
+<a class="sourceLine" id="cb6-127" data-line-number="127"><span class="op">$</span>ESTIMATION METHOD=IMPMAP INTER EONLY=<span class="dv">1</span> NITER=<span class="dv">5</span> ISAMPLE=<span class="dv">10000</span> NOCOV=<span class="dv">0</span></a>
+<a class="sourceLine" id="cb6-128" data-line-number="128">            PHITYPE=<span class="dv">1</span></a>
+<a class="sourceLine" id="cb6-129" data-line-number="129">;<span class="op">$</span>COVARIANCE PRINT=E MATRIX=S UNCONDITIONAL</a>
+<a class="sourceLine" id="cb6-130" data-line-number="130"><span class="op">$</span>TABLE ID TIME AMT RATE DV EVID FOOD CPRED CIPREDI CWRES CIWRES <span class="kw">ETAS</span>(<span class="dv">1</span><span class="op">:</span>LAST)</a>
+<a class="sourceLine" id="cb6-131" data-line-number="131">       FREMTYPE NOPRINT ONEHEADER FILE=xptab30_run30_FREM</a></code></pre></div>
 <p><code>run30_FREM.mod</code> is ready to run in NONMEM.</p>
 </div>
+</div>
+<div class="section level2">
+<h2 id="choices-createfremmodel-makes-for-you">6. Choices createFREMmodel Makes for You<a class="anchor" aria-label="anchor" href="#choices-createfremmodel-makes-for-you"></a>
+</h2>
+<p>Some behaviour is decided rather than derived; it is stated here so the results are not a surprise. Each default can be changed through the argument named.</p>
+<ul>
+<li>
+<strong>A covariate’s mean THETA is fixed when no subject lacks a value</strong> for it, and estimated otherwise (<code>fixTheta = TRUE</code>, the default). A missing value on some records of a subject that has a value elsewhere does not count: the FREM data set takes each subject’s first non-missing value.</li>
+<li>
+<strong>Subjects without any observation are left out</strong> of the FREM data set - those with only dose records, for example - since they inform no estimate (<code>keepDoseOnlySubjects = FALSE</code>). Newer PsN versions do the same, so the two FREM data sets agree.</li>
+<li>
+<strong>The base model’s <code>IGNORE</code> / <code>ACCEPT</code> lists are applied</strong> as NM-TRAN applies them, before anything is summarised. <code>=</code>, <code>.EQ.</code>, <code>.NE.</code> and <code>/=</code> compare the values as written in the data file - so <code>1.0</code> does not equal <code>1</code> - while <code>.EQN.</code>, <code>.NEN.</code> and the ordering operators compare numbers.</li>
+<li>
+<strong>A single-character <code>IGNORE</code> (<code>IGNORE=@</code>, <code>IGNORE=C</code>) is not applied.</strong> When it can only remove the header line - the usual case - nothing is said; when it could remove data records too, a warning asks you to filter the data first or use an <code>IGNORE=(list)</code>.</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="base-models-with-dropped-columns">7. Base Models with Dropped Columns<a class="anchor" aria-label="anchor" href="#base-models-with-dropped-columns"></a>
+</h2>
+<p>Real base models rarely use every column of their data set: dates and subject identifiers are typically marked <code>=DROP</code> (or <code>=SKIP</code>) in <code>$INPUT</code>. <code>$INPUT</code> still names every column of the data file in order, so <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> reads them by position, applies the <code>IGNORE</code> / <code>ACCEPT</code> lists - which may refer to a dropped column - and then removes the dropped columns. Columns after the last <code>$INPUT</code> item are ignored, with a message naming them.</p>
+<p>To show it, take a copy of <code>run30</code> and its data, add a visit-date column, and drop it together with two existing columns:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">dropDir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"drop-example"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">dropDir</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.copy</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">modDevDir</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"run30.mod"</span>, <span class="st">"run30.ext"</span><span class="op">)</span><span class="op">)</span>, <span class="va">dropDir</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE TRUE</span></span>
+<span></span>
+<span><span class="co"># The data with a visit date as its last column</span></span>
+<span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">ffemDataFile</span><span class="op">)</span></span>
+<span><span class="va">dat</span><span class="op">$</span><span class="va">VDATE</span> <span class="op">&lt;-</span> <span class="st">"2026-01-01"</span></span>
+<span><span class="va">dropData</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">dropDir</span>, <span class="st">"data.csv"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">dat</span>, <span class="va">dropData</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span>, quote <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># $INPUT: drop STUDYID and DAY, and name the new column, dropped</span></span>
+<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">dropDir</span>, <span class="st">"run30.mod"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">input</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"^\\$INPUT"</span>, <span class="va">mod</span><span class="op">)</span><span class="op">:</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"^\\$DATA"</span>, <span class="va">mod</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">mod</span><span class="op">[</span><span class="va">input</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">" STUDYID "</span>, <span class="st">" STUDYID=DROP "</span>, <span class="va">mod</span><span class="op">[</span><span class="va">input</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">mod</span><span class="op">[</span><span class="va">input</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">" DAY "</span>, <span class="st">" DAY=DROP "</span>, <span class="va">mod</span><span class="op">[</span><span class="va">input</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">mod</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">input</span><span class="op">)</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">mod</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">input</span><span class="op">)</span><span class="op">]</span>, <span class="st">"VDATE=DROP"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="va">mod</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">dropDir</span>, <span class="st">"run30.mod"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">mod</span><span class="op">[</span><span class="va">input</span><span class="op">]</span>, sep <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $INPUT      NO ID STUDYID=DROP TAD TIME DAY=DROP AMT RATE ODV DV EVID BLQ DOSE</span></span>
+<span><span class="co">#&gt;             FOOD FORM TYPE WT HT LBWT BSA SEX RACE AGE AST ALT BILI</span></span>
+<span><span class="co">#&gt;             CRCL BMI NCI GENO2 ETHNIC SMOK RACEL NCIL VDATE=DROP</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">drop_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/createFREMmodel.html">createFREMmodel</a></span><span class="op">(</span></span>
+<span>  modName <span class="op">=</span> <span class="st">"run30"</span>, modDevDir <span class="op">=</span> <span class="va">dropDir</span>, ffemDataFile <span class="op">=</span> <span class="va">dropData</span>,</span>
+<span>  outputDir <span class="op">=</span> <span class="va">dropDir</span>, fremModName <span class="op">=</span> <span class="st">"run30_FREM"</span>,</span>
+<span>  covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AGE"</span>, <span class="st">"WT"</span><span class="op">)</span>, numSkipOm <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  cstrKeepCols <span class="op">=</span> <span class="va">keep_cols</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: Consider increasing NITER to at least 150.</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"^\\$INPUT"</span>, <span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="va">drop_files</span><span class="op">$</span><span class="va">model</span><span class="op">)</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "$INPUT ID TIME AMT EVID RATE FOOD DV FREMTYPE"</span></span></code></pre></div>
+<p>One more <code>$INPUT</code> form is handled: a <code>label=synonym</code> item such as <code>CP=DV</code> is read as the reserved one of the two names, <code>DV</code>, and either name may be used in <code>covariates</code>, <code>cstrKeepCols</code> and the <code>IGNORE</code> lists.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
     </nav></aside>

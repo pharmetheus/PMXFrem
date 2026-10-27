@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -53,6 +53,53 @@
       
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2.3.0" id="pmxfrem-2-3-0">PMXFrem 2.3.0<a class="anchor" aria-label="anchor" href="#pmxfrem-2-3-0"></a></h2>
+<div class="section level3">
+<h3 id="frem-models-from-the-base-models-you-actually-have-2-3-0">FREM models from the base models you actually have<a class="anchor" aria-label="anchor" href="#frem-models-from-the-base-models-you-actually-have-2-3-0"></a></h3>
+<p><code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> now reads a base model exactly the way NONMEM does:</p>
+<ul><li>
+<code>=DROP</code> and <code>=SKIP</code> columns in <code>$INPUT</code> are read by position and removed after the <code>IGNORE</code> / <code>ACCEPT</code> filters. Data columns after the last <code>$INPUT</code> item are ignored, with a message.</li>
+<li>
+<code>$THETA</code> bounds are kept, with the final estimates of the base model as initial values. An estimate on a bound is moved just inside it, with a message.</li>
+<li>
+<code>$TABLE</code> records are kept. Items the FREM data set does not carry are left out with a message, <code>FREMTYPE</code> is added, and the table file is renamed (<code>xptab30</code> becomes <code>xptab31</code>, or <code>xptab30_&lt;fremModName&gt;</code>) so the tables from the base run are not overwritten.</li>
+<li>
+<code>IGNORE</code> / <code>ACCEPT</code> compare values as text where NONMEM does (<code>=</code>, <code>.EQ.</code>, <code>.NE.</code>, <code>/=</code>), so <code>1.0</code> no longer equals <code>1</code>.</li>
+<li>A <code>label=synonym</code> item such as <code>CP=DV</code> is read as the reserved name, <code>DV</code>, and either name may be used in <code>covariates</code> and <code>cstrKeepCols</code>.</li>
+<li>
+<code>$THETA (value)xN</code> is expanded to N THETAs.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="forest-plot-labels-from-pmxforest-2-3-0">Forest plot labels from PMXForest<a class="anchor" aria-label="anchor" href="#forest-plot-labels-from-pmxforest-2-3-0"></a></h3>
+<p><code><a href="https://rdrr.io/pkg/PMXForest/man/generateCovNames.html" class="external-link">generateCovNames()</a></code> now lives in PMXForest instead of in PMXFrem and is re-exported, so existing calls keep working. It gains the arguments <code>name_map</code> and <code>level_map</code> - one display name per covariate, one label per level - which <code>print_template = TRUE</code> now prints. The help page is in PMXForest: <code><a href="https://rdrr.io/pkg/PMXForest/man/generateCovNames.html" class="external-link">?PMXForest::generateCovNames</a></code>.</p>
+</div>
+<div class="section level3">
+<h3 id="changes-to-existing-behaviour-2-3-0">Changes to existing behaviour<a class="anchor" aria-label="anchor" href="#changes-to-existing-behaviour-2-3-0"></a></h3>
+<ul><li><strong>PMXFrem now requires PMXForest 1.4.0 or later.</strong></li>
+<li>
+<strong>The mean value of a covariate THETA is fixed only when every subject has a value for it.</strong> A categorical first covariate was fixed despite missing values, and a subject missing the covariate on some records counted as missing. A 0/1 first covariate is now named as the others are (<code>SMOK</code>, not <code>SMOK_1</code>).</li>
+<li>
+<code><a href="https://rdrr.io/pkg/PMXForest/man/generateCovNames.html" class="external-link">generateCovNames()</a></code> stops on a key given twice in a map, warns about map entries that match nothing (<code>warn_unused = FALSE</code> silences it), and labels the reference row of a one-hot covariate from <code>catRef</code>.</li>
+<li>The warning about a single-character <code>IGNORE</code> is given once, and only when it could remove data records.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-2-3-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-2-3-0"></a></h3>
+<ul><li>
+<strong>Recoding a dichotomous covariate ignored a non-default <code>missVal</code>,</strong> writing <code>-99</code> for a missing value.</li>
+<li>
+<strong><code><a href="../reference/createFFEMmodel.html">createFFEMmodel()</a></code> damaged the <code>$DATA</code> record:</strong> a Windows path lost its backslashes, and options after the file name were lost.</li>
+<li>
+<strong>A one-covariate FREM model</strong> named a deleted data file in <code>$DATA</code> and did not start from the final estimates of the base model.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="under-the-hood-2-3-0">Under the hood<a class="anchor" aria-label="anchor" href="#under-the-hood-2-3-0"></a></h3>
+<ul><li>The parallel workers are started by <code><a href="https://rdrr.io/pkg/PMXForest/man/startParallelWorkers.html" class="external-link">PMXForest::startParallelWorkers()</a></code>, so the two packages share one implementation.</li></ul></div>
+<div class="section level3">
+<h3 id="vignettes-2-3-0">Vignettes<a class="anchor" aria-label="anchor" href="#vignettes-2-3-0"></a></h3>
+<p>The <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> Deep Dive vignette now covers what the base model needs, choosing <code>cstrKeepCols</code>, recoded dichotomous covariates, the choices <code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> makes for you, and base models with dropped columns.</p>
+</div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.2.0" id="pmxfrem-2-2-0">PMXFrem 2.2.0<a class="anchor" aria-label="anchor" href="#pmxfrem-2-2-0"></a></h2>
 <p>PMXFrem 2.1.0 was published but never promoted, so its changes are described here together with 2.2.0’s.</p>
@@ -139,7 +186,7 @@
 </div>
 <div class="section level3">
 <h3 id="forest-plot-labels-built-from-the-covariate-table-2-0-0">Forest plot labels built from the covariate table<a class="anchor" aria-label="anchor" href="#forest-plot-labels-built-from-the-covariate-table-2-0-0"></a></h3>
-<p><code><a href="../reference/generateCovNames.html">generateCovNames()</a></code> builds them from the covariate table, rather than having them typed out and kept in step by hand.</p>
+<p><code><a href="https://rdrr.io/pkg/PMXForest/man/generateCovNames.html" class="external-link">generateCovNames()</a></code> builds them from the covariate table, rather than having them typed out and kept in step by hand.</p>
 </div>
 <div class="section level3">
 <h3 id="vignettes-2-0-0">Vignettes<a class="anchor" aria-label="anchor" href="#vignettes-2-0-0"></a></h3>

@@ -18,7 +18,7 @@ cleans up all intermediate files."><!-- mathjax --><script src="https://cdnjs.cl
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -119,6 +119,7 @@ cleans up all intermediate files.</p>
 
 <dt>covariates</dt>
 <dd><p>Character vector. The full list of covariates to include in the FREM model.
+For a base model <code>$INPUT</code> item <code>label=synonym</code> either name may be given.
 The first element is processed during Phase 1 (bootstrapping), and the remainder during Phase 2.</p></dd>
 
 
@@ -176,7 +177,13 @@ has no FREM structure yet - so set it correctly for your model.</p></dd>
 
 
 <dt>cstrKeepCols</dt>
-<dd><p>Character vector. Columns to strictly retain in the generated FREM dataset. Note: <code>"FREMTYPE"</code> is managed internally and injected between phases.</p></dd>
+<dd><p>Character vector. The columns of the data set that the FREM data
+set keeps on the model's own records, named as the base model's <code>$INPUT</code> names them
+(not as the data file's header does). Include every data item <code>$PK</code> and <code>$ERROR</code>
+use. A column the base model marks <code>=DROP</code> cannot be kept. Either name of an
+<code>$INPUT</code> <code>label=synonym</code> item may be given; the data column is named by the reserved
+one of the two (<code>CP=DV</code> gives <code>DV</code>), the label if neither is reserved. Note:
+<code>"FREMTYPE"</code> is managed internally and injected between phases.</p></dd>
 
 
 <dt>quiet</dt>
@@ -245,7 +252,6 @@ these subjects are retained and their covariates are included as observations.</
 <span class="r-in"><span>  catCovs <span class="op">=</span> <span class="va">catCovs</span>,</span></span>
 <span class="r-in"><span>  outputDir <span class="op">=</span> <span class="va">td</span>,</span></span>
 <span class="r-in"><span>  fremModName <span class="op">=</span> <span class="st">"frem_final"</span>,</span></span>
-<span class="r-in"><span>  numNonFREMThetas <span class="op">=</span> <span class="fl">7</span>,</span></span>
 <span class="r-in"><span>  numSkipOm <span class="op">=</span> <span class="fl">2</span>,</span></span>
 <span class="r-in"><span>  cstrKeepCols <span class="op">=</span> <span class="va">keep_cols</span>,</span></span>
 <span class="r-in"><span>  bRecodeDichotomous <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
@@ -255,9 +261,9 @@ these subjects are retained and their covariates are included as observations.</
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># The generated files are available in the temporary directory</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">generated_files</span><span class="op">$</span><span class="va">model</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/Rtmp1PyvoG/frem_example_12a607c8e1481/frem_final.mod"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpGmazyH/frem_example_1cc7f14567c4cb/frem_final.mod"</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">generated_files</span><span class="op">$</span><span class="va">data</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/Rtmp1PyvoG/frem_example_12a607c8e1481/frem_final_data.csv"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpGmazyH/frem_example_1cc7f14567c4cb/frem_final_data.csv"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Clean up the temporary directory</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">td</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
