@@ -1,3 +1,14 @@
+# PMXFrem (development version)
+
+## Changes to existing behaviour
+
+- `generateCovNames()` now lives in PMXForest (1.4.0 or later is required) and
+  is re-exported here, so existing calls keep working. Its help page is
+  PMXForest's. It gains `name_map` and `level_map`, which `print_template =
+  TRUE` now prints, labels the reference row of a one-hot covariate from
+  `catRef`, stops on a key given twice in a map and warns about map entries
+  that match nothing (`warn_unused = FALSE` silences it).
+
 # PMXFrem 2.2.0
 
 PMXFrem 2.1.0 was published but never promoted, so its changes are described
