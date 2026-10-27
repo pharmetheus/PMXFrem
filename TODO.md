@@ -299,6 +299,22 @@ comment lines back to find the covariates, so the change needs a round-trip
 test (`createFREMmodel()` then `getCovNames()` / `updateFREMmodel()` on the
 result) before and after, and a check of the snapshots that hold model text.
 
+## T48 — ~100 warnings from `%dopar%` loops on fresh workers (Windows)
+
+Found in the 2.3.0 release checks. With fresh worker sessions - Windows,
+`ncores > 1` - `getExplainedVar()` gives about a hundred warnings
+`<anonymous>: ... may be used in an incorrect context`, one per `%dopar%`
+call of `functionList[[j]](..., ...)`; `createFFEMdata()` gives two
+`already exporting variable(s): ...`. Results are unaffected (the fresh-worker
+test in `test-parallelWorkers.R` compares against one core and passes).
+Present on `epic/2.3.0` before T33 (same counts: 103 and 2), so not caused by
+the shared worker startup. Linux and macOS fork and never see them, which is
+why CI is clean. Likely causes: foreach's export analysis (codetools) on a
+body that forwards the enclosing function's `...`, and an `.export` list that
+repeats variables foreach already finds. Capturing the dots once
+(`dots <- list(...)`, then `do.call()`) and trimming `.export` should silence
+both; the fresh-worker test can then assert no warnings.
+
 ## Done
 
 - **T25, T34-T39, T41-T46** — released in 2.3.0; the NEWS entry and the PRs
