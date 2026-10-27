@@ -525,6 +525,16 @@ installed PMXFrem, the session runs the source tree, and the version check in
 unaffected. Skip those tests when PMXFrem is not loaded from an installed
 library, as `test-parallelWorkers.R` already does for its end-to-end test.
 
+## T47 — say in the generated model what a recoded covariate's level means
+
+Split off from T38 (it is a code change, T38 is the vignette). A recoded
+dichotomous covariate appears in the FREM model's `$ERROR` block as
+`;        SEX_2 1` under its `FREMTYPE`, which does not say that `SEX_2 = 1`
+means "SEX was 2". Make the comment say so - but `getCovNames()` reads these
+comment lines back to find the covariates, so the change needs a round-trip
+test (`createFREMmodel()` then `getCovNames()` / `updateFREMmodel()` on the
+result) before and after, and a check of the snapshots that hold model text.
+
 ## Done
 
 - **T15** — `ci.yml` red for months. All four jobs (lint, format, unit tests,

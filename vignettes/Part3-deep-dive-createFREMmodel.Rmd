@@ -24,11 +24,11 @@ The Full Random Effects Model (FREM) methodology requires a specific restructuri
 `createFREMmodel()` does that transformation: it takes a base model and its data set and writes the FREM control stream and data set NONMEM needs.
 
 # How createFREMmodel Works Under the Hood
-Rather than adding every covariate at once, `createFREMmodel()` builds the model one covariate at a time. It first writes a minimal FREM model from the first covariate in your `covariates` argument, rewriting the `$INPUT`, `$DATA`, `$PK` and `$ERROR` blocks for that one covariate. It then works through the rest, calling `updateFREMmodel()` for each, so every step is the same operation the update functions already perform.
+Rather than adding every covariate at once, `createFREMmodel()` builds the model one covariate at a time. It first writes a minimal FREM model from the first covariate in your `covariates` argument, rewriting the `$INPUT`, `$DATA`, `$PK` and `$ERROR` blocks for that one covariate. It then works through the rest, calling `updateFREMmodel()` for each - the function that adds covariates to an existing FREM model, covered in [its own deep dive](Part3-deep-dive-updateFREMmodel.html) - so every step is the same operation.
 
 # 1. Setup and Paths
 
-First, load the package and define the paths to your base model and original clinical dataset. 
+First, load the package and define the paths to your base model and original clinical dataset.
 
 `createFREMmodel()` writes into `modDevDir` by default, and stops rather than overwrite an existing file with the same `fremModName`. This vignette writes into a temporary directory instead.
 
@@ -43,11 +43,36 @@ ffemDataFile <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"
 td <- tempdir()
 ```
 
-# 2. Designing the FREM Model
+# 2. What the Base Model Needs
+
+`createFREMmodel()` starts from a converged base model: its control stream, its `.ext` file and the data set it was fitted to.
+
+- **The parameters' IIVs in a final `$OMEGA BLOCK(N)`.** The FREM covariates are correlated with the random effects in that block, so it must be the last `$OMEGA` record (`SAME` records aside). `numSkipOm` counts the OMEGAs before it - IIVs you do not want correlated with the covariates, or an IIV on the residual error - and must match the model; `createFREMmodel()` stops and says so if it does not. It cannot be deduced from a base model, so you always give it.
+- **The number of structural THETAs is read from the `.ext`.** `numNonFREMThetas` only needs to be given when there is no `.ext`.
+- **An estimation method suited to FREM.** Before it builds anything, `createFREMmodel()` reads the base model's `$ESTIMATION` records and warns when they are not: use `IMP` or `IMPMAP` (`SAEM` cannot handle missing covariate values correctly), with `NITER` of at least 150, and `PHITYPE=1` so the results can be post-processed. These are warnings, not errors: `run30` below uses `NITER=50`, and the warning appears.
+
+MU referencing of the structural parameters is not required. The covariate parts `createFREMmodel()` writes are MU-referenced (`useMuModeling = TRUE`, the default).
+
+The example model, `run30`, shows both: two OMEGAs - an IIV on the residual error and a fixed IIV on `D1` - before the final `$OMEGA BLOCK(3)`, so `numSkipOm = 2`; and the `$INPUT` that `cstrKeepCols` below refers to.
+
+```{r show_base, comment=''}
+base <- readLines(file.path(modDevDir, "run30.mod"))
+records <- grep("^[$]", base)
+# Print every record of one kind, continuation lines included
+show <- function(rec) {
+  for (s in grep(paste0("^[$]", rec), base)) {
+    cat(base[s:(c(records[records > s], length(base) + 1)[1] - 1)], sep = "\n")
+  }
+}
+show("INPUT")
+show("OMEGA")
+```
+
+# 3. Choosing the Covariates
 
 We need to decide which covariates to include and how they should be handled. In FREM, continuous covariates can be modeled as-is or log-transformed, while categorical covariates must be identified so they can be binarized into dummy variables.
 
-We will also explicitly define `keep_cols` so that the columns the model needs carry over to the new FREM data set rows.
+`cstrKeepCols` lists the columns of the original data set - the dose and observation records - that the FREM data set keeps; the covariate records `createFREMmodel()` adds need none of them. Name them as the base model's `$INPUT` names them - the column names in the data file do not count - and include every data item `$PK` and `$ERROR` use, here `FOOD`. A column the base model marks `=DROP` cannot be kept.
 
 ```{r define_covariates}
 # Define the complete list of covariates to include
@@ -57,26 +82,29 @@ frem_covariates <- c("AGE", "WT", "SEX", "RACEL")
 categorical_covs <- c("RACEL", "SEX")
 log_transform_covs <- c("WT")
 
-# Define which structural columns must be kept in the new FREM dataset rows
+# The columns of the data set the FREM data set keeps, by their $INPUT names
 keep_cols <- c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV")
 ```
-
-# 3. Generating the Model
-
-We pass our specifications into `createFREMmodel()`. We use the `run30` base model, which has `7` structural THETAs (`numNonFREMThetas`) and `2` specific OMEGAs that we want to skip correlating with the covariates (`numSkipOm`). `numNonFREMThetas` can be left `NULL` -- it is then read from the base model's `.ext` -- but `numSkipOm` cannot be deduced from a base model and must be given.
 
 ## Dichotomous covariates
 
 `bRecodeDichotomous = TRUE` recodes two-level categorical covariates from
 `1`/`2` - how many data sets code sex - to `0`/`1`, which makes `0` the
 reference level and the covariate effect the difference from it. Without it,
-FREM refuses a `1`/`2` coding: see **Changes to existing behaviour** in the
-2.0.0 release notes.
+a `1`/`2`-coded covariate stops `createFREMmodel()` with an error asking for
+`0`/`1` (`allowNon01 = TRUE` lets it through unchanged).
 
+The covariate's mean THETA moves with the coding. Recoded, `SEX` becomes
+`SEX_2` - `1` for level 2, `0` for level 1 - and its mean THETA `TV_SEX_2` is
+the proportion of subjects at level 2. A FREM model on the original `1`/`2`
+values, such as one from PsN, has a mean THETA exactly 1 higher; the model is
+the same.
 
+# 4. Generating the Model
 
-```{r execute_create, warning=FALSE, message=FALSE}
-# Execute the creation of the FREM model and dataset
+We pass our specifications into `createFREMmodel()`. `quiet = TRUE` silences the progress messages, not the warnings: the one about `NITER` appears below.
+
+```{r execute_create}
 generated_files <- createFREMmodel(
   modName = "run30",
   modDevDir = modDevDir,
@@ -89,8 +117,7 @@ generated_files <- createFREMmodel(
   catCovs = categorical_covs,
   logtCovs = log_transform_covs,
 
-  # Structural columns
-  numNonFREMThetas = 7,
+  # The OMEGAs before the final $OMEGA BLOCK
   numSkipOm = 2,
 
   # Dataset formatting
@@ -100,23 +127,28 @@ generated_files <- createFREMmodel(
 )
 ```
 
-# 4. Understanding the Output
+# 5. Understanding the Output
 
-`createFREMmodel()` has now generated the newly expanded `.mod` and `.csv` files. Let's inspect them directly from the disk.
+`createFREMmodel()` has now generated the newly expanded `.mod` and `.csv` files. Both are read back from disk below.
 
 ## The Generated Dataset
-The original dataset has been vertically expanded. For every subject, new rows (`EVID = 2`) have been appended containing the standardized covariate values in the `DV` column, mapped via the new `FREMTYPE` compartment column. Because we used `bRecodeDichotomous = TRUE`, `SEX` appears as `0` or `1`.
+The original dataset has been vertically expanded. For every subject, covariate records (`EVID = 2`) have been appended, one per covariate, holding the covariate's value in the `DV` column - log-transformed for `WT`, as asked - and identified by the new `FREMTYPE` column. Because we used `bRecodeDichotomous = TRUE`, `SEX` appears as `0` or `1`.
 
 ```{r show_data}
 # Read the generated dataset
 frem_data <- read.csv(generated_files$data)
 
-# Display the first 15 rows to show the structural PK data followed by the new FREM dummy rows
+# The first 15 rows: the original records, followed by the covariate records
 head(frem_data, n = 15)
 ```
 
 ## The Final Model Control Stream
 The control stream is substantially different. The `$PK` block now handles the structural `ETA`s alongside the covariate means, and the `$ERROR` block routes the dummy observations (via `FREMTYPE`) to their respective equations. Finally, a large `$OMEGA BLOCK` is appended to estimate the covariances.
+
+A few things carry over from the base model:
+
+- **The `$THETA` records keep their bounds** - `(0, ...)` on `TVCL` - with the base model's final estimates from the `.ext` as initial values. An estimate sitting on a bound is moved just inside it, with a message naming the THETA, since NM-TRAN needs an initial value strictly inside its bounds.
+- **The `$TABLE` records are kept**, fitted to the FREM data set: data items it does not carry are left out (a message names them; add them to `cstrKeepCols` to keep them), `FREMTYPE` is added, and the table file is renamed so the base run's tables are not overwritten - `xptab30` becomes `xptab30_run30_FREM` here, or `xptab31` if the FREM model were called `run31`.
 
 ```{r show_model, comment=''}
 # Read the generated NONMEM control stream and print it in its entirety
@@ -125,3 +157,51 @@ cat(frem_mod, sep = "\n")
 ```
 
 `run30_FREM.mod` is ready to run in NONMEM.
+
+# 6. Choices createFREMmodel Makes for You
+
+Some behaviour is decided rather than derived; it is stated here so the results are not a surprise. Each default can be changed through the argument named.
+
+- **A covariate's mean THETA is fixed when no subject lacks a value** for it, and estimated otherwise (`fixTheta = TRUE`, the default). A missing value on some records of a subject that has a value elsewhere does not count: the FREM data set takes each subject's first non-missing value.
+- **Subjects without any observation are left out** of the FREM data set - those with only dose records, for example - since they inform no estimate (`keepDoseOnlySubjects = FALSE`). Newer PsN versions do the same, so the two FREM data sets agree.
+- **The base model's `IGNORE` / `ACCEPT` lists are applied** as NM-TRAN applies them, before anything is summarised. `=`, `.EQ.`, `.NE.` and `/=` compare the values as written in the data file - so `1.0` does not equal `1` - while `.EQN.`, `.NEN.` and the ordering operators compare numbers.
+- **A single-character `IGNORE` (`IGNORE=@`, `IGNORE=C`) is not applied.** When it can only remove the header line - the usual case - nothing is said; when it could remove data records too, a warning asks you to filter the data first or use an `IGNORE=(list)`.
+
+# 7. Base Models with Dropped Columns
+
+Real base models rarely use every column of their data set: dates and subject identifiers are typically marked `=DROP` (or `=SKIP`) in `$INPUT`. `$INPUT` still names every column of the data file in order, so `createFREMmodel()` reads them by position, applies the `IGNORE` / `ACCEPT` lists - which may refer to a dropped column - and then removes the dropped columns. Columns after the last `$INPUT` item are ignored, with a message naming them.
+
+To show it, take a copy of `run30` and its data, add a visit-date column, and drop it together with two existing columns:
+
+```{r drop_example}
+dropDir <- file.path(td, "drop-example")
+dir.create(dropDir, showWarnings = FALSE)
+file.copy(file.path(modDevDir, c("run30.mod", "run30.ext")), dropDir, overwrite = TRUE)
+
+# The data with a visit date as its last column
+dat <- read.csv(ffemDataFile)
+dat$VDATE <- "2026-01-01"
+dropData <- file.path(dropDir, "data.csv")
+write.csv(dat, dropData, row.names = FALSE, quote = FALSE)
+
+# $INPUT: drop STUDYID and DAY, and name the new column, dropped
+mod <- readLines(file.path(dropDir, "run30.mod"))
+input <- grep("^\\$INPUT", mod):(grep("^\\$DATA", mod) - 1)
+mod[input] <- sub(" STUDYID ", " STUDYID=DROP ", mod[input])
+mod[input] <- sub(" DAY ", " DAY=DROP ", mod[input])
+mod[max(input)] <- paste(mod[max(input)], "VDATE=DROP")
+writeLines(mod, file.path(dropDir, "run30.mod"))
+cat(mod[input], sep = "\n")
+```
+
+```{r drop_create}
+drop_files <- createFREMmodel(
+  modName = "run30", modDevDir = dropDir, ffemDataFile = dropData,
+  outputDir = dropDir, fremModName = "run30_FREM",
+  covariates = c("AGE", "WT"), numSkipOm = 2,
+  cstrKeepCols = keep_cols, quiet = TRUE
+)
+grep("^\\$INPUT", readLines(drop_files$model), value = TRUE)
+```
+
+One more `$INPUT` form is handled: a `label=synonym` item such as `CP=DV` is read as the reserved one of the two names, `DV`, and either name may be used in `covariates`, `cstrKeepCols` and the `IGNORE` lists.
