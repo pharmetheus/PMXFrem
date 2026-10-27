@@ -31,9 +31,13 @@
 #'   variances that precede the FREM block) to skip when appending the FREM
 #'   parameters. Defaults to `0`. This cannot be deduced from a base model - it
 #'   has no FREM structure yet - so set it correctly for your model.
-#' @param cstrKeepCols Character vector. Columns to strictly retain in the generated FREM dataset.
-#'   Either name of an `$INPUT` `label=synonym` item may be given; the data column is named by
-#'   the reserved one of the two (`CP=DV` gives `DV`), the label if neither is reserved. Note: `"FREMTYPE"` is managed internally and injected between phases.
+#' @param cstrKeepCols Character vector. The columns of the data set that the FREM data
+#'   set keeps on the model's own records, named as the base model's `$INPUT` names them
+#'   (not as the data file's header does). Include every data item `$PK` and `$ERROR`
+#'   use. A column the base model marks `=DROP` cannot be kept. Either name of an
+#'   `$INPUT` `label=synonym` item may be given; the data column is named by the reserved
+#'   one of the two (`CP=DV` gives `DV`), the label if neither is reserved. Note:
+#'   `"FREMTYPE"` is managed internally and injected between phases.
 #' @param bRecodeDichotomous Logical. Should dichotomous covariates be automatically
 #'   recoded to 0/1? Defaults to FALSE. If FALSE, inputs must be strictly 0/1.
 #' @param allowNon01 Logical. If TRUE, allows non-0/1 dichotomous covariates (like 1/2)
@@ -78,7 +82,6 @@
 #'   catCovs = catCovs,
 #'   outputDir = td,
 #'   fremModName = "frem_final",
-#'   numNonFREMThetas = 7,
 #'   numSkipOm = 2,
 #'   cstrKeepCols = keep_cols,
 #'   bRecodeDichotomous = TRUE,
