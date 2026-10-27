@@ -23,6 +23,8 @@
 #' @param basenames_om A character vector of names for the structural `$OMEGA` parameters. If NULL, parsed dynamically from the base model.
 #' @param dDefaultCovValue Numeric. The default covariance value (typically 1e-05) used to populate structural zeros, ensuring the `$OMEGA` block remains positive-definite.
 #' @param strUpdateType A character string specifying the update mode (e.g., "DataAndModel", "NoData").
+#' @param quiet Logical. If `FALSE`, say which THETA initial values were moved
+#'   inside their bounds.
 #'
 #' @return A character vector containing the lines of the newly generated FREM model file.
 #' @family FREM model management Internal
@@ -44,7 +46,8 @@ generateFremModel <- function(final_df,
                               basenames_th,
                               basenames_om,
                               dDefaultCovValue,
-                              strUpdateType) {
+                              strUpdateType,
+                              quiet = FALSE) {
   safeFindRecord <- function(current_lines, record, replace) {
     result <- findrecord(current_lines, record = record, replace = replace, quiet = TRUE)
     if (is.null(result)) {
@@ -255,10 +258,24 @@ generateFremModel <- function(final_df,
 
   newommatrix <- c(skipped_omegas_lines, frem_block_lines)
 
+  ## Keep each THETA's bounds from the model being updated (the base model's,
+  ## carried through the minimal model); the initial value is the .ext
+  ## estimate, moved just inside a bound it does not clear, as NM-TRAN needs.
+  ## Covariate THETAs added now have none.
+  bounds <- .fremThetaBounds(th_lines)
   strinput_theta <- c()
   for (i in 1:iNumTHETA) {
-    strFIX <- if (!is.na(THETAFIX[i]) && THETAFIX[i] == 1 && bWriteFIX) " FIX" else ""
-    strinput_theta <- c(strinput_theta, paste0("$THETA ", THETA[i], strFIX, theta_comment[i]))
+    isFixed <- !is.na(THETAFIX[i]) && THETAFIX[i] == 1
+    strFIX <- if (isFixed && bWriteFIX) " FIX" else ""
+    low <- if (i <= length(bounds$low)) bounds$low[i] else NA
+    up <- if (i <= length(bounds$up)) bounds$up[i] else NA
+    init <- if (isFixed) THETA[i] else .fremInsideBounds(THETA[i], low, up, i, quiet)
+    value <- if (is.na(low) && is.na(up)) {
+      init
+    } else {
+      paste0("(", if (is.na(low)) "-INF" else low, ",", init, if (!is.na(up)) paste0(",", up), ")")
+    }
+    strinput_theta <- c(strinput_theta, paste0("$THETA ", value, strFIX, theta_comment[i]))
   }
 
   line <- safeFindRecord(line, record = "\\$THETA", replace = strinput_theta)
@@ -267,7 +284,16 @@ generateFremModel <- function(final_df,
   if (strUpdateType != "NoData") {
     line <- safeFindRecord(line, record = "\\$DATA", replace = paste0("$DATA ", basename(strNewFREMData), " IGNORE=@"))
     if (!is.null(final_df)) {
+      oldInput <- findrecord(line, record = "\\$INPUT", quiet = TRUE)
       line <- safeFindRecord(line, record = "\\$INPUT", replace = paste0("$INPUT ", paste0(names(final_df), collapse = " ")))
+      ## A $TABLE may not list a data item the new data set lacks.
+      if (!is.null(oldInput)) {
+        line <- .fremCarryTables(line,
+          oldInput = .fremInputItems(oldInput)$name,
+          oldSynonyms = .fremInputSynonyms(.fremInputItems(oldInput)),
+          newInput = names(final_df), quiet = quiet
+        )
+      }
     }
   }
 
@@ -279,6 +305,67 @@ generateFremModel <- function(final_df,
   return(line)
 }
 
+#' The bounds of each THETA in a set of $THETA lines
+#'
+#' Walks the values as [.fremCountThetaValues()] counts them, so the result has
+#' one entry per THETA, in order. `(low, init)`, `(low, init, up)` and
+#' `(low,,up)` give bounds, with commas or spaces between and `FIXED` inside
+#' or outside the parentheses (NONMEM help, `$THETA`); `-INF` / `INF` and a
+#' bare value give none (`NA`). `(value)xn` is expanded, by the tokeniser
+#' [.fremCountThetaValues()] shares.
+#'
+#' @param th_lines The `$THETA` record lines.
+#' @return A list of numeric vectors `low` and `up`.
+#' @keywords internal
+#' @noRd
+.fremThetaBounds <- function(th_lines) {
+  low <- numeric(0)
+  up <- numeric(0)
+  asBound <- function(x) if (is.na(x) || grepl("INF", x, ignore.case = TRUE)) NA_real_ else as.numeric(x)
+  for (l in th_lines) {
+    for (tok in .fremThetaTokens(l)) {
+      ## Commas are optional, but when present they are kept as separators so
+      ## that (low,,up) - no initial value - still puts `up` third.
+      parts <- if (startsWith(tok, "(")) {
+        inner <- trimws(gsub("[()]", "", tok))
+        if (grepl(",", inner)) trimws(strsplit(inner, ",", fixed = TRUE)[[1]]) else strsplit(inner, "[[:space:]]+")[[1]]
+      } else {
+        tok
+      }
+      low <- c(low, if (length(parts) >= 2) asBound(parts[1]) else NA_real_)
+      up <- c(up, if (length(parts) >= 3) asBound(parts[3]) else NA_real_)
+    }
+  }
+  list(low = low, up = up)
+}
+
+#' An initial value strictly inside a THETA's bounds
+#'
+#' NM-TRAN rejects an initial estimate on or outside a bound. An estimate the
+#' base run left on a bound is moved a thousandth of the gap inside - of the
+#' range when both bounds are finite, of the bound's size otherwise.
+#'
+#' @param init The initial value. @param low,up The bounds (`NA` for none).
+#' @param i The THETA number, for the message. @param quiet Suppress it.
+#' @return The initial value to write.
+#' @keywords internal
+#' @noRd
+.fremInsideBounds <- function(init, low, up, i, quiet = FALSE) {
+  gap <- if (!is.na(low) && !is.na(up)) (up - low) / 1000 else max(abs(c(low, up)), 1, na.rm = TRUE) / 1000
+  new <- init
+  if (!is.na(low) && init <= low) new <- low + gap
+  if (!is.na(up) && init >= up) new <- up - gap
+  new <- signif(new, 6)
+  if (new != init && !quiet) {
+    message(
+      "THETA(", i, "): the estimate ", init, " is not strictly inside its bounds (",
+      if (is.na(low)) "-INF" else low, ", ", if (is.na(up)) "INF" else up,
+      "); starting from ", new, " instead."
+    )
+  }
+  new
+}
+
 #' Count the parameter values a $THETA line carries
 #'
 #' Comment text, the `$THETA` keyword and `FIX` / `FIXED` flags are stripped;
@@ -286,10 +373,39 @@ generateFremModel <- function(final_df,
 #' @keywords internal
 #' @noRd
 .fremCountThetaValues <- function(l) {
+  length(.fremThetaTokens(l))
+}
+
+#' The THETA values of a $THETA line, one token per THETA
+#'
+#' The one tokeniser behind [.fremCountThetaValues()] and
+#' [.fremThetaBounds()], so they cannot disagree. Comment text, the `$THETA`
+#' keyword, `FIX` / `FIXED` and `UNINT` flags and `label=` prefixes are
+#' stripped; a bare number or a parenthesised group `(low, init, up)` is one
+#' token; and `(value)xN` is expanded to N copies of the group (NONMEM help,
+#' `$THETA`, "repeated value").
+#'
+#' @param l One `$THETA` line.
+#' @return A character vector, empty for a line with no values.
+#' @keywords internal
+#' @noRd
+.fremThetaTokens <- function(l) {
   b <- sub(";.*$", "", l)
   b <- sub("^\\s*\\$THETA\\b", "", b, ignore.case = TRUE)
-  b <- gsub("\\bFIXED?\\b", "", b, ignore.case = TRUE)
-  length(regmatches(b, gregexpr("\\([^)]*\\)|[-+]?[0-9.][-+0-9.eE]*", b))[[1]])
+  b <- gsub("\\b(FIXED?|UNINT)\\b", "", b, ignore.case = TRUE)
+  ## A label (CL=, K10=) may contain digits that are not values.
+  b <- gsub("[A-Za-z_][A-Za-z0-9_]*\\s*=", "", b)
+  ## (value)xN repeats the parenthesised group N times
+  pat <- "\\(([^()]*)\\)\\s*[xX]\\s*([0-9]+)"
+  repeat {
+    m <- regexpr(pat, b)
+    if (m == -1L) break
+    hit <- regmatches(b, m)
+    inner <- sub(pat, "(\\1)", hit)
+    times <- as.integer(sub(pat, "\\2", hit))
+    regmatches(b, m) <- paste(rep(inner, times), collapse = " ")
+  }
+  regmatches(b, gregexpr("\\([^)]*\\)|[-+]?[0-9.][-+0-9.eE]*", b))[[1]]
 }
 
 

@@ -1,7 +1,7 @@
 Package: PMXFrem
 Type: Package
 Title: Support Functions for FREM Analyses in NONMEM
-Version: 2.2.0
+Version: 2.3.0
 Authors@R: c(
     person("Pharmetheus AB", email = "info@pharmetheus.com", role = c("cre","cph")),
     person("Niclas", "Jonsson", role = c("aut")),
@@ -30,13 +30,13 @@ Imports:
     stringr,
     tools,
     numDeriv,
-    parallel,
-    PMXForest (>= 1.3.0)
+    PMXForest (>= 1.4.0)
 Suggests:
     GGally,
     gridExtra,
     kableExtra,
     knitr,
+    parallel,
     purrr,
     rmarkdown,
     testthat (>= 3.0.0),

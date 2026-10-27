@@ -61,6 +61,7 @@ test_that("createFFEMdata works", {
 })
 
 test_that("createFFEMdata works with parallel processing", {
+  skip_if_workers_load_source_tree()
   data <- utils::read.csv(system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")) %>%
     dplyr::filter(BLQ != 1) %>%
     dplyr::as_tibble() # the class assertion below is that createFFEMdata() preserves it

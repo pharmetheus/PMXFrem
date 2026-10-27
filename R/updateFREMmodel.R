@@ -91,8 +91,12 @@
 #' # This example removes "SEX" from the model and data set.
 #' td <- tempdir() # Create a temporary directory for output files
 #'
+#' # Work on copies: bWriteMod = TRUE writes run31_new.mod next to the model.
+#' file.copy(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), td)
+#' file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
+#'
 #' updateFREMmodel(
-#'   strFREMModel      = system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"),
+#'   strFREMModel      = file.path(td, "run31.mod"),
 #'   strFREMData       = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
 #'   strFFEMData       = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
 #'   cstrRemoveCov     = c("SEX"),
@@ -284,17 +288,19 @@ updateFREMmodel <- function(strFREMModel,
   # --- 1. Initial Setup ---
   if (strUpdateType != "NoData") {
     # 1A. Load and filter FFEM Data
+    rawFFEM <- NULL # the file's text, for the IGNORE / ACCEPT string comparisons
     if (is.data.frame(strFFEMData)) {
       dfFFEM <- as.data.frame(strFFEMData)
     } else if (file.exists(strFFEMData)) {
       dfFFEM <- as.data.frame(data.table::fread(strFFEMData, h = TRUE, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
+      rawFFEM <- .readDataAsText(strFFEMData, check.names = TRUE, showProgress = FALSE)
     } else {
       stop("Cannot find FFEM dataset: ", strFFEMData)
     }
 
     # Apply IGNORE filters so dfFFEM perfectly matches the base data cohort rules
     if (exists("filterDataFromModel")) {
-      dfFFEM <- filterDataFromModel(baseModelFile = strFREMModel, wideData = dfFFEM, quiet = quiet)
+      dfFFEM <- filterDataFromModel(baseModelFile = strFREMModel, wideData = dfFFEM, quiet = quiet, rawData = rawFFEM)
     }
 
     if (!keepDoseOnlySubjects && "EVID" %in% names(dfFFEM) && strID %in% names(dfFFEM)) {
@@ -468,7 +474,8 @@ updateFREMmodel <- function(strFREMModel,
     basenames_th        = basenames_th,
     basenames_om        = basenames_om,
     dDefaultCovValue    = 1E-05,
-    strUpdateType       = strUpdateType
+    strUpdateType       = strUpdateType,
+    quiet               = quiet
   )
 
   # --- 5. Return Final Objects ---

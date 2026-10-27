@@ -125,7 +125,7 @@ jobs:
           dependencies: '"hard"'
           extra-packages: |
             testthat@3.1.5
-            pharmetheus/PMXForest@v1.3.0
+            pharmetheus/PMXForest@v1.4.0
           install-pandoc: false
           install-quarto: false
 
@@ -163,7 +163,7 @@ jobs:
           dependencies: '"soft"'
           extra-packages: |
             rcmdcheck@1.4.0
-            pharmetheus/PMXForest@v1.3.0
+            pharmetheus/PMXForest@v1.4.0
           install-pandoc: false
           install-quarto: false
 

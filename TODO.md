@@ -3,6 +3,66 @@
 Items parked for future consideration. Not a substitute for GitHub issues; move an
 item there when it becomes active work.
 
+## Release plan: next release after PMXForest 1.4.0
+
+Agreed 2026-10-26: release PMXForest 1.4.0 and the next PMXFrem as soon as
+possible, PMXForest first (its plan is in PMXForest's `TODO.md`). PR #78
+re-exports `generateCovNames()` from PMXForest and requires
+`PMXForest (>= 1.4.0)`; its CI fails until the `v1.4.0` tag exists, which is
+expected, not a fault in the PR.
+
+1. Create an epic branch from `main`, bump `DESCRIPTION` to `2.2.0.9000`, and
+   retarget #78 to it (it targets `main` today).
+2. Land there: T34-T36 (bugs), T39 (`$TABLE`), T38 (vignette); T33 if
+   PMXForest 1.4.0 exports the worker startup. PRs into the epic branch get no
+   CI, so test locally against PMXForest's `epic/1.4.0`.
+3. Before merging #78, fix its NEWS entry: `print_template = TRUE` now prints
+   PMXForest's new template (`name_map` / `unit_map` / `level_map`) instead of
+   `group_map` / `label_map`, so "work as before" is not true for it. PMXFrem's
+   old `generateCovNames()` tests otherwise all pass against PMXForest's
+   version (21 of 24 assertions; the 3 failures are the template).
+4. Once `v1.4.0` is tagged: epic -> `main` PR, CI green, dev release, tag -
+   each on Niclas's go-ahead. Proposed version 2.3.0 (new behaviour, not only
+   fixes); the number is Niclas's call.
+
+Decided 2026-10-26 (Niclas), after the planning pass:
+
+- Version **2.3.0**, branch `epic/2.3.0`; one release, no 2.2.1.
+- T34: a data file with more columns than `$INPUT` items is accepted (the
+  first N named, a message names the rest); fewer is an error. A `DROP` item
+  named in `cstrKeepCols` or `covariates` is an error. Filter on `IGNORE` /
+  `ACCEPT` before removing dropped columns.
+- T35: a covariate counts as missing only for a subject with no non-missing
+  value. Align phase 1 with phase 2 in the same PR: a first 0/1 covariate is
+  named `SEX`, not `SEX_1`, and phase 1 uses the first non-missing value.
+- T36: an initial value on or outside a bound is nudged inside, with a
+  message naming the THETA. The one-covariate path starts from the `.ext`
+  final estimates too, as the multi-covariate path does.
+- T37: keep the single-character `IGNORE` warning (no implementation of it);
+  silent when the first column is numeric, and once per call.
+- T39: `$TABLE` items the FREM data does not carry are dropped with a message.
+  `FILE=`: swap the run number when it ends in the base run number and
+  `fremModName` is `run<N>` (`xptab30` -> `xptab31`), otherwise append
+  `_<fremModName>`; `FREMTYPE` goes at the end.
+- #78: Claude retargets, rebases and corrects its NEWS on Ari's branch, and
+  says so in the PR. T33 keeps the `PMXFrem.freshWorkers` option working.
+- T38: the `DROP` example is derived from `run30` inside the vignette.
+- NEWS: one consolidated PR at the end, reviewed on a doc-review page.
+
+Also found while planning, beyond T34-T40: recoding writes `-99` rather than
+`missVal` (`R/prepareNewCovariates.R:85`, `R/createFREMData.R:175`); T37's
+cause is that the minimal model writes `$DATA <file> IGNORE=@`
+(`R/createMinimalFremModel.R:168`), so phase 2 warns even when the base
+model has none; `tests/testthat/test-utils-data_prep.R:21` encodes the old
+`DROP` behaviour and is rewritten in T34. `make check-format` ends with
+`git checkout -- .`, which discards uncommitted edits - commit first.
+
+Later, not this release: PMXForest 1.4.0's `filterByModel()` identifies
+observations and applies `$DATA` filters the way NONMEM does. Reusing it in
+`createFREMmodel()` instead of PMXFrem's own `$INPUT` / `IGNORE` / dose-only
+handling (where T34 lives) would give one implementation - but PMXForest's
+friction item 3 questions `filterByModel()` itself, so settle that first.
+
 ## Deep-dive vignette — extending a FREM model with THETAs and IIVs
 
 Now unblocked: T3 / T4 landed in PR #62, so the signatures and output shape are
@@ -64,128 +124,6 @@ macOS/Linux, and `future` refuses `multicore` under RStudio. So carry
 `.fremStartWorkers()`'s folder lookup and version check across - pass the
 folders as `rscript_libs` to `plan(multisession)` and keep the check.
 
-## T15 — `ci.yml` has been failing on every branch for months
-
-`.github/workflows/ci.yml` (`lint-check`, `format-check`, `unit-test`,
-`check-r-package`) is red on **every** run in recent history - back to at least
-2026-06 - including `epic/2.1.0`, the branch that shipped the 2.1.0 release:
-
-```
-failure  epic/2.1.0                  2026-08-19
-failure  UpdateCalcFFEM              2026-08-11
-failure  fixDoc                      2026-06-08
-failure  renameVignettes2            2026-06-01
-```
-
-This is the package's only real code check, so merges into `main` currently
-carry no automated verification at all.
-
-Diagnosed on run `34234687979`. Note `gh run view --log` truncates before the
-failing step; the complete logs come from the zip endpoint:
-`gh api repos/<owner>/<repo>/actions/runs/<id>/logs > logs.zip`.
-
-Three independent failures, best fixed as separate PRs **in this order** (the
-styler pass reformats everything, so it must not be tangled with real edits):
-
-1. **`check-r-package` — `2 ERRORs, 5 WARNINGs, 6 NOTEs`.** Both ERRORs are one
-   line: the `calcFFEM` example uses `%>%` with nothing exporting it —
-   `dfPhi <- getPhi(phiFile) %>% select(starts_with("ETA"))` →
-   `could not find function "%>%"`. Add `library(dplyr)` to the example (or use
-   `|>`). Cheap WARNINGs worth taking at the same time: `::` imports not
-   declared (`PhRame`, `tidyr`); `readr` in Imports but unused; missing Rd links
-   (`getFileName`, apparently a typo for `getFileNames`, and `add_stamp` /
-   `ggplot2::ggsave` in `plotExplainedVar.Rd`); codoc mismatches where the man
-   pages are stale against `R/` (`getExplainedVar` gained `missVal` in code but
-   not in docs).
-2. **`format-check` — styler wants to reformat 93 files.** 43 `R/` files, ~38
-   test files, 8 vignettes, `README.Rmd`, even `SimNeb/bs31.dir/.Rprofile`. The
-   diffs are trivial whitespace (trailing spaces in roxygen), i.e. the check was
-   added after the code was written and never run. One `styler::style_pkg()`
-   commit fixes it, but it must be its own PR or it buries everything else.
-3. **`unit-test` — 4 snapshot failures** (`FAIL 4 | WARN 0 | SKIP 1 | PASS 604`),
-   not crashes: `test-fremParameterTable.R:117,137` (RSE %, e.g. 1.67→1.30,
-   45.0→43.8) and `test-getForestDFFREM.R:47,72` (POINT / quantiles differing in
-   the 3rd-4th significant figure), all under variant `4.2.2`. Both areas are
-   driven by `PMXForest::getSamples()` bootstrap sampling. **Cause not
-   determined** — see T17.
-
-   Do not re-record these until the cause is known: accepting whatever the
-   current environment produces is how a wrong value gets cemented. The
-   `Eta_prim` snapshots in `test-calcFFEM.R` did exactly that, defending a
-   vector with the subject `ID` in it (fixed in PR #72).
-
-**Dependency resolution (separate, and it gates item 3).** `ci.yml:128` installs
-`pharmetheus/PMXForest` - the *public* repo's default branch. Anything depending
-on unreleased PMXForest work (e.g. `oneHotEncode()`, on `epic/v1.3.0` /
-1.2.15.9007) will fail there once `epic/2.1.1` opens a PR into `main`. Same
-class of problem as `pkgdown.yml`, which reads `rpkgs.pmx.one/r4.2-*/latest` and
-so pulled PMXForest 1.2.15 rather than the 1.2.15.9007 published to the
-*development* source.
-
-Note `ci.yml` only triggers on `pull_request` into `main`, so PRs into an epic
-branch are checked by `build-pkgdown` alone.
-
-Related, found while reading the same code: `plotExplainedVar()` calls
-`PhRame::add_stamp()` (`R/plotExplainedVar.R`) on its `add.stamp = TRUE` path,
-and `PhRame` is neither in `Imports` nor publicly installable - so that path can
-only error. Same category as the `save.script` block removed in v1.2.11.
-
-## T17 — establish the cause of the snapshot drift, then choose a policy
-
-Blocks item 3 of T15. Two candidate causes, not yet distinguished:
-
-1. **Dependency version.** CI installs `pharmetheus/PMXForest` (public default
-   branch); locally we run `epic/v1.3.0`. *Weaker than it first looked*: the
-   `getSamples()` change in the dev line is the **SIR `raw_results` fix**, which
-   only alters the SIR code path — and both failing tests pass a *bootstrap*
-   file (`bs31.dir/raw_results_run31.csv`), which takes the other branch. So
-   this may well not be it.
-2. **Environment.** Hardware / BLAS / library versions producing numerical
-   differences that `variant = r_version_variant` does not capture, since that
-   only keys on the R version.
-
-**The experiment that settles it** (deliberately not run yet — it replaces the
-installed PMXForest, so do it when convenient): install the *public* PMXForest,
-re-run `test-fremParameterTable.R` and `test-getForestDFFREM.R`, and see whether
-the values move. If they do, it is the dependency and the fix is pinning /
-publishing, not touching snapshots. If they do not, it is the environment.
-
-**Then pick a policy.** Options, in the order I would prefer them:
-
-- **Assert with tolerance instead of snapshotting.** `expect_equal(...,
-  tolerance = 1e-3)` on the actual numbers. Snapshots demand bit-identical
-  output for quantities that are inherently approximate; a tolerance is robust
-  across machines *and* still catches a real regression. Best fit for these four.
-- **Pin the dependency**, if the experiment says that is the cause.
-- **`skip` these tests off the reference environment** rather than letting them
-  fail and be ignored — an explicit skip shows in the test output; an ignored
-  failure trains everyone to disregard red.
-
-**Rejected:** "let CI generate the reference snapshots and ignore local
-failures". It removes the local signal entirely for these functions — and with
-`ci.yml` red for months, that means no signal at all — and routinely accepting
-whatever the reference environment emits is precisely how the `Eta_prim` bug
-survived.
-
-## T18 — rename `additionalCovs` to `conditionalCovs` in `setupDfCovsEV()`
-
-PMXForest renamed its `additionalCovs` argument to `conditionalCovs` for 1.3.0,
-because the name did not say what the argument is for: these are the covariates
-the *other* covariates are conditioned on - fed state rather than fasted,
-patients rather than healthy volunteers - and they sit at their reference on
-every row that is not about them.
-
-`PMXFrem::setupDfCovsEV()` has an argument of the same old name. It is its own
-argument and is **not** forwarded to PMXForest, so nothing is broken today and
-this is purely about the two packages reading the same way. Worth doing in the
-same release as any other `setupDfCovsEV()` change rather than on its own.
-
-Not a deprecation: check first whether `setupDfCovsEV()` has appeared in a
-public PMXFrem release with that argument. If it has, forward the old name with
-a warning rather than removing it outright; if it has not, rename cleanly, as
-PMXForest did. An outdated call errors loudly on an unused argument either way,
-so nothing fails silently.
-
 ## T19 — make mutation testing a routine rather than a hand exercise (both packages)
 
 Every claim in a commit message this release of the form "mutation-tested:
@@ -232,36 +170,6 @@ Worth scoping before building:
   it.
 
 ---
-
-## T20 — verifyFREMParamFunction()'s structural check no longer has a reference
-
-PMXForest 1.3.0 refuses a FREM model outright: `createParamFunction()` stops
-when `FREMTYPE` is in `$INPUT`, because a FREM model's `$PK` translates
-faithfully while describing none of the covariates the model was built for, and
-a plausible-looking wrong answer is worse than no answer.
-
-`verifyFREMParamFunction()` is the one caller that wanted exactly that
-translation. Its first check - "Structural match", comparing the FREM parameter
-function at `covthetas = 0, etas = 0` against the SCM-style typical-value
-function - has no reference to compare against any more, so it errors.
-
-Options, roughly in order of preference:
-
-- Build the comparison function from `PMXForest::nmParsePK()` directly. PMXFrem
-  already uses that parser in `createFREMParamFunction()`
-  (`R/createFREMParamFunction.R:199`), so the `$PK` tree is available without
-  going through `createParamFunction()` at all, and the refusal does not apply
-  to the parser.
-- Drop the structural check and keep the other two (covariate splice, random-
-  effect splice). Cheapest, but it is the check that catches a wrong `$PK`
-  transliteration, which is the thing most worth catching.
-- Ask PMXForest for an explicit opt-in argument. Least preferred: it reopens the
-  door the refusal was added to close, for one internal caller.
-
-Note the warning-muffling workaround committed on `fix/ethnic-label-order` was
-reverted when the warning became an error - there is nothing to muffle.
-
-Do this before PMXFrem 2.2.0 goes out, since PMXForest 1.3.0 ships first.
 
 ## T21 — an FFEM covariate's reference value is 0, and nothing knows it
 
@@ -324,42 +232,6 @@ and R.rsp, so it is slower and has more failure surface — or add a check that
 every package a test calls with `::` appears in `extra-packages`. Worth deciding
 deliberately rather than remembering.
 
-## T24 — `createFREMData()` needs to filter and sort the way NONMEM would
-
-Carried over from a handover note that shipped in the package as a top-level
-`README.txt` (now deleted — it was stale, and every file at the top level goes
-out with the tarball and the public mirror).
-
-`createFREMmodel()` can already generate a minimal model equivalent to PsN's.
-`createFREMData()` still needs to be more careful with the data:
-
-- apply the base model's `IGNORE` / `ACCEPT` statements before anything else.
-  `utils-filter_data` implements this and is not wired in.
-- drop subjects with no observations *before* computing the covariate means and
-  variances — they contribute nothing and currently shift both.
-- keep the original data set's sort order in the FREM data set.
-
-The work was done on a `create_FREMmodel` branch off `refactor_updateFREMmodel3`.
-
-## T25 — `stabilize()` rewrites NM-TRAN operators, not just numbers
-
-`stabilize_text_snapshot()` (tests/testthat/helper-stabilize.R) finds every
-number-like substring and reformats it, which in a control stream turns
-
-    IF(FOOD.EQ.1) MATFOOD = 1
-    IF(FOOD.EQ.0) MATFOOD = ( 1 + THETA(6))
-
-into `IF(FOOD.EQ0.1)` / `IF(FOOD.EQ0)` - it reads `.1` as the number and eats
-the `.` that closes `.EQ.`. While snapshots were base64 this was invisible;
-now that model text is snapshotted as text it is not, and
-`expect_model_snapshot()` works around it by not stabilising the model at all.
-
-Two things to settle. The regex should not treat a `.` bounded by letters as
-part of a number, so `.EQ.`, `.NE.`, `.GT.` survive. And every other text
-snapshot that goes through `stabilize()` should be checked for the same
-mangling - `_snaps/createFFEMmodel.md` and `_snaps/generateFremModel.md` hold
-model text too.
-
 ## T26 — `_snaps/calcEtas.md` is still 871 kB of base64
 
 The three largest serialized snapshots were replaced with readable JSON;
@@ -395,42 +267,6 @@ tests in this package alone.
   distinguishes the two. A small FREM fixture with many skip omegas and few
   structural thetas would.
 
-## T31 — `generateCovNames()` belongs in PMXForest
-
-Niclas's call, 2026-09-21: move it **after 2.2.0 ships**, not before.
-
-The function has nothing FREM-specific in it. Its body reads
-`COVARIATEGROUPS`, `<cov>_<level>` dummy columns and a `COVNUM`-keyed results
-frame - all PMXForest conventions, produced by `createInputForestData()`,
-`oneHotEncode()` and `getForestDFSCM()`. Only its documentation mentions FREM.
-PMXForest has no label generator of its own; its README hand-writes the very
-vector this would produce, so an SCM Forest plot user would have to install
-PMXFrem to get it.
-
-Deferring costs nothing because the move is not a breaking change:
-
-- PMXFrem imports PMXForest, so PMXFrem re-exports `generateCovNames()` after
-  the move. `PMXFrem::generateCovNames()` and the attached call both keep
-  working.
-- R says nothing about masking when two packages export the identical object -
-  checked with dplyr and tidyr, which both re-export `magrittr::%>%` and
-  produce no message. So a user attaching both packages sees nothing.
-
-What keeps it free: **do not change the signature in 2.2.0.** It is stable
-now.
-
-When doing it:
-
-1. Move `R/generateCovNames.R`, its tests and its help page to PMXForest,
-   dropping the FREM references from the docs (the `dfres` argument should name
-   `getForestDFSCM()` as well as the FREM entry points).
-2. Release PMXForest 1.3.1 (or 1.4.0).
-3. In PMXFrem: delete the file, raise the floor to that version in DESCRIPTION,
-   re-export through NAMESPACE (`importFrom` + `export`), and update the
-   `pharmetheus/PMXForest@v1.3.0` pin in `ci.yml`.
-4. Use it in PMXForest's own README and Forest plot vignettes, which currently
-   type the labels out.
-
 
 ## T32 — `fremParameterTable()` gives one non-finite RSE on OpenBLAS
 
@@ -444,35 +280,75 @@ OMEGA) with "NaNs produced"; the thread count makes no difference
 arithmetic coming out slightly negative under this BLAS before a `sqrt()`, but
 not yet traced to the line. Worth finding: a user on OpenBLAS gets the same `NA`.
 
-## T33 — use PMXForest's worker startup instead of a copy
+## T40 — a report that `createFREMmodel()` needs PMXForest attached
 
-`.fremStartWorkers()` (`R/utils-parallel.R`, PR #77) and PMXForest's
-`.forestStartWorkers()` (PMXForest-private#62) are the same function: fresh
-workers get the session's package folders first on `.libPaths()`, load the
-needed packages, and stop on a version mismatch; forked workers are left as
-they were. They differ only in the default `pkgs` and the option name
-(`PMXFrem.freshWorkers` / `PMXForest.freshWorkers`). Two copies of code this
-subtle drift: a fix to one - the namespace-detached setup function was found
-only by an end-to-end run - has to be remembered in the other.
+A user had to load PMXForest as well as PMXFrem. Not reproduced: the package
+calls PMXForest only as `PMXForest::`, and `createFREMmodel()` runs with
+PMXForest loaded but not attached. The report used `PMXRenv`'s versioned
+library loading, so the likely cause is that PMXForest was not on the library
+path PMXRenv set up. Get the error message before changing anything; if it is
+PMXRenv, the fix belongs in the installation instructions, not the vignette.
 
-PMXFrem imports PMXForest, so once PMXForest 1.4.0 ships with it:
+## T47 — say in the generated model what a recoded covariate's level means
 
-1. In PMXForest, make it callable from another package without `:::` (which
-   `R CMD check` flags): export it under a plain name with
-   `@keywords internal`, taking `pkgs` and `fresh` as it does now.
-2. In PMXFrem, require `PMXForest (>= 1.4.0)`, call it from
-   `getExplainedVar()`, `getForestDFFREM()` and `createFFEMdata()` with
-   `pkgs = c("PMXFrem", cstrPackages)`, and delete `R/utils-parallel.R`.
-3. Keep `PMXFrem.freshWorkers` working for the tests (pass it as `fresh`), or
-   move PMXFrem's tests to the one option.
-4. Keep PMXFrem's end-to-end check - a versioned PMXFrem in the session, an
-   older one first on the workers' path - since the shared function is then
-   exercised with PMXFrem as the package that must match.
+Split off from T38 (it is a code change, T38 is the vignette). A recoded
+dichotomous covariate appears in the FREM model's `$ERROR` block as
+`;        SEX_2 1` under its `FREMTYPE`, which does not say that `SEX_2 = 1`
+means "SEX was 2". Make the comment say so - but `getCovNames()` reads these
+comment lines back to find the covariates, so the change needs a round-trip
+test (`createFREMmodel()` then `getCovNames()` / `updateFREMmodel()` on the
+result) before and after, and a check of the snapshots that hold model text.
 
-Same timing as T31: after 2.2.0 ships, together with the `ci.yml` PMXForest
-pin update.
+## T48 — ~100 warnings from `%dopar%` loops on fresh workers (Windows)
+
+Found in the 2.3.0 release checks. With fresh worker sessions - Windows,
+`ncores > 1` - `getExplainedVar()` gives about a hundred warnings
+`<anonymous>: ... may be used in an incorrect context`, one per `%dopar%`
+call of `functionList[[j]](..., ...)`; `createFFEMdata()` gives two
+`already exporting variable(s): ...`. Results are unaffected (the fresh-worker
+test in `test-parallelWorkers.R` compares against one core and passes).
+Present on `epic/2.3.0` before T33 (same counts: 103 and 2), so not caused by
+the shared worker startup. Linux and macOS fork and never see them, which is
+why CI is clean. Likely causes: foreach's export analysis (codetools) on a
+body that forwards the enclosing function's `...`, and an `.export` list that
+repeats variables foreach already finds. Capturing the dots once
+(`dots <- list(...)`, then `do.call()`) and trimming `.export` should silence
+both; the fresh-worker test can then assert no warnings.
 
 ## Done
+
+- **T25, T34-T39, T41-T46** — released in 2.3.0; the NEWS entry and the PRs
+  (#80-#84, #86, #88-#90, #92-#94) hold the detail. `createFREMmodel()` reads
+  `=DROP` / `=SKIP`, keeps `$THETA` bounds and `$TABLE` records, applies
+  `IGNORE` / `ACCEPT` as NONMEM does (text comparison, synonyms, `(value)xN`),
+  fixes covariate THETAs by one rule in both phases, writes `missVal` when
+  recoding, and warns about a single-character `IGNORE` only when it matters.
+  The `createFREMmodel()` deep dive was rewritten, and the suite is clean on
+  Windows (temp-path placeholder, `stabilize()` operators, worker skips).
+- **T33** — PMXFrem starts its parallel workers with PMXForest 1.4.0's
+  `startParallelWorkers()`. `.fremStartWorkers()` is now a wrapper passing
+  `PMXFrem` as the package to load and the `PMXFrem.freshWorkers` option as
+  `fresh`, so the callers, the tests and the option are unchanged. The
+  end-to-end tests in `test-parallelWorkers.R` now exercise PMXForest's copy.
+- **T31** — `generateCovNames()` belongs in PMXForest. Moved there in
+  PMXForest 1.4.0 and re-exported here, so `PMXFrem::generateCovNames()` and
+  the attached call keep working. DESCRIPTION and the `ci.yml` pins require
+  PMXForest 1.4.0.
+- **T15** — `ci.yml` red for months. All four jobs (lint, format, unit tests,
+  `R CMD check`) pass on `epic/2.3.0` (run 40337335537); the example, styler
+  and snapshot failures it listed were fixed in the 2.2.0 cycle.
+- **T17** — snapshot drift. Settled by policy rather than by finding the
+  cause: `getForestDFFREM`'s tests snapshot only the reproducible columns,
+  with a tolerance, and the parameter tables go through `stabilize()`. They
+  pass on CI and on this Windows machine.
+- **T18** — `setupDfCovsEV()` takes `conditionalCovs`; `additionalCovs` is
+  kept as a deprecated alias.
+- **T20** — `verifyFREMParamFunction()` now takes a separate structural
+  reference model, and refuses a FREM model as that reference.
+- **T24** — `createFREMData()` / `createFREMmodel()` apply the base model's
+  `IGNORE` / `ACCEPT` (T34), drop subjects without observations before
+  summarising the covariates, and keep the data's original order
+  (`ORIG_ROW_IDX`).
 
 - **T29** — `plotEtasCov()` line width on older ggplot2. It passed `linewidth`,
   which ggplot2 < 3.4.0 ignores with a warning, drawing the default width - CI's

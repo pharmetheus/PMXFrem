@@ -12,6 +12,7 @@
 #' @param modDevDir Standard PMX model development directory.
 #' @param ffemDataFile Character. Path to the Full Fixed Effects Model (FFEM) dataset.
 #' @param covariates Character vector. The full list of covariates to include in the FREM model.
+#'   For a base model `$INPUT` item `label=synonym` either name may be given.
 #'   The first element is processed during Phase 1 (bootstrapping), and the remainder during Phase 2.
 #' @param numNonFREMThetas Numeric, or `NULL` (default). The number of THETAs in
 #'   the base model. When `NULL` it is read from the base model's `.ext` (the
@@ -30,7 +31,13 @@
 #'   variances that precede the FREM block) to skip when appending the FREM
 #'   parameters. Defaults to `0`. This cannot be deduced from a base model - it
 #'   has no FREM structure yet - so set it correctly for your model.
-#' @param cstrKeepCols Character vector. Columns to strictly retain in the generated FREM dataset. Note: `"FREMTYPE"` is managed internally and injected between phases.
+#' @param cstrKeepCols Character vector. The columns of the data set that the FREM data
+#'   set keeps on the model's own records, named as the base model's `$INPUT` names them
+#'   (not as the data file's header does). Include every data item `$PK` and `$ERROR`
+#'   use. A column the base model marks `=DROP` cannot be kept. Either name of an
+#'   `$INPUT` `label=synonym` item may be given; the data column is named by the reserved
+#'   one of the two (`CP=DV` gives `DV`), the label if neither is reserved. Note:
+#'   `"FREMTYPE"` is managed internally and injected between phases.
 #' @param bRecodeDichotomous Logical. Should dichotomous covariates be automatically
 #'   recoded to 0/1? Defaults to FALSE. If FALSE, inputs must be strictly 0/1.
 #' @param allowNon01 Logical. If TRUE, allows non-0/1 dichotomous covariates (like 1/2)
@@ -75,7 +82,6 @@
 #'   catCovs = catCovs,
 #'   outputDir = td,
 #'   fremModName = "frem_final",
-#'   numNonFREMThetas = 7,
 #'   numSkipOm = 2,
 #'   cstrKeepCols = keep_cols,
 #'   bRecodeDichotomous = TRUE,
@@ -115,6 +121,10 @@ createFREMmodel <- function(runno = NULL,
                             allowNon01 = FALSE,
                             keepDoseOnlySubjects = FALSE,
                             ...) {
+  # Only columns the user asked to keep are checked against the base model's
+  # dropped ones; a default keep column the data lacks is skipped with a warning.
+  keepColsGiven <- if (missing(cstrKeepCols)) NULL else cstrKeepCols
+
   # Default to modDevDir if outputDir isn't specified
   if (is.null(outputDir)) {
     outputDir <- if (!is.null(modDevDir)) modDevDir else getwd()
@@ -135,6 +145,22 @@ createFREMmodel <- function(runno = NULL,
   }
 
   if (length(covariates) == 0) stop("At least one covariate must be provided.")
+
+  # --- Names given as the synonym of an $INPUT `label=synonym` item ---
+  # The FREM data names such a column by the reserved one of the two (`CP=DV`
+  # gives DV), so the column arguments are read as that name from here on.
+  inputBlock <- if (!is.null(modName) || !is.null(runno)) {
+    modFile <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)$mod
+    if (file.exists(modFile)) findrecord(modFile, record = "^\\$INP(U(T)?)?\\s", quiet = TRUE)
+  }
+  if (!is.null(inputBlock)) {
+    inputItems <- .fremInputItems(inputBlock)
+    covariates <- .fremColumnNames(covariates, inputItems)
+    catCovs <- .fremColumnNames(catCovs, inputItems)
+    logtCovs <- .fremColumnNames(logtCovs, inputItems)
+    cstrKeepCols <- .fremColumnNames(cstrKeepCols, inputItems)
+    keepColsGiven <- .fremColumnNames(keepColsGiven, inputItems)
+  }
 
   # --- Base Model Diagnostics Check (Pre-flight Validation) ---
   fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)
@@ -271,6 +297,7 @@ createFREMmodel <- function(runno = NULL,
     allowNon01 = allowNon01,
     quiet = quiet,
     keepDoseOnlySubjects = keepDoseOnlySubjects,
+    userKeepCols = keepColsGiven,
     ...
   )
 
@@ -287,7 +314,10 @@ createFREMmodel <- function(runno = NULL,
     contCovsToAdd <- cov_to_add[!(cov_to_add %in% catCovs)]
     catCovsToAdd <- cov_to_add[cov_to_add %in% catCovs]
 
-    update_out <- updateFREMmodel(
+    ## Phase 2 reads the minimal model, whose $DATA IGNORE=@ PMXFrem wrote for
+    ## its own data file: never warn about it. Phase 1 has already warned
+    ## about the base model's.
+    update_out <- .fremQuietOwnIgnore(updateFREMmodel(
       strFREMModel = phase1_out$minimalModelFile,
       strFREMData = phase1_out$minimalDataFile,
       strFFEMData = phase1_out$validatedData,
@@ -308,13 +338,49 @@ createFREMmodel <- function(runno = NULL,
       roundMeanTo = roundMeanTo,
       fixTheta = fixTheta,
       quiet = quiet
-    )
+    ))
 
     if ("model" %in% names(update_out)) writeLines(update_out$model, finalModelPath)
   } else {
-    file.copy(phase1_out$minimalModelFile, finalModelPath, overwrite = TRUE)
+    ## One covariate: there is nothing for phase 2 to add, but the model still
+    ## goes through updateFREMmodel() so that it starts from the base model's
+    ## final estimates, within their bounds, as a model with more covariates
+    ## does. Its $DATA must name the final data file, not the minimal one
+    ## removed below.
+    update_out <- updateFREMmodel(
+      strFREMModel     = phase1_out$minimalModelFile,
+      numNonFREMThetas = numNonFREMThetas,
+      numSkipOm        = numSkipOm,
+      bWriteData       = FALSE,
+      bWriteMod        = FALSE,
+      strUpdateType    = "NoData",
+      quiet            = quiet
+    )
+    finalModel <- findrecord(update_out$model,
+      record = "\\$DATA",
+      replace = paste0("$DATA ", basename(finalDataPath), " IGNORE=@"), quiet = TRUE
+    )
+    writeLines(finalModel, finalModelPath)
     file.copy(phase1_out$minimalDataFile, finalDataPath, overwrite = TRUE)
   }
+
+  # --- 2.4 The base model's $TABLE records, fitted to the FREM data set ---
+  # Data items the FREM data does not carry are left out, FREMTYPE is added,
+  # and the table file renamed so that the base run's tables survive.
+  finalModel <- readLines(finalModelPath)
+  baseRunNo <- if (!is.null(runno)) {
+    as.character(runno)
+  } else if (!is.null(modName) && grepl("^run[0-9]+$", modName)) {
+    sub("^run", "", modName)
+  }
+  finalModel <- .fremCarryTables(finalModel,
+    oldInput = names(phase1_out$validatedData),
+    oldSynonyms = if (!is.null(inputBlock)) .fremInputSynonyms(inputItems),
+    newInput = .fremInputItems(findrecord(finalModel, record = "\\$INPUT", quiet = TRUE))$name,
+    renameFile = function(f) .fremTableFileName(f, baseRunNo, fremModName),
+    quiet = quiet
+  )
+  writeLines(finalModel, finalModelPath)
 
   # --- 2.5 STRICT DATA VALIDATION ---
   final_frem_data <- read.csv(finalDataPath)
@@ -329,4 +395,14 @@ createFREMmodel <- function(runno = NULL,
 
   if (!quiet) message("FREM model generation complete.")
   return(invisible(list(model = finalModelPath, data = finalDataPath)))
+}
+
+#' Evaluate an expression without the single-character IGNORE warning
+#'
+#' For calls on a model whose `$DATA` record PMXFrem wrote itself.
+#' @param expr The expression.
+#' @keywords internal
+#' @noRd
+.fremQuietOwnIgnore <- function(expr) {
+  withCallingHandlers(expr, pmxfrem_single_char_ignore = function(w) invokeRestart("muffleWarning"))
 }

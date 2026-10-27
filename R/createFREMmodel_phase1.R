@@ -30,6 +30,9 @@
 #' @param allowNon01 Logical. If TRUE, allows non-0/1 dichotomous covariates (like 1/2)
 #'   to pass through untouched for PsN compatibility. Defaults to FALSE.
 #' @param quiet Logical. Should the function execute silently without console messages? Defaults to `FALSE`.
+#' @param userKeepCols Character vector or `NULL`. The `cstrKeepCols` the user
+#'   supplied to [createFREMmodel()], if any; a column among them that the base
+#'   model drops is an error. `NULL` (the default columns) skips that check.
 #' @param ... Additional arguments passed down to internal helper functions (e.g., `createFREMData`, `prepareAndValidateData`).
 #' @param keepDoseOnlySubjects Logical. If \code{FALSE} (default), subjects without any valid PK observations (e.g.,
 #' only dosing records) are completely excluded from the generated dataset. If \code{TRUE},
@@ -69,6 +72,7 @@ createFREMmodel_phase1 <- function(runno = NULL,
                                    allowNon01 = FALSE,
                                    keepDoseOnlySubjects = FALSE,
                                    quiet = FALSE,
+                                   userKeepCols = NULL,
                                    ...) {
   # --- 1. Resolve Paths via Standard PMX Utilities ---
   fileNames <- getFileNames(runno = runno, modName = modName, modDevDir = modDevDir)
@@ -95,7 +99,8 @@ createFREMmodel_phase1 <- function(runno = NULL,
     covariates           = covariates,
     quiet                = quiet,
     keepDoseOnlySubjects = keepDoseOnlySubjects,
-    strID                = IDvar
+    strID                = IDvar,
+    cstrKeepCols         = userKeepCols
   )
   wideData <- validationResult$validatedData
 
@@ -103,56 +108,52 @@ createFREMmodel_phase1 <- function(runno = NULL,
   firstCovariateName <- covariates[1]
   is_cat <- firstCovariateName %in% catCovs
 
-  firstRecs <- wideData[!duplicated(wideData[[IDvar]]), ]
-  validRecs <- firstRecs[firstRecs[[firstCovariateName]] != missVal, ]
+  # Summarise the covariate as phase 2 (prepareNewCovariates()) and the FREM
+  # data set do: each subject's first non-missing value, and a THETA fixed only
+  # when every subject has one.
+  covValues <- .fremCovFirstValues(wideData, firstCovariateName, strID = IDvar, missVal = missVal)
+  shouldFix <- fixTheta && !.fremCovHasMissing(wideData, firstCovariateName, strID = IDvar, missVal = missVal)
+  covInfo <- function(name, x, fremType) {
+    v <- stats::var(x)
+    list(
+      name           = name,
+      mean           = round(mean(x), digits = roundMeanTo),
+      variance       = if (is.na(v) || v == 0) 1E-04 else v,
+      shouldFixTheta = shouldFix,
+      fremType       = fremType
+    )
+  }
 
   initialCovariateInfo <- list()
   frem_counter <- 100
 
   if (is_cat) {
-    valid_vals <- unique(validRecs[[firstCovariateName]])
-    valid_vals <- valid_vals[!is.na(valid_vals)]
+    valid_vals <- sort(unique(covValues))
 
     if (length(valid_vals) > 2) {
-      covVal <- sort(valid_vals)[-1]
-      for (val in covVal) {
-        dummy_data <- as.numeric(validRecs[[firstCovariateName]] == val)
-        initialCovariateInfo[[length(initialCovariateInfo) + 1]] <- list(
-          name           = paste0(firstCovariateName, "_", val),
-          mean           = round(mean(dummy_data, na.rm = TRUE), digits = roundMeanTo),
-          variance       = ifelse(var(dummy_data, na.rm = TRUE) == 0, 1E-04, var(dummy_data, na.rm = TRUE)),
-          shouldFixTheta = fixTheta,
-          fremType       = frem_counter
-        )
+      for (val in valid_vals[-1]) {
+        initialCovariateInfo[[length(initialCovariateInfo) + 1]] <-
+          covInfo(paste0(firstCovariateName, "_", val), as.numeric(covValues == val), frem_counter)
         frem_counter <- frem_counter + 100
       }
+    } else if (length(valid_vals) == 2 && bRecodeDichotomous) {
+      ## Recoded to 0/1 and named by the second level, as createFREMData() does.
+      val <- valid_vals[2]
+      initialCovariateInfo[[1]] <-
+        covInfo(paste0(firstCovariateName, "_", val), as.numeric(covValues == val), frem_counter)
     } else if (length(valid_vals) == 2) {
-      val <- sort(valid_vals)[2]
-      dummy_data <- as.numeric(validRecs[[firstCovariateName]] == val)
-      initialCovariateInfo[[length(initialCovariateInfo) + 1]] <- list(
-        name           = paste0(firstCovariateName, "_", val),
-        mean           = round(mean(dummy_data, na.rm = TRUE), digits = roundMeanTo),
-        variance       = ifelse(var(dummy_data, na.rm = TRUE) == 0, 1E-04, var(dummy_data, na.rm = TRUE)),
-        shouldFixTheta = fixTheta,
-        fremType       = frem_counter
-      )
+      ## Not recoded: kept under its own name, as createFREMData() and phase 2 do.
+      initialCovariateInfo[[1]] <- covInfo(firstCovariateName, covValues, frem_counter)
     } else {
-      initialCovariateInfo[[length(initialCovariateInfo) + 1]] <- list(
-        name = firstCovariateName, mean = 0, variance = 1E-04, shouldFixTheta = fixTheta, fremType = 100
+      initialCovariateInfo[[1]] <- list(
+        name = firstCovariateName, mean = 0, variance = 1E-04, shouldFixTheta = shouldFix, fremType = 100
       )
     }
   } else {
-    covData <- validRecs[[firstCovariateName]]
     if (!is.null(logtCovs) && firstCovariateName %in% logtCovs) {
-      covData <- log(covData)
+      covValues <- log(covValues)
     }
-    initialCovariateInfo[[length(initialCovariateInfo) + 1]] <- list(
-      name           = firstCovariateName,
-      mean           = round(mean(covData, na.rm = TRUE), digits = roundMeanTo),
-      variance       = ifelse(is.na(var(covData, na.rm = TRUE)) || var(covData, na.rm = TRUE) == 0, 1E-04, var(covData, na.rm = TRUE)),
-      shouldFixTheta = fixTheta && !any(firstRecs[[firstCovariateName]] == missVal),
-      fremType       = 100
-    )
+    initialCovariateInfo[[1]] <- covInfo(firstCovariateName, covValues, 100)
   }
 
   # --- 3. Generate Minimal FREM Dataset ---

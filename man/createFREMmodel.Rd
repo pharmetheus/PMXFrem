@@ -40,6 +40,7 @@ createFREMmodel(
 \item{ffemDataFile}{Character. Path to the Full Fixed Effects Model (FFEM) dataset.}
 
 \item{covariates}{Character vector. The full list of covariates to include in the FREM model.
+For a base model \verb{$INPUT} item \code{label=synonym} either name may be given.
 The first element is processed during Phase 1 (bootstrapping), and the remainder during Phase 2.}
 
 \item{numNonFREMThetas}{Numeric, or \code{NULL} (default). The number of THETAs in
@@ -71,7 +72,13 @@ variances that precede the FREM block) to skip when appending the FREM
 parameters. Defaults to \code{0}. This cannot be deduced from a base model - it
 has no FREM structure yet - so set it correctly for your model.}
 
-\item{cstrKeepCols}{Character vector. Columns to strictly retain in the generated FREM dataset. Note: \code{"FREMTYPE"} is managed internally and injected between phases.}
+\item{cstrKeepCols}{Character vector. The columns of the data set that the FREM data
+set keeps on the model's own records, named as the base model's \verb{$INPUT} names them
+(not as the data file's header does). Include every data item \verb{$PK} and \verb{$ERROR}
+use. A column the base model marks \verb{=DROP} cannot be kept. Either name of an
+\verb{$INPUT} \code{label=synonym} item may be given; the data column is named by the reserved
+one of the two (\code{CP=DV} gives \code{DV}), the label if neither is reserved. Note:
+\code{"FREMTYPE"} is managed internally and injected between phases.}
 
 \item{quiet}{Logical. Should the function execute silently without console messages? Defaults to \code{FALSE}.}
 
@@ -127,7 +134,6 @@ generated_files <- createFREMmodel(
   catCovs = catCovs,
   outputDir = td,
   fremModName = "frem_final",
-  numNonFREMThetas = 7,
   numSkipOm = 2,
   cstrKeepCols = keep_cols,
   bRecodeDichotomous = TRUE,

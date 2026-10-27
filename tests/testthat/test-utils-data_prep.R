@@ -21,11 +21,10 @@ test_that("prepareAndValidateData works on the happy path", {
 test_that("prepareAndValidateData correctly handles =DROP syntax", {
   td <- withr::local_tempdir()
 
-  # Create dummy files
+  # $INPUT names every column of the data file; =DROP only marks one as unused.
   data_path <- file.path(td, "data.csv")
   model_path <- file.path(td, "model.mod")
-  # 2 data columns, 3 $INPUT items (one is DROP)
-  write.csv(data.frame(C1 = 1, C3 = 99), data_path, row.names = FALSE, quote = FALSE)
+  write.csv(data.frame(C1 = 1, C2 = 2, C3 = 99), data_path, row.names = FALSE, quote = FALSE)
   writeLines(c("$PROBLEM test", "$INPUT ID DV=DROP WT"), model_path)
 
   result <- prepareAndValidateData(
@@ -34,18 +33,17 @@ test_that("prepareAndValidateData correctly handles =DROP syntax", {
     covariates = "WT"
   )
 
-  # After parsing DROP, names should be ID and WT. This will now fail the length check.
-  # Let's adjust the test to confirm this validation works.
+  expect_equal(names(result$validatedData), c("ID", "WT"))
+  expect_equal(result$validatedData$WT, 99)
+  expect_equal(result$inputNames, c("ID", "WT"))
 
-  # Correct data file for the DROP model
-  write.csv(data.frame(C1 = 1, C2 = 2, C3 = 99), data_path, row.names = FALSE, quote = FALSE)
-
-  # The function should correctly identify that the column counts do not match after dropping
+  # A data file without the dropped column has one column too few.
+  write.csv(data.frame(C1 = 1, C3 = 99), data_path, row.names = FALSE, quote = FALSE)
   expect_error(
     prepareAndValidateData(
       ffemDataFile = data_path, baseModelFile = model_path, covariates = "WT"
     ),
-    regexp = "The number of columns in the data file"
+    regexp = "does not match the number of items"
   )
 })
 
@@ -82,9 +80,9 @@ test_that("prepareAndValidateData throws errors for invalid inputs", {
 test_that("prepareAndValidateData handles complex $INPUT records", {
   td <- withr::local_tempdir()
 
-  # Setup: Data file with 5 columns to match the 5 final items in $INPUT
+  # Setup: Data file with 6 columns, one per $INPUT item, the dropped one included
   data_path <- file.path(td, "data.csv")
-  write.csv(data.frame(A = 1, B = 2, C = 3, D = 4, E = 5), data_path, row.names = FALSE, quote = FALSE)
+  write.csv(data.frame(A = 1, B = 2, C = 3, D = 4, E = 5, F = 0), data_path, row.names = FALSE, quote = FALSE)
 
   # Model file with a multi-line, abbreviated, and commented $INPUT record
   model_path <- file.path(td, "model.mod")
@@ -109,6 +107,8 @@ test_that("prepareAndValidateData handles complex $INPUT records", {
   expect_equal(length(result$inputNames), 5)
   expect_equal(result$inputNames, c("ID", "TIME", "WT", "AGE", "EVID"))
   expect_equal(names(result$validatedData), c("ID", "TIME", "WT", "AGE", "EVID"))
+  # Named by position: the third column (DV) is the one dropped
+  expect_equal(unlist(result$validatedData[1, ], use.names = FALSE), c(1, 2, 4, 5, 0))
 })
 
 test_that("prepareAndValidateData applies model data filters via filterDataFromModel", {

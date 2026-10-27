@@ -1,3 +1,67 @@
+# PMXFrem 2.3.0
+
+## FREM models from the base models you actually have
+
+`createFREMmodel()` now reads a base model exactly the way NONMEM does:
+
+* `=DROP` and `=SKIP` columns in `$INPUT` are read by position and removed
+  after the `IGNORE` / `ACCEPT` filters. Data columns after the last `$INPUT`
+  item are ignored, with a message.
+* `$THETA` bounds are kept, with the final estimates of the base model as
+  initial values. An estimate on a bound is moved just inside it, with a
+  message.
+* `$TABLE` records are kept. Items the FREM data set does not carry are left
+  out with a message, `FREMTYPE` is added, and the table file is renamed
+  (`xptab30` becomes `xptab31`, or `xptab30_<fremModName>`) so the tables from
+  the base run are not overwritten.
+* `IGNORE` / `ACCEPT` compare values as text where NONMEM does (`=`, `.EQ.`,
+  `.NE.`, `/=`), so `1.0` no longer equals `1`.
+* A `label=synonym` item such as `CP=DV` is read as the reserved name, `DV`,
+  and either name may be used in `covariates` and `cstrKeepCols`.
+* `$THETA (value)xN` is expanded to N THETAs.
+
+## Forest plot labels from PMXForest
+
+`generateCovNames()` now lives in PMXForest instead of in PMXFrem and is
+re-exported, so existing calls keep working. It gains the arguments `name_map`
+and `level_map` - one display name per covariate, one label per level - which
+`print_template = TRUE` now prints. The help page is in PMXForest:
+`?PMXForest::generateCovNames`.
+
+## Changes to existing behaviour
+
+* **PMXFrem now requires PMXForest 1.4.0 or later.**
+* **The mean value of a covariate THETA is fixed only when every subject has a
+  value for it.** A categorical first covariate was fixed despite missing
+  values, and a subject missing the covariate on some records counted as
+  missing. A 0/1 first covariate is now named as the others are (`SMOK`, not
+  `SMOK_1`).
+* `generateCovNames()` stops on a key given twice in a map, warns about map
+  entries that match nothing (`warn_unused = FALSE` silences it), and labels
+  the reference row of a one-hot covariate from `catRef`.
+* The warning about a single-character `IGNORE` is given once, and only when it
+  could remove data records.
+
+## Bug fixes
+
+* **Recoding a dichotomous covariate ignored a non-default `missVal`,** writing
+  `-99` for a missing value.
+* **`createFFEMmodel()` damaged the `$DATA` record:** a Windows path lost its
+  backslashes, and options after the file name were lost.
+* **A one-covariate FREM model** named a deleted data file in `$DATA` and did
+  not start from the final estimates of the base model.
+
+## Under the hood
+
+* The parallel workers are started by `PMXForest::startParallelWorkers()`, so
+  the two packages share one implementation.
+
+## Vignettes
+
+The `createFREMmodel()` Deep Dive vignette now covers what the base model
+needs, choosing `cstrKeepCols`, recoded dichotomous covariates, the choices
+`createFREMmodel()` makes for you, and base models with dropped columns.
+
 # PMXFrem 2.2.0
 
 PMXFrem 2.1.0 was published but never promoted, so its changes are described
