@@ -240,9 +240,10 @@ createFFEMdata <- function(runno = NULL,
   }
 
   if (cores > 1) {
+    ## No `.export`: foreach finds what mapFun() needs, and naming it again
+    ## warned "already exporting variable(s)" on fresh workers.
     dataI <- foreach(
-      k = seq_len(nrow(dataI)),
-      .export = ls(environment())
+      k = seq_len(nrow(dataI))
     ) %dopar% {
       mapFun(data = dataI[k, ], orgCovs = orgCovs)
     }
@@ -316,8 +317,7 @@ createFFEMdata <- function(runno = NULL,
   if (cores > 1) {
     covEff <- foreach(
       k = seq_len(nrow(dataOne)),
-      .packages = "PMXFrem",
-      .export = ls(environment())
+      .packages = "PMXFrem"
     ) %dopar% {
       myFun(data = dataOne[k, ], parNames = parNames, dataMap = dataMap, availCov = availCov, covSuffix = covSuffix, omegaToData = omegaToData, numSkipOm = numSkipOm)
     }

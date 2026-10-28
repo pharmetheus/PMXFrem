@@ -3,65 +3,16 @@
 Items parked for future consideration. Not a substitute for GitHub issues; move an
 item there when it becomes active work.
 
-## Release plan: next release after PMXForest 1.4.0
+## Release plan: 2.3.1
 
-Agreed 2026-10-26: release PMXForest 1.4.0 and the next PMXFrem as soon as
-possible, PMXForest first (its plan is in PMXForest's `TODO.md`). PR #78
-re-exports `generateCovNames()` from PMXForest and requires
-`PMXForest (>= 1.4.0)`; its CI fails until the `v1.4.0` tag exists, which is
-expected, not a fault in the PR.
+Agreed 2026-10-28 (Niclas): fix T48 now, before PMXFrem 2.3 goes live, so that
+users never meet the warnings. Branch `epic/2.3.1` from `main`, `DESCRIPTION`
+`2.3.0.9000`; the fix PR goes into it. Then epic -> `main` PR with CI green,
+and the tag `v2.3.1`, each on Niclas's go-ahead. The version number is an
+assumption (a patch release with fixes only); it is Niclas's call.
 
-1. Create an epic branch from `main`, bump `DESCRIPTION` to `2.2.0.9000`, and
-   retarget #78 to it (it targets `main` today).
-2. Land there: T34-T36 (bugs), T39 (`$TABLE`), T38 (vignette); T33 if
-   PMXForest 1.4.0 exports the worker startup. PRs into the epic branch get no
-   CI, so test locally against PMXForest's `epic/1.4.0`.
-3. Before merging #78, fix its NEWS entry: `print_template = TRUE` now prints
-   PMXForest's new template (`name_map` / `unit_map` / `level_map`) instead of
-   `group_map` / `label_map`, so "work as before" is not true for it. PMXFrem's
-   old `generateCovNames()` tests otherwise all pass against PMXForest's
-   version (21 of 24 assertions; the 3 failures are the template).
-4. Once `v1.4.0` is tagged: epic -> `main` PR, CI green, dev release, tag -
-   each on Niclas's go-ahead. Proposed version 2.3.0 (new behaviour, not only
-   fixes); the number is Niclas's call.
-
-Decided 2026-10-26 (Niclas), after the planning pass:
-
-- Version **2.3.0**, branch `epic/2.3.0`; one release, no 2.2.1.
-- T34: a data file with more columns than `$INPUT` items is accepted (the
-  first N named, a message names the rest); fewer is an error. A `DROP` item
-  named in `cstrKeepCols` or `covariates` is an error. Filter on `IGNORE` /
-  `ACCEPT` before removing dropped columns.
-- T35: a covariate counts as missing only for a subject with no non-missing
-  value. Align phase 1 with phase 2 in the same PR: a first 0/1 covariate is
-  named `SEX`, not `SEX_1`, and phase 1 uses the first non-missing value.
-- T36: an initial value on or outside a bound is nudged inside, with a
-  message naming the THETA. The one-covariate path starts from the `.ext`
-  final estimates too, as the multi-covariate path does.
-- T37: keep the single-character `IGNORE` warning (no implementation of it);
-  silent when the first column is numeric, and once per call.
-- T39: `$TABLE` items the FREM data does not carry are dropped with a message.
-  `FILE=`: swap the run number when it ends in the base run number and
-  `fremModName` is `run<N>` (`xptab30` -> `xptab31`), otherwise append
-  `_<fremModName>`; `FREMTYPE` goes at the end.
-- #78: Claude retargets, rebases and corrects its NEWS on Ari's branch, and
-  says so in the PR. T33 keeps the `PMXFrem.freshWorkers` option working.
-- T38: the `DROP` example is derived from `run30` inside the vignette.
-- NEWS: one consolidated PR at the end, reviewed on a doc-review page.
-
-Also found while planning, beyond T34-T40: recoding writes `-99` rather than
-`missVal` (`R/prepareNewCovariates.R:85`, `R/createFREMData.R:175`); T37's
-cause is that the minimal model writes `$DATA <file> IGNORE=@`
-(`R/createMinimalFremModel.R:168`), so phase 2 warns even when the base
-model has none; `tests/testthat/test-utils-data_prep.R:21` encodes the old
-`DROP` behaviour and is rewritten in T34. `make check-format` ends with
-`git checkout -- .`, which discards uncommitted edits - commit first.
-
-Later, not this release: PMXForest 1.4.0's `filterByModel()` identifies
-observations and applies `$DATA` filters the way NONMEM does. Reusing it in
-`createFREMmodel()` instead of PMXFrem's own `$INPUT` / `IGNORE` / dose-only
-handling (where T34 lives) would give one implementation - but PMXForest's
-friction item 3 questions `filterByModel()` itself, so settle that first.
+Don't push a tag or branch while "Sync Public repo" is running: its mirror
+push back to this repository deletes refs pushed after its clone (issue #97).
 
 ## Deep-dive vignette — extending a FREM model with THETAs and IIVs
 
@@ -299,24 +250,25 @@ comment lines back to find the covariates, so the change needs a round-trip
 test (`createFREMmodel()` then `getCovNames()` / `updateFREMmodel()` on the
 result) before and after, and a check of the snapshots that hold model text.
 
-## T48 — ~100 warnings from `%dopar%` loops on fresh workers (Windows)
+## T49 - `createFFEMdata()` blanks every column whose name contains a missing covariate
 
-Found in the 2.3.0 release checks. With fresh worker sessions - Windows,
-`ncores > 1` - `getExplainedVar()` gives about a hundred warnings
-`<anonymous>: ... may be used in an incorrect context`, one per `%dopar%`
-call of `functionList[[j]](..., ...)`; `createFFEMdata()` gives two
-`already exporting variable(s): ...`. Results are unaffected (the fresh-worker
-test in `test-parallelWorkers.R` compares against one core and passes).
-Present on `epic/2.3.0` before T33 (same counts: 103 and 2), so not caused by
-the shared worker startup. Linux and macOS fork and never see them, which is
-why CI is clean. Likely causes: foreach's export analysis (codetools) on a
-body that forwards the enclosing function's `...`, and an `.export` list that
-repeats variables foreach already finds. Capturing the dots once
-(`dots <- list(...)`, then `do.call()`) and trimming `.export` should silence
-both; the fresh-worker test can then assert no warnings.
+Found while fixing T48, by reading the code; not yet reproduced. `mapFun()` in
+`createFFEMdata()` finds the columns of a covariate with
+`grepl(cov, names(data))`, so a subject missing `WT` also has `LBWT` set to
+the missing value. `getExplainedVar()` had the same bug and was fixed in 2.3.0
+(`own <- names(data_row) == cov | grepl("^\Qcov_\E[0-9]+$", ...)`; test
+"a missing covariate does not also blank one whose name contains it"). Write
+the same test for `createFFEMdata()` first, then share one helper between the
+two functions.
 
 ## Done
 
+- **T48** - `getExplainedVar()` and `createFFEMdata()` gave about a hundred
+  warnings on fresh workers (Windows, `ncores > 1`). The parameter functions
+  now get the extra arguments through a captured `dots` list instead of `...`
+  in a nested function, and `.export` names only what foreach cannot find
+  (`cstrExports`). The two fresh-worker tests assert no warnings; a new test
+  checks that extra arguments reach the parameter functions in types 1-3.
 - **T25, T34-T39, T41-T46** — released in 2.3.0; the NEWS entry and the PRs
   (#80-#84, #86, #88-#90, #92-#94) hold the detail. `createFREMmodel()` reads
   `=DROP` / `=SKIP`, keeps `$THETA` bounds and `$TABLE` records, applies

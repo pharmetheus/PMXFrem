@@ -1,3 +1,13 @@
+# PMXFrem 2.3.1
+
+## Bug fixes
+
+* **`getExplainedVar()` and `createFFEMdata()` no longer warn on parallel
+  workers on Windows.** With more than one core, `getExplainedVar()` gave
+  about a hundred warnings `... may be used in an incorrect context`, and both
+  functions warned `already exporting variable(s)`. The results were not
+  affected.
+
 # PMXFrem 2.3.0
 
 ## FREM models from the base models you actually have
