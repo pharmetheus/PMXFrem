@@ -618,6 +618,23 @@ test_that("extra arguments in ... reach the parameter functions, and modExt stil
   expect_equal(run(functionList = list(.evCL), modExt = ".mod")$TOTVAR, base$TOTVAR)
 })
 
+test_that("extra arguments in ... reach the parameter functions in the empirical types", {
+  ## Types 1-3 call the parameter functions in another place than type 0,
+  ## inside the loop that may run on parallel workers.
+  s <- .evRun31()
+  dfc <- setupDfCovsEV(s$modFile)[1, , drop = FALSE]
+  withDose <- function(basethetas, covthetas, dfrow, etas, dose, ...) {
+    dose * basethetas[2] * exp(covthetas[1] + etas[3])
+  }
+  run <- function(...) {
+    .evCall(s, dfc, type = 1, data = s$data, functionListName = "CL", seed = 123, ...)
+  }
+  base <- run(functionList = list(.evCL))
+  doubled <- run(functionList = list(withDose), dose = 2)
+  expect_equal(doubled$TOTVAR, 4 * base$TOTVAR)
+  expect_equal(doubled$TOTCOVVAR, 4 * base$TOTCOVVAR)
+})
+
 test_that("type 0 accepts a dfCovs row that holds only non-FREM covariates", {
   s <- .evRun31()
   dfc <- .evRows(setupDfCovsEV(s$modFile, conditionalCovs = "FOOD"), "FOOD")

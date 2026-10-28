@@ -1,3 +1,17 @@
+# PMXFrem 2.3.1
+
+## Bug fixes
+
+* **`getExplainedVar()` and `createFFEMdata()` no longer warn on parallel
+  workers on Windows.** With more than one core, `getExplainedVar()` gave
+  about a hundred warnings `... may be used in an incorrect context`, and both
+  functions warned `already exporting variable(s)`. The results were not
+  affected.
+* **`createFFEMdata()` dropped a covariate whose name contains a missing
+  one.** A subject missing `WT` also lost `LBWT`, so the individual covariate
+  effects for that subject left out a covariate it has. Present since at least
+  version 1.2.1; `getExplainedVar()` had the same fault, fixed in 2.3.0.
+
 # PMXFrem 2.3.0
 
 ## FREM models from the base models you actually have
