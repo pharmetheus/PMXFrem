@@ -130,6 +130,14 @@
                                      numFREMThetas, numSigmas, numParCov, parNames, numSkipOm, allCov,
                                      etas, etaIDs = NULL, quiet, ncores, cstrPackages, cstrExports, numETASamples,
                                      seed, thetas, covNames, fremCovs, orgCovs, missVal, ...) {
+  ## The parameter functions get the extra arguments through `dots`, not `...`.
+  ## On fresh workers foreach inspects the bodies of the loops below, and `...`
+  ## inside a function without a `...` argument gave one warning per loop.
+  dots <- list(...)
+  callParFun <- function(f, basethetas, covthetas, dfrow, etas) {
+    do.call(f, c(list(basethetas = basethetas, covthetas = covthetas, dfrow = dfrow, etas = etas), dots))
+  }
+
   if (type == 2 || type == 3) {
     ETAsamples <- matrix(stats::rnorm((numParCov + numSkipOm) * numETASamples), nrow = (numParCov + numSkipOm), ncol = numETASamples)
   }
@@ -181,7 +189,9 @@
   }
 
   if (ncores > 1) {
-    dataI <- foreach::foreach(k = seq_len(nrow(dataI)), .packages = cstrPackages, .export = c(ls(environment()), cstrExports)) %dopar% {
+    ## No `.export`: foreach finds what mapFun() needs, and naming it again
+    ## warned "already exporting variable(s)" on fresh workers.
+    dataI <- foreach::foreach(k = seq_len(nrow(dataI)), .packages = cstrPackages) %dopar% {
       mapFun(data_row = dataI[k, , drop = FALSE], orgCovs = orgCovs)
     }
     dataI <- as.data.frame(data.table::rbindlist(dataI))
@@ -199,9 +209,9 @@
   ## number of values would shift every later value onto the wrong parameter
   ## name, so that is checked against this.
   nOut <- vapply(functionList, function(f) {
-    length(unlist(f(
+    length(unlist(callParFun(f,
       basethetas = thetas, covthetas = rep(0, length(parNames)), dfrow = dataI[1, ],
-      etas = rep(0, numSkipOm + numParCov), ...
+      etas = rep(0, numSkipOm + numParCov)
     )))
   }, integer(1))
 
@@ -263,27 +273,27 @@
             val <- 0
             tmpval <- 0
             for (m in seq_len(numETASamples)) {
-              val <- functionList[[j]](basethetas = thetas, covthetas = rep(0, length(coveffectsAll)), dfrow = dataI[k, ], etas = etasamples[m, ], ...)
+              val <- callParFun(functionList[[j]], basethetas = thetas, covthetas = rep(0, length(coveffectsAll)), dfrow = dataI[k, ], etas = etasamples[m, ])
               if (m == 1) tmpval <- matrix(0, ncol = numETASamples, nrow = length(val))
               tmpval[, m] <- unlist(val)
             }
             for (m in seq_len(nrow(tmpval))) val[m] <- stats::var(tmpval[m, ])
           }
           if (type == 1) {
-            val <- functionList[[j]](basethetas = thetas, covthetas = rep(0, length(coveffectsAll)), dfrow = dataI[k, ], etas = as.numeric(etas[k, ]), ...)
+            val <- callParFun(functionList[[j]], basethetas = thetas, covthetas = rep(0, length(coveffectsAll)), dfrow = dataI[k, ], etas = as.numeric(etas[k, ]))
           }
           if (type == 3 && k == 1) {
             tmpval <- 0
             val <- 0
             for (m in seq_len(numETASamples)) {
-              val <- functionList[[j]](basethetas = thetas, covthetas = rep(0, length(coveffectsAll)), dfrow = dataI[k, ], etas = etasamples[m, ], ...)
+              val <- callParFun(functionList[[j]], basethetas = thetas, covthetas = rep(0, length(coveffectsAll)), dfrow = dataI[k, ], etas = etasamples[m, ])
               if (m == 1) tmpval <- matrix(0, ncol = numETASamples, nrow = length(val))
               tmpval[, m] <- unlist(val)
             }
             for (m in seq_len(nrow(tmpval))) val[m] <- stats::var(tmpval[m, ])
           }
 
-          valeta0 <- functionList[[j]](basethetas = thetas, covthetas = coveffectsAll, dfrow = dataI[k, ], etas = rep(0, numSkipOm + numParCov), ...)
+          valeta0 <- callParFun(functionList[[j]], basethetas = thetas, covthetas = coveffectsAll, dfrow = dataI[k, ], etas = rep(0, numSkipOm + numParCov))
           listcount <- length(valeta0)
 
           for (l in seq_len(listcount)) {
@@ -301,7 +311,7 @@
       n <- 1
       for (j in seq_along(functionList)) {
         datatmp_eval <- dataI[k, c(tmpcovs, "jxrtp47"), drop = FALSE]
-        val <- functionList[[j]](basethetas = thetas, covthetas = coveffects, dfrow = datatmp_eval, etas = rep(0, numSkipOm + numParCov), ...)
+        val <- callParFun(functionList[[j]], basethetas = thetas, covthetas = coveffects, dfrow = datatmp_eval, etas = rep(0, numSkipOm + numParCov))
         listcount <- length(val)
         if (listcount != nOut[j]) {
           stop("functionList[[", j, "]] returned ", listcount, " value(s) for ",
@@ -324,8 +334,10 @@
     }
 
     if (ncores > 1) {
-      # Use full environment export to bypass static analysis closures
-      dftmp1 <- foreach::foreach(k = seq_len(nrow(dataI)), .packages = cstrPackages, .export = c(ls(environment()), cstrExports)) %dopar% {
+      ## foreach finds what internalCalc() needs; `.export` adds only what the
+      ## parameter functions need from outside. Naming the local variables again
+      ## warned "already exporting variable(s)" on fresh workers.
+      dftmp1 <- foreach::foreach(k = seq_len(nrow(dataI)), .packages = cstrPackages, .export = cstrExports) %dopar% {
         internalCalc(k)
       }
       dftmp1 <- dplyr::bind_rows(dftmp1)

@@ -132,5 +132,8 @@ test_that("getExplainedVar gives the same result on fresh workers as on one core
     )
   }
   withr::local_options(PMXFrem.freshWorkers = TRUE)
-  expect_equal(ev(2), ev(1))
+  ## foreach inspects each loop body to find what the workers need; a body
+  ## that forwards the dots of the enclosing function gave one warning per loop
+  expect_no_warning(onWorkers <- ev(2))
+  expect_equal(onWorkers, ev(1))
 })

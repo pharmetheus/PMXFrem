@@ -66,8 +66,9 @@ test_that("createFFEMdata works with parallel processing", {
     dplyr::filter(BLQ != 1) %>%
     dplyr::as_tibble() # the class assertion below is that createFFEMdata() preserves it
 
-  ## Check with specified parameter names and cores > 1
-  vpcData <- createFFEMdata(
+  ## Check with specified parameter names and cores > 1. No warnings: an
+  ## `.export` that repeats what foreach finds itself warns on fresh workers.
+  expect_no_warning(vpcData <- createFFEMdata(
     modName = "run31",
     modDevDir = system.file("extdata/SimNeb/", package = "PMXFrem"),
     parNames = c("CL", "V", "MAT"),
@@ -77,7 +78,7 @@ test_that("createFFEMdata works with parallel processing", {
     newDataFile = NULL,
     quiet = TRUE,
     cores = 2
-  ) # Trigger the parallel code path
+  )) # Trigger the parallel code path
 
   # The result should be numerically identical to the sequential run,
   # so a snapshot is a good way to verify correctness.
