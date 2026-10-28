@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.1</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -53,6 +53,16 @@
       
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2.3.1" id="pmxfrem-2-3-1">PMXFrem 2.3.1<a class="anchor" aria-label="anchor" href="#pmxfrem-2-3-1"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-2-3-1">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-2-3-1"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code> and <code><a href="../reference/createFFEMdata.html">createFFEMdata()</a></code> no longer warn on parallel workers on Windows.</strong> With more than one core, <code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code> gave about a hundred warnings <code>... may be used in an incorrect context</code>, and both functions warned <code>already exporting variable(s)</code>. The results were not affected.</li>
+<li>
+<strong><code><a href="../reference/createFFEMdata.html">createFFEMdata()</a></code> dropped a covariate whose name contains a missing one.</strong> A subject missing <code>WT</code> also lost <code>LBWT</code>, so the individual covariate effects for that subject left out a covariate it has. Present since at least version 1.2.1; <code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code> had the same fault, fixed in 2.3.0.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.3.0" id="pmxfrem-2-3-0">PMXFrem 2.3.0<a class="anchor" aria-label="anchor" href="#pmxfrem-2-3-0"></a></h2>
 <div class="section level3">
