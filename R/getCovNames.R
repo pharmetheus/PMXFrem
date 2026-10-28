@@ -63,5 +63,12 @@ getCovNames <- function(modFile,
 ## @noRd
 .fremBaseCov <- function(x) sub("_[0-9]+(\\s*)$", "\\1", x)
 
+## The columns that hold covariate `cov`: the covariate itself and its
+## binarized columns (<cov>_<level>), not every name that contains it.
+## grepl(cov, ...) also matched LBWT for WT, so a subject missing WT lost LBWT.
+##
+## @noRd
+.fremCovColumns <- function(cov, colNames) colNames == cov | .fremBaseCov(colNames) == cov
+
 ## @noRd
 .fremIsBinarized <- function(x) grepl("_[0-9]+\\s*$", x)

@@ -177,10 +177,7 @@
 
   mapFun <- function(data_row, orgCovs) {
     for (cov in orgCovs) {
-      ## the covariate and its own binarized columns (RACEL, RACEL_2, ...) - not
-      ## every name that contains it: grepl("WT", ...) also blanked LBWT
-      own <- names(data_row) == cov |
-        grepl(paste0("^\\Q", cov, "_\\E[0-9]+$"), names(data_row), perl = TRUE)
+      own <- .fremCovColumns(cov, names(data_row))
       if (data_row[[cov]][1] == missVal && sum(own) > 1) {
         data_row[1, own] <- missVal
       }

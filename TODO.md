@@ -250,19 +250,14 @@ comment lines back to find the covariates, so the change needs a round-trip
 test (`createFREMmodel()` then `getCovNames()` / `updateFREMmodel()` on the
 result) before and after, and a check of the snapshots that hold model text.
 
-## T49 - `createFFEMdata()` blanks every column whose name contains a missing covariate
-
-Found while fixing T48, by reading the code; not yet reproduced. `mapFun()` in
-`createFFEMdata()` finds the columns of a covariate with
-`grepl(cov, names(data))`, so a subject missing `WT` also has `LBWT` set to
-the missing value. `getExplainedVar()` had the same bug and was fixed in 2.3.0
-(`own <- names(data_row) == cov | grepl("^\Qcov_\E[0-9]+$", ...)`; test
-"a missing covariate does not also blank one whose name contains it"). Write
-the same test for `createFFEMdata()` first, then share one helper between the
-two functions.
-
 ## Done
 
+- **T49** - `createFFEMdata()` matched the columns of a covariate with
+  `grepl(cov, ...)`, so a subject missing `WT` also lost `LBWT` and got the
+  FFEM without it (reproduced with `run31`: CL coefficient -0.1574 instead of
+  -0.1532). Present since at least v1.2.1; the bundled data never triggers it.
+  `.fremCovColumns()` now holds the rule for both `createFFEMdata()` and
+  `getExplainedVar()`.
 - **T48** - `getExplainedVar()` and `createFFEMdata()` gave about a hundred
   warnings on fresh workers (Windows, `ncores > 1`). The parameter functions
   now get the extra arguments through a captured `dots` list instead of `...`

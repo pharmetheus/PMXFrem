@@ -230,10 +230,9 @@ createFFEMdata <- function(runno = NULL,
 
   mapFun <- function(data, orgCovs) {
     for (cov in orgCovs) {
-      # Use exact list-extraction [[ ]] which is universally safe,
-      # and sum() to correctly count matching dummy columns.
-      if (data[[cov]][1] == missVal && sum(grepl(cov, names(data))) > 1) {
-        data[1, grepl(cov, names(data))] <- missVal
+      own <- .fremCovColumns(cov, names(data))
+      if (data[[cov]][1] == missVal && sum(own) > 1) {
+        data[1, own] <- missVal
       }
     }
     return(data)
