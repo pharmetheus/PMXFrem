@@ -120,3 +120,40 @@ test_that("createFFEMdata shifts V-column indices correctly when numSkipOm > 0",
   # Snapshot the structural output to prevent regression
   expect_snapshot_value(stabilize(as.data.frame(head(output_data, 20))), style = "json2", cran = TRUE)
 })
+
+test_that("a missing covariate does not also blank one whose name contains it (WT in LBWT)", {
+  modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")
+  modFile <- file.path(modDevDir, "run31.mod")
+  data <- utils::read.csv(file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"))
+  data <- data[data$BLQ != 1, ]
+  ## No subject in the bundled data misses WT and has LBWT, so make one
+  id <- data$ID[data$WT != -99 & data$LBWT != -99][1]
+  data$WT[data$ID == id] <- -99
+  out <- createFFEMdata(
+    modName = "run31", modDevDir = modDevDir, parNames = c("CL", "V", "MAT"),
+    numNonFREMThetas = 7, numSkipOm = 2, dataFile = data, newDataFile = NULL, quiet = TRUE
+  )$newData
+  got <- unlist(out[out$ID == id, c("CLFREMCOV", "VFREMCOV", "MATFREMCOV")][1, ])
+
+  ## The FFEM for this subject conditions on every covariate it has, LBWT included
+  covNames <- getCovNames(modFile)$covNames
+  row <- addFREMcovariates(dfFFEM = data, modFile = modFile, missVal = -99)
+  row <- row[row$ID == id, ][1, ]
+  has <- covNames[vapply(covNames, function(cv) !is.null(row[[cv]]) && row[[cv]] != -99, logical(1))]
+  expect_true("LBWT" %in% has)
+  expect_false("WT" %in% has)
+  ffem <- calcFFEM(
+    dfext = getExt(file.path(modDevDir, "run31.ext")), numNonFREMThetas = 7, covNames = covNames,
+    availCov = has, quiet = TRUE, parNames = c("CL", "V", "MAT"), numSkipOm = 2
+  )
+  expected <- vapply(ffem$Expr, function(e) as.numeric(eval(parse(text = e), envir = list(data = row))), numeric(1))
+  expect_equal(unname(got), unname(expected))
+})
+
+test_that(".fremCovColumns picks a covariate and its binarized columns, nothing else", {
+  cols <- c("ID", "WT", "LBWT", "WT_2", "WTBL", "WT.1", "RACE_2", "BL_WT")
+  expect_equal(cols[.fremCovColumns("WT", cols)], c("WT", "WT_2"))
+  expect_equal(cols[.fremCovColumns("RACE", cols)], "RACE_2")
+  ## a covariate whose own name ends in _<digits> is still its own column
+  expect_equal(cols[.fremCovColumns("RACE_2", cols)], "RACE_2")
+})
