@@ -56,6 +56,28 @@
 #'   a path. A path is written into `$DATA` as given, for example
 #'   `"../../ProducedData/frem_data.csv"`; a relative one is relative to the
 #'   model, as NONMEM reads it, and missing directories are created.
+#' @param keepIgnoredRecords `FALSE` (the default) leaves out of the FREM data
+#'   set the records the `IGNORE` / `ACCEPT` lists of the base model exclude,
+#'   and the subjects and records excluded for other reasons (see
+#'   `keepDoseOnlySubjects`). `TRUE` keeps every record, and the `$DATA`
+#'   record of the FREM model leaves out the same ones, so that NONMEM reads
+#'   the same records either way. See Details.
+#'
+#' @details
+#' **Sensitivity analyses on excluded records (`keepIgnoredRecords = TRUE`).**
+#' The FREM data set then holds every record of the original data set, and
+#' covariate records for every subject in it. The `$DATA` record of the FREM
+#' model carries the `IGNORE` lists of the base model as the base model has
+#' them, with the columns they use added to the data set and marked `=DROP` in
+#' `$INPUT`; editing those lists brings back the records they exclude, as in
+#' the base model. Everything else the FREM data set would leave out is marked
+#' in a column `FREMEXCL` and left out by `IGNORE=(FREMEXCL.EQN.1)`: subjects
+#' without observations, observations with a missing DV, and the records an
+#' `ACCEPT` list of the base model excludes (NONMEM cannot combine an `ACCEPT`
+#' list with an `IGNORE` list). `createFREMmodel()` checks that the new
+#' `$DATA` record leaves out exactly what the default leaves out, and stops
+#' otherwise. Covariate means and the other initial estimates come from the
+#' records the filters keep, as with the default.
 #'
 #' @return An invisible list containing the file paths to the generated assets:
 #' \itemize{
@@ -130,6 +152,7 @@ createFREMmodel <- function(runno = NULL,
                             allowNon01 = FALSE,
                             keepDoseOnlySubjects = FALSE,
                             fremDataFile = NULL,
+                            keepIgnoredRecords = FALSE,
                             ...,
                             ffemDataFile = NULL) {
   if (!is.null(ffemDataFile)) {
@@ -409,6 +432,34 @@ createFREMmodel <- function(runno = NULL,
   # --- 2.5 STRICT DATA VALIDATION ---
   final_frem_data <- read.csv(finalDataPath)
   validateFremData(originalData = phase1_out$validatedData, fremData = final_frem_data, strID = IDvar, missVal = missVal, quiet = quiet)
+
+  # --- 2.6 Every record kept, the filters re-applied in $DATA ---
+  if (keepIgnoredRecords) {
+    ## The covariate records of subjects the filters exclude come from the same
+    ## call on a copy of the base model without its filters.
+    rerunArgs <- c(
+      list(
+        modName = "base", dataFile = dataFile, covariates = covariates,
+        numNonFREMThetas = numNonFREMThetas, fremModName = "frem_all",
+        catCovs = catCovs, logtCovs = logtCovs, IDvar = IDvar, missVal = missVal,
+        fixTheta = fixTheta, roundMeanTo = roundMeanTo, useMuModeling = useMuModeling,
+        numSkipOm = numSkipOm, quiet = TRUE, bRecodeDichotomous = bRecodeDichotomous,
+        allowNon01 = allowNon01, keepDoseOnlySubjects = TRUE
+      ),
+      if (!is.null(keepColsGiven)) list(cstrKeepCols = keepColsGiven),
+      list(...)
+    )
+    rerun <- function(baseDir) {
+      suppressWarnings(do.call(createFREMmodel, c(rerunArgs, list(
+        modDevDir = baseDir, outputDir = file.path(baseDir, "out")
+      ))))
+    }
+    .fremKeepIgnoredRecords(
+      baseModelFile = fileNames$mod, dataFile = dataFile,
+      finalModelPath = finalModelPath, finalDataPath = finalDataPath, rerun = rerun,
+      strID = IDvar, missVal = missVal, keepDoseOnlySubjects = keepDoseOnlySubjects, quiet = quiet
+    )
+  }
 
 
   # --- 3. Cleanup ---

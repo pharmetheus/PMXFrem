@@ -28,6 +28,7 @@ createFREMmodel(
   allowNon01 = FALSE,
   keepDoseOnlySubjects = FALSE,
   fremDataFile = NULL,
+  keepIgnoredRecords = FALSE,
   ...,
   ffemDataFile = NULL
 )
@@ -103,6 +104,13 @@ a path. A path is written into \verb{$DATA} as given, for example
 \code{"../../ProducedData/frem_data.csv"}; a relative one is relative to the
 model, as NONMEM reads it, and missing directories are created.}
 
+\item{keepIgnoredRecords}{\code{FALSE} (the default) leaves out of the FREM data
+set the records the \code{IGNORE} / \code{ACCEPT} lists of the base model exclude,
+and the subjects and records excluded for other reasons (see
+\code{keepDoseOnlySubjects}). \code{TRUE} keeps every record, and the \verb{$DATA}
+record of the FREM model leaves out the same ones, so that NONMEM reads
+the same records either way. See Details.}
+
 \item{...}{Additional arguments strictly passed to the Phase 1 bootstrapper (\code{createFREMmodel_phase1}).}
 
 \item{ffemDataFile}{Deprecated; use \code{dataFile}.}
@@ -120,6 +128,22 @@ This wrapper manages a two-phase pipeline: it bootstraps a minimal model with th
 covariate (handling any necessary categorical Y-1 expansions), iteratively injects
 the remaining covariates, safely manages \code{FREMTYPE} sequencing between phases, and
 cleans up all intermediate files.
+}
+\details{
+\strong{Sensitivity analyses on excluded records (\code{keepIgnoredRecords = TRUE}).}
+The FREM data set then holds every record of the original data set, and
+covariate records for every subject in it. The \verb{$DATA} record of the FREM
+model carries the \code{IGNORE} lists of the base model as the base model has
+them, with the columns they use added to the data set and marked \verb{=DROP} in
+\verb{$INPUT}; editing those lists brings back the records they exclude, as in
+the base model. Everything else the FREM data set would leave out is marked
+in a column \code{FREMEXCL} and left out by \code{IGNORE=(FREMEXCL.EQN.1)}: subjects
+without observations, observations with a missing DV, and the records an
+\code{ACCEPT} list of the base model excludes (NONMEM cannot combine an \code{ACCEPT}
+list with an \code{IGNORE} list). \code{createFREMmodel()} checks that the new
+\verb{$DATA} record leaves out exactly what the default leaves out, and stops
+otherwise. Covariate means and the other initial estimates come from the
+records the filters keep, as with the default.
 }
 \examples{
 
