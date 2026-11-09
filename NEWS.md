@@ -8,16 +8,15 @@ with `IGNORE`, for example observations below the limit of quantification.
 the analysis needed a new data set.
 
 `createFREMmodel()` now gains `keepIgnoredRecords` (default `FALSE`). With
-`TRUE`, the FREM data set keeps every record, and the `$DATA` record of the
-FREM model excludes the same records as before:
+`TRUE`, the FREM data set keeps every record, and NONMEM still reads the same
+records as without the option; `createFREMmodel()` checks this.
 
-* the `IGNORE` lists of the base model, unchanged, which you edit for the
-  sensitivity analysis;
-* `IGNORE=(FREMEXCL.EQN.1)`, on a new data column `FREMEXCL`, for the records
-  left out for other reasons, such as a subject without observations.
-
-`createFREMmodel()` checks that NONMEM reads the same records as without the
-option.
+The `$DATA` record of the FREM model then excludes records in two ways. It
+has the `IGNORE` lists of the base model, unchanged: these are the ones to
+edit for the sensitivity analysis. It also has `IGNORE=(FREMEXCL.EQN.1)`, on a
+new data column `FREMEXCL` that is 1 on the records `createFREMmodel()`
+leaves out for other reasons, such as a subject without observations, and 0
+on all others.
 
 ## Consistent names for data set arguments
 
