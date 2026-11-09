@@ -24,6 +24,23 @@ from `main`, `DESCRIPTION` `2.3.1.9000`, one PR per item into it:
 The version number is an assumption; merging into `main` and the tag are
 Niclas's go-ahead.
 
+Status 2026-11-09: 1-6 merged (#102-#107); #107 merged on Niclas's word
+before Siv's point on the order of TRTN "when all records are included" was
+known - add a test case if the answer needs one. NEWS reviewed once by
+Niclas; the first section reworded.
+
+Open, outside the code:
+- PRRS-293: the report template `Eq_final_cov_mod.Rnw` (ReportBuilder
+  directory, not this repository) prints `CL=CLstruct+...`; the FFEM is
+  `CL = CLstruct*EXP(<expression> + ETA)` for an exponential IIV. Its owners
+  change the template text.
+- PRRS-304 / 327 point 2 (T40): ask the reporter for the error message when
+  PMXForest is not attached, with the PMXRenv calls used.
+- PRRS-327 points 4 and 5: `$COVARIANCE` and `$ESTIMATION` are copied from
+  the base model; an answer, no code change.
+- After the release: Status, release and Resolution of each PRRS row, on
+  Niclas's go-ahead.
+
 ## Deep-dive vignette — extending a FREM model with THETAs and IIVs
 
 Now unblocked: T3 / T4 landed in PR #62, so the signatures and output shape are

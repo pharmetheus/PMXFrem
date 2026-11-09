@@ -1,10 +1,29 @@
 # PMXFrem (development version)
 
+## FREM models for sensitivity analyses on excluded records
+
+A sensitivity analysis often brings back records the base model excludes
+with `IGNORE`, for example observations below the limit of quantification.
+`createFREMmodel()` used to leave those records out of the FREM data set, so
+the analysis needed a new data set.
+
+`createFREMmodel()` now gains `keepIgnoredRecords` (default `FALSE`). With
+`TRUE`, the FREM data set keeps every record, and NONMEM still reads the same
+records as without the option; `createFREMmodel()` checks this.
+
+The `$DATA` record of the FREM model then excludes records in two ways. It
+has the `IGNORE` lists of the base model, unchanged: these are the ones to
+edit for the sensitivity analysis. It also has `IGNORE=(FREMEXCL.EQN.1)`, on a
+new data column `FREMEXCL` that is 1 on the records `createFREMmodel()`
+leaves out for other reasons, such as a subject without observations, and 0
+on all others.
+
 ## Consistent names for data set arguments
 
 The arguments that take the data set of the base model, or the FREM data set,
-now have the same names in every function. "FFEM" only refers to the data set
-written by `createFFEMdata()`. The old names still work and give a warning.
+now have the same names in every function. "FFEM data" now only means the
+data set `createFFEMdata()` writes. The old names still work for now, with a
+warning.
 
 | Function | Old name | New name |
 |---|---|---|
@@ -12,6 +31,43 @@ written by `createFFEMdata()`. The old names still work and give a warning.
 | `createFREMData()` | `strFFEMData`, `strFREMDataFileName` | `dataFile`, `fremDataFile` |
 | `updateFREMmodel()` | `strFREMData`, `strFFEMData`, `strNewFREMData` | `fremDataFile`, `dataFile`, `newFremDataFile` |
 | `addFREMcovariates()` | `dfFFEM` | `data` |
+
+## Other notable additions
+
+* `createFREMmodel()` gains `fremDataFile`, the path of the FREM data set. It
+  is written there and named in `$DATA` exactly as given, for example
+  `$DATA ../../ProducedData/Dataset/frem_data.csv`. Without it, the data set
+  goes next to the model, as before.
+
+## Changes to existing behaviour
+
+* **Small covariate means are no longer written as 0.** The initial value of
+  a covariate mean THETA was rounded to 2 decimals, so a mean of 0.0043
+  started from 0. The new default, `roundMeanTo = NULL`, keeps 3 significant
+  digits and never fewer than 2 decimals. Initial values of new FREM models
+  can therefore differ slightly from those of version 2.3.
+* **Small coefficients in the FFEM equations are no longer written as 0.**
+  `calcFFEM()` wrote the equations in `eqFile` with 3 decimals, so an effect
+  below 0.0005 appeared as 0. It now keeps 3 significant digits where that
+  needs more decimals. The layout of the file is unchanged.
+
+## Bug fixes
+
+* **`createFFEMmodel()` dropped the bounds, `FIX` and comments of the
+  THETAs.** It wrote `$THETA 6.14514 ; TH2` where the base model has
+  `$THETA (0,7.62228) ; 2. TVCL`. The FFEM model now keeps the bounds, `FIX`
+  and comments, with the FREM estimates as initial values:
+  `$THETA (0,6.14514) ; 2. TVCL`.
+
+## Documentation
+
+* The help for `calcFFEM()` now says that "missing covariates" means the
+  FFEM for a subset of the covariates (`availCov`), the same for every
+  subject. Missing values in the data, such as -99, are handled per subject
+  by `createFFEMdata()`.
+* It also says that each FFEM expression is added to the ETA of its
+  parameter: with `CL = TVCL*EXP(ETA(3))`, the FFEM is
+  `CL = TVCL*EXP(<expression> + ETA(3))`.
 
 # PMXFrem 2.3.1
 
