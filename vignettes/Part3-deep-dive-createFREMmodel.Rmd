@@ -30,7 +30,7 @@ Rather than adding every covariate at once, `createFREMmodel()` builds the model
 
 First, load the package and define the paths to your base model and original clinical dataset.
 
-`createFREMmodel()` writes into `modDevDir` by default, and stops rather than overwrite an existing file with the same `fremModName`. This vignette writes into a temporary directory instead.
+`createFREMmodel()` writes into `modDevDir` by default, and stops rather than overwrite an existing file with the same `fremModName`. This vignette writes into a temporary directory instead. The FREM data set goes next to the model as `<fremModName>_data.csv`; to keep it with your other data sets, give its path in `fremDataFile`, for example `fremDataFile = "../../ProducedData/Dataset/frem_data.csv"`, which is also what `$DATA` will say.
 
 ```{r setup}
 library(PMXFrem)

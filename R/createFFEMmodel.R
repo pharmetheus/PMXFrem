@@ -234,16 +234,7 @@ createFFEMmodel <- function(runno = NULL,
   ## Replace $DATA
   strData <- findrecord(basemodel, record = "\\$DATA", quiet = TRUE)
 
-  ## The file name is the first word after $DATA (quoted if it holds spaces);
-  ## swap it for the new file and keep the rest of the line - options and
-  ## IGNOREs - as it was. Built with paste0(), not a regex replacement, so a
-  ## Windows path keeps its backslashes.
-  parts <- regmatches(strData[1], regexec("^(\\s*\\$DATA\\s+)(\"[^\"]*\"|'[^']*'|\\S+)(.*)$", strData[1]))[[1]]
-  if (length(parts) == 4) {
-    strData[1] <- paste0(parts[2], newDataFile, parts[4])
-  }
-
-  tmp <- findrecord(tmp, record = "\\$DATA", replace = strData, quiet = TRUE)
+  tmp <- findrecord(tmp, record = "\\$DATA", replace = .fremSetDataFile(strData, newDataFile), quiet = TRUE)
 
   ## Replace $OMEGA
   if (!omegaToData) {
