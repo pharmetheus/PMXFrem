@@ -10,7 +10,7 @@ devtools::load_all()
 modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem") 
 modName   <- "run30" # The function will automatically look for run30.mod and run30.ext
 
-ffemDataFile <- system.file("extdata", "SimNeb", "DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem") 
+dataFile <- system.file("extdata", "SimNeb", "DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem") 
 outputDir    <- file.path(getwd(), "dev", "run_full_frem") 
 
 covariates <- c("WT", "AGE", "BMI", "SEX", "SMOK", "NCIL","RACEL")
@@ -33,7 +33,7 @@ if (!exists("createFREMmodel")) {
 generated_files <- createFREMmodel(
   modName          = modName,           # <-- Updated
   modDevDir        = modDevDir,         # <-- Updated
-  ffemDataFile     = ffemDataFile,
+  dataFile     = dataFile,
   covariates       = covariates,
   catCovs          = catCovs,
   outputDir        = outputDir,

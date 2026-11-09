@@ -87,7 +87,7 @@ test_that("createFREMmodel() accepts a base model with =DROP columns", {
   writeLines(mod, file.path(td, "run30.mod"))
 
   res <- suppressWarnings(createFREMmodel(
-    modName = "run30", modDevDir = td, ffemDataFile = dataFile,
+    modName = "run30", modDevDir = td, dataFile = dataFile,
     covariates = c("AGE", "WT"), numSkipOm = 2,
     cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV"),
     outputDir = td, fremModName = "frem", quiet = TRUE
@@ -114,7 +114,7 @@ test_that("a dropped column among the default keep columns is not an error", {
 
   expect_no_error(suppressWarnings(createFREMmodel(
     modName = "run30", modDevDir = td,
-    ffemDataFile = file.path(src, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+    dataFile = file.path(src, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
     covariates = "AGE", numSkipOm = 2, outputDir = td, fremModName = "frem", quiet = TRUE
   )))
 })

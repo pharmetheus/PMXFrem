@@ -1,5 +1,18 @@
 # PMXFrem (development version)
 
+## Consistent names for data set arguments
+
+The arguments that take the data set of the base model, or the FREM data set,
+now have the same names in every function. "FFEM" only refers to the data set
+written by `createFFEMdata()`. The old names still work and give a warning.
+
+| Function | Old name | New name |
+|---|---|---|
+| `createFREMmodel()` | `ffemDataFile` | `dataFile` |
+| `createFREMData()` | `strFFEMData`, `strFREMDataFileName` | `dataFile`, `fremDataFile` |
+| `updateFREMmodel()` | `strFREMData`, `strFFEMData`, `strNewFREMData` | `fremDataFile`, `dataFile`, `newFremDataFile` |
+| `addFREMcovariates()` | `dfFFEM` | `data` |
+
 # PMXFrem 2.3.1
 
 ## Bug fixes

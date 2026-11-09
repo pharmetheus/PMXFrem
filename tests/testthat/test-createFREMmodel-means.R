@@ -14,7 +14,7 @@ fremMeans <- function(covariates, ...) {
   write.csv(dat, dataFile, row.names = FALSE, quote = FALSE)
 
   res <- suppressWarnings(createFREMmodel(
-    modName = "run30", modDevDir = src, ffemDataFile = dataFile,
+    modName = "run30", modDevDir = src, dataFile = dataFile,
     covariates = covariates, numSkipOm = 2,
     cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV"),
     outputDir = td, fremModName = "frem", quiet = TRUE, ...

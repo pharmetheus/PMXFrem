@@ -3,13 +3,13 @@
 # a later `!= missVal` filter does not recognise as missing.
 
 test_that("createFREMData() recodes with a non-default missVal", {
-  dfFFEM <- data.frame(
+  dfData <- data.frame(
     ID = c(1, 1, 2, 2, 3, 3), TIME = c(0, 1, 0, 1, 0, 1), EVID = c(1, 0, 1, 0, 1, 0),
     AMT = c(100, 0, 100, 0, 100, 0), DV = c(0, 5, 0, 6, 0, 7), SEX = c(1, 1, 2, 2, -999, -999)
   )
   out <- file.path(withr::local_tempdir(), "frem.csv")
   suppressWarnings(createFREMData(
-    strFFEMData = dfFFEM, strFREMDataFileName = out, strID = "ID",
+    dataFile = dfData, fremDataFile = out, strID = "ID",
     cstrKeepCols = c("ID", "TIME", "EVID", "AMT", "DV"), cstrCatCovs = "SEX",
     missVal = -999, bRecodeDichotomous = TRUE, quiet = TRUE
   ))
@@ -33,7 +33,7 @@ test_that("recoding a dichotomous covariate keeps a non-default missVal missing"
   for (covs in list(c("AGE", "SEX"), c("SEX", "AGE"))) {
     td <- withr::local_tempdir()
     res <- suppressWarnings(createFREMmodel(
-      modName = "run30", modDevDir = src, ffemDataFile = dataFile,
+      modName = "run30", modDevDir = src, dataFile = dataFile,
       covariates = covs, catCovs = "SEX", missVal = -999, bRecodeDichotomous = TRUE,
       numSkipOm = 2, cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV"),
       outputDir = td, fremModName = "frem", quiet = TRUE

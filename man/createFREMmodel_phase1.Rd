@@ -8,7 +8,7 @@ createFREMmodel_phase1(
   runno = NULL,
   modName = NULL,
   modDevDir = NULL,
-  ffemDataFile,
+  dataFile,
   covariates,
   outputDir = NULL,
   minModName = "minimal_model",
@@ -37,7 +37,7 @@ createFREMmodel_phase1(
 
 \item{modDevDir}{Standard PMX model development directory.}
 
-\item{ffemDataFile}{Character. Path to the base FFEM dataset.}
+\item{dataFile}{Character. Path to the data set of the base model.}
 
 \item{covariates}{Character vector. The full list of covariates to be added to the FREM model. Phase 1 strictly processes the first element.}
 
@@ -93,12 +93,12 @@ An invisible list containing:
 \item \code{minimalDataFile}: Path to the generated minimal \code{.csv} data file.
 \item \code{mockExtFile}: Path to the generated mock \code{.ext} file.
 \item \code{keepMinimalModel}: Boolean flag passed back to the master wrapper for cleanup logic.
-\item \code{validatedData}: The filtered and validated FFEM dataset as a \code{data.frame}.
+\item \code{validatedData}: The filtered and validated data set of the base model as a \code{data.frame}.
 }
 }
 \description{
 This is the internal bootstrapper function for the FREM generation pipeline. It reads
-the base NONMEM model and the Full Fixed Effects Model (FFEM) dataset, processes strictly
+the base NONMEM model and the data set of the base model, processes strictly
 the first covariate from the provided list, and generates a minimal FREM data file,
 \code{.mod} file, and a mock \code{.ext} file. It inherently handles dynamic Y-1 categorical
 expansions (e.g., splitting a 3-level categorical variable into two dummy variables)

@@ -37,7 +37,7 @@ library(PMXFrem)
 
 # Define paths to example data and converged models
 modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
-ffemDataFile <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+dataFile <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 
 # Create a temporary directory for all generated outputs
 td <- tempdir()
@@ -108,7 +108,7 @@ We pass our specifications into `createFREMmodel()`. `quiet = TRUE` silences the
 generated_files <- createFREMmodel(
   modName = "run30",
   modDevDir = modDevDir,
-  ffemDataFile = ffemDataFile,
+  dataFile = dataFile,
   outputDir = td,
   fremModName = "run30_FREM",
 
@@ -179,7 +179,7 @@ dir.create(dropDir, showWarnings = FALSE)
 file.copy(file.path(modDevDir, c("run30.mod", "run30.ext")), dropDir, overwrite = TRUE)
 
 # The data with a visit date as its last column
-dat <- read.csv(ffemDataFile)
+dat <- read.csv(dataFile)
 dat$VDATE <- "2026-01-01"
 dropData <- file.path(dropDir, "data.csv")
 write.csv(dat, dropData, row.names = FALSE, quote = FALSE)
@@ -196,7 +196,7 @@ cat(mod[input], sep = "\n")
 
 ```{r drop_create}
 drop_files <- createFREMmodel(
-  modName = "run30", modDevDir = dropDir, ffemDataFile = dropData,
+  modName = "run30", modDevDir = dropDir, dataFile = dropData,
   outputDir = dropDir, fremModName = "run30_FREM",
   covariates = c("AGE", "WT"), numSkipOm = 2,
   cstrKeepCols = keep_cols, quiet = TRUE

@@ -48,7 +48,7 @@ fremWarningCount <- function(modDir) {
   td <- withr::local_tempdir()
   singleCharWarnings(suppressMessages(capture.output(createFREMmodel(
     modName = "run30", modDevDir = modDir,
-    ffemDataFile = file.path(src, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+    dataFile = file.path(src, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
     covariates = c("AGE", "WT"), numSkipOm = 2,
     cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV"),
     outputDir = td, fremModName = "frem", quiet = FALSE

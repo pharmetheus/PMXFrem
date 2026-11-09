@@ -10,7 +10,7 @@
 #' @param runno Standard PMX run number.
 #' @param modName Standard PMX model name.
 #' @param modDevDir Standard PMX model development directory.
-#' @param ffemDataFile Character. Path to the Full Fixed Effects Model (FFEM) dataset.
+#' @param dataFile Character. Path to the data set of the base model (one row per record, covariates as columns).
 #' @param covariates Character vector. The full list of covariates to include in the FREM model.
 #'   For a base model `$INPUT` item `label=synonym` either name may be given.
 #'   The first element is processed during Phase 1 (bootstrapping), and the remainder during Phase 2.
@@ -47,6 +47,7 @@
 #'   to pass through untouched for PsN compatibility. Defaults to FALSE.
 #' @param quiet Logical. Should the function execute silently without console messages? Defaults to `FALSE`.
 #' @param ... Additional arguments strictly passed to the Phase 1 bootstrapper (`createFREMmodel_phase1`).
+#' @param ffemDataFile Deprecated; use `dataFile`.
 #' @param keepDoseOnlySubjects Logical. If \code{FALSE} (default), subjects without any valid PK observations (e.g.,
 #' only dosing records) are completely excluded from the generated dataset. If \code{TRUE},
 #' these subjects are retained and their covariates are included as observations.
@@ -64,7 +65,7 @@
 #' # Setup paths using package extdata
 #' modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
 #' modName <- "run30"
-#' ffemDataFile <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+#' dataFile <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 #'
 #'
 #' td <- tempfile(pattern = "frem_example_")
@@ -79,7 +80,7 @@
 #' generated_files <- createFREMmodel(
 #'   modName = modName,
 #'   modDevDir = modDevDir,
-#'   ffemDataFile = ffemDataFile,
+#'   dataFile = dataFile,
 #'   covariates = covariates,
 #'   logtCovs = "WT",
 #'   catCovs = catCovs,
@@ -104,7 +105,7 @@
 createFREMmodel <- function(runno = NULL,
                             modName = NULL,
                             modDevDir = NULL,
-                            ffemDataFile,
+                            dataFile,
                             covariates,
                             numNonFREMThetas = NULL,
                             outputDir = NULL,
@@ -123,7 +124,12 @@ createFREMmodel <- function(runno = NULL,
                             bRecodeDichotomous = FALSE,
                             allowNon01 = FALSE,
                             keepDoseOnlySubjects = FALSE,
-                            ...) {
+                            ...,
+                            ffemDataFile = NULL) {
+  if (!is.null(ffemDataFile)) {
+    .fremDeprecatedArg("createFREMmodel", "ffemDataFile", "dataFile")
+    if (missing(dataFile)) dataFile <- ffemDataFile
+  }
   # Only columns the user asked to keep are checked against the base model's
   # dropped ones; a default keep column the data lacks is skipped with a warning.
   keepColsGiven <- if (missing(cstrKeepCols)) NULL else cstrKeepCols
@@ -282,7 +288,7 @@ createFREMmodel <- function(runno = NULL,
     runno = runno,
     modName = modName,
     modDevDir = modDevDir,
-    ffemDataFile = ffemDataFile,
+    dataFile = dataFile,
     covariates = covariates,
     outputDir = outputDir,
     minModName = minModName,
@@ -322,12 +328,12 @@ createFREMmodel <- function(runno = NULL,
     ## about the base model's.
     update_out <- .fremQuietOwnIgnore(updateFREMmodel(
       strFREMModel = phase1_out$minimalModelFile,
-      strFREMData = phase1_out$minimalDataFile,
-      strFFEMData = phase1_out$validatedData,
+      fremDataFile = phase1_out$minimalDataFile,
+      dataFile = phase1_out$validatedData,
       cstrContCovsToAdd = if (length(contCovsToAdd) > 0) contCovsToAdd else NULL,
       cstrCatCovsToAdd = if (length(catCovsToAdd) > 0) catCovsToAdd else NULL,
       cstrCovsToAddOrder = cov_to_add,
-      strNewFREMData = finalDataPath,
+      newFremDataFile = finalDataPath,
       strUpdateType = "DataAndModel",
       strID = IDvar,
       missVal = missVal,

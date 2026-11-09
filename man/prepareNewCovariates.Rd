@@ -5,7 +5,7 @@
 \title{Prepare New Covariates for Addition to a FREM Model}
 \usage{
 prepareNewCovariates(
-  dfFFEM,
+  dfData,
   cstrCatCovsToAdd,
   cstrContCovsToAdd,
   cstrCovsToAddOrder,
@@ -23,7 +23,7 @@ prepareNewCovariates(
 )
 }
 \arguments{
-\item{dfFFEM}{The FFEM data frame containing covariate information for all subjects.
+\item{dfData}{The data frame of the base model containing covariate information for all subjects.
 This data frame may be modified by adding new binarized columns.}
 
 \item{cstrCatCovsToAdd}{A character vector of categorical covariate names to add.}
@@ -71,7 +71,7 @@ fewer than 2 decimals, so 0.004321 is written as 0.00432 and 86.857 as
 A list containing four elements:
 \item{covList}{A list where each element contains the prepared information for a new covariate (Name, Mean, Var, Fremtype, Data, Fix).}
 \item{addedList}{A character vector of the names of the covariates that were successfully prepared for addition (e.g., c("AGE", "SITE_2", "SITE_3")).}
-\item{dfFFEM}{The potentially modified dfFFEM data frame with new binarized columns.}
+\item{dfData}{The potentially modified dfData data frame with new binarized columns.}
 \item{lastFremType}{The updated last (highest) FREMTYPE value.}
 }
 \description{
@@ -79,7 +79,7 @@ This function processes lists of continuous and categorical covariates to be
 added to a FREM model. It handles the re-classification of binary
 categorical variables, calculates initial estimates for the mean (THETA) and
 variance (OMEGA), assigns new FREMTYPEs, and creates binarized columns in the
-FFEM dataset for polytomous categorical covariates.
+data set for polytomous categorical covariates.
 }
 \seealso{
 Other Data Assembly Internal: 

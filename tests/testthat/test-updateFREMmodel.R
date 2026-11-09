@@ -17,10 +17,10 @@ test_that("updateFREMmodel can remove covariates from FREM models", {
 
   tmp <- updateFREMmodel(
     strFREMModel = model_path,
-    strFREMData = frem_data_path,
-    strFFEMData = ffem_data_path,
+    fremDataFile = frem_data_path,
+    dataFile = ffem_data_path,
     cstrRemoveCov = c("SEX", "WT"),
-    strNewFREMData = new_data_path,
+    newFremDataFile = new_data_path,
     numNonFREMThetas = 7,
     numSkipOm = 2,
     bWriteData = TRUE,
@@ -60,8 +60,8 @@ test_that("refactored updateFREMmodel output is self-consistent and parsable", {
   # --- Round 1: Remove covariates ---
   result1 <- updateFREMmodel(
     strFREMModel = model_path,
-    strFREMData = frem_data_path,
-    strFFEMData = ffem_data_path_local,
+    fremDataFile = frem_data_path,
+    dataFile = ffem_data_path_local,
     cstrRemoveCov = c("SEX", "WT"),
     numNonFREMThetas = 7,
     numSkipOm = 2,
@@ -92,17 +92,17 @@ test_that("refactored updateFREMmodel output is self-consistent and parsable", {
   result2 <- NULL
   expect_no_error({
     result2 <- updateFREMmodel(
-      strFREMModel      = round1_model_path,
-      strFREMData       = result1$data,
-      strFFEMData       = ffem_new_ids,
-      strNewFREMData    = file.path(td, "round2_data.csv"),
-      numNonFREMThetas  = 7,
-      numSkipOm         = 2,
+      strFREMModel = round1_model_path,
+      fremDataFile = result1$data,
+      dataFile = ffem_new_ids,
+      newFremDataFile = file.path(td, "round2_data.csv"),
+      numNonFREMThetas = 7,
+      numSkipOm = 2,
       # numParCov is no longer needed, as it will be read from the .ext file
-      bWriteData        = FALSE,
-      bWriteMod         = FALSE,
-      quiet             = TRUE,
-      cstrKeepCols      = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
+      bWriteData = FALSE,
+      bWriteMod = FALSE,
+      quiet = TRUE,
+      cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
     )
   })
 
@@ -128,13 +128,13 @@ test_that("updateFREMmodel can add covariates to FREM models", {
 
   tmp <- updateFREMmodel(
     strFREMModel = model_path,
-    strFREMData = frem_data_path,
-    strFFEMData = ffem_data_path,
+    fremDataFile = frem_data_path,
+    dataFile = ffem_data_path,
     cstrRemoveCov = NULL,
     cstrCatCovsToAdd = "SEX",
     cstrContCovsToAdd = "WT",
     strID = "ID",
-    strNewFREMData = new_data_path,
+    newFremDataFile = new_data_path,
     numNonFREMThetas = 7,
     numSkipOm = 2,
     numParCov = 3,
@@ -186,10 +186,10 @@ test_that("updateFREMmodel handles missing files correctly", {
   expect_error(
     updateFREMmodel(
       strFREMModel = mod31_path,
-      strFREMData = data.frame(),
-      strFFEMData = data.frame(),
-      # FIX: Add strNewFREMData to satisfy the new validation check
-      strNewFREMData = "new_data.csv",
+      fremDataFile = data.frame(),
+      dataFile = data.frame(),
+      # FIX: Add newFremDataFile to satisfy the new validation check
+      newFremDataFile = "new_data.csv",
       numNonFREMThetas = 7,
       numSkipOm = 2, # supplied so the .ext-derivation gate is passed and the
       # numParCov check below is the one actually exercised
@@ -202,8 +202,8 @@ test_that("updateFREMmodel handles missing files correctly", {
   expect_error(
     updateFREMmodel(
       strFREMModel = mod31_path,
-      strFREMData = file.path(td, "non_existent_frem_data.csv"),
-      strFFEMData = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
+      fremDataFile = file.path(td, "non_existent_frem_data.csv"),
+      dataFile = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
       numNonFREMThetas = 7,
       numSkipOm = 2,
       numParCov = 3
@@ -233,17 +233,17 @@ test_that("updateFREMmodel correctly removes a polycotomous covariate", {
 
   # Call the function to remove the 'NCIL' covariate by its base name
   result <- updateFREMmodel(
-    strFREMModel      = model_path,
-    strFREMData       = frem_data_path,
-    strFFEMData       = ffem_data_path,
-    cstrRemoveCov     = "NCIL", # Target for this test
-    numNonFREMThetas  = 7,
-    numSkipOm         = 2,
-    bWriteData        = FALSE,
-    bWriteMod         = FALSE,
-    quiet             = TRUE,
-    cstrKeepCols      = safe_keep_cols,
-    cstrSetToZero     = safe_set_to_zero
+    strFREMModel = model_path,
+    fremDataFile = frem_data_path,
+    dataFile = ffem_data_path,
+    cstrRemoveCov = "NCIL", # Target for this test
+    numNonFREMThetas = 7,
+    numSkipOm = 2,
+    bWriteData = FALSE,
+    bWriteMod = FALSE,
+    quiet = TRUE,
+    cstrKeepCols = safe_keep_cols,
+    cstrSetToZero = safe_set_to_zero
   )
 
   # A snapshot is the best way to verify the complex changes to both
@@ -277,17 +277,17 @@ test_that("updateFREMmodel correctly adds a polycotomous covariate", {
 
   # Call the function to add the new 'SITE' covariate
   result <- updateFREMmodel(
-    strFREMModel      = model_path,
-    strFREMData       = frem_data_path,
-    strFFEMData       = ffem_df, # Use the modified data frame
-    cstrCatCovsToAdd  = "SITE", # Target for this test
-    numNonFREMThetas  = 7,
-    numSkipOm         = 2,
-    bWriteData        = FALSE,
-    bWriteMod         = FALSE,
-    quiet             = TRUE,
-    cstrKeepCols      = safe_keep_cols,
-    cstrSetToZero     = safe_set_to_zero
+    strFREMModel = model_path,
+    fremDataFile = frem_data_path,
+    dataFile = ffem_df, # Use the modified data frame
+    cstrCatCovsToAdd = "SITE", # Target for this test
+    numNonFREMThetas = 7,
+    numSkipOm = 2,
+    bWriteData = FALSE,
+    bWriteMod = FALSE,
+    quiet = TRUE,
+    cstrKeepCols = safe_keep_cols,
+    cstrSetToZero = safe_set_to_zero
   )
 
   # A snapshot is the best way to verify the complex changes to the model text
@@ -317,19 +317,19 @@ test_that("updateFREMmodel is robust to data.table inputs", {
   # Call the function with data.table objects
   # The main call in this test
   result <- updateFREMmodel(
-    strFREMModel      = file.path(td, "run31.mod"),
-    strFREMData       = frem_dt,
-    strFFEMData       = ffem_dt,
-    # FIX: Add strNewFREMData to satisfy the new validation check
-    strNewFREMData    = file.path(td, "robust_data_new.csv"),
-    cstrRemoveCov     = "SEX",
-    numNonFREMThetas  = 7,
-    numSkipOm         = 2,
-    bWriteData        = FALSE,
-    bWriteMod         = FALSE,
-    quiet             = TRUE,
-    cstrKeepCols      = safe_keep_cols,
-    cstrSetToZero     = safe_set_to_zero
+    strFREMModel = file.path(td, "run31.mod"),
+    fremDataFile = frem_dt,
+    dataFile = ffem_dt,
+    # FIX: Add newFremDataFile to satisfy the new validation check
+    newFremDataFile = file.path(td, "robust_data_new.csv"),
+    cstrRemoveCov = "SEX",
+    numNonFREMThetas = 7,
+    numSkipOm = 2,
+    bWriteData = FALSE,
+    bWriteMod = FALSE,
+    quiet = TRUE,
+    cstrKeepCols = safe_keep_cols,
+    cstrSetToZero = safe_set_to_zero
   )
   # A simple check to ensure the function completed and returned the correct structure
   expect_type(result, "list")
@@ -372,18 +372,18 @@ test_that("updateFREMmodel correctly adds new individuals", {
 
   # Call the function with the data containing new individuals
   result <- updateFREMmodel(
-    strFREMModel      = model_path,
-    strFREMData       = frem_df,
-    strFFEMData       = ffem_combined,
+    strFREMModel = model_path,
+    fremDataFile = frem_df,
+    dataFile = ffem_combined,
     # FIX: Add the required output file name argument
-    strNewFREMData    = file.path(td, "frem_data_new_ids.csv"),
-    numNonFREMThetas  = 7,
-    numSkipOm         = 2,
-    bWriteData        = FALSE,
-    bWriteMod         = FALSE,
-    quiet             = TRUE,
-    cstrKeepCols      = safe_keep_cols,
-    cstrSetToZero     = safe_set_to_zero
+    newFremDataFile = file.path(td, "frem_data_new_ids.csv"),
+    numNonFREMThetas = 7,
+    numSkipOm = 2,
+    bWriteData = FALSE,
+    bWriteMod = FALSE,
+    quiet = TRUE,
+    cstrKeepCols = safe_keep_cols,
+    cstrSetToZero = safe_set_to_zero
   )
 
   # Verify that new individuals were actually added
@@ -423,17 +423,17 @@ test_that("updateFREMmodel correctly adds a new DV type", {
 
   # Call the function, specifying both the original DV and the new LNDV
   result <- updateFREMmodel(
-    strFREMModel      = model_path,
-    strFREMData       = frem_data_path,
-    strFFEMData       = ffem_df, # Use the modified data frame
-    numNonFREMThetas  = 7,
-    numSkipOm         = 2,
-    bWriteData        = FALSE,
-    bWriteMod         = FALSE,
-    quiet             = TRUE,
-    cstrKeepCols      = safe_keep_cols,
-    cstrSetToZero     = safe_set_to_zero,
-    cstrDV            = c("DV", "LNDV") # Key argument for this test
+    strFREMModel = model_path,
+    fremDataFile = frem_data_path,
+    dataFile = ffem_df, # Use the modified data frame
+    numNonFREMThetas = 7,
+    numSkipOm = 2,
+    bWriteData = FALSE,
+    bWriteMod = FALSE,
+    quiet = TRUE,
+    cstrKeepCols = safe_keep_cols,
+    cstrSetToZero = safe_set_to_zero,
+    cstrDV = c("DV", "LNDV") # Key argument for this test
   )
 
   # Check that new rows with FREMTYPE=1 (for the new DV) have been added
@@ -458,19 +458,19 @@ test_that("updateFREMmodel derives numNonFREMThetas / numSkipOm from the model",
 
   derived <- updateFREMmodel(
     strFREMModel = file.path(td, "run31.mod"),
-    strFREMData = file.path(td, "frem_dataset.dta"),
-    strFFEMData = file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+    fremDataFile = file.path(td, "frem_dataset.dta"),
+    dataFile = file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
     cstrRemoveCov = "SEX",
-    strNewFREMData = file.path(td, "d_new.csv"),
+    newFremDataFile = file.path(td, "d_new.csv"),
     bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE, cstrKeepCols = kc
   )
 
   explicit <- updateFREMmodel(
     strFREMModel = file.path(td, "run31.mod"),
-    strFREMData = file.path(td, "frem_dataset.dta"),
-    strFFEMData = file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+    fremDataFile = file.path(td, "frem_dataset.dta"),
+    dataFile = file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
     cstrRemoveCov = "SEX",
-    strNewFREMData = file.path(td, "d_new.csv"),
+    newFremDataFile = file.path(td, "d_new.csv"),
     numNonFREMThetas = 7, numSkipOm = 2,
     bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE, cstrKeepCols = kc
   )
@@ -495,9 +495,9 @@ test_that("updateFREMmodel stops loudly when the model structure and its .ext di
 
   call_it <- function(...) {
     updateFREMmodel(
-      strFREMModel = bad, strFREMData = file.path(td, "frem_dataset.dta"),
-      strFFEMData = file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
-      cstrRemoveCov = "SEX", strNewFREMData = file.path(td, "d.csv"),
+      strFREMModel = bad, fremDataFile = file.path(td, "frem_dataset.dta"),
+      dataFile = file.path(td, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+      cstrRemoveCov = "SEX", newFremDataFile = file.path(td, "d.csv"),
       bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE, cstrKeepCols = kc, ...
     )
   }
@@ -542,12 +542,12 @@ test_that("updateFREMmodel errors when the FFEM dataset cannot be found", {
   expect_error(
     updateFREMmodel(
       strFREMModel = file.path(td, "run31.mod"),
-      strFREMData = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
-      strFFEMData = file.path(td, "does-not-exist.csv"),
+      fremDataFile = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
+      dataFile = file.path(td, "does-not-exist.csv"),
       cstrRemoveCov = "SEX",
       numNonFREMThetas = 7, numSkipOm = 2,
       bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE
     ),
-    "Cannot find FFEM dataset"
+    "Cannot find the data set"
   )
 })

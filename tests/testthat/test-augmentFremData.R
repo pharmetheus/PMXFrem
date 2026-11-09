@@ -10,7 +10,7 @@ test_that("augmentFremData correctly adds new individuals, DVs, and covariates",
   )
 
   # Full dataset: 2 subjects, 2 DVs, 1 old cov (WT), 1 new cov (AGE)
-  full_dfFFEM <- data.frame(
+  full_dfData <- data.frame(
     ID = c(1, 1, 2, 2),
     TIME = c(0, 1, 0, 1),
     DV1 = c(10, 8, 20, 15), # Corresponds to FREMTYPE 0
@@ -36,7 +36,7 @@ test_that("augmentFremData correctly adds new individuals, DVs, and covariates",
   # 2. Action
   result_df <- augmentFremData(
     dfFREM = initial_dfFREM,
-    dfFFEM = full_dfFFEM,
+    dfData = full_dfData,
     covList = prepared_covList,
     addedList = prepared_addedList,
     covnames = existing_covnames,
@@ -69,7 +69,7 @@ test_that("augmentFremData correctly adds new individuals, DVs, and covariates",
 
 test_that("augmentFremData preserves row order and prevents Cartesian explosion using match()", {
   # 1. Setup Data
-  dfFFEM <- data.frame(
+  dfData <- data.frame(
     ID = c(2, 2, 1, 1),
     TIME = c(0, 12, 0, 24),
     DV = c(5, 6, 10, 12),
@@ -105,7 +105,7 @@ test_that("augmentFremData preserves row order and prevents Cartesian explosion 
   # 2. Action
   result_df <- augmentFremData(
     dfFREM = dfFREM,
-    dfFFEM = dfFFEM,
+    dfData = dfData,
     covList = covList,
     addedList = addedList,
     covnames = covnames,
@@ -136,9 +136,9 @@ test_that("augmentFremData preserves row order and prevents Cartesian explosion 
 
 test_that("augmentFremData reads a covariate whose own name holds an underscore", {
   dfFREM <- data.frame(ID = c(1, 1), TIME = 0, DV = c(10, 70), FREMTYPE = c(0, 100), EVID = 0)
-  dfFFEM <- data.frame(ID = c(1, 2), TIME = 0, DV1 = c(10, 20), BL_WT = c(70, 80), EVID = 0)
+  dfData <- data.frame(ID = c(1, 2), TIME = 0, DV1 = c(10, 20), BL_WT = c(70, 80), EVID = 0)
   res <- augmentFremData(
-    dfFREM = dfFREM, dfFFEM = dfFFEM, covList = list(), addedList = NULL,
+    dfFREM = dfFREM, dfData = dfData, covList = list(), addedList = NULL,
     covnames = list(covNames = "BL_WT"), cstrDV = "DV1", strID = "ID",
     iFremTypeIncrease = 100, cstrSetToZero = "EVID", quiet = TRUE
   )

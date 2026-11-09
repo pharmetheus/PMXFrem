@@ -10,7 +10,7 @@ devtools::load_all()
 # --- 2. User Configuration ---
 message("Defining input parameters...")
 baseModelFile <- system.file("extdata", "SimNeb", "run30.mod", package = "PMXFrem") # NOTE: Replace with your package name
-ffemDataFile  <- system.file("extdata", "SimNeb", "DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem") # NOTE: Replace with your package name
+dataFile  <- system.file("extdata", "SimNeb", "DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem") # NOTE: Replace with your package name
 outputDir <- file.path(getwd(), "dev", "run_minimal_wt")
 # covariates <- c("RACEL","WT", "AGE", "BMI", "SEX", "SMOK", "NCIL")
 # catCovs <- c("RACEL","SEX", "SMOK", "NCIL")
@@ -33,7 +33,7 @@ if (!exists("createFREMmodel_phase1")) {
 # Run the function, now with the cstrKeepCols argument specified
 generated_files <- createFREMmodel_phase1(
   baseModelFile = baseModelFile,
-  ffemDataFile  = ffemDataFile,
+  dataFile  = dataFile,
   covariates    = covariates,
   outputDir     = outputDir,
   cstrKeepCols  = keep_cols, # Specify the columns to keep

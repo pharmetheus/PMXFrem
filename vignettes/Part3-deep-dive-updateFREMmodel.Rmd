@@ -68,10 +68,10 @@ The function needs the model's structural configuration: `numNonFREMThetas` (the
 ```{r remove_covariates}
 result_remove <- updateFREMmodel(
   strFREMModel      = model_in_td,
-  strFREMData       = frem_data_path,
-  strFFEMData       = ffem_data_path,
+  fremDataFile       = frem_data_path,
+  dataFile       = ffem_data_path,
   cstrRemoveCov     = c("SEX", "WT", "AGE"),
-  strNewFREMData    = file.path(td, "frem_data_simplified.csv"),
+  newFremDataFile    = file.path(td, "frem_data_simplified.csv"),
   numNonFREMThetas  = 7,
   numSkipOm         = 2,
   bWriteData        = TRUE, # Generate the updated dataset
@@ -105,10 +105,10 @@ file.copy(file.path(td, "run31.ext"), file.path(td, "run31_new.ext"))
 
 result_add <- updateFREMmodel(
   strFREMModel       = model_to_add_to,
-  strFREMData        = data_to_add_to,
-  strFFEMData        = ffem_data_path,
+  fremDataFile        = data_to_add_to,
+  dataFile        = ffem_data_path,
   cstrContCovsToAdd  = "AGE",
-  strNewFREMData     = file.path(td, "frem_data_with_age.csv"),
+  newFremDataFile     = file.path(td, "frem_data_with_age.csv"),
   numNonFREMThetas   = 7,
   numSkipOm          = 2,
   bWriteData         = TRUE,
@@ -123,7 +123,7 @@ print(paste("Expanded model successfully written to:", file.path(td, "run31_new_
 
 **What the call did:**
 
-* The base clinical data (`strFFEMData`) is scanned to extract the new covariate's mean and variance, which seed the new `$THETA` and `$OMEGA` parameters.
+* The base clinical data (`dataFile`) is scanned to extract the new covariate's mean and variance, which seed the new `$THETA` and `$OMEGA` parameters.
 * Dummy observation rows (`EVID=2`) are appended to the dataset for the new covariate under a newly assigned `FREMTYPE`.
 
 ---
@@ -133,7 +133,7 @@ print(paste("Expanded model successfully written to:", file.path(td, "run31_new_
 New subjects can be added to a converged model without changing the covariate matrix. Here, we simulate 10 new individuals and fold them into the dataset.
 
 ```{r add_individuals}
-# 1. Load the unmodified FREM and FFEM data sets
+# 1. Load the unmodified FREM data set and the data set of the base model
 frem_df <- fread(frem_data_path, data.table = FALSE) %>% select(-ODV)
 ffem_df <- fread(ffem_data_path, data.table = FALSE)
 
@@ -144,9 +144,9 @@ ffem_new_ids$ID <- ffem_new_ids$ID + max(frem_df$ID)
 # 3. Append the individuals to the dataset
 result_new_ids <- updateFREMmodel(
   strFREMModel      = model_in_td,
-  strFREMData       = frem_df, # Pass dataset directly via memory
-  strFFEMData       = ffem_new_ids, # Include the new IDs
-  strNewFREMData    = file.path(td, "frem_data_appended.csv"),
+  fremDataFile       = frem_df, # Pass dataset directly via memory
+  dataFile       = ffem_new_ids, # Include the new IDs
+  newFremDataFile    = file.path(td, "frem_data_appended.csv"),
   numNonFREMThetas  = 7,
   numSkipOm         = 2,
   bWriteData        = TRUE,

@@ -4,9 +4,9 @@
 #' added to a FREM model. It handles the re-classification of binary
 #' categorical variables, calculates initial estimates for the mean (THETA) and
 #' variance (OMEGA), assigns new FREMTYPEs, and creates binarized columns in the
-#' FFEM dataset for polytomous categorical covariates.
+#' data set for polytomous categorical covariates.
 #'
-#' @param dfFFEM The FFEM data frame containing covariate information for all subjects.
+#' @param dfData The data frame of the base model containing covariate information for all subjects.
 #'   This data frame may be modified by adding new binarized columns.
 #' @param cstrCatCovsToAdd A character vector of categorical covariate names to add.
 #' @param cstrContCovsToAdd A character vector of continuous covariate names to add.
@@ -39,13 +39,13 @@
 #' @return A list containing four elements:
 #'   \item{covList}{A list where each element contains the prepared information for a new covariate (Name, Mean, Var, Fremtype, Data, Fix).}
 #'   \item{addedList}{A character vector of the names of the covariates that were successfully prepared for addition (e.g., c("AGE", "SITE_2", "SITE_3")).}
-#'   \item{dfFFEM}{The potentially modified dfFFEM data frame with new binarized columns.}
+#'   \item{dfData}{The potentially modified dfData data frame with new binarized columns.}
 #'   \item{lastFremType}{The updated last (highest) FREMTYPE value.}
 #'
 #' @family Data Assembly Internal
 #' @concept data_assembly
 #' @keywords internal
-prepareNewCovariates <- function(dfFFEM,
+prepareNewCovariates <- function(dfData,
                                  cstrCatCovsToAdd,
                                  cstrContCovsToAdd,
                                  cstrCovsToAddOrder,
@@ -77,16 +77,16 @@ prepareNewCovariates <- function(dfFFEM,
 
   for (strCov in cstrCovsToAddOrder) {
     # Safely handle dichotomous covariates
-    if (strCov %in% cstrCatCovsToAdd && length(unique(dfFFEM[[strCov]][dfFFEM[[strCov]] != missVal])) == 2) {
-      valid_vals <- unique(dfFFEM[[strCov]])
+    if (strCov %in% cstrCatCovsToAdd && length(unique(dfData[[strCov]][dfData[[strCov]] != missVal])) == 2) {
+      valid_vals <- unique(dfData[[strCov]])
       valid_vals <- valid_vals[valid_vals != missVal & !is.na(valid_vals)]
 
       if (bRecodeDichotomous) {
         covVal <- sort(valid_vals)[2]
         new_name <- paste0(strCov, "_", covVal)
 
-        dfFFEM[[new_name]] <- ifelse(dfFFEM[[strCov]] == missVal, missVal,
-          ifelse(dfFFEM[[strCov]] == covVal, 1, 0)
+        dfData[[new_name]] <- ifelse(dfData[[strCov]] == missVal, missVal,
+          ifelse(dfData[[strCov]] == covVal, 1, 0)
         )
 
         cstrContCovsToAdd <- c(new_name, cstrContCovsToAdd)
@@ -107,10 +107,10 @@ prepareNewCovariates <- function(dfFFEM,
     if (strCov %in% cstrContCovsToAdd) { # Add a continuous covariate
       if (!strCov %in% existingCovNames$covNames || overrideExistingCheck == TRUE) {
         # Estimated, not fixed, when some subject has no value at all
-        has_missing <- .fremCovHasMissing(dfFFEM, strCov, strID = strID, missVal = missVal)
+        has_missing <- .fremCovHasMissing(dfData, strCov, strID = strID, missVal = missVal)
         shouldFix <- if (fixTheta && !has_missing) 1 else 0
 
-        tmp <- dfFFEM[dfFFEM[[strCov]] != missVal, ]
+        tmp <- dfData[dfData[[strCov]] != missVal, ]
         tmp <- tmp[!duplicated(tmp[[strID]]), c(strID, strCov)]
         iFremType <- iFremType + iFremTypeIncrease
         calculated_mean <- .fremRoundMean(mean(tmp[[strCov]], na.rm = TRUE), roundMeanTo)
@@ -123,20 +123,20 @@ prepareNewCovariates <- function(dfFFEM,
         printq(paste0("Skipping continuous covariate: ", strCov, ", already existing as fremtype"), quiet = quiet)
       }
     } else { # Add a categorical covariate
-      covValues <- sort(unique(dfFFEM[[strCov]][dfFFEM[[strCov]] != missVal]))
+      covValues <- sort(unique(dfData[[strCov]][dfData[[strCov]] != missVal]))
       for (j in 2:length(covValues)) {
         strCov2 <- paste0(strCov, "_", covValues[j])
 
         if (!strCov2 %in% existingCovNames$covNames || overrideExistingCheck == TRUE) {
           # Evaluate missingness on the parent categorical variable
-          has_missing <- .fremCovHasMissing(dfFFEM, strCov, strID = strID, missVal = missVal)
+          has_missing <- .fremCovHasMissing(dfData, strCov, strID = strID, missVal = missVal)
           shouldFix <- if (fixTheta && !has_missing) 1 else 0
 
-          dfFFEM[[strCov2]] <- dfFFEM[[strCov]]
-          dfFFEM[[strCov2]][dfFFEM[[strCov]] != missVal & dfFFEM[[strCov]] == covValues[j]] <- 1
-          dfFFEM[[strCov2]][dfFFEM[[strCov]] != missVal & dfFFEM[[strCov]] != covValues[j]] <- 0
+          dfData[[strCov2]] <- dfData[[strCov]]
+          dfData[[strCov2]][dfData[[strCov]] != missVal & dfData[[strCov]] == covValues[j]] <- 1
+          dfData[[strCov2]][dfData[[strCov]] != missVal & dfData[[strCov]] != covValues[j]] <- 0
 
-          tmp <- dfFFEM[dfFFEM[[strCov2]] != missVal, ]
+          tmp <- dfData[dfData[[strCov2]] != missVal, ]
           tmp <- tmp[!duplicated(tmp[[strID]]), c(strID, strCov2)]
           iFremType <- iFremType + iFremTypeIncrease
           calculated_mean <- .fremRoundMean(mean(tmp[[strCov2]], na.rm = TRUE), roundMeanTo)
@@ -155,7 +155,7 @@ prepareNewCovariates <- function(dfFFEM,
   return(list(
     covList = covList,
     addedList = addedList,
-    dfFFEM = dfFFEM,
+    dfData = dfData,
     lastFremType = iFremType
   ))
 }

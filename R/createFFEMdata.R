@@ -217,7 +217,7 @@ createFFEMdata <- function(runno = NULL,
       rename("ID" = all_of(idvar))
   }
   ## Add the FREM covariates to the data file
-  data <- addFREMcovariates(dfFFEM = data, modFile = modFile, missVal = missVal)
+  data <- addFREMcovariates(data = data, modFile = modFile, missVal = missVal)
 
   dataI <- data %>% distinct(ID, .keep_all = TRUE)
   dataI <- dataI[, c("ID", orgCovs, covNames)]

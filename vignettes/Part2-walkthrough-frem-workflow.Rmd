@@ -295,11 +295,11 @@ file.copy(file.path(modDevDir, "run31.ext"), file.path(td, "run31.ext"))
 
 newFrem <- updateFREMmodel(
   strFREMModel      = file.path(td, "run31.mod"),
-  strFREMData       = file.path(modDevDir, "frem_dataset.dta"),
-  strFFEMData       = base_data,
+  fremDataFile       = file.path(modDevDir, "frem_dataset.dta"),
+  dataFile       = base_data,
   cstrRemoveCov     = c("SEX"), # Remove the SEX covariate from the model
   strID             = "ID",
-  strNewFREMData    = file.path(td, "frem_dataset_noSEX.csv"),
+  newFremDataFile    = file.path(td, "frem_dataset_noSEX.csv"),
   bWriteData        = TRUE,
   bWriteMod         = TRUE,
   quiet             = TRUE,

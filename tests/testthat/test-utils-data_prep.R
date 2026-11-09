@@ -8,7 +8,7 @@ test_that("prepareAndValidateData works on the happy path", {
   writeLines(c("$PROBLEM test", "$INPUT ID DV WT"), model_path)
 
   result <- prepareAndValidateData(
-    ffemDataFile = data_path,
+    dataFile = data_path,
     baseModelFile = model_path,
     covariates = "WT"
   )
@@ -28,7 +28,7 @@ test_that("prepareAndValidateData correctly handles =DROP syntax", {
   writeLines(c("$PROBLEM test", "$INPUT ID DV=DROP WT"), model_path)
 
   result <- prepareAndValidateData(
-    ffemDataFile = data_path,
+    dataFile = data_path,
     baseModelFile = model_path,
     covariates = "WT"
   )
@@ -41,7 +41,7 @@ test_that("prepareAndValidateData correctly handles =DROP syntax", {
   write.csv(data.frame(C1 = 1, C3 = 99), data_path, row.names = FALSE, quote = FALSE)
   expect_error(
     prepareAndValidateData(
-      ffemDataFile = data_path, baseModelFile = model_path, covariates = "WT"
+      dataFile = data_path, baseModelFile = model_path, covariates = "WT"
     ),
     regexp = "does not match the number of items"
   )
@@ -98,7 +98,7 @@ test_that("prepareAndValidateData handles complex $INPUT records", {
   )
 
   result <- prepareAndValidateData(
-    ffemDataFile = data_path,
+    dataFile = data_path,
     baseModelFile = model_path,
     covariates = c("WT", "AGE")
   )
@@ -128,7 +128,7 @@ test_that("prepareAndValidateData applies model data filters via filterDataFromM
   ), model_path)
 
   result <- prepareAndValidateData(
-    ffemDataFile = data_path,
+    dataFile = data_path,
     baseModelFile = model_path,
     covariates = "WT"
   )
@@ -160,7 +160,7 @@ test_that("prepareAndValidateData correctly applies keepDoseOnlySubjects", {
 
   # Test 1: Default behavior (FALSE). ID 2 should be dropped.
   result_false <- prepareAndValidateData(
-    ffemDataFile = data_path,
+    dataFile = data_path,
     baseModelFile = model_path,
     covariates = c("WT"),
     keepDoseOnlySubjects = FALSE,
@@ -172,7 +172,7 @@ test_that("prepareAndValidateData correctly applies keepDoseOnlySubjects", {
 
   # Test 2: Retain dose-only subjects (TRUE). ID 2 should be kept.
   result_true <- prepareAndValidateData(
-    ffemDataFile = data_path,
+    dataFile = data_path,
     baseModelFile = model_path,
     covariates = c("WT"),
     keepDoseOnlySubjects = TRUE,
@@ -192,7 +192,7 @@ test_that("prepareAndValidateData accepts a data.frame directly", {
   )
 
   result <- prepareAndValidateData(
-    ffemDataFile = test_df,
+    dataFile = test_df,
     baseModelFile = model_path,
     covariates = "WT",
     keepDoseOnlySubjects = TRUE,
