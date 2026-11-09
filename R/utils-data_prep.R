@@ -152,6 +152,43 @@ prepareAndValidateData <- function(dataFile, baseModelFile, covariates, quiet = 
   ))
 }
 
+#' A `$DATA` record with another data file
+#'
+#' The file name is the first word after `$DATA` (quoted if it holds spaces);
+#' it is swapped for `newFile` and the rest of the line - options and IGNOREs -
+#' is kept as it was. Built with `paste0()`, not a regex replacement, so a
+#' Windows path keeps its backslashes.
+#'
+#' @param dataRecord The `$DATA` record lines.
+#' @param newFile The data file to name, as it should appear in the model.
+#' @return `dataRecord` with the file swapped.
+#' @keywords internal
+#' @noRd
+.fremSetDataFile <- function(dataRecord, newFile) {
+  parts <- regmatches(dataRecord[1], regexec("^(\\s*\\$DATA\\s+)(\"[^\"]*\"|'[^']*'|\\S+)(.*)$", dataRecord[1]))[[1]]
+  if (length(parts) == 4) {
+    dataRecord[1] <- paste0(parts[2], newFile, parts[4])
+  }
+  dataRecord
+}
+
+#' Where a FREM data set is written
+#'
+#' @param outputDir The directory of the FREM model.
+#' @param fremModName The name of the FREM model.
+#' @param fremDataFile `NULL` for `<fremModName>_data.csv` next to the model,
+#'   or a path: an absolute one is used as it is, a relative one is relative
+#'   to the model.
+#' @return The path to write the data set to.
+#' @keywords internal
+#' @noRd
+.fremDataPath <- function(outputDir, fremModName, fremDataFile = NULL) {
+  if (is.null(fremDataFile)) {
+    return(file.path(outputDir, paste0(fremModName, "_data.csv")))
+  }
+  if (grepl("^([A-Za-z]:)?[/\\\\]", fremDataFile)) fremDataFile else file.path(outputDir, fremDataFile)
+}
+
 #' The items of a `$INPUT` record
 #'
 #' An item is `label` or `label=synonym`; either name may be used, and a

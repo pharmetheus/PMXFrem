@@ -27,6 +27,7 @@ createFREMmodel(
   bRecodeDichotomous = FALSE,
   allowNon01 = FALSE,
   keepDoseOnlySubjects = FALSE,
+  fremDataFile = NULL,
   ...,
   ffemDataFile = NULL
 )
@@ -95,6 +96,12 @@ to pass through untouched for PsN compatibility. Defaults to FALSE.}
 \item{keepDoseOnlySubjects}{Logical. If \code{FALSE} (default), subjects without any valid PK observations (e.g.,
 only dosing records) are completely excluded from the generated dataset. If \code{TRUE},
 these subjects are retained and their covariates are included as observations.}
+
+\item{fremDataFile}{The FREM data set to write. \code{NULL} (the default) writes
+\verb{<fremModName>_data.csv} next to the model and names it in \verb{$DATA} without
+a path. A path is written into \verb{$DATA} as given, for example
+\code{"../../ProducedData/frem_data.csv"}; a relative one is relative to the
+model, as NONMEM reads it, and missing directories are created.}
 
 \item{...}{Additional arguments strictly passed to the Phase 1 bootstrapper (\code{createFREMmodel_phase1}).}
 

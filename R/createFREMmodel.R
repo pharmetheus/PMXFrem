@@ -51,6 +51,11 @@
 #' @param keepDoseOnlySubjects Logical. If \code{FALSE} (default), subjects without any valid PK observations (e.g.,
 #' only dosing records) are completely excluded from the generated dataset. If \code{TRUE},
 #' these subjects are retained and their covariates are included as observations.
+#' @param fremDataFile The FREM data set to write. `NULL` (the default) writes
+#'   `<fremModName>_data.csv` next to the model and names it in `$DATA` without
+#'   a path. A path is written into `$DATA` as given, for example
+#'   `"../../ProducedData/frem_data.csv"`; a relative one is relative to the
+#'   model, as NONMEM reads it, and missing directories are created.
 #'
 #' @return An invisible list containing the file paths to the generated assets:
 #' \itemize{
@@ -124,6 +129,7 @@ createFREMmodel <- function(runno = NULL,
                             bRecodeDichotomous = FALSE,
                             allowNon01 = FALSE,
                             keepDoseOnlySubjects = FALSE,
+                            fremDataFile = NULL,
                             ...,
                             ffemDataFile = NULL) {
   if (!is.null(ffemDataFile)) {
@@ -140,7 +146,7 @@ createFREMmodel <- function(runno = NULL,
   }
 
   finalModelPath <- file.path(outputDir, paste0(fremModName, ".mod"))
-  finalDataPath <- file.path(outputDir, paste0(fremModName, "_data.csv"))
+  finalDataPath <- .fremDataPath(outputDir, fremModName, fremDataFile)
 
   # --- Overwrite Protection ---
   if (file.exists(finalModelPath) || file.exists(finalDataPath)) {
@@ -311,7 +317,8 @@ createFREMmodel <- function(runno = NULL,
   )
 
   finalModelPath <- file.path(outputDir, paste0(fremModName, ".mod"))
-  finalDataPath <- file.path(outputDir, paste0(fremModName, "_data.csv"))
+  finalDataPath <- .fremDataPath(outputDir, fremModName, fremDataFile)
+  dir.create(dirname(finalDataPath), recursive = TRUE, showWarnings = FALSE)
 
   # --- 2. Phase 2: Add Remaining Covariates (if any) ---
   if (length(covariates) > 1) {
@@ -389,6 +396,14 @@ createFREMmodel <- function(runno = NULL,
     renameFile = function(f) .fremTableFileName(f, baseRunNo, fremModName),
     quiet = quiet
   )
+  ## A data file the user named goes into $DATA as given, path and all.
+  if (!is.null(fremDataFile)) {
+    finalModel <- findrecord(finalModel,
+      record = "\\$DATA",
+      replace = .fremSetDataFile(findrecord(finalModel, record = "\\$DATA", quiet = TRUE), fremDataFile),
+      quiet = TRUE
+    )
+  }
   writeLines(finalModel, finalModelPath)
 
   # --- 2.5 STRICT DATA VALIDATION ---
