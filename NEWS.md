@@ -2,20 +2,29 @@
 
 ## FREM models for sensitivity analyses on excluded records
 
-`createFREMmodel()` gains `keepIgnoredRecords`. With `TRUE`, the FREM data
-set keeps every record of the original data set, with covariate records for
-every subject, and the `$DATA` record of the FREM model leaves out the same
-records again: the `IGNORE` lists of the base model as it has them, and
-`IGNORE=(FREMEXCL.EQN.1)` for what the FREM data set leaves out for other
-reasons, such as a subject without observations. Editing the carried list brings back the records it
-excludes. `createFREMmodel()` checks that NONMEM reads the same records as
-with the default.
+A sensitivity analysis often brings back records the base model excludes
+with `IGNORE`, for example observations below the limit of quantification.
+`createFREMmodel()` used to leave those records out of the FREM data set, so
+the analysis needed a new data set.
+
+`createFREMmodel()` now gains `keepIgnoredRecords` (default `FALSE`). With
+`TRUE`, the FREM data set keeps every record, and the `$DATA` record of the
+FREM model excludes the same records as before:
+
+* the `IGNORE` lists of the base model, unchanged, which you edit for the
+  sensitivity analysis;
+* `IGNORE=(FREMEXCL.EQN.1)`, on a new data column `FREMEXCL`, for the records
+  left out for other reasons, such as a subject without observations.
+
+`createFREMmodel()` checks that NONMEM reads the same records as without the
+option.
 
 ## Consistent names for data set arguments
 
 The arguments that take the data set of the base model, or the FREM data set,
-now have the same names in every function. "FFEM" only refers to the data set
-written by `createFFEMdata()`. The old names still work and give a warning.
+now have the same names in every function. "FFEM data" now only means the
+data set `createFFEMdata()` writes. The old names still work for now, with a
+warning.
 
 | Function | Old name | New name |
 |---|---|---|
@@ -26,35 +35,38 @@ written by `createFFEMdata()`. The old names still work and give a warning.
 
 ## Other notable additions
 
-* `createFREMmodel()` gains `fremDataFile`: the FREM data set is written
-  there, and `$DATA` names it as given, for example
-  `$DATA ../../ProducedData/Dataset/frem_data.csv`.
+* `createFREMmodel()` gains `fremDataFile`, the path of the FREM data set. It
+  is written there and named in `$DATA` exactly as given, for example
+  `$DATA ../../ProducedData/Dataset/frem_data.csv`. Without it, the data set
+  goes next to the model, as before.
 
 ## Changes to existing behaviour
 
-* **Covariate means keep 3 significant digits.** The initial value of a
-  covariate mean THETA was rounded to 2 decimals, so a mean of 0.0043 started
-  from 0. It now keeps 3 significant digits and at least 2 decimals:
-  0.00432, 0.249, 86.86. A number given as `roundMeanTo` still means
-  decimals.
-* **The FFEM equations in `eqFile` keep at least 3 significant digits.**
-  `calcFFEM()` wrote coefficients to 3 decimals, so an effect below 0.0005
-  appeared as 0. The format is unchanged.
+* **Small covariate means are no longer written as 0.** The initial value of
+  a covariate mean THETA was rounded to 2 decimals, so a mean of 0.0043
+  started from 0. The new default, `roundMeanTo = NULL`, keeps 3 significant
+  digits and never fewer than 2 decimals. Initial values of new FREM models
+  can therefore differ slightly from those of version 2.3.
+* **Small coefficients in the FFEM equations are no longer written as 0.**
+  `calcFFEM()` wrote the equations in `eqFile` with 3 decimals, so an effect
+  below 0.0005 appeared as 0. It now keeps 3 significant digits where that
+  needs more decimals. The layout of the file is unchanged.
 
 ## Bug fixes
 
 * **`createFFEMmodel()` dropped the bounds, `FIX` and comments of the
-  THETAs.** The FFEM model now starts from the FREM estimates within the
-  bounds of the base model, as `$THETA (0,6.14514) ; 2. TVCL`, instead of
-  `$THETA 6.14514 ; TH2`. An estimate on a bound starts just inside it.
+  THETAs.** It wrote `$THETA 6.14514 ; TH2` where the base model has
+  `$THETA (0,7.62228) ; 2. TVCL`. The FFEM model now keeps the bounds, `FIX`
+  and comments, with the FREM estimates as initial values:
+  `$THETA (0,6.14514) ; 2. TVCL`.
 
 ## Documentation
 
-* The help for `calcFFEM()` says what "missing covariates" means there: the
+* The help for `calcFFEM()` now says that "missing covariates" means the
   FFEM for a subset of the covariates (`availCov`), the same for every
-  subject. Missing values in the data, such
-  as -99, are handled per subject by `createFFEMdata()`. The help also says
-  that the FFEM expressions are the covariate effect added to the ETA of a
+  subject. Missing values in the data, such as -99, are handled per subject
+  by `createFFEMdata()`.
+* It also says that each FFEM expression is added to the ETA of its
   parameter: with `CL = TVCL*EXP(ETA(3))`, the FFEM is
   `CL = TVCL*EXP(<expression> + ETA(3))`.
 
