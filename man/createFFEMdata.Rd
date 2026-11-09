@@ -50,7 +50,7 @@ effects.}
 columns. The column names will be the parameter name followed by this
 string.}
 
-\item{parNames}{Names of the parameters. Only used in the STDOUT when \code{quiet =FALSE} or in \code{eqFile} if it is non-blank. Defaults to \code{Par} folowed by a
+\item{parNames}{Names of the parameters. Only used in the STDOUT when \code{quiet =FALSE} or in \code{eqFile} if it is non-blank. Defaults to \code{Par} followed by a
 number.}
 
 \item{numParCov}{Number of parameters for which covariate relations are
@@ -73,8 +73,9 @@ data instead of writing it to disk.}
 amended FFEM data set so that the number of rows matches the original data
 file. Useful if IGNORE statements were used in the original model file.}
 
-\item{availCov}{Names of the covariates to use in the calculation of the FFEM
-model. Should be covariate names used in the FREM model.}
+\item{availCov}{\code{"all"} (the default) or the names of the covariates the
+FFEM may use. For each subject, the covariates that subject has a value
+for (not \code{missVal}) are used, among these.}
 
 \item{idvar}{The name of the ID column,}
 
@@ -82,7 +83,7 @@ model. Should be covariate names used in the FREM model.}
 directory, i.e. ".".}
 
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
-STDOUT.}
+STDOUT, or to \code{eqFile} and \code{omFile}.}
 
 \item{cores}{How many cores to use in the calculations of the FFEM
 expressions.

@@ -24,6 +24,9 @@
 #' @param sigmaLabels A vector with labels for the SIGMAs Should be as long as `sigmaNum`.
 #' @param parNames A character vector with labels for the structural parameters affected by covariates (which will become the rows in the coefficient table). Should be exactly as long as \code{numParCov}.
 #' If \code{NULL}, defaults to Par1, Par2, etc. Note: Do not confuse this with \code{thetaLabels}, as the number of structural ETAs (\code{numParCov}) often differs from the total \code{thetaNum}.
+#' @param availCov `"all"` (the default) or the names of the covariates in the
+#'   coefficient table. The coefficients are those of the FFEM with only these
+#'   covariates (see [calcFFEM()]).
 #' @param covLabels A character vector with labels for the covariates (columns in the coefficient table). Should match the length of `availCov`.
 #' @param omegaSD Logical. If the omega prims should be reported on the SD scale (i.e. the square root of omega prim). Default is `TRUE`.
 #' @param sigmaSD Logical. If the sigmas should be reported on the SD scale (i.e. the square root of sigma). Default is `TRUE`.

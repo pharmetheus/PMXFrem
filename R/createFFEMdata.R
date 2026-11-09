@@ -57,6 +57,9 @@
 #'   file. Useful if IGNORE statements were used in the original model file.
 #' @param omegaToData Logical. If \code{TRUE}, the variance-covariance matrix elements
 #'   are appended to the output dataset as V-columns (e.g., V11, V21). Defaults to \code{FALSE}.
+#' @param availCov `"all"` (the default) or the names of the covariates the
+#'   FFEM may use. For each subject, the covariates that subject has a value
+#'   for (not `missVal`) are used, among these.
 #' @param missVal Numeric. The value representing missing data in the covariates. Defaults to -99.
 #' @seealso [createFFEMmodel()]
 #' @return A list with objects:

@@ -105,8 +105,9 @@ If \code{NULL}, defaults to Par1, Par2, etc. Note: Do not confuse this with \cod
 
 \item{n}{The number of samples to use in the RSE calculations.}
 
-\item{availCov}{Names of the covariates to use in the calculation of the FFEM
-model. Should be covariate names used in the FREM model.}
+\item{availCov}{\code{"all"} (the default) or the names of the covariates in the
+coefficient table. The coefficients are those of the FFEM with only these
+covariates (see \code{\link[=calcFFEM]{calcFFEM()}}).}
 
 \item{dfext}{A data frame of the ext file for the FREM model. In case of
 multiple $EST, the dfext should contain the estimates of the \emph{one} relevant
@@ -121,7 +122,7 @@ ext, phi and cov to form the NONMEM file names, for example
 \item{lstExt}{The NONMEM out file name extension. Default is ".lst".}
 
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
-STDOUT.}
+STDOUT, or to \code{eqFile} and \code{omFile}.}
 
 \item{seed}{Integer seed set before the uncertainty sampling, so that RSE and
 CI are reproducible for the same inputs. Defaults to \code{1}. RSE and CI
