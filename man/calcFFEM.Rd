@@ -2,7 +2,7 @@
 % Please edit documentation in R/calcFFEM.R
 \name{calcFFEM}
 \alias{calcFFEM}
-\title{Calculate the corresponding FFEM charactersitics from a FREM model-}
+\title{Calculate the FFEM corresponding to a FREM model}
 \usage{
 calcFFEM(
   dfext,
@@ -44,23 +44,30 @@ sought (often the same as numNonFREMThetas). default (NULL) indicates that
 this is guessed by the function by assuming that each covariate effect is
 modeled as one theta and one eta.}
 
-\item{parNames}{Names of the parameters. Only used in the STDOUT when \code{quiet =FALSE} or in \code{eqFile} if it is non-blank. Defaults to \code{Par} folowed by a
+\item{parNames}{Names of the parameters. Only used in the STDOUT when \code{quiet =FALSE} or in \code{eqFile} if it is non-blank. Defaults to \code{Par} followed by a
 number.}
 
 \item{covNames}{Names of the covariates in the FREM model. Defaults to \code{Cov}
 followed by a number.}
 
-\item{availCov}{Names of the covariates to use in the calculation of the FFEM
-model. Should be covariate names used in the FREM model.}
+\item{availCov}{Names of the covariates in the FFEM: all of \code{covNames} (the
+default) or a subset. The covariates left out are treated as not
+available, for every subject alike. Missing values in the data are not
+handled here; see \code{\link[=createFFEMdata]{createFFEMdata()}}.}
 
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
-STDOUT.}
+STDOUT, or to \code{eqFile} and \code{omFile}.}
 
 \item{fremETA}{NULL or a vector of individual ETAs from the FREM model.}
 
-\item{eqFile}{File name to save the FFEM equations in.}
+\item{eqFile}{File name to save the FFEM equations in, one line per
+parameter: \code{CL:0.00591*(WT-86.863)+...}. Each line is the covariate effect
+added to the parameter's ETA (see Details). Numbers have 3 decimals, or 3
+significant digits when they need more decimals. Written only when
+\code{quiet = FALSE}.}
 
-\item{omFile}{File name to save the omega prim matrix in.}
+\item{omFile}{File name to save the omega prim matrix in. Written only when
+\code{quiet = FALSE}.}
 }
 \value{
 A list with components Coefficients, Vars and Expr:
@@ -72,7 +79,8 @@ Vars:       The numNonFREMThetas x numNonFREMThetas matrix with the FFEM
 variances (OMEGA)
 
 Expr:       The vector of FFEM expressions, one for each base model
-parameter.
+parameter: the covariate effect added to that parameter's ETA, written
+for evaluation with the covariates in a data frame called \code{data}.
 
 Fullvars:   The full FFEM variance-covariance matrix of all OMEGAs in the
 model.
@@ -83,21 +91,39 @@ model.
 Eta_prim:  The matrix of individual etas re-scaled to FFEM etas.
 }
 \description{
-Computes the corresponding FFEM from a FREM model. Can handle missing
-covariates.
+Computes the FFEM for the full covariate model of a FREM model, or for any
+subset of its covariates (\code{availCov}).
 }
 \details{
-\verb{calcFFEM()`` computes the corresponding FFEM characteristics for a covariate model consisting of the specified covariates (}availCov\verb{). The covariate names specified by }availCov\verb{should be among the names listed in}covNames`.
+\code{calcFFEM()} computes the FFEM for a covariate model made of the covariates
+in \code{availCov}, which must be among the names in \code{covNames}. Leaving a
+covariate out of \code{availCov} gives the FFEM of a model without that
+covariate: this is how a FREM model handles a covariate that is not
+available.
 
-The computed characteristics are the covariate coefficients, the FFEM
-expressions, the omega prims and the full omega matrix to be used in the FFEM
-model. Optionally, it also computes the corresponding eta_prims for a subject
-with the specified set of covariates.
+\code{calcFFEM()} takes no covariate values, so it cannot see a missing value
+in the data such as -99. Called once for all subjects, it uses the same
+covariates for every subject, and a -99 is then used as a number when the
+FFEM expressions are evaluated. For FFEM values that leave out each
+subject's own missing covariates, use \code{\link[=createFFEMdata]{createFFEMdata()}}, which calls
+\code{calcFFEM()} per subject with the covariates that subject has (\code{missVal}).
+
+The results are the covariate coefficients, the FFEM expressions, the omega
+prims and the full omega matrix to be used in the FFEM model. Optionally, it
+also computes the corresponding eta_prims for a subject with the specified
+set of covariates.
+
+\strong{The FFEM expressions are on the scale of the ETA.} For parameter \emph{k}, the
+expression is the covariate effect added to that parameter's ETA, as
+\code{\link[=createFFEMmodel]{createFFEMmodel()}} writes it: in a model with \code{CL = TVCL * EXP(ETA(3))},
+the FFEM is \verb{CL = TVCL * EXP(<expression> + ETA(3))}, not
+\verb{CL = TVCL + <expression>}. The same holds for the equations written to
+\code{eqFile}.
 
 If \code{fremETA} is non-\code{NULL}, ETA prims will be calculated. In this case,
 \code{fremETA} should be a numeric vector of individual ETAs from the FREM model.
 Only one set of ETA prims will be computed (for one individual). To compute
-the ETA prims for all subjects at the same ime, please use \code{\link[=calcEtas]{calcEtas()}}.
+the ETA prims for all subjects at the same time, please use \code{\link[=calcEtas]{calcEtas()}}.
 }
 \examples{
 library(dplyr)

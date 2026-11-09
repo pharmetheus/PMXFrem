@@ -57,11 +57,11 @@ linearly (additatively) in the frem model or not. Default is "linear".}
 \item{dataFile}{The name of the data file used in the base model, i.e. the
 original data file, or a data.frame with the same data.}
 
-\item{parNames}{Names of the parameters. Only used in the STDOUT when \code{quiet =FALSE} or in \code{eqFile} if it is non-blank. Defaults to \code{Par} folowed by a
+\item{parNames}{Names of the parameters. Only used in the STDOUT when \code{quiet =FALSE} or in \code{eqFile} if it is non-blank. Defaults to \code{Par} followed by a
 number.}
 
 \item{quiet}{If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
-STDOUT.}
+STDOUT, or to \code{eqFile} and \code{omFile}.}
 
 \item{ffemModName}{A character string specifying the model name of the FFEM run
 (typically a MAXEVAL=0 run). If provided, the true posterior EBEs will be extracted

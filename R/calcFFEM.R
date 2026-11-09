@@ -1,21 +1,37 @@
-#' Calculate the corresponding FFEM charactersitics from a FREM model-
+#' Calculate the FFEM corresponding to a FREM model
 #'
-#' Computes the corresponding FFEM from a FREM model. Can handle missing
-#' covariates.
+#' Computes the FFEM for the full covariate model of a FREM model, or for any
+#' subset of its covariates (`availCov`).
 #'
-#' `calcFFEM()`` computes the corresponding FFEM characteristics for a covariate
-#' model consisting of the specified covariates (`availCov`). The covariate
-#' names specified by `availCov` should be among the names listed in `covNames`.
+#' `calcFFEM()` computes the FFEM for a covariate model made of the covariates
+#' in `availCov`, which must be among the names in `covNames`. Leaving a
+#' covariate out of `availCov` gives the FFEM of a model without that
+#' covariate: this is how a FREM model handles a covariate that is not
+#' available.
 #'
-#' The computed characteristics are the covariate coefficients, the FFEM
-#' expressions, the omega prims and the full omega matrix to be used in the FFEM
-#' model. Optionally, it also computes the corresponding eta_prims for a subject
-#' with the specified set of covariates.
+#' `calcFFEM()` takes no covariate values, so it cannot see a missing value
+#' in the data such as -99. Called once for all subjects, it uses the same
+#' covariates for every subject, and a -99 is then used as a number when the
+#' FFEM expressions are evaluated. For FFEM values that leave out each
+#' subject's own missing covariates, use [createFFEMdata()], which calls
+#' `calcFFEM()` per subject with the covariates that subject has (`missVal`).
+#'
+#' The results are the covariate coefficients, the FFEM expressions, the omega
+#' prims and the full omega matrix to be used in the FFEM model. Optionally, it
+#' also computes the corresponding eta_prims for a subject with the specified
+#' set of covariates.
+#'
+#' **The FFEM expressions are on the scale of the ETA.** For parameter *k*, the
+#' expression is the covariate effect added to that parameter's ETA, as
+#' [createFFEMmodel()] writes it: in a model with `CL = TVCL * EXP(ETA(3))`,
+#' the FFEM is `CL = TVCL * EXP(<expression> + ETA(3))`, not
+#' `CL = TVCL + <expression>`. The same holds for the equations written to
+#' `eqFile`.
 #'
 #' If `fremETA` is non-`NULL`, ETA prims will be calculated. In this case,
 #' `fremETA` should be a numeric vector of individual ETAs from the FREM model.
 #' Only one set of ETA prims will be computed (for one individual). To compute
-#' the ETA prims for all subjects at the same ime, please use [calcEtas()].
+#' the ETA prims for all subjects at the same time, please use [calcEtas()].
 #'
 #' @param dfext A data frame of the ext file for the FREM model. In case of
 #'   multiple $EST, the dfext should contain the estimates of the *one* relevant
@@ -35,17 +51,24 @@
 #'   this is guessed by the function by assuming that each covariate effect is
 #'   modeled as one theta and one eta.
 #' @param parNames Names of the parameters. Only used in the STDOUT when `quiet
-#'   =FALSE` or in `eqFile` if it is non-blank. Defaults to `Par` folowed by a
+#'   =FALSE` or in `eqFile` if it is non-blank. Defaults to `Par` followed by a
 #'   number.
 #' @param covNames Names of the covariates in the FREM model. Defaults to `Cov`
 #'   followed by a number.
-#' @param availCov Names of the covariates to use in the calculation of the FFEM
-#'   model. Should be covariate names used in the FREM model.
+#' @param availCov Names of the covariates in the FFEM: all of `covNames` (the
+#'   default) or a subset. The covariates left out are treated as not
+#'   available, for every subject alike. Missing values in the data are not
+#'   handled here; see [createFFEMdata()].
 #' @param quiet If FALSE, will print the FFEM model + associated $OMEGA BLOCK to
-#'   STDOUT.
+#'   STDOUT, or to `eqFile` and `omFile`.
 #' @param fremETA NULL or a vector of individual ETAs from the FREM model.
-#' @param eqFile File name to save the FFEM equations in.
-#' @param omFile File name to save the omega prim matrix in.
+#' @param eqFile File name to save the FFEM equations in, one line per
+#'   parameter: `CL:0.00591*(WT-86.863)+...`. Each line is the covariate effect
+#'   added to the parameter's ETA (see Details). Numbers have 3 decimals, or 3
+#'   significant digits when they need more decimals. Written only when
+#'   `quiet = FALSE`.
+#' @param omFile File name to save the omega prim matrix in. Written only when
+#'   `quiet = FALSE`.
 #'
 #'
 #' @return A list with components Coefficients, Vars and Expr:
@@ -57,7 +80,8 @@
 #'   variances (OMEGA)
 #'
 #'   Expr:       The vector of FFEM expressions, one for each base model
-#'   parameter.
+#'   parameter: the covariate effect added to that parameter's ETA, written
+#'   for evaluation with the covariates in a data frame called `data`.
 #'
 #'   Fullvars:   The full FFEM variance-covariance matrix of all OMEGAs in the
 #'   model.
@@ -195,9 +219,9 @@ calcFFEM <- function(dfext,
         if (c == 1 & p == 1) cat(parNames[p], ":", sep = "", file = eqFile)
         if (c == 1 & p != 1) cat(parNames[p], ":", sep = "", file = eqFile, append = TRUE)
         if (length(availCov) == 0) {
-          cat(paste("0", "*", "(", covNames[c], "-", paste(round(df_thm[c], 3), ")", sep = ""), sep = ""), file = eqFile, append = TRUE)
+          cat(paste("0", "*", "(", covNames[c], "-", paste(.fremEqRound(df_thm[c]), ")", sep = ""), sep = ""), file = eqFile, append = TRUE)
         } else {
-          cat(paste(round(COEFF[p, c], 3), "*", "(", covNames[c], "-", paste(round(df_thm[c], 3), ")", sep = ""), sep = ""), file = eqFile, append = TRUE)
+          cat(paste(.fremEqRound(COEFF[p, c]), "*", "(", covNames[c], "-", paste(.fremEqRound(df_thm[c]), ")", sep = ""), sep = ""), file = eqFile, append = TRUE)
         }
         if (c != ncol(COEFF)) cat("+", file = eqFile, append = TRUE)
         if (c == ncol(COEFF)) cat("\n", file = eqFile, append = TRUE)
@@ -272,4 +296,18 @@ calcFFEM <- function(dfext,
       )
     )
   )
+}
+
+#' A number as the FFEM equations write it
+#'
+#' Three decimals, or three significant digits when a number needs more
+#' decimals than that, so that a small coefficient is not written as 0.
+#'
+#' @param x A numeric vector.
+#' @return `x`, rounded.
+#' @keywords internal
+#' @noRd
+.fremEqRound <- function(x) {
+  digits <- ifelse(x == 0 | !is.finite(x), 3, pmax(3, 2 - floor(log10(abs(x)))))
+  round(x, digits)
 }
