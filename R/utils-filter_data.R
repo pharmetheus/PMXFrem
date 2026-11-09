@@ -41,11 +41,58 @@
 #' @concept data_assembly
 #' @keywords internal
 filterDataFromModel <- function(baseModelFile, wideData, quiet = FALSE, rawData = NULL, synonyms = NULL) {
+  keep <- .fremFilterKeep(baseModelFile, wideData, quiet = quiet, rawData = rawData, synonyms = synonyms)
+  wideData[keep, , drop = FALSE]
+}
+
+#' The IGNORE / ACCEPT lists of a $DATA record
+#'
+#' @param dataRecord The `$DATA` record lines.
+#' @return A list: `kind` (`"IGNORE"`, `"ACCEPT"` or `NULL` when there is no
+#'   list), `lists` (the text of each list, as `IGNORE=(...)` or `IGNORE(...)`
+#'   is written) and `conditions` (the parsed conditions).
+#' @keywords internal
+#' @noRd
+.fremFilterLists <- function(dataRecord) {
+  fullRecordString <- paste(gsub(";.*", "", dataRecord), collapse = " ")
+  fullRecordString <- gsub("\\s+", " ", fullRecordString)
+
+  # The '=' is optional: IGNORE(list) or IGNORE=(list)
+  accept_matches <- regmatches(fullRecordString, gregexpr("ACCEPT\\s*=?\\s*\\((.*?)\\)", fullRecordString, ignore.case = TRUE))[[1]]
+  ignore_matches <- regmatches(fullRecordString, gregexpr("IGNORE\\s*=?\\s*\\((.*?)\\)", fullRecordString, ignore.case = TRUE))[[1]]
+
+  if (length(accept_matches) > 0 && length(ignore_matches) > 0) {
+    stop("An ACCEPT=(list) and IGNORE=(list) cannot be used in the same $DATA record.", call. = FALSE)
+  }
+  if (length(accept_matches) == 0 && length(ignore_matches) == 0) {
+    return(list(kind = NULL, lists = character(0), conditions = list()))
+  }
+
+  matches <- if (length(accept_matches) > 0) accept_matches else ignore_matches
+  conditions <- unlist(lapply(matches, function(m) {
+    .splitFilterList(regmatches(m, regexec("\\((.*)\\)", m))[[1]][2])
+  }))
+  list(
+    kind = if (length(accept_matches) > 0) "ACCEPT" else "IGNORE",
+    lists = matches,
+    conditions = lapply(conditions, .parseFilterCondition)
+  )
+}
+
+#' Which records the IGNORE / ACCEPT lists of a model keep
+#'
+#' The work of [filterDataFromModel()], returning a logical vector, one
+#' element per row of `wideData`, instead of the filtered data.
+#' @inheritParams filterDataFromModel
+#' @return `TRUE` for a record the lists keep.
+#' @keywords internal
+#' @noRd
+.fremFilterKeep <- function(baseModelFile, wideData, quiet = FALSE, rawData = NULL, synonyms = NULL) {
   # --- 1. Find and clean the $DATA record from the model file ---
   dataRecord <- findrecord(baseModelFile, record = "\\$DATA", quiet = TRUE)
   if (is.null(dataRecord)) {
-    # If no $DATA record, return the data frame as-is
-    return(wideData)
+    # If no $DATA record, every record is kept
+    return(rep(TRUE, nrow(wideData)))
   }
 
   fullRecordString <- paste(dataRecord, collapse = " ")
@@ -81,28 +128,16 @@ filterDataFromModel <- function(baseModelFile, wideData, quiet = FALSE, rawData 
   }
 
   # --- 3. Apply Post-Parsing Filter (List-based IGNORE/ACCEPT) ---
-
-  # Regex now makes the '=' optional: IGNORE(list) or IGNORE=(list)
-  accept_matches <- regmatches(fullRecordString, gregexpr("ACCEPT\\s*=?\\s*\\((.*?)\\)", fullRecordString, ignore.case = TRUE))[[1]]
-  ignore_matches <- regmatches(fullRecordString, gregexpr("IGNORE\\s*=?\\s*\\((.*?)\\)", fullRecordString, ignore.case = TRUE))[[1]]
-
-  if (length(accept_matches) > 0 && length(ignore_matches) > 0) {
-    stop("An ACCEPT=(list) and IGNORE=(list) cannot be used in the same $DATA record.", call. = FALSE)
-  }
-
-  if (length(accept_matches) == 0 && length(ignore_matches) == 0) {
-    return(wideData)
+  filterLists <- .fremFilterLists(dataRecord)
+  if (is.null(filterLists$kind)) {
+    return(rep(TRUE, nrow(wideData)))
   }
 
   # The text of the data as written, for the operators that compare strings.
   textData <- .filterTextData(wideData, rawData)
 
-  matches <- if (length(accept_matches) > 0) accept_matches else ignore_matches
-  kind <- if (length(accept_matches) > 0) "ACCEPT" else "IGNORE"
-  conditions <- unlist(lapply(matches, function(m) {
-    .splitFilterList(regmatches(m, regexec("\\((.*)\\)", m))[[1]][2])
-  }))
-  conditions <- lapply(conditions, .parseFilterCondition)
+  kind <- filterLists$kind
+  conditions <- filterLists$conditions
 
   # A record satisfying at least one condition of any list is dropped (IGNORE)
   # or accepted (ACCEPT): the conditions are joined by an implied .OR. (NONMEM
@@ -132,8 +167,7 @@ filterDataFromModel <- function(baseModelFile, wideData, quiet = FALSE, rawData 
     )
   }
 
-  keep <- if (kind == "ACCEPT") hit else !hit
-  wideData[keep, , drop = FALSE]
+  if (kind == "ACCEPT") hit else !hit
 }
 
 # The data values as character strings. `rawData` (the file's values as
