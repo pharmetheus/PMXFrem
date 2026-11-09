@@ -1,5 +1,16 @@
 # PMXFrem (development version)
 
+## FREM models for sensitivity analyses on excluded records
+
+`createFREMmodel()` gains `keepIgnoredRecords`. With `TRUE`, the FREM data
+set keeps every record of the original data set, with covariate records for
+every subject, and the `$DATA` record of the FREM model leaves out the same
+records again: the `IGNORE` lists of the base model as it has them, and
+`IGNORE=(FREMEXCL.EQN.1)` for what the FREM data set leaves out for other
+reasons, such as a subject without observations. Editing the carried list brings back the records it
+excludes. `createFREMmodel()` checks that NONMEM reads the same records as
+with the default.
+
 ## Consistent names for data set arguments
 
 The arguments that take the data set of the base model, or the FREM data set,
@@ -12,6 +23,40 @@ written by `createFFEMdata()`. The old names still work and give a warning.
 | `createFREMData()` | `strFFEMData`, `strFREMDataFileName` | `dataFile`, `fremDataFile` |
 | `updateFREMmodel()` | `strFREMData`, `strFFEMData`, `strNewFREMData` | `fremDataFile`, `dataFile`, `newFremDataFile` |
 | `addFREMcovariates()` | `dfFFEM` | `data` |
+
+## Other notable additions
+
+* `createFREMmodel()` gains `fremDataFile`: the FREM data set is written
+  there, and `$DATA` names it as given, for example
+  `$DATA ../../ProducedData/Dataset/frem_data.csv`.
+
+## Changes to existing behaviour
+
+* **Covariate means keep 3 significant digits.** The initial value of a
+  covariate mean THETA was rounded to 2 decimals, so a mean of 0.0043 started
+  from 0. It now keeps 3 significant digits and at least 2 decimals:
+  0.00432, 0.249, 86.86. A number given as `roundMeanTo` still means
+  decimals.
+* **The FFEM equations in `eqFile` keep at least 3 significant digits.**
+  `calcFFEM()` wrote coefficients to 3 decimals, so an effect below 0.0005
+  appeared as 0. The format is unchanged.
+
+## Bug fixes
+
+* **`createFFEMmodel()` dropped the bounds, `FIX` and comments of the
+  THETAs.** The FFEM model now starts from the FREM estimates within the
+  bounds of the base model, as `$THETA (0,6.14514) ; 2. TVCL`, instead of
+  `$THETA 6.14514 ; TH2`. An estimate on a bound starts just inside it.
+
+## Documentation
+
+* The help for `calcFFEM()` says what "missing covariates" means there: the
+  FFEM for a subset of the covariates (`availCov`), the same for every
+  subject. Missing values in the data, such
+  as -99, are handled per subject by `createFFEMdata()`. The help also says
+  that the FFEM expressions are the covariate effect added to the ETA of a
+  parameter: with `CL = TVCL*EXP(ETA(3))`, the FFEM is
+  `CL = TVCL*EXP(<expression> + ETA(3))`.
 
 # PMXFrem 2.3.1
 
