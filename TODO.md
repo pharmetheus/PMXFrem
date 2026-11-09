@@ -3,16 +3,26 @@
 Items parked for future consideration. Not a substitute for GitHub issues; move an
 item there when it becomes active work.
 
-## Release plan: 2.3.1
+## Release plan: 2.4.0
 
-Agreed 2026-10-28 (Niclas): fix T48 now, before PMXFrem 2.3 goes live, so that
-users never meet the warnings. Branch `epic/2.3.1` from `main`, `DESCRIPTION`
-`2.3.0.9000`; the fix PR goes into it. Then epic -> `main` PR with CI green,
-and the tag `v2.3.1`, each on Niclas's go-ahead. The version number is an
-assumption (a patch release with fixes only); it is Niclas's call.
+Agreed 2026-11-09 (Niclas): address the open backlog rows for PMXFrem before
+the next release - PRRS-328, 321, 327, 322, 304 and 293. Branch `epic/2.4.0`
+from `main`, `DESCRIPTION` `2.3.1.9000`, one PR per item into it:
 
-Don't push a tag or branch while "Sync Public repo" is running: its mirror
-push back to this repository deletes refs pushed after its clone (issue #97).
+1. `createFFEMmodel()` keeps THETA bounds and FIX (PRRS-328).
+2. `calcFFEM()` help: subsets of covariates, not missing values; the
+   equations are the shift added to the ETA (PRRS-321, 293).
+3. Covariate means default to 3 significant digits (PRRS-327).
+4. One name per data set: the original data set `dataFile`, the FREM data
+   set `fremDataFile`; "FFEM" only for the data set of individual covariate
+   effects. Old names deprecated (PRRS-327).
+5. `createFREMmodel(fremDataFile =)` (PRRS-327).
+6. `keepIgnoredRecords`: all records in the FREM data set, the base model's
+   IGNORE/ACCEPT carried into `$DATA`, proxies for the rest, so NONMEM sees
+   the same records (PRRS-322).
+
+The version number is an assumption; merging into `main` and the tag are
+Niclas's go-ahead.
 
 ## Deep-dive vignette — extending a FREM model with THETAs and IIVs
 
