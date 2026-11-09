@@ -238,7 +238,9 @@ tests in this package alone.
   so a non-log-normal parameter is already excluded by `spliceable`. Removing
   the `scale` gate changes no test. The code comments say the scale decides
   it; on current fixtures the reference does. Either give PMXForest's
-  `nmEtaMap()` the additive idiom or reword the comments.
+  `nmEtaMap()` the additive idiom or reword the comments. **Done
+  2026-11-09:** PMXForest 1.4.1 maps additive etas, PMXFrem requires it,
+  and a test with an additive `V` goes red when the scale gate is removed.
 - `getExplainedVar()`'s placeholder eta vectors are now
   `rep(0, numSkipOm + numParCov)` instead of `rep(0, 3 * length(thetas))`. No
   bundled model has `numSkipOm + numParCov > 3 * numNonFREMThetas`, so no test

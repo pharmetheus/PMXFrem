@@ -30,7 +30,7 @@ Imports:
     stringr,
     tools,
     numDeriv,
-    PMXForest (>= 1.4.0)
+    PMXForest (>= 1.4.1)
 Suggests:
     GGally,
     gridExtra,
