@@ -331,3 +331,32 @@ test_that("calcFFEM strictly validates parNames and covNames dimensions", {
     regexp = "Validation Error: Length of `covNames` \\(\\d+\\) must exactly match"
   )
 })
+
+test_that("the FFEM equations in eqFile keep at least 3 significant digits", {
+  ## round(x, 3) wrote a coefficient below 0.0005 as 0: the effect of AST on V
+  ## in run31 is 0.000291.
+  dfExt <- getExt(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"))
+  covNames <- getCovNames(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"))$covNames
+  eq <- withr::local_tempfile()
+  utils::capture.output(res <- calcFFEM(dfExt,
+    numNonFREMThetas = 7, numSkipOm = 2, covNames = covNames,
+    parNames = c("CL", "V", "MAT"), quiet = FALSE, eqFile = eq
+  ))
+  lines <- readLines(eq)
+
+  expect_match(lines[2], "+0.000291*(AST-25.552)+", fixed = TRUE)
+  ## The format is unchanged: name, colon, terms joined by +.
+  expect_match(lines[1], "CL:-0.00591*(WT-86.863)+-0.0287*(HT-169.651)+", fixed = TRUE)
+  expect_match(lines[1], "^CL:")
+
+  ## Every coefficient is written to 3 decimals, or to 3 significant digits
+  ## when it needs more decimals than that; none is written as 0.
+  written <- lapply(lines, function(l) {
+    as.numeric(regmatches(l, gregexpr("-?[0-9.]+(e-?[0-9]+)?(?=[*][(])", l, perl = TRUE))[[1]])
+  })
+  for (p in 1:3) {
+    coef <- res$Coefficients[p, ]
+    expect_equal(written[[p]], round(coef, pmax(3, 2 - floor(log10(abs(coef))))))
+    expect_false(any(written[[p]] == 0))
+  }
+})
