@@ -29,7 +29,10 @@
 #'   untouched without being recoded. This provides 100% compatibility with PsN
 #'   legacy behavior. Defaults to FALSE.
 #' @param missVal Numeric. Missing value indicator.
-#' @param roundMeanTo Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to 1.
+#' @param roundMeanTo The rounding of the covariate means, the initial values of
+#'   their THETAs. `NULL` (the default) keeps 3 significant digits and never
+#'   fewer than 2 decimals, so 0.004321 is written as 0.00432 and 86.857 as
+#'   86.86. A number is the number of decimals.
 #' @param fixTheta Logical. Should initial THETA estimates for covariates without missing values be fixed? Defaults to TRUE.
 #' @param quiet A logical flag to suppress printed messages. Defaults to FALSE.
 #'
@@ -53,7 +56,7 @@ prepareNewCovariates <- function(dfFFEM,
                                  overrideExistingCheck,
                                  bRecodeDichotomous = FALSE,
                                  allowNon01 = FALSE,
-                                 roundMeanTo = 1,
+                                 roundMeanTo = NULL,
                                  missVal = -99,
                                  fixTheta = TRUE,
                                  quiet = FALSE) {
@@ -110,7 +113,7 @@ prepareNewCovariates <- function(dfFFEM,
         tmp <- dfFFEM[dfFFEM[[strCov]] != missVal, ]
         tmp <- tmp[!duplicated(tmp[[strID]]), c(strID, strCov)]
         iFremType <- iFremType + iFremTypeIncrease
-        calculated_mean <- round(mean(tmp[[strCov]], na.rm = TRUE), digits = roundMeanTo)
+        calculated_mean <- .fremRoundMean(mean(tmp[[strCov]], na.rm = TRUE), roundMeanTo)
         l <- list(Name = strCov, Mean = calculated_mean, Var = var(tmp[[strCov]]), Fremtype = iFremType, Fix = shouldFix)
         l[["Data"]] <- tmp
         covList[[strCov]] <- l
@@ -136,7 +139,7 @@ prepareNewCovariates <- function(dfFFEM,
           tmp <- dfFFEM[dfFFEM[[strCov2]] != missVal, ]
           tmp <- tmp[!duplicated(tmp[[strID]]), c(strID, strCov2)]
           iFremType <- iFremType + iFremTypeIncrease
-          calculated_mean <- round(mean(tmp[[strCov2]], na.rm = TRUE), digits = roundMeanTo)
+          calculated_mean <- .fremRoundMean(mean(tmp[[strCov2]], na.rm = TRUE), roundMeanTo)
           l <- list(Name = strCov2, Mean = calculated_mean, Var = var(tmp[[strCov2]]), Fremtype = iFremType, Fix = shouldFix)
           l[["Data"]] <- tmp
           covList[[strCov2]] <- l
@@ -155,4 +158,20 @@ prepareNewCovariates <- function(dfFFEM,
     dfFFEM = dfFFEM,
     lastFremType = iFremType
   ))
+}
+
+#' A covariate mean rounded for its THETA
+#'
+#' @param x The mean.
+#' @param roundMeanTo `NULL` for 3 significant digits and at least 2
+#'   decimals, or a number of decimals.
+#' @return `x`, rounded.
+#' @keywords internal
+#' @noRd
+.fremRoundMean <- function(x, roundMeanTo = NULL) {
+  if (!is.null(roundMeanTo)) {
+    return(round(x, digits = roundMeanTo))
+  }
+  digits <- if (x == 0 || !is.finite(x)) 2 else max(2, 2 - floor(log10(abs(x))))
+  round(x, digits)
 }

@@ -25,7 +25,10 @@
 #' @param IDvar Character. The name of the subject identifier column in the dataset. Defaults to `"ID"`.
 #' @param missVal Numeric. The value representing missing data in the covariates. Defaults to `-99`.
 #' @param fixTheta Logical. Should the initial THETA estimates for the covariates be fixed? Defaults to `TRUE`.
-#' @param roundMeanTo Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to `2`.
+#' @param roundMeanTo The rounding of the covariate means, the initial values of
+#'   their THETAs. `NULL` (the default) keeps 3 significant digits and never
+#'   fewer than 2 decimals, so 0.004321 is written as 0.00432 and 86.857 as
+#'   86.86. A number is the number of decimals.
 #' @param useMuModeling Logical. Should MU-referencing be utilized when generating the NONMEM $PK and $ERROR blocks? Defaults to `TRUE`.
 #' @param numSkipOm Numeric. Number of initial OMEGA parameters (IIV / RUV
 #'   variances that precede the FREM block) to skip when appending the FREM
@@ -112,7 +115,7 @@ createFREMmodel <- function(runno = NULL,
                             IDvar = "ID",
                             missVal = -99,
                             fixTheta = TRUE,
-                            roundMeanTo = 2,
+                            roundMeanTo = NULL,
                             useMuModeling = TRUE,
                             numSkipOm = 0,
                             cstrKeepCols = c("ID", "TIME", "AMT", "II", "EVID", "SS", "RATE", "DV"),

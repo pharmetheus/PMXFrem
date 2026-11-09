@@ -34,7 +34,7 @@ updateFREMmodel(
   bRecodeDichotomous = FALSE,
   allowNon01 = FALSE,
   keepDoseOnlySubjects = FALSE,
-  roundMeanTo = 2,
+  roundMeanTo = NULL,
   fixTheta = TRUE,
   sortFREMDataset = NULL
 )
@@ -146,7 +146,10 @@ to pass through untouched for PsN compatibility. Defaults to FALSE.}
 only dosing records) are completely excluded from the generated dataset. If \code{TRUE},
 these subjects are retained and their covariates are included as observations.}
 
-\item{roundMeanTo}{Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to 2.}
+\item{roundMeanTo}{The rounding of the covariate means, the initial values of
+their THETAs. \code{NULL} (the default) keeps 3 significant digits and never
+fewer than 2 decimals, so 0.004321 is written as 0.00432 and 86.857 as
+86.86. A number is the number of decimals.}
 
 \item{fixTheta}{Logical. Should initial THETA estimates for covariates without missing values be fixed? Defaults to TRUE.}
 
