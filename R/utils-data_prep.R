@@ -1,12 +1,12 @@
-#' Prepare and Validate FFEM Data Against a Model's $INPUT Record
+#' Prepare and Validate Data Against a Model's $INPUT Record
 #'
-#' Reads an FFEM dataset and a NONMEM model file, and aligns the dataset's
+#' Reads a data set and a NONMEM model file, and aligns the dataset's
 #' column names with those specified in the model's $INPUT record. It validates
 #' that the column count matches and that all specified covariates are present
 #' in the $INPUT record. This function is robust to multi-line, abbreviated,
 #' and commented $INPUT records.
 #'
-#' @param ffemDataFile A character string path to the FFEM dataset, or a data.frame.
+#' @param dataFile A character string path to the data set of the base model, or a data.frame.
 #'   A file is also read as text, so that `IGNORE` / `ACCEPT` conditions that
 #'   compare strings (`.EQ.`, `=`, `==`, `.NE.`, `/=`) see the values as
 #'   written in it; for a data.frame they see `as.character()` of the values,
@@ -41,18 +41,18 @@
 #' @family Data Assembly Internal
 #' @concept data_assembly
 #' @keywords internal
-prepareAndValidateData <- function(ffemDataFile, baseModelFile, covariates, quiet = FALSE, keepDoseOnlySubjects = FALSE, strID = "ID",
+prepareAndValidateData <- function(dataFile, baseModelFile, covariates, quiet = FALSE, keepDoseOnlySubjects = FALSE, strID = "ID",
                                    cstrKeepCols = NULL) {
   # 1. Read the data and stash original names. A file is read a second time as
   # text, for the IGNORE / ACCEPT operators that compare strings.
   rawDf <- NULL
-  if (is.data.frame(ffemDataFile)) {
-    df <- as.data.frame(ffemDataFile)
-  } else if (is.character(ffemDataFile) && file.exists(ffemDataFile)) {
-    df <- data.table::fread(ffemDataFile, header = TRUE, data.table = FALSE)
-    rawDf <- .readDataAsText(ffemDataFile)
+  if (is.data.frame(dataFile)) {
+    df <- as.data.frame(dataFile)
+  } else if (is.character(dataFile) && file.exists(dataFile)) {
+    df <- data.table::fread(dataFile, header = TRUE, data.table = FALSE)
+    rawDf <- .readDataAsText(dataFile)
   } else {
-    stop("Cannot find or read FFEM dataset.", call. = FALSE)
+    stop("Cannot find or read the data set.", call. = FALSE)
   }
   originalNames <- names(df)
 

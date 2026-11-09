@@ -100,7 +100,7 @@ test_that("createFREMmodel() finds DV when $INPUT says CP=DV", {
   td <- withr::local_tempdir()
   dataFile <- synonymCase(td)
   res <- suppressWarnings(createFREMmodel(
-    modName = "run30", modDevDir = td, ffemDataFile = dataFile,
+    modName = "run30", modDevDir = td, dataFile = dataFile,
     covariates = c("AGE", "WT"), numSkipOm = 2,
     cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "CP"),
     outputDir = td, fremModName = "frem", quiet = TRUE
@@ -121,7 +121,7 @@ test_that("createFREMmodel() prunes a table synonym whose item the FREM data lac
   td <- withr::local_tempdir()
   dataFile <- synonymCase(td, item = "RATE", syn = "RT")
   res <- suppressWarnings(createFREMmodel(
-    modName = "run30", modDevDir = td, ffemDataFile = dataFile,
+    modName = "run30", modDevDir = td, dataFile = dataFile,
     covariates = c("AGE", "WT"), numSkipOm = 2,
     cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "FOOD", "DV"),
     outputDir = td, fremModName = "frem", quiet = TRUE

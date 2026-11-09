@@ -10,7 +10,7 @@ fremFixed <- function(covariates, catCovs = NULL, dataFile = NULL, bRecodeDichot
   if (is.null(dataFile)) dataFile <- file.path(src, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
   td <- withr::local_tempdir()
   res <- suppressWarnings(createFREMmodel(
-    modName = "run30", modDevDir = src, ffemDataFile = dataFile,
+    modName = "run30", modDevDir = src, dataFile = dataFile,
     covariates = covariates, catCovs = catCovs, numSkipOm = 2,
     cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV"),
     bRecodeDichotomous = bRecodeDichotomous,

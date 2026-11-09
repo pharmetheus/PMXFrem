@@ -26,23 +26,23 @@ test_that("generateFremModel generates correct model text and OMEGA structure", 
 
   # 2. Action
   model_lines <- generateFremModel(
-    final_df         = final_df,
-    modelState       = modelState,
-    covList          = list(),
-    addedList        = NULL,
-    covnames         = list(covNames = c()),
-    strFREMModel     = template_model_path,
-    strNewFREMData   = "final.csv",
-    bWriteMod        = FALSE,
-    bWriteFIX        = TRUE,
-    noBaseThetas     = 1,
-    numSkipOm        = 0,
-    numParCov        = 2,
-    covEpsNum        = 1,
-    basenames_th     = "BASE",
-    basenames_om     = "BASE",
+    final_df = final_df,
+    modelState = modelState,
+    covList = list(),
+    addedList = NULL,
+    covnames = list(covNames = c()),
+    strFREMModel = template_model_path,
+    newFremDataFile = "final.csv",
+    bWriteMod = FALSE,
+    bWriteFIX = TRUE,
+    noBaseThetas = 1,
+    numSkipOm = 0,
+    numParCov = 2,
+    covEpsNum = 1,
+    basenames_th = "BASE",
+    basenames_om = "BASE",
     dDefaultCovValue = 1e-05,
-    strUpdateType    = "DataAndModel"
+    strUpdateType = "DataAndModel"
   )
 
   # 3. Assertions
@@ -71,23 +71,23 @@ test_that("generateFremModel handles NoData update type correctly", {
   modelState <- list(theta = 5, omegaMatrix = matrix(0.05), thetaFix = 1, numTheta = 1, numOmega = 1)
 
   result <- generateFremModel(
-    final_df         = NULL,
-    modelState       = modelState,
-    covList          = list(),
-    addedList        = NULL,
-    covnames         = list(covNames = c()),
-    strFREMModel     = template_model_path,
-    strNewFREMData   = "wont_be_written.csv",
-    bWriteMod        = FALSE,
-    bWriteFIX        = TRUE,
-    noBaseThetas     = 1,
-    numSkipOm        = 0,
-    numParCov        = 1,
-    covEpsNum        = 1,
-    basenames_th     = "BASE",
-    basenames_om     = "BASE",
+    final_df = NULL,
+    modelState = modelState,
+    covList = list(),
+    addedList = NULL,
+    covnames = list(covNames = c()),
+    strFREMModel = template_model_path,
+    newFremDataFile = "wont_be_written.csv",
+    bWriteMod = FALSE,
+    bWriteFIX = TRUE,
+    noBaseThetas = 1,
+    numSkipOm = 0,
+    numParCov = 1,
+    covEpsNum = 1,
+    basenames_th = "BASE",
+    basenames_om = "BASE",
     dDefaultCovValue = 1e-05,
-    strUpdateType    = "NoData"
+    strUpdateType = "NoData"
   )
 
   expect_false(any(grepl("\\$DATA", result)))
@@ -121,23 +121,23 @@ test_that("generateFremModel exactly preserves base model comments", {
 
   # Action
   result_lines <- generateFremModel(
-    final_df         = NULL,
-    modelState       = modelState,
-    covList          = list(),
-    addedList        = NULL,
-    covnames         = list(covNames = c()),
-    strFREMModel     = template_model_path,
-    strNewFREMData   = "dummy.csv",
-    bWriteMod        = FALSE,
-    bWriteFIX        = TRUE,
-    noBaseThetas     = 3,
-    numSkipOm        = 0,
-    numParCov        = 3,
-    covEpsNum        = 1,
-    basenames_th     = NULL,
-    basenames_om     = NULL,
+    final_df = NULL,
+    modelState = modelState,
+    covList = list(),
+    addedList = NULL,
+    covnames = list(covNames = c()),
+    strFREMModel = template_model_path,
+    newFremDataFile = "dummy.csv",
+    bWriteMod = FALSE,
+    bWriteFIX = TRUE,
+    noBaseThetas = 3,
+    numSkipOm = 0,
+    numParCov = 3,
+    covEpsNum = 1,
+    basenames_th = NULL,
+    basenames_om = NULL,
     dDefaultCovValue = 1e-05,
-    strUpdateType    = "NoData"
+    strUpdateType = "NoData"
   )
 
   # Assertions: Verify it kept EXACTLY what was after the semicolon
@@ -171,7 +171,7 @@ test_that("generateFremModel falls back to BASE placeholders if comments are mis
 
   result_lines <- generateFremModel(
     final_df = NULL, modelState = modelState, covList = list(), addedList = NULL,
-    covnames = list(covNames = c()), strFREMModel = template_model_path, strNewFREMData = "dummy.csv",
+    covnames = list(covNames = c()), strFREMModel = template_model_path, newFremDataFile = "dummy.csv",
     bWriteMod = FALSE, bWriteFIX = TRUE, noBaseThetas = 2, numSkipOm = 0, numParCov = 2,
     covEpsNum = 1, basenames_th = NULL, basenames_om = NULL, dDefaultCovValue = 1e-05, strUpdateType = "NoData"
   )
@@ -217,7 +217,7 @@ test_that("generateFremModel reconstructs the full FREMTYPE evaluation block", {
     addedList = addedList,
     covnames = covnames,
     strFREMModel = template_model_path,
-    strNewFREMData = "dummy.csv",
+    newFremDataFile = "dummy.csv",
     bWriteMod = FALSE, bWriteFIX = TRUE,
     noBaseThetas = 0, numSkipOm = 0, numParCov = 0,
     covEpsNum = 2, basenames_th = NULL, basenames_om = NULL,

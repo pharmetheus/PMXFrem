@@ -4,7 +4,7 @@
 \alias{finalizeFremData}
 \title{Finalize a FREM Dataset}
 \usage{
-finalizeFremData(dfFREM, strID, cstrKeepCols, bWriteData, strNewFREMData)
+finalizeFremData(dfFREM, strID, cstrKeepCols, bWriteData, newFremDataFile)
 }
 \arguments{
 \item{dfFREM}{The augmented FREM data frame.}
@@ -15,7 +15,7 @@ finalizeFremData(dfFREM, strID, cstrKeepCols, bWriteData, strNewFREMData)
 
 \item{bWriteData}{Logical; if TRUE, write the new data file.}
 
-\item{strNewFREMData}{The file path for the new FREM dataset to be written.}
+\item{newFremDataFile}{The file path for the new FREM dataset to be written.}
 }
 \value{
 The final, processed data frame.

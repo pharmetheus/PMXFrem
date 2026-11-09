@@ -11,7 +11,7 @@ generateFremModel(
   addedList,
   covnames,
   strFREMModel,
-  strNewFREMData,
+  newFremDataFile,
   bWriteMod,
   bWriteFIX,
   noBaseThetas,
@@ -38,7 +38,7 @@ generateFremModel(
 
 \item{strFREMModel}{A character string specifying the file path to the base FREM model (\code{.mod}) file.}
 
-\item{strNewFREMData}{A character string specifying the file path for the newly generated FREM dataset.}
+\item{newFremDataFile}{A character string specifying the file path for the newly generated FREM dataset.}
 
 \item{bWriteMod}{Logical. If TRUE, writes the updated model code to disk with a \verb{_new.mod} suffix.}
 

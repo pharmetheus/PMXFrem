@@ -20,7 +20,7 @@ fixtureData <- function(dir, blq) {
 keptIDs <- function(dataRecord, blq) {
   td <- withr::local_tempdir(.local_envir = parent.frame())
   res <- prepareAndValidateData(
-    ffemDataFile = fixtureData(td, blq),
+    dataFile = fixtureData(td, blq),
     baseModelFile = fixtureModel(td, dataRecord),
     covariates = "WT", quiet = TRUE, keepDoseOnlySubjects = TRUE
   )

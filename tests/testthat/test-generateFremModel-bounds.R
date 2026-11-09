@@ -10,7 +10,7 @@ fremThetaLines <- function(covariates, modDir = NULL, quiet = TRUE) {
   td <- withr::local_tempdir()
   res <- suppressWarnings(createFREMmodel(
     modName = "run30", modDevDir = modDir,
-    ffemDataFile = file.path(src, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+    dataFile = file.path(src, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
     covariates = covariates, numSkipOm = 2,
     cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV"),
     outputDir = td, fremModName = "frem", quiet = quiet
@@ -45,7 +45,7 @@ test_that("a one-covariate FREM model reads the data file written next to it", {
   td <- withr::local_tempdir()
   res <- suppressWarnings(createFREMmodel(
     modName = "run30", modDevDir = src,
-    ffemDataFile = file.path(src, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+    dataFile = file.path(src, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
     covariates = "AGE", numSkipOm = 2,
     cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV"),
     outputDir = td, fremModName = "frem", quiet = TRUE

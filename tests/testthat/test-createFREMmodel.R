@@ -9,21 +9,21 @@ test_that("createFREMmodel input validation catches empty covariates", {
 
 test_that("createFREMmodel works for a single covariate (Phase 1 only)", {
   modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
-  ffemDataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+  dataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
   outDir <- file.path(tempdir(), "frem_test_single")
   dir.create(outDir, showWarnings = FALSE)
 
   res <- suppressWarnings(createFREMmodel(
-    modName          = "run30",
-    modDevDir        = modDevDir,
-    ffemDataFile     = ffemDataFile,
-    covariates       = c("WT"),
+    modName = "run30",
+    modDevDir = modDevDir,
+    dataFile = dataFile,
+    covariates = c("WT"),
     numNonFREMThetas = 7,
-    cstrKeepCols     = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ"),
-    numSkipOm        = 2,
-    outputDir        = outDir,
-    fremModName      = "test_single",
-    quiet            = TRUE
+    cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ"),
+    numSkipOm = 2,
+    outputDir = outDir,
+    fremModName = "test_single",
+    quiet = TRUE
   ))
 
   expect_true(file.exists(res$model))
@@ -38,22 +38,22 @@ test_that("createFREMmodel works for a single covariate (Phase 1 only)", {
 
 test_that("createFREMmodel orchestrates Phase 1 & 2 for multiple covariates", {
   modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
-  ffemDataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+  dataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
   outDir <- file.path(tempdir(), "frem_test_multi")
   dir.create(outDir, showWarnings = FALSE)
 
   res <- suppressWarnings(createFREMmodel(
-    modName          = "run30",
-    modDevDir        = modDevDir,
-    ffemDataFile     = ffemDataFile,
-    covariates       = c("RACEL", "WT"),
-    catCovs          = c("RACEL"),
+    modName = "run30",
+    modDevDir = modDevDir,
+    dataFile = dataFile,
+    covariates = c("RACEL", "WT"),
+    catCovs = c("RACEL"),
     numNonFREMThetas = 7,
-    cstrKeepCols     = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ"),
-    numSkipOm        = 2,
-    outputDir        = outDir,
-    fremModName      = "test_multi",
-    quiet            = TRUE
+    cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ"),
+    numSkipOm = 2,
+    outputDir = outDir,
+    fremModName = "test_multi",
+    quiet = TRUE
   ))
 
   expect_true(file.exists(res$model))
@@ -71,23 +71,23 @@ test_that("createFREMmodel orchestrates Phase 1 & 2 for multiple covariates", {
 
 test_that("createFREMmodel respects keepMinimalModel = TRUE", {
   modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
-  ffemDataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+  dataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
   outDir <- file.path(tempdir(), "frem_test_keep")
   dir.create(outDir, showWarnings = FALSE)
 
   res <- suppressWarnings(createFREMmodel(
-    modName          = "run30",
-    modDevDir        = modDevDir,
-    ffemDataFile     = ffemDataFile,
-    covariates       = c("RACEL", "WT"),
-    catCovs          = c("RACEL"),
+    modName = "run30",
+    modDevDir = modDevDir,
+    dataFile = dataFile,
+    covariates = c("RACEL", "WT"),
+    catCovs = c("RACEL"),
     numNonFREMThetas = 7,
-    cstrKeepCols     = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ"),
-    numSkipOm        = 2,
-    outputDir        = outDir,
-    fremModName      = "test_keep",
+    cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ"),
+    numSkipOm = 2,
+    outputDir = outDir,
+    fremModName = "test_keep",
     keepMinimalModel = TRUE,
-    quiet            = TRUE
+    quiet = TRUE
   ))
 
   expect_true(file.exists(res$model))
@@ -139,18 +139,18 @@ test_that("createFREMmodel strictly enforces $DATA IGNORE statements across all 
   ), base_ext_path)
 
   res <- createFREMmodel(
-    modName            = "run_ignore",
-    modDevDir          = td,
-    ffemDataFile       = data_path,
-    covariates         = c("WT", "RACEL"),
-    catCovs            = c("RACEL"),
-    numNonFREMThetas   = 1,
-    numSkipOm          = 0,
-    cstrKeepCols       = c("ID", "TIME", "AMT", "DV", "BLQ"),
-    outputDir          = out_dir,
-    fremModName        = "test_ignore_final",
+    modName = "run_ignore",
+    modDevDir = td,
+    dataFile = data_path,
+    covariates = c("WT", "RACEL"),
+    catCovs = c("RACEL"),
+    numNonFREMThetas = 1,
+    numSkipOm = 0,
+    cstrKeepCols = c("ID", "TIME", "AMT", "DV", "BLQ"),
+    outputDir = out_dir,
+    fremModName = "test_ignore_final",
     bRecodeDichotomous = TRUE,
-    quiet              = TRUE
+    quiet = TRUE
   )
 
   final_data <- read.csv(res$data)
@@ -205,13 +205,13 @@ test_that("createFREMmodel warns when SAEM is used", {
 
   expect_warning(
     createFREMmodel(
-      modName          = "run_diag",
-      modDevDir        = td,
-      ffemDataFile     = data_path,
-      covariates       = c("WT", "RACEL"),
+      modName = "run_diag",
+      modDevDir = td,
+      dataFile = data_path,
+      covariates = c("WT", "RACEL"),
       numNonFREMThetas = 1,
-      cstrKeepCols     = c("ID", "TIME", "AMT", "DV"),
-      quiet            = TRUE
+      cstrKeepCols = c("ID", "TIME", "AMT", "DV"),
+      quiet = TRUE
     ),
     "SAEM currently can not handle missing covariate values correctly"
   )
@@ -226,13 +226,13 @@ test_that("createFREMmodel warns when IMP/IMPMAP is missing", {
 
   expect_warning(
     createFREMmodel(
-      modName          = "run_diag",
-      modDevDir        = td,
-      ffemDataFile     = data_path,
-      covariates       = c("WT", "RACEL"),
+      modName = "run_diag",
+      modDevDir = td,
+      dataFile = data_path,
+      covariates = c("WT", "RACEL"),
       numNonFREMThetas = 1,
-      cstrKeepCols     = c("ID", "TIME", "AMT", "DV"),
-      quiet            = TRUE
+      cstrKeepCols = c("ID", "TIME", "AMT", "DV"),
+      quiet = TRUE
     ),
     "Consider using IMP or IMPMAP to increase the robustness"
   )
@@ -246,13 +246,13 @@ test_that("createFREMmodel enforces NITER >= 150 for IMP/IMPMAP", {
 
   expect_warning(
     createFREMmodel(
-      modName          = "run_diag",
-      modDevDir        = td,
-      ffemDataFile     = data_path_low,
-      covariates       = c("WT", "RACEL"),
+      modName = "run_diag",
+      modDevDir = td,
+      dataFile = data_path_low,
+      covariates = c("WT", "RACEL"),
       numNonFREMThetas = 1,
-      cstrKeepCols     = c("ID", "TIME", "AMT", "DV"),
-      quiet            = TRUE
+      cstrKeepCols = c("ID", "TIME", "AMT", "DV"),
+      quiet = TRUE
     ),
     "Consider increasing NITER to at least 150."
   )
@@ -264,13 +264,13 @@ test_that("createFREMmodel enforces NITER >= 150 for IMP/IMPMAP", {
 
   warnings_emitted <- capture_warnings(
     createFREMmodel(
-      modName          = "run_diag",
-      modDevDir        = td2,
-      ffemDataFile     = data_path_pass,
-      covariates       = c("WT", "RACEL"),
+      modName = "run_diag",
+      modDevDir = td2,
+      dataFile = data_path_pass,
+      covariates = c("WT", "RACEL"),
       numNonFREMThetas = 1,
-      cstrKeepCols     = c("ID", "TIME", "AMT", "DV"),
-      quiet            = TRUE
+      cstrKeepCols = c("ID", "TIME", "AMT", "DV"),
+      quiet = TRUE
     )
   )
   expect_false(any(grepl("Consider increasing NITER", warnings_emitted)))
@@ -289,13 +289,13 @@ test_that("createFREMmodel correctly parses multiline and consecutive $EST block
 
   expect_silent(
     createFREMmodel(
-      modName          = "run_diag",
-      modDevDir        = td,
-      ffemDataFile     = data_path,
-      covariates       = c("WT", "RACEL"),
+      modName = "run_diag",
+      modDevDir = td,
+      dataFile = data_path,
+      covariates = c("WT", "RACEL"),
       numNonFREMThetas = 1,
-      cstrKeepCols     = c("ID", "TIME", "AMT", "DV"),
-      quiet            = TRUE
+      cstrKeepCols = c("ID", "TIME", "AMT", "DV"),
+      quiet = TRUE
     )
   )
 })
@@ -339,16 +339,16 @@ test_that("createFREMmodel selectively applies FIX to fully observed covariates 
   ), base_ext_path)
 
   res <- suppressWarnings(createFREMmodel(
-    modName          = "run_fix",
-    modDevDir        = td,
-    ffemDataFile     = data_path,
-    covariates       = c("WT", "AGE"),
+    modName = "run_fix",
+    modDevDir = td,
+    dataFile = data_path,
+    covariates = c("WT", "AGE"),
     numNonFREMThetas = 1,
-    numSkipOm        = 0,
-    outputDir        = out_dir,
-    fremModName      = "test_fix_model",
-    fixTheta         = TRUE,
-    quiet            = TRUE
+    numSkipOm = 0,
+    outputDir = out_dir,
+    fremModName = "test_fix_model",
+    fixTheta = TRUE,
+    quiet = TRUE
   ))
 
   mod_lines <- readLines(res$model)
@@ -369,22 +369,22 @@ test_that("getCovNames can parse the output of createFREMmodel", {
   # markers and PsN-style covariate comment lines that getCovNames() needs.
   # updateFREMmodel and createMinimalFremModel already have equivalent tests.
   modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
-  ffemDataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+  dataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
   outDir <- file.path(tempdir(), "frem_test_getcovnames")
   dir.create(outDir, showWarnings = FALSE)
 
   res <- suppressWarnings(createFREMmodel(
-    modName          = "run30",
-    modDevDir        = modDevDir,
-    ffemDataFile     = ffemDataFile,
-    covariates       = c("RACEL", "WT"),
-    catCovs          = c("RACEL"),
+    modName = "run30",
+    modDevDir = modDevDir,
+    dataFile = dataFile,
+    covariates = c("RACEL", "WT"),
+    catCovs = c("RACEL"),
     numNonFREMThetas = 7,
-    cstrKeepCols     = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ"),
-    numSkipOm        = 2,
-    outputDir        = outDir,
-    fremModName      = "test_getcovnames",
-    quiet            = TRUE
+    cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ"),
+    numSkipOm = 2,
+    outputDir = outDir,
+    fremModName = "test_getcovnames",
+    quiet = TRUE
   ))
 
   expect_no_error(cn <- getCovNames(modFile = res$model))
@@ -405,9 +405,9 @@ test_that("getCovNames can parse the output of createFREMmodel", {
 })
 test_that("createFREMmodel derives numNonFREMThetas from the base model .ext", {
   modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
-  ffemDataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+  dataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
   common <- list(
-    modName = "run30", modDevDir = modDevDir, ffemDataFile = ffemDataFile,
+    modName = "run30", modDevDir = modDevDir, dataFile = dataFile,
     covariates = c("WT"), numSkipOm = 2, fremModName = "fm", quiet = TRUE,
     cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ")
   )
@@ -428,13 +428,13 @@ test_that("createFREMmodel derives numNonFREMThetas from the base model .ext", {
 
 test_that("createFREMmodel refuses to overwrite an existing output model / data file", {
   modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
-  ffemDataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+  dataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
   outDir <- withr::local_tempdir()
   file.create(file.path(outDir, "collide.mod")) # pre-existing output
 
   expect_error(
     suppressWarnings(createFREMmodel(
-      modName = "run30", modDevDir = modDevDir, ffemDataFile = ffemDataFile,
+      modName = "run30", modDevDir = modDevDir, dataFile = dataFile,
       covariates = c("WT"), numNonFREMThetas = 7, numSkipOm = 2,
       outputDir = outDir, fremModName = "collide", quiet = TRUE,
       cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ")
@@ -446,11 +446,11 @@ test_that("createFREMmodel refuses to overwrite an existing output model / data 
 test_that("createFREMmodel errors when numNonFREMThetas is omitted and the base .ext is absent", {
   td <- withr::local_tempdir()
   file.copy(system.file("extdata/SimNeb/run30.mod", package = "PMXFrem"), td) # .mod only
-  ffemDataFile <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+  dataFile <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 
   expect_error(
     suppressWarnings(createFREMmodel(
-      modName = "run30", modDevDir = td, ffemDataFile = ffemDataFile,
+      modName = "run30", modDevDir = td, dataFile = dataFile,
       covariates = c("WT"), numSkipOm = 2,
       outputDir = file.path(td, "out"), fremModName = "fm", quiet = TRUE,
       cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ")
@@ -461,10 +461,10 @@ test_that("createFREMmodel errors when numNonFREMThetas is omitted and the base 
 
 test_that("createFREMmodel announces the derived numNonFREMThetas when quiet = FALSE", {
   modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
-  ffemDataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
+  dataFile <- file.path(modDevDir, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv")
   expect_message(
     suppressWarnings(createFREMmodel(
-      modName = "run30", modDevDir = modDevDir, ffemDataFile = ffemDataFile,
+      modName = "run30", modDevDir = modDevDir, dataFile = dataFile,
       covariates = c("WT"), numSkipOm = 2,
       outputDir = withr::local_tempdir(), fremModName = "fm", quiet = FALSE,
       cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DAY", "BLQ")

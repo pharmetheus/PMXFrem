@@ -12,7 +12,7 @@
 #' @param addedList A character vector of new covariate names added during this update step.
 #' @param covnames A list containing parsed existing covariate names (`covNames`, `polyCatCovs`, `orgCovNames`).
 #' @param strFREMModel A character string specifying the file path to the base FREM model (`.mod`) file.
-#' @param strNewFREMData A character string specifying the file path for the newly generated FREM dataset.
+#' @param newFremDataFile A character string specifying the file path for the newly generated FREM dataset.
 #' @param bWriteMod Logical. If TRUE, writes the updated model code to disk with a `_new.mod` suffix.
 #' @param bWriteFIX Logical. If TRUE, appends `FIX` to the `$THETA` records for fixed parameters.
 #' @param noBaseThetas Integer. The number of structural (non-FREM) `$THETA` parameters in the base model.
@@ -36,7 +36,7 @@ generateFremModel <- function(final_df,
                               addedList,
                               covnames,
                               strFREMModel,
-                              strNewFREMData,
+                              newFremDataFile,
                               bWriteMod,
                               bWriteFIX,
                               noBaseThetas,
@@ -282,7 +282,7 @@ generateFremModel <- function(final_df,
   line <- safeFindRecord(line, record = "\\$OMEGA", replace = newommatrix)
 
   if (strUpdateType != "NoData") {
-    line <- safeFindRecord(line, record = "\\$DATA", replace = paste0("$DATA ", basename(strNewFREMData), " IGNORE=@"))
+    line <- safeFindRecord(line, record = "\\$DATA", replace = paste0("$DATA ", basename(newFremDataFile), " IGNORE=@"))
     if (!is.null(final_df)) {
       oldInput <- findrecord(line, record = "\\$INPUT", quiet = TRUE)
       line <- safeFindRecord(line, record = "\\$INPUT", replace = paste0("$INPUT ", paste0(names(final_df), collapse = " ")))

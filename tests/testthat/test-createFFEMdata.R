@@ -137,7 +137,7 @@ test_that("a missing covariate does not also blank one whose name contains it (W
 
   ## The FFEM for this subject conditions on every covariate it has, LBWT included
   covNames <- getCovNames(modFile)$covNames
-  row <- addFREMcovariates(dfFFEM = data, modFile = modFile, missVal = -99)
+  row <- addFREMcovariates(data = data, modFile = modFile, missVal = -99)
   row <- row[row$ID == id, ][1, ]
   has <- covNames[vapply(covNames, function(cv) !is.null(row[[cv]]) && row[[cv]] != -99, logical(1))]
   expect_true("LBWT" %in% has)

@@ -1,6 +1,6 @@
-#' Add FREM covariates to a FFEM data set
+#' Add FREM covariates to a data set
 #'
-#' Add binarised FREM covariates to a FFEM data set.
+#' Add binarised FREM covariates to a data set.
 #'
 #' This is mainly an internal utility function.
 #'
@@ -8,7 +8,7 @@
 #' a frem model (`modFile`) file or from the names specified in the `covariates`
 #' vector.
 #'
-#' The new columns in the FFEM data set will contain the binarised versions of
+#' The new columns in the data set will contain the binarised versions of
 #' the polychotomous  covariates named with the original covariate name appended
 #' by "_#", where "#" is the level value of the covariate. For example, for a
 #' covariate NCIL with the values 0, 1 and 2 `addFREMcovariates()` will add
@@ -22,7 +22,7 @@
 #' function is the FREM-aware wrapper that derives the columns to create from a
 #' model file or a covariate vector.
 #'
-#' @param dfFFEM A data.frame containing the FFEM data.
+#' @param data A data.frame with the data set of the base model.
 #' @param modFile Path to a FREM model file.
 #' @param covariates A character vector of covariates to binarise.
 #' @param includeReference Logical. If TRUE, creates a dummy column for the lowest
@@ -30,6 +30,7 @@
 #' @param imputeMissing Logical. If TRUE (default), missing values are imputed to 0
 #'   (the reference category). If FALSE, missing values are preserved as missVal.
 #' @param missVal The integer/numeric value representing missing data (default: -99).
+#' @param dfFFEM Deprecated; use `data`.
 #'
 #' @return A data.frame with the new binarised covariate columns.
 #'
@@ -37,7 +38,7 @@
 #' library(dplyr)
 #'
 #' # Load the base dataset
-#' dfFFEM <- read.csv(
+#' data <- read.csv(
 #'   system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 #' ) %>%
 #'   filter(BLQ != 1)
@@ -45,22 +46,26 @@
 #' modFile <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
 #'
 #' ## Example 1: Add covariates automatically based on a FREM model file
-#' dfFFEM_mod <- addFREMcovariates(dfFFEM, modFile = modFile)
+#' data_mod <- addFREMcovariates(data, modFile = modFile)
 #'
 #' ## Example 2: Add specific polychotomous covariates (Default: Y-1 categories)
 #' # For RACEL (levels 1, 2, 3), this will generate RACEL_3 and RACEL_2.
 #' # The lowest valid level (1) is dropped as the reference category.
-#' dfFFEM_standard <- addFREMcovariates(dfFFEM, covariates = "RACEL")
+#' data_standard <- addFREMcovariates(data, covariates = "RACEL")
 #'
 #' ## Example 3: Add specific covariates AND include the reference category
 #' # This will generate RACEL_3, RACEL_2, AND RACEL_1.
-#' dfFFEM_full <- addFREMcovariates(dfFFEM, covariates = "RACEL", includeReference = TRUE)
+#' data_full <- addFREMcovariates(data, covariates = "RACEL", includeReference = TRUE)
 #'
 #' @family Data Assembly Internal
 #' @concept data_assembly
 #' @export
-addFREMcovariates <- function(dfFFEM, modFile = NULL, covariates = NULL, missVal = -99, includeReference = FALSE, imputeMissing = TRUE) {
-  if (!is.data.frame(dfFFEM)) stop("dfFFEM has to be a data.frame")
+addFREMcovariates <- function(data, modFile = NULL, covariates = NULL, missVal = -99, includeReference = FALSE, imputeMissing = TRUE, dfFFEM = NULL) {
+  if (!is.null(dfFFEM)) {
+    .fremDeprecatedArg("addFREMcovariates", "dfFFEM", "data")
+    if (missing(data)) data <- dfFFEM
+  }
+  if (!is.data.frame(data)) stop("data has to be a data.frame")
   if (is.null(modFile) && is.null(covariates)) stop("modFile and covariates can not both be NULL")
 
   ## Build a one-hot encoding spec: one entry per base covariate, with the exact
@@ -83,12 +88,12 @@ addFREMcovariates <- function(dfFFEM, modFile = NULL, covariates = NULL, missVal
   if (!is.null(covariates)) {
     addCovs <- c()
     for (cov in covariates) {
-      if (!(cov %in% names(dfFFEM))) {
+      if (!(cov %in% names(data))) {
         warning(cov, " does not exist in the data set")
         next
       }
 
-      valid_vals <- unique(dfFFEM[[cov]])
+      valid_vals <- unique(data[[cov]])
       valid_vals <- valid_vals[valid_vals != missVal & !is.na(valid_vals)]
 
       if (length(valid_vals) <= 1) {
@@ -102,10 +107,10 @@ addFREMcovariates <- function(dfFFEM, modFile = NULL, covariates = NULL, missVal
       addCovs <- c(addCovs, cov)
     }
 
-    if (length(addCovs) == 0) stop("No binarised covariates to add to the FFEM data.")
+    if (length(addCovs) == 0) stop("No binarised covariates to add to the data.")
 
     for (cov in addCovs) {
-      valid_vals <- sort(unique(dfFFEM[[cov]][dfFFEM[[cov]] != missVal & !is.na(dfFFEM[[cov]])]))
+      valid_vals <- sort(unique(data[[cov]][data[[cov]] != missVal & !is.na(data[[cov]])]))
       nonRef <- if (includeReference) valid_vals else valid_vals[-1]
       ## Highest level first, matching the historical column order.
       spec[[cov]] <- list(ref = valid_vals[1], levels = rev(nonRef))
@@ -113,11 +118,11 @@ addFREMcovariates <- function(dfFFEM, modFile = NULL, covariates = NULL, missVal
   }
 
   if (length(spec) == 0) {
-    return(dfFFEM)
+    return(data)
   }
 
   PMXForest::oneHotEncode(
-    dfFFEM,
+    data,
     spec             = spec,
     sep              = "_",
     missVal          = missVal,

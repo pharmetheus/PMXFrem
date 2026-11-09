@@ -2,10 +2,10 @@
 % Please edit documentation in R/utils-data_prep.R
 \name{prepareAndValidateData}
 \alias{prepareAndValidateData}
-\title{Prepare and Validate FFEM Data Against a Model's $INPUT Record}
+\title{Prepare and Validate Data Against a Model's $INPUT Record}
 \usage{
 prepareAndValidateData(
-  ffemDataFile,
+  dataFile,
   baseModelFile,
   covariates,
   quiet = FALSE,
@@ -15,7 +15,7 @@ prepareAndValidateData(
 )
 }
 \arguments{
-\item{ffemDataFile}{A character string path to the FFEM dataset, or a data.frame.
+\item{dataFile}{A character string path to the data set of the base model, or a data.frame.
 A file is also read as text, so that \code{IGNORE} / \code{ACCEPT} conditions that
 compare strings (\code{.EQ.}, \code{=}, \code{==}, \code{.NE.}, \verb{/=}) see the values as
 written in it; for a data.frame they see \code{as.character()} of the values,
@@ -45,7 +45,7 @@ A list containing three elements:
 \item{inputNames}{The clean character vector of names parsed from the $INPUT record.}
 }
 \description{
-Reads an FFEM dataset and a NONMEM model file, and aligns the dataset's
+Reads a data set and a NONMEM model file, and aligns the dataset's
 column names with those specified in the model's $INPUT record. It validates
 that the column count matches and that all specified covariates are present
 in the $INPUT record. This function is robust to multi-line, abbreviated,

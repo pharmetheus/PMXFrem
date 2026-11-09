@@ -2,22 +2,22 @@
 #'
 #' Create a FREM dataset from a standard NONMEM dataset.
 #'
-#' If there are more than one DV variable in different columns in the FFEM data
+#' If there are more than one DV variable in different columns in the data
 #' set, they can be included in the DV column of the FREM data set with
 #' different FREMTYPES by specifying the names of the columns in the `cstrDV`
 #' argument.
 #'
-#' @param strFFEMData Name of FFEM-dataset (normal dataset) that will be used to
+#' @param dataFile Name of the data set of the base model (a file or a data.frame) that will be used to
 #'   create the FREM-dataset.
 #' @param cstrKeepCols A vector of columns to keep in the dataset (for the
 #'   updated new dataset).
 #' @param cstrSetToZero A vector of variable names that should be set to zero on
 #'   the covariate FREMTYPE lines. Typically columns with PK dosing information.
-#' @param strFREMDataFileName Name of FREM dataset to create. Default=NULL => no
+#' @param fremDataFile Name of FREM dataset to create. Default=NULL => no
 #'   dataset is written to disc
 #' @param quiet If set to FALSE, the function outputs verbose information on
 #'   what it is doing.
-#' @param strID A string with the ID identifier column in the FFEM dataset.
+#' @param strID A string with the ID identifier column in the data set.
 #' @param cstrDV A vector of strings with DV variables that should be added,
 #'   default="DV" (i.e. DV assumed fremtype=0), additional DVs are added with
 #'   fremtype 1,2,3...etc.
@@ -44,6 +44,8 @@
 #' @param cFremtypes A vector of FREMTYPE values that each DV and covariate
 #'   should use. Default=NULL.
 #' @param missVal Numeric. Missing value indicator.
+#' @param strFFEMData Deprecated; use `dataFile`.
+#' @param strFREMDataFileName Deprecated; use `fremDataFile`.
 #' @param keepDoseOnlySubjects Logical. If \code{FALSE} (default), subjects without any valid PK observations (e.g.,
 #' only dosing records) are completely excluded from the generated dataset. If \code{TRUE},
 #' these subjects are retained and their covariates are included as observations.
@@ -52,21 +54,21 @@
 #' @export
 #'
 #' @examples
-#' strFFEMData <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",
+#' dataFile <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",
 #'   package = "PMXFrem"
 #' )
 #' tmp10 <- createFREMData(
-#'   strFFEMData          = strFFEMData,
-#'   cstrKeepCols         = c("ID", "TIME", "AMT", "EVID", "RATE"),
-#'   bRecodeDichotomous   = TRUE,
-#'   cstrCatCovs          = c("SEX", "SMOK", "NCIL"),
-#'   cstrContCovs         = c("WT", "BMI", "AGE")
+#'   dataFile = dataFile,
+#'   cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE"),
+#'   bRecodeDichotomous = TRUE,
+#'   cstrCatCovs = c("SEX", "SMOK", "NCIL"),
+#'   cstrContCovs = c("WT", "BMI", "AGE")
 #' )
 #'
 #' @family Data Assembly
 #' @concept data_assembly
-createFREMData <- function(strFFEMData,
-                           strFREMDataFileName = NULL,
+createFREMData <- function(dataFile,
+                           fremDataFile = NULL,
                            quiet = TRUE,
                            strID = "ID",
                            cstrKeepCols = c("ID", "TIME", "AMT", "II", "EVID", "SS", "RATE"),
@@ -81,7 +83,17 @@ createFREMData <- function(strFFEMData,
                            cSortCols = c("ORIG_ROW_IDX", "FREMTYPE"),
                            cSortDirection = c(1, 1),
                            cFremtypes = NULL,
-                           keepDoseOnlySubjects = FALSE) {
+                           keepDoseOnlySubjects = FALSE,
+                           strFFEMData = NULL,
+                           strFREMDataFileName = NULL) {
+  if (!is.null(strFFEMData)) {
+    .fremDeprecatedArg("createFREMData", "strFFEMData", "dataFile")
+    if (missing(dataFile)) dataFile <- strFFEMData
+  }
+  if (!is.null(strFREMDataFileName)) {
+    .fremDeprecatedArg("createFREMData", "strFREMDataFileName", "fremDataFile")
+    if (missing(fremDataFile)) fremDataFile <- strFREMDataFileName
+  }
   CovFremType <- 100
   FremtypeIncrement <- 100
   iNewFremtypeDV <- 0
@@ -90,29 +102,29 @@ createFREMData <- function(strFFEMData,
     if (!quiet) print(str)
   }
 
-  dfFFEM <- NULL
-  if (is.data.frame(strFFEMData)) {
-    dfFFEM <- strFFEMData
-  } else if (is.character(strFFEMData) && file.exists(strFFEMData)) {
-    dfFFEM <- data.table::fread(strFFEMData, h = TRUE, data.table = FALSE, check.names = TRUE, showProgress = !quiet)
+  dfData <- NULL
+  if (is.data.frame(dataFile)) {
+    dfData <- dataFile
+  } else if (is.character(dataFile) && file.exists(dataFile)) {
+    dfData <- data.table::fread(dataFile, h = TRUE, data.table = FALSE, check.names = TRUE, showProgress = !quiet)
   } else {
     # Exact string match for the unit test expectation!
-    stop("Cannot find FFEM dataset")
+    stop("Cannot find the data set")
   }
 
-  if (!keepDoseOnlySubjects && "EVID" %in% names(dfFFEM) && strID %in% names(dfFFEM)) {
-    valid_ids <- unique(dfFFEM[[strID]][dfFFEM$EVID == 0])
-    dfFFEM <- dfFFEM[dfFFEM[[strID]] %in% valid_ids, , drop = FALSE]
+  if (!keepDoseOnlySubjects && "EVID" %in% names(dfData) && strID %in% names(dfData)) {
+    valid_ids <- unique(dfData[[strID]][dfData$EVID == 0])
+    dfData <- dfData[dfData[[strID]] %in% valid_ids, , drop = FALSE]
   }
 
-  printq(paste0("Read the FFEM dataset, consisting of ", ncol(dfFFEM), " columns and ", nrow(dfFFEM), " rows"), quiet = quiet)
-  dfFFEM$ORIG_ROW_IDX <- seq_len(nrow(dfFFEM))
+  printq(paste0("Read the data set, consisting of ", ncol(dfData), " columns and ", nrow(dfData), " rows"), quiet = quiet)
+  dfData$ORIG_ROW_IDX <- seq_len(nrow(dfData))
 
   # --- 1. VALIDATION ---
-  data_column_names <- names(dfFFEM)
+  data_column_names <- names(dfData)
   # Check if keep_cols exist, soft-drop them if they are missing (they may be generated in Phase 2)
   if (!is.null(cstrKeepCols)) {
-    missing_cols <- cstrKeepCols[!cstrKeepCols %in% names(dfFFEM)]
+    missing_cols <- cstrKeepCols[!cstrKeepCols %in% names(dfData)]
     if (length(missing_cols) > 0) {
       warning(sprintf(
         "The following keep_cols are missing from the input data and will be ignored during this phase (they may be dynamically generated later): %s",
@@ -120,7 +132,7 @@ createFREMData <- function(strFFEMData,
       ), call. = FALSE)
 
       # Keep only the columns that actually exist right now
-      cstrKeepCols <- cstrKeepCols[cstrKeepCols %in% names(dfFFEM)]
+      cstrKeepCols <- cstrKeepCols[cstrKeepCols %in% names(dfData)]
     }
   }
 
@@ -128,19 +140,19 @@ createFREMData <- function(strFFEMData,
     stop("A covariate cannot be listed in both cstrCatCovs and logtCovs. Log-transforming categorical variables is invalid.")
   }
 
-  valid_ContCovs <- cstrContCovs[cstrContCovs %in% names(dfFFEM)]
-  valid_CatCovs <- cstrCatCovs[cstrCatCovs %in% names(dfFFEM)]
+  valid_ContCovs <- cstrContCovs[cstrContCovs %in% names(dfData)]
+  valid_CatCovs <- cstrCatCovs[cstrCatCovs %in% names(dfData)]
 
   for (cov in setdiff(cstrContCovs, valid_ContCovs)) {
-    printq(paste0("Can't add covariate ", cov, ", not found in FFEM dataset. Skipping this covariate."), quiet = quiet)
+    printq(paste0("Can't add covariate ", cov, ", not found in the data set. Skipping this covariate."), quiet = quiet)
   }
   for (cov in setdiff(cstrCatCovs, valid_CatCovs)) {
-    printq(paste0("Can't add covariate ", cov, ", not found in FFEM dataset. Skipping this covariate."), quiet = quiet)
+    printq(paste0("Can't add covariate ", cov, ", not found in the data set. Skipping this covariate."), quiet = quiet)
   }
 
   # --- 2. TIME-VARYING WARNING ---
   for (cov in c(valid_ContCovs, valid_CatCovs)) {
-    time_varying <- dfFFEM[dfFFEM[[cov]] != missVal, ]
+    time_varying <- dfData[dfData[[cov]] != missVal, ]
     if (nrow(time_varying) > 0) {
       n_distinct_per_id <- tapply(time_varying[[cov]], time_varying[[strID]], function(x) length(unique(x)))
       violators <- sum(n_distinct_per_id > 1)
@@ -157,7 +169,7 @@ createFREMData <- function(strFFEMData,
     poly_covs <- c()
 
     for (cov in valid_CatCovs) {
-      valid_vals <- unique(dfFFEM[[cov]])
+      valid_vals <- unique(dfData[[cov]])
       valid_vals <- valid_vals[valid_vals != missVal & !is.na(valid_vals)]
 
       if (length(valid_vals) == 0) {
@@ -172,7 +184,7 @@ createFREMData <- function(strFFEMData,
         if (bRecodeDichotomous) {
           covVal <- sort(valid_vals)[2]
           new_name <- paste0(cov, "_", covVal)
-          dfFFEM[[new_name]] <- ifelse(dfFFEM[[cov]] == missVal, missVal, ifelse(dfFFEM[[cov]] == covVal, 1, 0))
+          dfData[[new_name]] <- ifelse(dfData[[cov]] == missVal, missVal, ifelse(dfData[[cov]] == covVal, 1, 0))
           final_CatCovs <- c(final_CatCovs, new_name)
         } else {
           # Strict validation only fires if the kill-switch is NOT overridden
@@ -187,8 +199,8 @@ createFREMData <- function(strFFEMData,
     }
 
     if (length(poly_covs) > 0) {
-      dfFFEM <- addFREMcovariates(
-        dfFFEM = dfFFEM,
+      dfData <- addFREMcovariates(
+        data = dfData,
         covariates = poly_covs,
         missVal = missVal,
         includeReference = FALSE,
@@ -217,7 +229,7 @@ createFREMData <- function(strFFEMData,
   }
 
   cols_to_return <- unique(c(cstrKeepCols, "FREMTYPE", cstrDV))
-  cstrSetToZero <- cstrSetToZero[cstrSetToZero %in% names(dfFFEM)]
+  cstrSetToZero <- cstrSetToZero[cstrSetToZero %in% names(dfData)]
   dfAddList <- list()
 
   # --- 5. STACKING DVs ---
@@ -225,18 +237,18 @@ createFREMData <- function(strFFEMData,
     strDV <- cstrDV[i]
 
     # Evaluate which rows to keep
-    if ("EVID" %in% names(dfFFEM)) {
+    if ("EVID" %in% names(dfData)) {
       # Keep if DV is quantifiable (!= missVal), OR if it's a dosing/reset record (EVID != 0)
-      keep_rows <- dfFFEM[[strDV]] != missVal | dfFFEM$EVID != 0
+      keep_rows <- dfData[[strDV]] != missVal | dfData$EVID != 0
     } else {
-      keep_rows <- dfFFEM[[strDV]] != missVal
+      keep_rows <- dfData[[strDV]] != missVal
     }
 
     # Catch Scenario 1: NAs evaluate to NA in logic checks. Convert them to FALSE so they drop safely
     # (Note: If EVID != 0, keep_rows evaluates to TRUE even if DV is NA, which is exactly what we want!)
     keep_rows[is.na(keep_rows)] <- FALSE
 
-    dfDVData <- dfFFEM[keep_rows, ]
+    dfDVData <- dfData[keep_rows, ]
 
     if (nrow(dfDVData) > 0) {
       dfDVData$DV <- dfDVData[[strDV]]
@@ -251,7 +263,7 @@ createFREMData <- function(strFFEMData,
   if (length(valid_ContCovs) > 0) {
     for (i in seq_along(valid_ContCovs)) {
       cov_name <- valid_ContCovs[i]
-      dfDVData <- dfFFEM[dfFFEM[[cov_name]] != missVal, ]
+      dfDVData <- dfData[dfData[[cov_name]] != missVal, ]
       dfDVData <- dfDVData[!duplicated(dfDVData[[strID]]), ]
 
       if (nrow(dfDVData) > 0) {
@@ -277,7 +289,7 @@ createFREMData <- function(strFFEMData,
   if (numCatLevels > 0) {
     for (i in seq_along(final_CatCovs)) {
       cov_name <- final_CatCovs[i]
-      dfDVData <- dfFFEM[dfFFEM[[cov_name]] != missVal, ]
+      dfDVData <- dfData[dfData[[cov_name]] != missVal, ]
       dfDVData <- dfDVData[!duplicated(dfDVData[[strID]]), ]
 
       if (nrow(dfDVData) > 0) {
@@ -328,8 +340,8 @@ createFREMData <- function(strFFEMData,
 
   dfFREM <- dfFREM[, cols_to_return, drop = FALSE]
 
-  if (!is.null(strFREMDataFileName)) {
-    write.csv(dfFREM, file = strFREMDataFileName, row.names = FALSE, quote = FALSE)
+  if (!is.null(fremDataFile)) {
+    write.csv(dfFREM, file = fremDataFile, row.names = FALSE, quote = FALSE)
   }
 
   return(as.data.frame(dfFREM))

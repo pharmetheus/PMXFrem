@@ -1,5 +1,5 @@
 test_that("createFREMdata works", {
-  strFFEMData <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+  dataFile <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 
   # Suppress the warning about default II/SS columns missing, we just want the error
   suppressWarnings(expect_error(createFREMData()))
@@ -7,7 +7,7 @@ test_that("createFREMdata works", {
   # Check the cFremtype argument
   suppressWarnings(expect_error(
     createFREMData(
-      strFFEMData = strFFEMData,
+      dataFile = dataFile,
       quiet = TRUE,
       cstrKeepCols = "ID", # <-- Add this so it doesn't look for the default II/SS
       cstrCatCovs = c("NCIL", "SEX"),
@@ -17,14 +17,14 @@ test_that("createFREMdata works", {
   ))
 
   ## Check that it works with the minimal number of arguments
-  tmp1 <- createFREMData(strFFEMData = strFFEMData, quiet = TRUE, cstrKeepCols = "ID")
+  tmp1 <- createFREMData(dataFile = dataFile, quiet = TRUE, cstrKeepCols = "ID")
   expect_snapshot_value(stabilize(as.data.frame(head(tmp1))), style = "serialize", cran = TRUE)
 
   ## Check that it works with continuous covariates
 
   # One continuous covariate
   tmp2_a <- createFREMData(
-    strFFEMData = strFFEMData,
+    dataFile = dataFile,
     quiet = TRUE,
     cstrContCovs = "WT", cstrKeepCols = "ID"
   )
@@ -32,7 +32,7 @@ test_that("createFREMdata works", {
 
   # One continuous covariate with other arguments
   tmp2_b <- createFREMData(
-    strFFEMData = strFFEMData,
+    dataFile = dataFile,
     quiet = TRUE, # Changed to TRUE
     cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE"),
     cSortCols = c("ID", "TIME", "FREMTYPE"),
@@ -42,7 +42,7 @@ test_that("createFREMdata works", {
 
   # Two continuous covariates
   tmp3 <- createFREMData(
-    strFFEMData = strFFEMData,
+    dataFile = dataFile,
     quiet = TRUE,
     cstrContCovs = c("WT", "BMI"), cstrKeepCols = "ID"
   )
@@ -50,7 +50,7 @@ test_that("createFREMdata works", {
 
   # When one continuous covariate does not exist
   tmp4 <- createFREMData(
-    strFFEMData = strFFEMData,
+    dataFile = dataFile,
     quiet = TRUE,
     cstrContCovs = c("WT", "BMI", "TEST"), cstrKeepCols = "ID"
   )
@@ -60,7 +60,7 @@ test_that("createFREMdata works", {
 
   # One categorical covariate
   tmp5 <- createFREMData(
-    strFFEMData = strFFEMData,
+    dataFile = dataFile,
     quiet = TRUE,
     bRecodeDichotomous = TRUE, # <-- Added to override strict validation
     cstrCatCovs = "SEX", cstrKeepCols = "ID"
@@ -69,7 +69,7 @@ test_that("createFREMdata works", {
 
   # Two categorical covariates
   tmp6 <- createFREMData(
-    strFFEMData = strFFEMData,
+    dataFile = dataFile,
     quiet = TRUE,
     bRecodeDichotomous = TRUE, # <-- Added
     cstrCatCovs = c("SEX", "SMOK"), cstrKeepCols = "ID"
@@ -78,7 +78,7 @@ test_that("createFREMdata works", {
 
   # When one categorical covariate does not exist
   tmp7 <- createFREMData(
-    strFFEMData = strFFEMData,
+    dataFile = dataFile,
     quiet = TRUE,
     bRecodeDichotomous = TRUE, # <-- Added
     cstrCatCovs = c("SEX", "SMOK", "TEST"), cstrKeepCols = "ID"
@@ -87,7 +87,7 @@ test_that("createFREMdata works", {
 
   # Polycothomous categorical covariate
   tmp8 <- createFREMData(
-    strFFEMData = strFFEMData,
+    dataFile = dataFile,
     quiet = TRUE,
     cstrCatCovs = c("NCIL"), cstrKeepCols = "ID"
   )
@@ -95,7 +95,7 @@ test_that("createFREMdata works", {
 
   ## Check a combination of covariate types
   tmp10 <- createFREMData(
-    strFFEMData = strFFEMData,
+    dataFile = dataFile,
     quiet = TRUE,
     bRecodeDichotomous = TRUE, # <-- Added
     cstrCatCovs = c("SEX", "SMOK", "NCIL"),
@@ -105,7 +105,7 @@ test_that("createFREMdata works", {
 
   ## Check the multiple DV feature
   tmp9 <- createFREMData(
-    strFFEMData = strFFEMData,
+    dataFile = dataFile,
     quiet = TRUE,
     cstrDV = c("DV", "LNDV"), cstrKeepCols = "ID"
   )
@@ -113,7 +113,7 @@ test_that("createFREMdata works", {
 
   ## Check the multiple DV feature with many covariates
   tmp11 <- createFREMData(
-    strFFEMData = strFFEMData,
+    dataFile = dataFile,
     quiet = TRUE,
     bRecodeDichotomous = TRUE, # <-- Added
     cstrDV = c("DV", "LNDV"),
@@ -129,44 +129,44 @@ test_that("createFREMdata works", {
 
 test_that("createFREMData handles edge cases and errors", {
   missVal <- -99
-  strFFEMData <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+  dataFile <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 
   # Test error when input file doesn't exist (L92)
   expect_error(
-    createFREMData(strFFEMData = "non_existent_file.csv"),
-    "Cannot find FFEM dataset"
+    createFREMData(dataFile = "non_existent_file.csv"),
+    "Cannot find the data set"
   )
 
   # Test error for mismatched cFremtypes length (L137)
   expect_error(
-    createFREMData(strFFEMData = strFFEMData, cstrContCovs = "WT", cFremtypes = c(0), cstrKeepCols = "ID"), # Asks for 1 DV and 1 Cov, but provides only 1 fremtype
+    createFREMData(dataFile = dataFile, cstrContCovs = "WT", cFremtypes = c(0), cstrKeepCols = "ID"), # Asks for 1 DV and 1 Cov, but provides only 1 fremtype
     "The number of fremtypes are not the same as the number of frem variables"
   )
 
   # Test file writing functionality (L252)
   tmp_file <- tempfile(fileext = ".csv")
-  createFREMData(strFFEMData = strFFEMData, strFREMDataFileName = tmp_file, cstrKeepCols = "ID")
+  createFREMData(dataFile = dataFile, fremDataFile = tmp_file, cstrKeepCols = "ID")
   expect_true(file.exists(tmp_file))
   unlink(tmp_file) # Clean up
 
   # Test verbose output for missing covariates (L171 & L197)
   expect_output(
-    createFREMData(strFFEMData = strFFEMData, cstrContCovs = "FAKE_CONT", quiet = FALSE, cstrKeepCols = "ID"),
-    "not found in FFEM dataset"
+    createFREMData(dataFile = dataFile, cstrContCovs = "FAKE_CONT", quiet = FALSE, cstrKeepCols = "ID"),
+    "not found in the data set"
   )
   expect_output(
-    createFREMData(strFFEMData = strFFEMData, cstrCatCovs = "FAKE_CAT", quiet = FALSE, cstrKeepCols = "ID"),
-    "not found in FFEM dataset"
+    createFREMData(dataFile = dataFile, cstrCatCovs = "FAKE_CAT", quiet = FALSE, cstrKeepCols = "ID"),
+    "not found in the data set"
   )
 
   # Test dichotomous categorical covariate WITHOUT recoding
   # This triggers the 'else' block for dichotomous covariates
   # We MUST use a native 0/1 covariate here to pass strict validation
-  df_native <- data.table::fread(strFFEMData, data.table = FALSE)
+  df_native <- data.table::fread(dataFile, data.table = FALSE)
   df_native$SEX_01 <- ifelse(df_native$SEX == 1, 0, 1)
 
   dichot_no_recode <- createFREMData(
-    strFFEMData = df_native,
+    dataFile = df_native,
     cstrCatCovs = "SEX_01",
     bRecodeDichotomous = FALSE,
     cstrKeepCols = "ID"
@@ -175,7 +175,7 @@ test_that("createFREMData handles edge cases and errors", {
 
   # Test providing only categorical covariates (no continuous)
   cat_only <- createFREMData(
-    strFFEMData = strFFEMData,
+    dataFile = dataFile,
     cstrCatCovs = "SEX",
     cstrContCovs = NULL,
     bRecodeDichotomous = TRUE, # <-- Added because SEX is 1/2 in the raw file
@@ -185,7 +185,7 @@ test_that("createFREMData handles edge cases and errors", {
 
 
   # Test scenario where covariates exist but have only missing (-99) values (L184 & L231)
-  df_orig <- data.table::fread(strFFEMData, data.table = FALSE)
+  df_orig <- data.table::fread(dataFile, data.table = FALSE)
   df_mod <- df_orig
   # Make all WT and SEX values missing
   df_mod$WT <- missVal
@@ -196,7 +196,7 @@ test_that("createFREMData handles edge cases and errors", {
   # Test ONLY the missing continuous covariate case
   expect_output(
     createFREMData(
-      strFFEMData = tmp_csv_missing,
+      dataFile = tmp_csv_missing,
       cstrContCovs = "WT",
       quiet = FALSE,
       cstrKeepCols = "ID"
@@ -207,7 +207,7 @@ test_that("createFREMData handles edge cases and errors", {
   # Test ONLY the missing categorical covariate case
   expect_output(
     createFREMData(
-      strFFEMData = tmp_csv_missing,
+      dataFile = tmp_csv_missing,
       cstrCatCovs = "SEX",
       quiet = FALSE,
       cstrKeepCols = "ID"
@@ -242,7 +242,7 @@ test_that("createFREMData covers all edge cases from coverage report", {
   # 2. Test for a DV column with only missing values
   expect_warning(
     createFREMData(
-      strFFEMData = tmp_test_csv,
+      dataFile = tmp_test_csv,
       cstrDV = "DV_ALL_MISSING",
       cstrKeepCols = "ID" # The temp data only has ID and the DV
     ),
@@ -250,7 +250,7 @@ test_that("createFREMData covers all edge cases from coverage report", {
   )
 
   # 3. Test recoding of a polycothomous covariate
-  result_poly <- createFREMData(strFFEMData = tmp_test_csv, cstrCatCovs = "RACE", cstrKeepCols = "ID")
+  result_poly <- createFREMData(dataFile = tmp_test_csv, cstrCatCovs = "RACE", cstrKeepCols = "ID")
 
   # ROBUST TEST: Check that the DV column contains the recoded 0/1 values
   # The function should create one row per ID for each new dummy variable
@@ -264,17 +264,17 @@ test_that("createFREMData covers all edge cases from coverage report", {
 
   # 4. Test covariates with only missing values
   expect_output(
-    createFREMData(strFFEMData = tmp_test_csv, cstrContCovs = "WT_ALL_MISSING", quiet = FALSE, cstrKeepCols = "ID"),
+    createFREMData(dataFile = tmp_test_csv, cstrContCovs = "WT_ALL_MISSING", quiet = FALSE, cstrKeepCols = "ID"),
     "No non-missing covariate values for WT_ALL_MISSING"
   )
   expect_output(
-    createFREMData(strFFEMData = tmp_test_csv, cstrCatCovs = "RACE_ALL_MISSING", quiet = FALSE, cstrKeepCols = "ID"),
+    createFREMData(dataFile = tmp_test_csv, cstrCatCovs = "RACE_ALL_MISSING", quiet = FALSE, cstrKeepCols = "ID"),
     "No non-missing covariate values for RACE_ALL_MISSING"
   )
 
   # # 5. Test the 'missing columns' logic
   # result_missing_col <- createFREMData(
-  #   strFFEMData = tmp_test_csv,
+  #   dataFile = tmp_test_csv,
   #   cstrKeepCols = c("ID", "TIME", "DV", "FREMTYPE", "IMAGINARY_COLUMN")
   # )
   # expect_true("IMAGINARY_COLUMN" %in% names(result_missing_col))
@@ -292,7 +292,7 @@ test_that("createFREMData warns and soft-drops missing keep_cols (allows Phase 2
   # Action & Assertion: Expect a warning, not an error
   expect_warning(
     result <- createFREMData(
-      strFFEMData = ffem_data_path,
+      dataFile = ffem_data_path,
       cstrKeepCols = invalid_keep_cols,
       quiet = TRUE
     ),
@@ -321,7 +321,7 @@ test_that("createFREMData retains original row order for tied times (Fix C)", {
   write.csv(test_df, tmp_csv, row.names = FALSE)
 
   result <- createFREMData(
-    strFFEMData = tmp_csv,
+    dataFile = tmp_csv,
     cstrContCovs = "WT",
     cstrKeepCols = c("ID", "TIME", "EVID", "AMT"),
     quiet = TRUE
@@ -349,7 +349,7 @@ test_that("createFREMData fails fast on 1/2 covariates when bRecodeDichotomous i
 
   expect_error(
     createFREMData(
-      strFFEMData = test_data,
+      dataFile = test_data,
       cstrCatCovs = "SEX",
       bRecodeDichotomous = FALSE,
       cstrKeepCols = "ID"
@@ -370,7 +370,7 @@ test_that("allowNon01 = TRUE permits 1/2 covariates to pass through untouched", 
 
   # Action: Override the kill-switch without triggering recoding
   result <- createFREMData(
-    strFFEMData = tmp_csv,
+    dataFile = tmp_csv,
     cstrCatCovs = "SEX",
     cstrKeepCols = "ID",
     bRecodeDichotomous = FALSE,
@@ -395,7 +395,7 @@ test_that("createFREMData retains dosing records (EVID != 0) when DV is '.' or N
   # Row 3: Valid Observation
   # Row 4: Invalid Observation (DV = missVal)
   # Row 5: Invalid Observation (DV = NA)
-  dfFFEM <- data.frame(
+  dfData <- data.frame(
     ID = c(1, 1, 1, 1, 1),
     TIME = c(0, 0, 12, 24, 36),
     AMT = c(100, 50, 0, 0, 0),
@@ -405,7 +405,7 @@ test_that("createFREMData retains dosing records (EVID != 0) when DV is '.' or N
 
   # 2. Action
   result_df <- createFREMData(
-    strFFEMData = dfFFEM,
+    dataFile = dfData,
     cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "DV"),
     cstrSetToZero = "AMT",
     cstrDV = "DV",
@@ -432,7 +432,7 @@ test_that("createFREMData correctly handles keepDoseOnlySubjects toggle", {
   # 1. Setup Mock Data
   # ID 1: Standard subject (has a dose and an EVID=0 observation)
   # ID 2: Dose-only subject (has a dose, but NO EVID=0 observation)
-  dfFFEM <- data.frame(
+  dfData <- data.frame(
     ID = c(1, 1, 2),
     TIME = c(0, 12, 0),
     AMT = c(100, 0, 100),
@@ -442,7 +442,7 @@ test_that("createFREMData correctly handles keepDoseOnlySubjects toggle", {
 
   # --- Action 1: Default Legacy Behavior (FALSE) ---
   res_false <- createFREMData(
-    strFFEMData = dfFFEM,
+    dataFile = dfData,
     cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "DV"),
     cstrSetToZero = "AMT",
     cstrDV = "DV",
@@ -461,7 +461,7 @@ test_that("createFREMData correctly handles keepDoseOnlySubjects toggle", {
 
   # --- Action 2: New Retention Behavior (TRUE) ---
   res_true <- createFREMData(
-    strFFEMData = dfFFEM,
+    dataFile = dfData,
     cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "DV"),
     cstrSetToZero = "AMT",
     cstrDV = "DV",

@@ -8,7 +8,7 @@ createFREMmodel(
   runno = NULL,
   modName = NULL,
   modDevDir = NULL,
-  ffemDataFile,
+  dataFile,
   covariates,
   numNonFREMThetas = NULL,
   outputDir = NULL,
@@ -27,7 +27,8 @@ createFREMmodel(
   bRecodeDichotomous = FALSE,
   allowNon01 = FALSE,
   keepDoseOnlySubjects = FALSE,
-  ...
+  ...,
+  ffemDataFile = NULL
 )
 }
 \arguments{
@@ -37,7 +38,7 @@ createFREMmodel(
 
 \item{modDevDir}{Standard PMX model development directory.}
 
-\item{ffemDataFile}{Character. Path to the Full Fixed Effects Model (FFEM) dataset.}
+\item{dataFile}{Character. Path to the data set of the base model (one row per record, covariates as columns).}
 
 \item{covariates}{Character vector. The full list of covariates to include in the FREM model.
 For a base model \verb{$INPUT} item \code{label=synonym} either name may be given.
@@ -96,6 +97,8 @@ only dosing records) are completely excluded from the generated dataset. If \cod
 these subjects are retained and their covariates are included as observations.}
 
 \item{...}{Additional arguments strictly passed to the Phase 1 bootstrapper (\code{createFREMmodel_phase1}).}
+
+\item{ffemDataFile}{Deprecated; use \code{dataFile}.}
 }
 \value{
 An invisible list containing the file paths to the generated assets:
@@ -116,7 +119,7 @@ cleans up all intermediate files.
 # Setup paths using package extdata
 modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
 modName <- "run30"
-ffemDataFile <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+dataFile <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 
 
 td <- tempfile(pattern = "frem_example_")
@@ -131,7 +134,7 @@ keep_cols <- c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV")
 generated_files <- createFREMmodel(
   modName = modName,
   modDevDir = modDevDir,
-  ffemDataFile = ffemDataFile,
+  dataFile = dataFile,
   covariates = covariates,
   logtCovs = "WT",
   catCovs = catCovs,

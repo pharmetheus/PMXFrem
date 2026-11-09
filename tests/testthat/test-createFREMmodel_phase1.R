@@ -46,18 +46,18 @@ test_that("createFREMmodel_phase1 processes a continuous covariate", {
   files <- setup_dummy_frem_files(td)
 
   result <- createFREMmodel_phase1(
-    modName       = files$modName,
-    modDevDir     = files$modDevDir,
-    ffemDataFile  = files$csv,
-    covariates    = c("WT"),
-    outputDir     = out_dir,
-    cstrKeepCols  = c("ID", "TIME", "AMT", "DV"),
-    missVal       = missVal,
-    fixTheta      = TRUE,
-    roundMeanTo   = 1,
-    catCovs       = NULL,
+    modName = files$modName,
+    modDevDir = files$modDevDir,
+    dataFile = files$csv,
+    covariates = c("WT"),
+    outputDir = out_dir,
+    cstrKeepCols = c("ID", "TIME", "AMT", "DV"),
+    missVal = missVal,
+    fixTheta = TRUE,
+    roundMeanTo = 1,
+    catCovs = NULL,
     useMuModeling = FALSE,
-    quiet         = TRUE
+    quiet = TRUE
   )
 
   expect_true(file.exists(result$minimalModelFile))
@@ -81,16 +81,16 @@ test_that("createFREMmodel_phase1 handles polychotomous Y-1 expansion", {
   files <- setup_dummy_frem_files(td)
 
   result <- createFREMmodel_phase1(
-    modName       = files$modName,
-    modDevDir     = files$modDevDir,
-    ffemDataFile  = files$csv,
-    covariates    = c("RACEL"),
-    outputDir     = out_dir,
-    cstrKeepCols  = c("ID", "TIME", "AMT", "DV"),
-    catCovs       = c("RACEL"),
-    missVal       = missVal,
-    roundMeanTo   = 3,
-    quiet         = TRUE
+    modName = files$modName,
+    modDevDir = files$modDevDir,
+    dataFile = files$csv,
+    covariates = c("RACEL"),
+    outputDir = out_dir,
+    cstrKeepCols = c("ID", "TIME", "AMT", "DV"),
+    catCovs = c("RACEL"),
+    missVal = missVal,
+    roundMeanTo = 3,
+    quiet = TRUE
   )
 
   mod_lines <- readLines(result$minimalModelFile)
@@ -125,15 +125,15 @@ test_that("createFREMmodel_phase1 handles a binary (0/1) categorical covariate",
   ), files$csv, row.names = FALSE, quote = FALSE)
 
   result <- createFREMmodel_phase1(
-    modName      = files$modName,
-    modDevDir    = files$modDevDir,
-    ffemDataFile = files$csv,
-    covariates   = c("SEX"),
-    outputDir    = file.path(td, "out_bin"),
+    modName = files$modName,
+    modDevDir = files$modDevDir,
+    dataFile = files$csv,
+    covariates = c("SEX"),
+    outputDir = file.path(td, "out_bin"),
     cstrKeepCols = c("ID", "TIME", "AMT", "DV"),
-    catCovs      = c("SEX"),
-    roundMeanTo  = 3,
-    quiet        = TRUE
+    catCovs = c("SEX"),
+    roundMeanTo = 3,
+    quiet = TRUE
   )
 
   mod_lines <- readLines(result$minimalModelFile)
@@ -154,13 +154,13 @@ test_that("createFREMmodel_phase1 talks through its steps when quiet = FALSE", {
   # unrelated noise here.
   expect_message(
     suppressWarnings(createFREMmodel_phase1(
-      modName      = files$modName,
-      modDevDir    = files$modDevDir,
-      ffemDataFile = files$csv,
-      covariates   = c("WT"),
+      modName = files$modName,
+      modDevDir = files$modDevDir,
+      dataFile = files$csv,
+      covariates = c("WT"),
       cstrKeepCols = c("ID", "TIME", "AMT", "DV"),
-      roundMeanTo  = 1,
-      quiet        = FALSE
+      roundMeanTo = 1,
+      quiet = FALSE
     )),
     "Phase 1 complete"
   )
@@ -172,15 +172,15 @@ test_that("createFREMmodel_phase1 safely applies log transformations", {
   files <- setup_dummy_frem_files(td)
 
   result <- createFREMmodel_phase1(
-    modName       = files$modName,
-    modDevDir     = files$modDevDir,
-    ffemDataFile  = files$csv,
-    covariates    = c("WT"),
-    outputDir     = out_dir,
-    cstrKeepCols  = c("ID", "TIME", "AMT", "DV"),
-    logtCovs      = c("WT"),
-    roundMeanTo   = 3,
-    quiet         = TRUE
+    modName = files$modName,
+    modDevDir = files$modDevDir,
+    dataFile = files$csv,
+    covariates = c("WT"),
+    outputDir = out_dir,
+    cstrKeepCols = c("ID", "TIME", "AMT", "DV"),
+    logtCovs = c("WT"),
+    roundMeanTo = 3,
+    quiet = TRUE
   )
 
   mod_lines <- readLines(result$minimalModelFile)

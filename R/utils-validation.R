@@ -86,3 +86,15 @@ validateFremData <- function(originalData, fremData, cstrDV = "DV", strID = "ID"
   if (!quiet) message("Data integrity validation passed: The FREM dataset perfectly mirrors the base dataset.")
   return(TRUE)
 }
+
+#' Warn that an argument name is deprecated
+#'
+#' @param fun Name of the exported function.
+#' @param old The deprecated argument name.
+#' @param new The argument name to use instead.
+#'
+#' @keywords internal
+#' @noRd
+.fremDeprecatedArg <- function(fun, old, new) {
+  warning("`", fun, "(", old, " =)` is deprecated; use `", new, " =` instead.", call. = FALSE)
+}
