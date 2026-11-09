@@ -19,7 +19,7 @@ createFREMmodel(
   IDvar = "ID",
   missVal = -99,
   fixTheta = TRUE,
-  roundMeanTo = 2,
+  roundMeanTo = NULL,
   useMuModeling = TRUE,
   numSkipOm = 0,
   cstrKeepCols = c("ID", "TIME", "AMT", "II", "EVID", "SS", "RATE", "DV"),
@@ -63,7 +63,10 @@ THETA column count). Supply it explicitly if the \code{.ext} is unavailable.}
 
 \item{fixTheta}{Logical. Should the initial THETA estimates for the covariates be fixed? Defaults to \code{TRUE}.}
 
-\item{roundMeanTo}{Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to \code{2}.}
+\item{roundMeanTo}{The rounding of the covariate means, the initial values of
+their THETAs. \code{NULL} (the default) keeps 3 significant digits and never
+fewer than 2 decimals, so 0.004321 is written as 0.00432 and 86.857 as
+86.86. A number is the number of decimals.}
 
 \item{useMuModeling}{Logical. Should MU-referencing be utilized when generating the NONMEM $PK and $ERROR blocks? Defaults to \code{TRUE}.}
 

@@ -18,7 +18,7 @@ createFREMmodel_phase1(
   IDvar = "ID",
   missVal = -99,
   fixTheta = TRUE,
-  roundMeanTo = 1,
+  roundMeanTo = NULL,
   catCovs = NULL,
   logtCovs = NULL,
   useMuModeling = TRUE,
@@ -57,7 +57,10 @@ createFREMmodel_phase1(
 
 \item{fixTheta}{Logical. Should the initial THETA estimates for the covariates be fixed? Defaults to \code{TRUE}.}
 
-\item{roundMeanTo}{Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to \code{1}.}
+\item{roundMeanTo}{The rounding of the covariate means, the initial values of
+their THETAs. \code{NULL} (the default) keeps 3 significant digits and never
+fewer than 2 decimals, so 0.004321 is written as 0.00432 and 86.857 as
+86.86. A number is the number of decimals.}
 
 \item{catCovs}{Character vector. Names of the covariates that should be treated as categorical.}
 

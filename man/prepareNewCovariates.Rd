@@ -16,7 +16,7 @@ prepareNewCovariates(
   overrideExistingCheck,
   bRecodeDichotomous = FALSE,
   allowNon01 = FALSE,
-  roundMeanTo = 1,
+  roundMeanTo = NULL,
   missVal = -99,
   fixTheta = TRUE,
   quiet = FALSE
@@ -56,7 +56,10 @@ dichotomous covariates with non-standard coding (e.g., 1/2) to pass through
 untouched without being recoded. This provides 100\% compatibility with PsN
 legacy behavior. Defaults to FALSE.}
 
-\item{roundMeanTo}{Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to 1.}
+\item{roundMeanTo}{The rounding of the covariate means, the initial values of
+their THETAs. \code{NULL} (the default) keeps 3 significant digits and never
+fewer than 2 decimals, so 0.004321 is written as 0.00432 and 86.857 as
+86.86. A number is the number of decimals.}
 
 \item{missVal}{Numeric. Missing value indicator.}
 
