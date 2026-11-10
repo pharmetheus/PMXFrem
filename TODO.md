@@ -3,16 +3,43 @@
 Items parked for future consideration. Not a substitute for GitHub issues; move an
 item there when it becomes active work.
 
-## Release plan: 2.3.1
+## Release plan: 2.4.0
 
-Agreed 2026-10-28 (Niclas): fix T48 now, before PMXFrem 2.3 goes live, so that
-users never meet the warnings. Branch `epic/2.3.1` from `main`, `DESCRIPTION`
-`2.3.0.9000`; the fix PR goes into it. Then epic -> `main` PR with CI green,
-and the tag `v2.3.1`, each on Niclas's go-ahead. The version number is an
-assumption (a patch release with fixes only); it is Niclas's call.
+Agreed 2026-11-09 (Niclas): address the open backlog rows for PMXFrem before
+the next release - PRRS-328, 321, 327, 322, 304 and 293. Branch `epic/2.4.0`
+from `main`, `DESCRIPTION` `2.3.1.9000`, one PR per item into it:
 
-Don't push a tag or branch while "Sync Public repo" is running: its mirror
-push back to this repository deletes refs pushed after its clone (issue #97).
+1. `createFFEMmodel()` keeps THETA bounds and FIX (PRRS-328).
+2. `calcFFEM()` help: subsets of covariates, not missing values; the
+   equations are the shift added to the ETA (PRRS-321, 293).
+3. Covariate means default to 3 significant digits (PRRS-327).
+4. One name per data set: the original data set `dataFile`, the FREM data
+   set `fremDataFile`; "FFEM" only for the data set of individual covariate
+   effects. Old names deprecated (PRRS-327).
+5. `createFREMmodel(fremDataFile =)` (PRRS-327).
+6. ~~`keepIgnoredRecords`~~ (PRRS-322): withdrawn 2026-11-10. Niclas and
+   Siv decided that keeping every record gets too complicated; a sensitivity
+   analysis on excluded records needs a new base model run and a new
+   `createFREMmodel()` call. The option (#107, #111) was reverted before any
+   release.
+
+The version number is an assumption; merging into `main` and the tag are
+Niclas's go-ahead.
+
+Status 2026-11-10: 1-5 merged (#102-#106); 6 merged (#107) and reverted.
+NEWS reviewed once by Niclas; its first section, on item 6, is removed.
+
+Open, outside the code:
+- PRRS-293: the report template `Eq_final_cov_mod.Rnw` (ReportBuilder
+  directory, not this repository) prints `CL=CLstruct+...`; the FFEM is
+  `CL = CLstruct*EXP(<expression> + ETA)` for an exponential IIV. Its owners
+  change the template text.
+- PRRS-304 / 327 point 2 (T40): ask the reporter for the error message when
+  PMXForest is not attached, with the PMXRenv calls used.
+- PRRS-327 points 4 and 5: `$COVARIANCE` and `$ESTIMATION` are copied from
+  the base model; an answer, no code change.
+- After the release: Status, release and Resolution of each PRRS row, on
+  Niclas's go-ahead.
 
 ## Deep-dive vignette — extending a FREM model with THETAs and IIVs
 
@@ -211,7 +238,9 @@ tests in this package alone.
   so a non-log-normal parameter is already excluded by `spliceable`. Removing
   the `scale` gate changes no test. The code comments say the scale decides
   it; on current fixtures the reference does. Either give PMXForest's
-  `nmEtaMap()` the additive idiom or reword the comments.
+  `nmEtaMap()` the additive idiom or reword the comments. **Done
+  2026-11-09:** PMXForest 1.4.1 maps additive etas, PMXFrem requires it,
+  and a test with an additive `V` goes red when the scale gate is removed.
 - `getExplainedVar()`'s placeholder eta vectors are now
   `rep(0, numSkipOm + numParCov)` instead of `rep(0, 3 * length(thetas))`. No
   bundled model has `numSkipOm + numParCov > 3 * numNonFREMThetas`, so no test

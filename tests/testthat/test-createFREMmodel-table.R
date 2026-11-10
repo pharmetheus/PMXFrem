@@ -9,7 +9,7 @@ fremModelLines <- function(covariates, fremModName = "frem", modDir = NULL, quie
   td <- withr::local_tempdir()
   res <- suppressWarnings(createFREMmodel(
     modName = "run30", modDevDir = modDir,
-    ffemDataFile = file.path(src, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+    dataFile = file.path(src, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
     covariates = covariates, numSkipOm = 2,
     cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV"),
     outputDir = td, fremModName = fremModName, quiet = quiet
@@ -68,8 +68,8 @@ test_that("updateFREMmodel() prunes the table when it rewrites $INPUT", {
   file.copy(file.path(src, c("run31.mod", "run31.ext")), td)
   out <- suppressWarnings(updateFREMmodel(
     strFREMModel = file.path(td, "run31.mod"),
-    strFREMData = file.path(src, "frem_dataset.dta"),
-    strFFEMData = file.path(src, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
+    fremDataFile = file.path(src, "frem_dataset.dta"),
+    dataFile = file.path(src, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"),
     cstrContCovsToAdd = "HT",
     numNonFREMThetas = 7, numSkipOm = 2,
     bWriteData = FALSE, bWriteMod = FALSE, quiet = TRUE

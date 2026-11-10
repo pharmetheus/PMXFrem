@@ -19,7 +19,7 @@ test_that("finalizeFremData subsets and writes data while preserving original ID
     strID = "ID", # Updated from sortFREMDataset
     cstrKeepCols = c("ID", "DV", "FREMTYPE"), # Keep FREMTYPE
     bWriteData = TRUE,
-    strNewFREMData = output_path
+    newFremDataFile = output_path
   )
 
   # 3. Assertions
@@ -51,7 +51,7 @@ test_that("finalizeFremData warns if FREMTYPE is not kept", {
       strID = "ID", # Updated from sortFREMDataset
       cstrKeepCols = c("ID", "DV"), # Explicitly exclude FREMTYPE
       bWriteData = TRUE,
-      strNewFREMData = output_path
+      newFremDataFile = output_path
     ),
     regexp = "No FREMTYPE available in dataset"
   )
@@ -72,7 +72,7 @@ test_that("finalizeFremData preserves intra-subject sequence and places covariat
     strID = "ID",
     cstrKeepCols = names(sample_df),
     bWriteData = FALSE,
-    strNewFREMData = NULL
+    newFremDataFile = NULL
   )
 
   # 3. Assertions
@@ -105,7 +105,7 @@ test_that("finalizeFremData correctly groups multiple subjects and their pseudo-
     strID = "ID",
     cstrKeepCols = names(sample_df),
     bWriteData = FALSE,
-    strNewFREMData = NULL
+    newFremDataFile = NULL
   )
 
   # 3. Assertions

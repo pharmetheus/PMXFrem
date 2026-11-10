@@ -2,7 +2,7 @@
 #'
 #' @description
 #' This is the internal bootstrapper function for the FREM generation pipeline. It reads
-#' the base NONMEM model and the Full Fixed Effects Model (FFEM) dataset, processes strictly
+#' the base NONMEM model and the data set of the base model, processes strictly
 #' the first covariate from the provided list, and generates a minimal FREM data file,
 #' `.mod` file, and a mock `.ext` file. It inherently handles dynamic Y-1 categorical
 #' expansions (e.g., splitting a 3-level categorical variable into two dummy variables)
@@ -11,7 +11,7 @@
 #' @param runno Standard PMX run number.
 #' @param modName Standard PMX model name.
 #' @param modDevDir Standard PMX model development directory.
-#' @param ffemDataFile Character. Path to the base FFEM dataset.
+#' @param dataFile Character. Path to the data set of the base model.
 #' @param covariates Character vector. The full list of covariates to be added to the FREM model. Phase 1 strictly processes the first element.
 #' @param outputDir Character. Directory where the minimal files will be saved. Defaults to `modDevDir` or current working directory.
 #' @param minModName Character. The base name for the generated minimal files. Defaults to `"minimal_model"`.
@@ -21,7 +21,10 @@
 #' @param IDvar Character. The name of the subject identifier column. Defaults to `"ID"`.
 #' @param missVal Numeric. The value representing missing data in the covariates. Defaults to `-99`.
 #' @param fixTheta Logical. Should the initial THETA estimates for the covariates be fixed? Defaults to `TRUE`.
-#' @param roundMeanTo Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to `1`.
+#' @param roundMeanTo The rounding of the covariate means, the initial values of
+#'   their THETAs. `NULL` (the default) keeps 3 significant digits and never
+#'   fewer than 2 decimals, so 0.004321 is written as 0.00432 and 86.857 as
+#'   86.86. A number is the number of decimals.
 #' @param catCovs Character vector. Names of the covariates that should be treated as categorical.
 #' @param logtCovs Character vector. Names of continuous covariates that should be log-transformed.
 #' @param useMuModeling Logical. Should MU-referencing be utilized when generating the NONMEM $PK and $ERROR blocks? Defaults to `TRUE`.
@@ -44,7 +47,7 @@
 #'   \item \code{minimalDataFile}: Path to the generated minimal `.csv` data file.
 #'   \item \code{mockExtFile}: Path to the generated mock `.ext` file.
 #'   \item \code{keepMinimalModel}: Boolean flag passed back to the master wrapper for cleanup logic.
-#'   \item \code{validatedData}: The filtered and validated FFEM dataset as a \code{data.frame}.
+#'   \item \code{validatedData}: The filtered and validated data set of the base model as a \code{data.frame}.
 #' }
 #'
 #' @seealso \code{\link{createFREMmodel}}, \code{\link{updateFREMmodel}}
@@ -54,7 +57,7 @@
 createFREMmodel_phase1 <- function(runno = NULL,
                                    modName = NULL,
                                    modDevDir = NULL,
-                                   ffemDataFile,
+                                   dataFile,
                                    covariates,
                                    outputDir = NULL,
                                    minModName = "minimal_model",
@@ -64,7 +67,7 @@ createFREMmodel_phase1 <- function(runno = NULL,
                                    IDvar = "ID",
                                    missVal = -99,
                                    fixTheta = TRUE,
-                                   roundMeanTo = 1,
+                                   roundMeanTo = NULL,
                                    catCovs = NULL,
                                    logtCovs = NULL,
                                    useMuModeling = TRUE,
@@ -94,13 +97,13 @@ createFREMmodel_phase1 <- function(runno = NULL,
   mockExtPath <- file.path(outputDir, paste0(minModName, ".ext"))
 
   validationResult <- prepareAndValidateData(
-    ffemDataFile         = ffemDataFile,
-    baseModelFile        = baseModelFile,
-    covariates           = covariates,
-    quiet                = quiet,
+    dataFile = dataFile,
+    baseModelFile = baseModelFile,
+    covariates = covariates,
+    quiet = quiet,
     keepDoseOnlySubjects = keepDoseOnlySubjects,
-    strID                = IDvar,
-    cstrKeepCols         = userKeepCols
+    strID = IDvar,
+    cstrKeepCols = userKeepCols
   )
   wideData <- validationResult$validatedData
 
@@ -117,7 +120,7 @@ createFREMmodel_phase1 <- function(runno = NULL,
     v <- stats::var(x)
     list(
       name           = name,
-      mean           = round(mean(x), digits = roundMeanTo),
+      mean           = .fremRoundMean(mean(x), roundMeanTo),
       variance       = if (is.na(v) || v == 0) 1E-04 else v,
       shouldFixTheta = shouldFix,
       fremType       = fremType
@@ -159,17 +162,17 @@ createFREMmodel_phase1 <- function(runno = NULL,
   # --- 3. Generate Minimal FREM Dataset ---
   if (!quiet) message("Generating minimal FREM dataset for covariate: ", firstCovariateName)
   createFREMData(
-    strFFEMData          = wideData,
-    strFREMDataFileName  = minimalDataPath,
-    strID                = IDvar,
-    cstrKeepCols         = cstrKeepCols,
-    cstrContCovs         = if (!is_cat) firstCovariateName else NULL,
-    cstrCatCovs          = if (is_cat) firstCovariateName else NULL,
-    logtCovs             = logtCovs,
-    bRecodeDichotomous   = bRecodeDichotomous,
-    allowNon01           = allowNon01,
+    dataFile = wideData,
+    fremDataFile = minimalDataPath,
+    strID = IDvar,
+    cstrKeepCols = cstrKeepCols,
+    cstrContCovs = if (!is_cat) firstCovariateName else NULL,
+    cstrCatCovs = if (is_cat) firstCovariateName else NULL,
+    logtCovs = logtCovs,
+    bRecodeDichotomous = bRecodeDichotomous,
+    allowNon01 = allowNon01,
     keepDoseOnlySubjects = keepDoseOnlySubjects,
-    quiet                = quiet,
+    quiet = quiet,
     ...
   )
   minimalDataHeaders <- names(data.table::fread(minimalDataPath, header = TRUE, nrows = 0))

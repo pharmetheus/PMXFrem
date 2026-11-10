@@ -1252,3 +1252,36 @@ test_that("a PMXForest that is too old is named as such, with its version", {
   expect_silent(.fremRequirePMXForest("createFREMParamFunction", installed = "1.3.0"))
   expect_silent(.fremRequirePMXForest("createFREMParamFunction", installed = "1.4.0"))
 })
+
+test_that("an additive FREM parameter is kept out of the exp() splice checks by its scale", {
+  # T28. The covariate and eta splice checks assume P = C * exp(<linear in
+  # ETA>). Before PMXForest 1.4.1 an additive parameter never got an etaMap
+  # entry, so it was excluded as not spliceable and the scale gate was never
+  # reached. Now the reference places its eta, and only the scale keeps the
+  # exp() splice from being applied to V = TVV + ETA(4).
+  skip_if(utils::packageVersion("PMXForest") < "1.4.1", "needs the additive etaMap of PMXForest 1.4.1")
+  td <- withr::local_tempdir()
+  m <- .fremModReplacing(td, "^V[[:space:]]+= EXP[(]MU_4", "V     = TVV + ETA(4)", "addv.mod")
+  fl <- readLines(.ffemMod(), warn = FALSE)
+  i <- grep("^V[[:space:]]+= EXP[(]MU_4", fl)
+  expect_length(i, 1L)
+  fl[i] <- "V     = TVV + (ETA(4)+VFREMCOV)"
+  ffem <- file.path(td, "addv_ffem.mod")
+  writeLines(fl, ffem)
+
+  out <- createFREMParamFunction(m, parameters = c("CL", "V"), extFile = .fremExt(), quiet = TRUE)
+  expect_identical(unname(out$fremEtaScale["V"]), "other")
+
+  ref <- PMXForest::createParamFunction(ffem,
+    parameters = c("CL", "V"),
+    covRef = list(CLFREMCOV = 0, VFREMCOV = 0, MATFREMCOV = 0), quiet = TRUE
+  )
+  expect_equal(unname(ref$etaMap["V"]), 4L) # spliceable by index
+
+  v <- verifyFREMParamFunction(out, ffemModel = ffem, extFile = .fremExt(), quiet = TRUE)
+  d <- attr(v, "checks")
+  expect_true(is.na(d$COVSPLICE[d$PARAMETER == "V"]))
+  expect_true(is.na(d$ETASPLICE[d$PARAMETER == "V"]))
+  expect_lt(d$STRUCTURAL[d$PARAMETER == "V"], 1e-6)
+  expect_true(isTRUE(d$PASS[d$PARAMETER == "CL"]))
+})

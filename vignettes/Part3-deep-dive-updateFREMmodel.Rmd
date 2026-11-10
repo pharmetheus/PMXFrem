@@ -67,17 +67,17 @@ The function needs the model's structural configuration: `numNonFREMThetas` (the
 
 ```{r remove_covariates}
 result_remove <- updateFREMmodel(
-  strFREMModel      = model_in_td,
-  strFREMData       = frem_data_path,
-  strFFEMData       = ffem_data_path,
-  cstrRemoveCov     = c("SEX", "WT", "AGE"),
-  strNewFREMData    = file.path(td, "frem_data_simplified.csv"),
-  numNonFREMThetas  = 7,
-  numSkipOm         = 2,
-  bWriteData        = TRUE, # Generate the updated dataset
-  bWriteMod         = TRUE, # Generate the updated control stream
-  quiet             = TRUE,
-  cstrKeepCols      = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
+  strFREMModel = model_in_td,
+  fremDataFile = frem_data_path,
+  dataFile = ffem_data_path,
+  cstrRemoveCov = c("SEX", "WT", "AGE"),
+  newFremDataFile = file.path(td, "frem_data_simplified.csv"),
+  numNonFREMThetas = 7,
+  numSkipOm = 2,
+  bWriteData = TRUE, # Generate the updated dataset
+  bWriteMod = TRUE, # Generate the updated control stream
+  quiet = TRUE,
+  cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
 )
 
 new_model_path_remove <- file.path(td, "run31_new.mod")
@@ -104,18 +104,18 @@ data_to_add_to <- file.path(td, "frem_data_simplified.csv")
 file.copy(file.path(td, "run31.ext"), file.path(td, "run31_new.ext"))
 
 result_add <- updateFREMmodel(
-  strFREMModel       = model_to_add_to,
-  strFREMData        = data_to_add_to,
-  strFFEMData        = ffem_data_path,
-  cstrContCovsToAdd  = "AGE",
-  strNewFREMData     = file.path(td, "frem_data_with_age.csv"),
-  numNonFREMThetas   = 7,
-  numSkipOm          = 2,
-  bWriteData         = TRUE,
-  bWriteMod          = TRUE,
+  strFREMModel = model_to_add_to,
+  fremDataFile = data_to_add_to,
+  dataFile = ffem_data_path,
+  cstrContCovsToAdd = "AGE",
+  newFremDataFile = file.path(td, "frem_data_with_age.csv"),
+  numNonFREMThetas = 7,
+  numSkipOm = 2,
+  bWriteData = TRUE,
+  bWriteMod = TRUE,
   bRecodeDichotomous = TRUE, # Safely zero-indexes 2-level categorical factors
-  quiet              = TRUE,
-  cstrKeepCols       = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
+  quiet = TRUE,
+  cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
 )
 
 print(paste("Expanded model successfully written to:", file.path(td, "run31_new_new.mod")))
@@ -123,7 +123,7 @@ print(paste("Expanded model successfully written to:", file.path(td, "run31_new_
 
 **What the call did:**
 
-* The base clinical data (`strFFEMData`) is scanned to extract the new covariate's mean and variance, which seed the new `$THETA` and `$OMEGA` parameters.
+* The base clinical data (`dataFile`) is scanned to extract the new covariate's mean and variance, which seed the new `$THETA` and `$OMEGA` parameters.
 * Dummy observation rows (`EVID=2`) are appended to the dataset for the new covariate under a newly assigned `FREMTYPE`.
 
 ---
@@ -133,7 +133,7 @@ print(paste("Expanded model successfully written to:", file.path(td, "run31_new_
 New subjects can be added to a converged model without changing the covariate matrix. Here, we simulate 10 new individuals and fold them into the dataset.
 
 ```{r add_individuals}
-# 1. Load the unmodified FREM and FFEM data sets
+# 1. Load the unmodified FREM data set and the data set of the base model
 frem_df <- fread(frem_data_path, data.table = FALSE) %>% select(-ODV)
 ffem_df <- fread(ffem_data_path, data.table = FALSE)
 
@@ -143,17 +143,17 @@ ffem_new_ids$ID <- ffem_new_ids$ID + max(frem_df$ID)
 
 # 3. Append the individuals to the dataset
 result_new_ids <- updateFREMmodel(
-  strFREMModel      = model_in_td,
-  strFREMData       = frem_df, # Pass dataset directly via memory
-  strFFEMData       = ffem_new_ids, # Include the new IDs
-  strNewFREMData    = file.path(td, "frem_data_appended.csv"),
-  numNonFREMThetas  = 7,
-  numSkipOm         = 2,
-  bWriteData        = TRUE,
-  bWriteMod         = FALSE, # The NONMEM model logic does not change
-  quiet             = TRUE,
-  cstrKeepCols      = c("ID", "TIME", "AMT", "DV", "EVID", "RATE", "FREMTYPE"),
-  cstrSetToZero     = c("AMT", "EVID", "RATE")
+  strFREMModel = model_in_td,
+  fremDataFile = frem_df, # Pass dataset directly via memory
+  dataFile = ffem_new_ids, # Include the new IDs
+  newFremDataFile = file.path(td, "frem_data_appended.csv"),
+  numNonFREMThetas = 7,
+  numSkipOm = 2,
+  bWriteData = TRUE,
+  bWriteMod = FALSE, # The NONMEM model logic does not change
+  quiet = TRUE,
+  cstrKeepCols = c("ID", "TIME", "AMT", "DV", "EVID", "RATE", "FREMTYPE"),
+  cstrSetToZero = c("AMT", "EVID", "RATE")
 )
 
 print(paste("Original Max ID:", max(frem_df$ID), "| New Max ID:", max(result_new_ids$data$ID)))

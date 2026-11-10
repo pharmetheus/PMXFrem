@@ -2,19 +2,20 @@
 % Please edit documentation in R/addFremCovariates.R
 \name{addFREMcovariates}
 \alias{addFREMcovariates}
-\title{Add FREM covariates to a FFEM data set}
+\title{Add FREM covariates to a data set}
 \usage{
 addFREMcovariates(
-  dfFFEM,
+  data,
   modFile = NULL,
   covariates = NULL,
   missVal = -99,
   includeReference = FALSE,
-  imputeMissing = TRUE
+  imputeMissing = TRUE,
+  dfFFEM = NULL
 )
 }
 \arguments{
-\item{dfFFEM}{A data.frame containing the FFEM data.}
+\item{data}{A data.frame with the data set of the base model.}
 
 \item{modFile}{Path to a FREM model file.}
 
@@ -27,12 +28,14 @@ reference level as well (default: FALSE).}
 
 \item{imputeMissing}{Logical. If TRUE (default), missing values are imputed to 0
 (the reference category). If FALSE, missing values are preserved as missVal.}
+
+\item{dfFFEM}{Deprecated; use \code{data}.}
 }
 \value{
 A data.frame with the new binarised covariate columns.
 }
 \description{
-Add binarised FREM covariates to a FFEM data set.
+Add binarised FREM covariates to a data set.
 }
 \details{
 This is mainly an internal utility function.
@@ -41,7 +44,7 @@ Binarised covariates will be added based either on the covariates present in
 a frem model (\code{modFile}) file or from the names specified in the \code{covariates}
 vector.
 
-The new columns in the FFEM data set will contain the binarised versions of
+The new columns in the data set will contain the binarised versions of
 the polychotomous  covariates named with the original covariate name appended
 by "_#", where "#" is the level value of the covariate. For example, for a
 covariate NCIL with the values 0, 1 and 2 \code{addFREMcovariates()} will add
@@ -59,7 +62,7 @@ model file or a covariate vector.
 library(dplyr)
 
 # Load the base dataset
-dfFFEM <- read.csv(
+data <- read.csv(
   system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 ) \%>\%
   filter(BLQ != 1)
@@ -67,16 +70,16 @@ dfFFEM <- read.csv(
 modFile <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
 
 ## Example 1: Add covariates automatically based on a FREM model file
-dfFFEM_mod <- addFREMcovariates(dfFFEM, modFile = modFile)
+data_mod <- addFREMcovariates(data, modFile = modFile)
 
 ## Example 2: Add specific polychotomous covariates (Default: Y-1 categories)
 # For RACEL (levels 1, 2, 3), this will generate RACEL_3 and RACEL_2.
 # The lowest valid level (1) is dropped as the reference category.
-dfFFEM_standard <- addFREMcovariates(dfFFEM, covariates = "RACEL")
+data_standard <- addFREMcovariates(data, covariates = "RACEL")
 
 ## Example 3: Add specific covariates AND include the reference category
 # This will generate RACEL_3, RACEL_2, AND RACEL_1.
-dfFFEM_full <- addFREMcovariates(dfFFEM, covariates = "RACEL", includeReference = TRUE)
+data_full <- addFREMcovariates(data, covariates = "RACEL", includeReference = TRUE)
 
 }
 \seealso{

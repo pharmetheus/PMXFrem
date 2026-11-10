@@ -6,10 +6,10 @@
 #' @inheritParams calcFFEM
 #' @param strFREMModel File name of the FREM-model to add/remove covariates
 #'   to/from.
-#' @param strFREMData Name of FREM-dataset (file or data.frame) to add/remove
+#' @param fremDataFile Name of FREM-dataset (file or data.frame) to add/remove
 #'   covariates to/from (not used with strUpdateType "NoData").
-#' @param strFFEMData Name of FFEM-dataset (normal dataset, (file or
-#'   data.frame)) that will be used to append the FREM-dataset, (not used with
+#' @param dataFile Name of the data set of the base model (file or
+#'   data.frame) that will be used to append the FREM-dataset, (not used with
 #'   strUpdateType "NoData").
 #' @param cstrContCovsToAdd A vector of continuous covariate names to add,
 #'   default = NULL, (not used with strUpdateType "NoData").
@@ -20,11 +20,11 @@
 #'   strUpdateType "NoData"). Note: if used, this should contain all covariates
 #'   in cstrCatCovsToAdd as well as cstrContCovsToAdd.
 #' @param missVal Numeric. The value representing missing data in the covariates. Defaults to `-99`.
-#' @param strNewFREMData Name of the new dataset,
-#'   default=paste0(strFREMData_without_extension,"new",".",extension), (not
+#' @param newFremDataFile Name of the new dataset,
+#'   default=paste0(fremDataFile_without_extension,"new",".",extension), (not
 #'   used with strUpdateType "NoData").
 #' @param filterString Optional string with an R filter expression applied to
-#'   the FFEM data before it is used, e.g. \code{"STUDYID == 1"}. Default
+#'   the data of the base model before it is used, e.g. \code{"STUDYID == 1"}. Default
 #'   \code{NULL} (no filtering).
 #' @param strUpdateType Update function to run: "DataAndModel" - Create new data
 #'   and add/remove variables from the model (with updated inits). "NoData" - Do
@@ -72,9 +72,15 @@
 #' @param keepDoseOnlySubjects Logical. If \code{FALSE} (default), subjects without any valid PK observations (e.g.,
 #' only dosing records) are completely excluded from the generated dataset. If \code{TRUE},
 #' these subjects are retained and their covariates are included as observations.
-#' @param roundMeanTo Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to 2.
+#' @param roundMeanTo The rounding of the covariate means, the initial values of
+#'   their THETAs. `NULL` (the default) keeps 3 significant digits and never
+#'   fewer than 2 decimals, so 0.004321 is written as 0.00432 and 86.857 as
+#'   86.86. A number is the number of decimals.
 #' @param fixTheta Logical. Should initial THETA estimates for covariates without missing values be fixed? Defaults to TRUE.
 #' @param sortFREMDataset Deprecated.
+#' @param strFREMData Deprecated; use `fremDataFile`.
+#' @param strFFEMData Deprecated; use `dataFile`.
+#' @param strNewFREMData Deprecated; use `newFremDataFile`.
 #' @return An invisible list with components data and model, containing the new
 #'   data set (if any, else NULL) and updated model.
 #'
@@ -96,25 +102,25 @@
 #' file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
 #'
 #' updateFREMmodel(
-#'   strFREMModel      = file.path(td, "run31.mod"),
-#'   strFREMData       = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
-#'   strFFEMData       = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
-#'   cstrRemoveCov     = c("SEX"),
-#'   strNewFREMData    = file.path(td, "frem_dataset_noSEX.csv"),
-#'   numNonFREMThetas  = 7,
-#'   numSkipOm         = 2,
-#'   bWriteData        = TRUE,
-#'   bWriteMod         = TRUE,
-#'   quiet             = FALSE,
-#'   bWriteFIX         = TRUE,
-#'   cstrKeepCols      = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
+#'   strFREMModel = file.path(td, "run31.mod"),
+#'   fremDataFile = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
+#'   dataFile = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
+#'   cstrRemoveCov = c("SEX"),
+#'   newFremDataFile = file.path(td, "frem_dataset_noSEX.csv"),
+#'   numNonFREMThetas = 7,
+#'   numSkipOm = 2,
+#'   bWriteData = TRUE,
+#'   bWriteMod = TRUE,
+#'   quiet = FALSE,
+#'   bWriteFIX = TRUE,
+#'   cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
 #' )
 #'
 #' ## Example 2: Add Covariates to a Model
 #' # This example adds a new categorical covariate, "SITE", to the model.
 #' td <- tempdir()
 #'
-#' # First, create a temporary FFEM dataset that includes the new covariate
+#' # First, create a temporary data set that includes the new covariate
 #' ffem_df <- as.data.frame(data.table::fread(
 #'   system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 #' ))
@@ -130,16 +136,16 @@
 #' model_in_td <- file.path(td, "run31.mod")
 #'
 #' updateFREMmodel(
-#'   strFREMModel      = model_in_td,
-#'   strFREMData       = frem_data_path,
-#'   strFFEMData       = ffem_df, # Use the modified data frame with SITE
-#'   strNewFREMData    = file.path(td, "frem_data_with_SITE.csv"),
-#'   cstrCatCovsToAdd  = "SITE", # Add the new SITE covariate
-#'   numNonFREMThetas  = 7,
-#'   numSkipOm         = 2,
-#'   bWriteData        = TRUE,
-#'   bWriteMod         = TRUE,
-#'   quiet             = FALSE
+#'   strFREMModel = model_in_td,
+#'   fremDataFile = frem_data_path,
+#'   dataFile = ffem_df, # Use the modified data frame with SITE
+#'   newFremDataFile = file.path(td, "frem_data_with_SITE.csv"),
+#'   cstrCatCovsToAdd = "SITE", # Add the new SITE covariate
+#'   numNonFREMThetas = 7,
+#'   numSkipOm = 2,
+#'   bWriteData = TRUE,
+#'   bWriteMod = TRUE,
+#'   quiet = FALSE
 #' )
 #'
 #' ## Example 3: Add New Individuals to an Existing FREM Dataset
@@ -161,15 +167,15 @@
 #' model_path <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
 #'
 #' result <- updateFREMmodel(
-#'   strFREMModel      = model_path,
-#'   strFREMData       = frem_df, # Pass original data as a data frame
-#'   strFFEMData       = ffem_new_ids, # Pass the new individuals' data
-#'   strNewFREMData    = file.path(td, "frem_data_with_new_ids.csv"),
-#'   numNonFREMThetas  = 7,
-#'   numSkipOm         = 2,
-#'   bWriteData        = TRUE,
-#'   bWriteMod         = FALSE, # Model structure doesn't change
-#'   quiet             = FALSE
+#'   strFREMModel = model_path,
+#'   fremDataFile = frem_df, # Pass original data as a data frame
+#'   dataFile = ffem_new_ids, # Pass the new individuals' data
+#'   newFremDataFile = file.path(td, "frem_data_with_new_ids.csv"),
+#'   numNonFREMThetas = 7,
+#'   numSkipOm = 2,
+#'   bWriteData = TRUE,
+#'   bWriteMod = FALSE, # Model structure doesn't change
+#'   quiet = FALSE
 #' )
 #'
 #' # The returned data frame now contains the new IDs
@@ -202,12 +208,12 @@
 #' @family FREM model management
 #' @concept frem_model_management
 updateFREMmodel <- function(strFREMModel,
-                            strFREMData,
-                            strFFEMData,
+                            fremDataFile,
+                            dataFile,
                             cstrContCovsToAdd = NULL,
                             cstrCatCovsToAdd = NULL,
                             cstrCovsToAddOrder = NULL,
-                            strNewFREMData = NULL,
+                            newFremDataFile = NULL,
                             filterString = NULL,
                             strUpdateType = "DataAndModel",
                             quiet = TRUE,
@@ -230,9 +236,24 @@ updateFREMmodel <- function(strFREMModel,
                             bRecodeDichotomous = FALSE,
                             allowNon01 = FALSE,
                             keepDoseOnlySubjects = FALSE,
-                            roundMeanTo = 2,
+                            roundMeanTo = NULL,
                             fixTheta = TRUE,
-                            sortFREMDataset = NULL) {
+                            sortFREMDataset = NULL,
+                            strFREMData = NULL,
+                            strFFEMData = NULL,
+                            strNewFREMData = NULL) {
+  if (!is.null(strFREMData)) {
+    .fremDeprecatedArg("updateFREMmodel", "strFREMData", "fremDataFile")
+    if (missing(fremDataFile)) fremDataFile <- strFREMData
+  }
+  if (!is.null(strFFEMData)) {
+    .fremDeprecatedArg("updateFREMmodel", "strFFEMData", "dataFile")
+    if (missing(dataFile)) dataFile <- strFFEMData
+  }
+  if (!is.null(strNewFREMData)) {
+    .fremDeprecatedArg("updateFREMmodel", "strNewFREMData", "newFremDataFile")
+    if (missing(newFremDataFile)) newFremDataFile <- strNewFREMData
+  }
   if (!is.null(sortFREMDataset)) {
     warning(
       "The `sortFREMDataset` argument is deprecated. ",
@@ -287,41 +308,41 @@ updateFREMmodel <- function(strFREMModel,
 
   # --- 1. Initial Setup ---
   if (strUpdateType != "NoData") {
-    # 1A. Load and filter FFEM Data
-    rawFFEM <- NULL # the file's text, for the IGNORE / ACCEPT string comparisons
-    if (is.data.frame(strFFEMData)) {
-      dfFFEM <- as.data.frame(strFFEMData)
-    } else if (file.exists(strFFEMData)) {
-      dfFFEM <- as.data.frame(data.table::fread(strFFEMData, h = TRUE, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
-      rawFFEM <- .readDataAsText(strFFEMData, check.names = TRUE, showProgress = FALSE)
+    # 1A. Load and filter the data set
+    rawData <- NULL # the file's text, for the IGNORE / ACCEPT string comparisons
+    if (is.data.frame(dataFile)) {
+      dfData <- as.data.frame(dataFile)
+    } else if (file.exists(dataFile)) {
+      dfData <- as.data.frame(data.table::fread(dataFile, h = TRUE, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
+      rawData <- .readDataAsText(dataFile, check.names = TRUE, showProgress = FALSE)
     } else {
-      stop("Cannot find FFEM dataset: ", strFFEMData)
+      stop("Cannot find the data set: ", dataFile)
     }
 
-    # Apply IGNORE filters so dfFFEM perfectly matches the base data cohort rules
+    # Apply IGNORE filters so dfData perfectly matches the base data cohort rules
     if (exists("filterDataFromModel")) {
-      dfFFEM <- filterDataFromModel(baseModelFile = strFREMModel, wideData = dfFFEM, quiet = quiet, rawData = rawFFEM)
+      dfData <- filterDataFromModel(baseModelFile = strFREMModel, wideData = dfData, quiet = quiet, rawData = rawData)
     }
 
-    if (!keepDoseOnlySubjects && "EVID" %in% names(dfFFEM) && strID %in% names(dfFFEM)) {
-      valid_ids <- unique(dfFFEM[[strID]][dfFFEM$EVID == 0])
-      dfFFEM <- dfFFEM[dfFFEM[[strID]] %in% valid_ids, , drop = FALSE]
+    if (!keepDoseOnlySubjects && "EVID" %in% names(dfData) && strID %in% names(dfData)) {
+      valid_ids <- unique(dfData[[strID]][dfData$EVID == 0])
+      dfData <- dfData[dfData[[strID]] %in% valid_ids, , drop = FALSE]
     }
 
     # 1B. Load FREM Data
-    if (is.data.frame(strFREMData)) {
-      dfFREM <- as.data.frame(strFREMData)
-    } else if (file.exists(strFREMData)) {
-      dfFREM <- as.data.frame(data.table::fread(strFREMData, h = TRUE, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
+    if (is.data.frame(fremDataFile)) {
+      dfFREM <- as.data.frame(fremDataFile)
+    } else if (file.exists(fremDataFile)) {
+      dfFREM <- as.data.frame(data.table::fread(fremDataFile, h = TRUE, data.table = FALSE, check.names = TRUE, showProgress = !quiet))
     } else {
-      stop("Cannot find FREM dataset: ", strFREMData)
+      stop("Cannot find FREM dataset: ", fremDataFile)
     }
 
     # 1C. Capture the incoming pristine data for the Phase 4.5 Validator
     dfFREM_input <- dfFREM
   } else {
     # Ensure variables exist even if we are skipping data generation
-    dfFFEM <- NULL
+    dfData <- NULL
     dfFREM <- NULL
     dfFREM_input <- NULL
   }
@@ -342,9 +363,9 @@ updateFREMmodel <- function(strFREMModel,
   if (strUpdateType != "NoData") {
     covnames <- getCovNames(modFile = strFREMModel)
     if (!is.null(filterString)) {
-      dfFFEM <- dfFFEM %>% filter(!!rlang::parse_expr(filterString))
+      dfData <- dfData %>% filter(!!rlang::parse_expr(filterString))
     }
-    dfFFEM <- addFREMcovariates(dfFFEM, modFile = strFREMModel)
+    dfData <- addFREMcovariates(dfData, modFile = strFREMModel)
 
     # 3a. Remove Covariates
     currentState <- list(
@@ -372,7 +393,7 @@ updateFREMmodel <- function(strFREMModel,
     # 3b. Prepare New Covariates
     iFremType <- if (nrow(dfFREM) > 0) max(dfFREM$FREMTYPE) else 0
     prepResult <- prepareNewCovariates(
-      dfFFEM = dfFFEM,
+      dfData = dfData,
       cstrCatCovsToAdd = cstrCatCovsToAdd,
       cstrContCovsToAdd = cstrContCovsToAdd,
       cstrCovsToAddOrder = cstrCovsToAddOrder,
@@ -390,12 +411,12 @@ updateFREMmodel <- function(strFREMModel,
     )
     covList <- prepResult$covList
     addedList <- prepResult$addedList
-    dfFFEM <- prepResult$dfFFEM
+    dfData <- prepResult$dfData
 
     # 3c. Augment FREM Data
     dfFREM <- augmentFremData(
       dfFREM            = dfFREM,
-      dfFFEM            = dfFFEM,
+      dfData            = dfData,
       covList           = covList,
       addedList         = addedList,
       covnames          = covnames,
@@ -412,10 +433,10 @@ updateFREMmodel <- function(strFREMModel,
     # we must extract them from the updated wide dataset and merge them into the long dataset.
     if (!is.null(cstrKeepCols)) {
       missing_keeps <- cstrKeepCols[!cstrKeepCols %in% names(dfFREM)]
-      cols_to_pull <- missing_keeps[missing_keeps %in% names(dfFFEM)]
+      cols_to_pull <- missing_keeps[missing_keeps %in% names(dfData)]
 
       if (length(cols_to_pull) > 0) {
-        dfFREM <- merge(dfFREM, dfFFEM[, c(strID, cols_to_pull), drop = FALSE], by = strID, all.x = TRUE)
+        dfFREM <- merge(dfFREM, dfData[, c(strID, cols_to_pull), drop = FALSE], by = strID, all.x = TRUE)
       }
     }
   } else {
@@ -423,19 +444,19 @@ updateFREMmodel <- function(strFREMModel,
   }
 
   # --- 4. Finalize Data and Generate Model ---
-  final_df <- finalizeFremData(dfFREM, strID, cstrKeepCols, bWriteData, strNewFREMData)
+  final_df <- finalizeFremData(dfFREM, strID, cstrKeepCols, bWriteData, newFremDataFile)
 
   # --- 4.5 STRICT DATA VALIDATION ---
   if (strUpdateType != "NoData" && !is.null(final_df)) {
-    # Because updateFREMmodel lacks the original IGNORE statements to filter dfFFEM,
+    # Because updateFREMmodel lacks the original IGNORE statements to filter dfData,
     # the "Ground Truth" for existing subjects is the input dfFREM's base records.
-    # The "Ground Truth" for NEW subjects is dfFFEM.
+    # The "Ground Truth" for NEW subjects is dfData.
 
     base_existing <- dfFREM_input[dfFREM_input$FREMTYPE == 0, , drop = FALSE]
-    new_ids <- setdiff(unique(dfFFEM[[strID]]), unique(base_existing[[strID]]))
+    new_ids <- setdiff(unique(dfData[[strID]]), unique(base_existing[[strID]]))
 
     if (length(new_ids) > 0) {
-      base_new <- dfFFEM[dfFFEM[[strID]] %in% new_ids, , drop = FALSE]
+      base_new <- dfData[dfData[[strID]] %in% new_ids, , drop = FALSE]
 
       # Safely align columns for binding
       cols_to_keep <- intersect(names(base_existing), names(base_new))
@@ -452,30 +473,30 @@ updateFREMmodel <- function(strFREMModel,
     validateFremData(originalData = ground_truth, fremData = final_df, cstrDV = cstrDV, strID = strID, missVal = missVal, quiet = quiet)
   }
 
-  # ---> ADD THIS SAFETY NET: Ensure strNewFREMData has a string for the in-memory $DATA record
-  if (missing(strNewFREMData) || is.null(strNewFREMData)) {
-    strNewFREMData <- "updated_frem_data.csv"
+  # ---> ADD THIS SAFETY NET: Ensure newFremDataFile has a string for the in-memory $DATA record
+  if (missing(newFremDataFile) || is.null(newFremDataFile)) {
+    newFremDataFile <- "updated_frem_data.csv"
   }
 
   final_model_lines <- generateFremModel(
-    final_df            = final_df,
-    modelState          = modelState,
-    covList             = covList,
-    addedList           = addedList,
-    covnames            = covnames,
-    strFREMModel        = strFREMModel,
-    strNewFREMData      = strNewFREMData,
-    bWriteMod           = bWriteMod,
-    bWriteFIX           = bWriteFIX,
-    noBaseThetas        = numNonFREMThetas,
-    numSkipOm           = numSkipOm,
-    numParCov           = numParCov,
-    covEpsNum           = covEpsNum,
-    basenames_th        = basenames_th,
-    basenames_om        = basenames_om,
-    dDefaultCovValue    = 1E-05,
-    strUpdateType       = strUpdateType,
-    quiet               = quiet
+    final_df = final_df,
+    modelState = modelState,
+    covList = covList,
+    addedList = addedList,
+    covnames = covnames,
+    strFREMModel = strFREMModel,
+    newFremDataFile = newFremDataFile,
+    bWriteMod = bWriteMod,
+    bWriteFIX = bWriteFIX,
+    noBaseThetas = numNonFREMThetas,
+    numSkipOm = numSkipOm,
+    numParCov = numParCov,
+    covEpsNum = covEpsNum,
+    basenames_th = basenames_th,
+    basenames_om = basenames_om,
+    dDefaultCovValue = 1E-05,
+    strUpdateType = strUpdateType,
+    quiet = quiet
   )
 
   # --- 5. Return Final Objects ---

@@ -5,8 +5,8 @@
 \title{Create a FREM dataset from a standard NONMEM dataset.}
 \usage{
 createFREMData(
-  strFFEMData,
-  strFREMDataFileName = NULL,
+  dataFile,
+  fremDataFile = NULL,
   quiet = TRUE,
   strID = "ID",
   cstrKeepCols = c("ID", "TIME", "AMT", "II", "EVID", "SS", "RATE"),
@@ -21,20 +21,22 @@ createFREMData(
   cSortCols = c("ORIG_ROW_IDX", "FREMTYPE"),
   cSortDirection = c(1, 1),
   cFremtypes = NULL,
-  keepDoseOnlySubjects = FALSE
+  keepDoseOnlySubjects = FALSE,
+  strFFEMData = NULL,
+  strFREMDataFileName = NULL
 )
 }
 \arguments{
-\item{strFFEMData}{Name of FFEM-dataset (normal dataset) that will be used to
+\item{dataFile}{Name of the data set of the base model (a file or a data.frame) that will be used to
 create the FREM-dataset.}
 
-\item{strFREMDataFileName}{Name of FREM dataset to create. Default=NULL => no
+\item{fremDataFile}{Name of FREM dataset to create. Default=NULL => no
 dataset is written to disc}
 
 \item{quiet}{If set to FALSE, the function outputs verbose information on
 what it is doing.}
 
-\item{strID}{A string with the ID identifier column in the FFEM dataset.}
+\item{strID}{A string with the ID identifier column in the data set.}
 
 \item{cstrKeepCols}{A vector of columns to keep in the dataset (for the
 updated new dataset).}
@@ -81,6 +83,10 @@ should use. Default=NULL.}
 \item{keepDoseOnlySubjects}{Logical. If \code{FALSE} (default), subjects without any valid PK observations (e.g.,
 only dosing records) are completely excluded from the generated dataset. If \code{TRUE},
 these subjects are retained and their covariates are included as observations.}
+
+\item{strFFEMData}{Deprecated; use \code{dataFile}.}
+
+\item{strFREMDataFileName}{Deprecated; use \code{fremDataFile}.}
 }
 \value{
 A data.frame with the FREM data set.
@@ -89,21 +95,21 @@ A data.frame with the FREM data set.
 Create a FREM dataset from a standard NONMEM dataset.
 }
 \details{
-If there are more than one DV variable in different columns in the FFEM data
+If there are more than one DV variable in different columns in the data
 set, they can be included in the DV column of the FREM data set with
 different FREMTYPES by specifying the names of the columns in the \code{cstrDV}
 argument.
 }
 \examples{
-strFFEMData <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",
+dataFile <- system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv",
   package = "PMXFrem"
 )
 tmp10 <- createFREMData(
-  strFFEMData          = strFFEMData,
-  cstrKeepCols         = c("ID", "TIME", "AMT", "EVID", "RATE"),
-  bRecodeDichotomous   = TRUE,
-  cstrCatCovs          = c("SEX", "SMOK", "NCIL"),
-  cstrContCovs         = c("WT", "BMI", "AGE")
+  dataFile = dataFile,
+  cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE"),
+  bRecodeDichotomous = TRUE,
+  cstrCatCovs = c("SEX", "SMOK", "NCIL"),
+  cstrContCovs = c("WT", "BMI", "AGE")
 )
 
 }

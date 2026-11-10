@@ -12,7 +12,7 @@
 #' @param addedList A character vector of new covariate names added during this update step.
 #' @param covnames A list containing parsed existing covariate names (`covNames`, `polyCatCovs`, `orgCovNames`).
 #' @param strFREMModel A character string specifying the file path to the base FREM model (`.mod`) file.
-#' @param strNewFREMData A character string specifying the file path for the newly generated FREM dataset.
+#' @param newFremDataFile A character string specifying the file path for the newly generated FREM dataset.
 #' @param bWriteMod Logical. If TRUE, writes the updated model code to disk with a `_new.mod` suffix.
 #' @param bWriteFIX Logical. If TRUE, appends `FIX` to the `$THETA` records for fixed parameters.
 #' @param noBaseThetas Integer. The number of structural (non-FREM) `$THETA` parameters in the base model.
@@ -36,7 +36,7 @@ generateFremModel <- function(final_df,
                               addedList,
                               covnames,
                               strFREMModel,
-                              strNewFREMData,
+                              newFremDataFile,
                               bWriteMod,
                               bWriteFIX,
                               noBaseThetas,
@@ -81,24 +81,8 @@ generateFremModel <- function(final_df,
   }
 
   # Override with inline comments if they exist.
-  #
-  # Advance the index by the number of THETA *values* a line actually carries,
-  # not by one per line. Counting lines assumes exactly one theta per line, so a
-  # standalone comment, a blank line, or a multi-value record ($THETA 1 2 3)
-  # silently shifted every later label onto the wrong parameter. A line with no
-  # values contributes nothing and keeps its generated default.
   th_lines <- safeFindRecord(line, "\\$THETA", replace = NULL)
-  idx <- 1
-  for (th_l in th_lines) {
-    if (idx > iNumTHETA) break
-    n <- .fremCountThetaValues(th_l)
-    if (n > 0L) {
-      if (grepl(";", th_l)) {
-        theta_comment[idx] <- paste0(" ; ", trimws(sub("^[^;]*;\\s*", "", th_l)))
-      }
-      idx <- idx + n
-    }
-  }
+  theta_comment <- .fremThetaComments(th_lines, theta_comment)
 
   # --- Robust OMEGA Comment Extraction & Mapping ---
   om_comment <- character(iNumOM)
@@ -262,27 +246,15 @@ generateFremModel <- function(final_df,
   ## carried through the minimal model); the initial value is the .ext
   ## estimate, moved just inside a bound it does not clear, as NM-TRAN needs.
   ## Covariate THETAs added now have none.
-  bounds <- .fremThetaBounds(th_lines)
-  strinput_theta <- c()
-  for (i in 1:iNumTHETA) {
-    isFixed <- !is.na(THETAFIX[i]) && THETAFIX[i] == 1
-    strFIX <- if (isFixed && bWriteFIX) " FIX" else ""
-    low <- if (i <= length(bounds$low)) bounds$low[i] else NA
-    up <- if (i <= length(bounds$up)) bounds$up[i] else NA
-    init <- if (isFixed) THETA[i] else .fremInsideBounds(THETA[i], low, up, i, quiet)
-    value <- if (is.na(low) && is.na(up)) {
-      init
-    } else {
-      paste0("(", if (is.na(low)) "-INF" else low, ",", init, if (!is.na(up)) paste0(",", up), ")")
-    }
-    strinput_theta <- c(strinput_theta, paste0("$THETA ", value, strFIX, theta_comment[i]))
-  }
+  strinput_theta <- .fremThetaLines(THETA[1:iNumTHETA], THETAFIX, th_lines, theta_comment,
+    writeFIX = bWriteFIX, quiet = quiet
+  )
 
   line <- safeFindRecord(line, record = "\\$THETA", replace = strinput_theta)
   line <- safeFindRecord(line, record = "\\$OMEGA", replace = newommatrix)
 
   if (strUpdateType != "NoData") {
-    line <- safeFindRecord(line, record = "\\$DATA", replace = paste0("$DATA ", basename(strNewFREMData), " IGNORE=@"))
+    line <- safeFindRecord(line, record = "\\$DATA", replace = paste0("$DATA ", basename(newFremDataFile), " IGNORE=@"))
     if (!is.null(final_df)) {
       oldInput <- findrecord(line, record = "\\$INPUT", quiet = TRUE)
       line <- safeFindRecord(line, record = "\\$INPUT", replace = paste0("$INPUT ", paste0(names(final_df), collapse = " ")))
@@ -364,6 +336,83 @@ generateFremModel <- function(final_df,
     )
   }
   new
+}
+
+#' The $THETA lines for a set of THETAs
+#'
+#' One `$THETA` line per THETA: the bounds of the record being replaced
+#' (`th_lines`), the value moved just inside them unless it is fixed, `FIX`
+#' where `fixed` is 1 and `writeFIX`, and the comment. THETAs beyond those
+#' `th_lines` carries get no bounds.
+#'
+#' @param theta The values. @param fixed 1 for a fixed THETA, 0 otherwise.
+#' @param th_lines The `$THETA` record lines to take the bounds from.
+#' @param comment One comment per THETA, `" ; ..."` or `""`.
+#' @param writeFIX Write `FIX` for the fixed THETAs. @param quiet Suppress the
+#'   message about a value moved inside its bounds.
+#' @return A character vector, one `$THETA` line per THETA.
+#' @keywords internal
+#' @noRd
+.fremThetaLines <- function(theta, fixed, th_lines, comment, writeFIX = TRUE, quiet = FALSE) {
+  bounds <- .fremThetaBounds(th_lines)
+  out <- character(length(theta))
+  for (i in seq_along(theta)) {
+    isFixed <- !is.na(fixed[i]) && fixed[i] == 1
+    strFIX <- if (isFixed && writeFIX) " FIX" else ""
+    low <- if (i <= length(bounds$low)) bounds$low[i] else NA
+    up <- if (i <= length(bounds$up)) bounds$up[i] else NA
+    init <- if (isFixed) theta[i] else .fremInsideBounds(theta[i], low, up, i, quiet)
+    value <- if (is.na(low) && is.na(up)) {
+      init
+    } else {
+      paste0("(", if (is.na(low)) "-INF" else low, ",", init, if (!is.na(up)) paste0(",", up), ")")
+    }
+    out[i] <- paste0("$THETA ", value, strFIX, comment[i])
+  }
+  out
+}
+
+#' The inline comments of a $THETA record, one per THETA
+#'
+#' Advances by the number of THETA *values* a line carries, not by one per
+#' line. Counting lines assumes exactly one THETA per line, so a standalone
+#' comment, a blank line, or a multi-value record (`$THETA 1 2 3`) silently
+#' shifted every later label onto the wrong parameter. A line with no values
+#' contributes nothing, and a THETA without a comment keeps its default.
+#'
+#' @param th_lines The `$THETA` record lines.
+#' @param comment The default comments, one per THETA.
+#' @return `comment`, with the inline comments put in.
+#' @keywords internal
+#' @noRd
+.fremThetaComments <- function(th_lines, comment) {
+  idx <- 1
+  for (th_l in th_lines) {
+    if (idx > length(comment)) break
+    n <- .fremCountThetaValues(th_l)
+    if (n > 0L) {
+      if (grepl(";", th_l)) {
+        comment[idx] <- paste0(" ; ", trimws(sub("^[^;]*;\\s*", "", th_l)))
+      }
+      idx <- idx + n
+    }
+  }
+  comment
+}
+
+#' Which THETAs a $THETA record fixes, from its text
+#'
+#' For a model with no `.ext` row of fixed flags. A `FIX` on a line fixes every
+#' value on that line.
+#'
+#' @param th_lines The `$THETA` record lines.
+#' @return 1 for a fixed THETA, 0 otherwise, one per THETA.
+#' @keywords internal
+#' @noRd
+.fremThetaFixFromText <- function(th_lines) {
+  unlist(lapply(th_lines, function(l) {
+    rep(as.numeric(grepl("\\bFIX(ED)?\\b", sub(";.*$", "", l), ignore.case = TRUE)), .fremCountThetaValues(l))
+  }))
 }
 
 #' Count the parameter values a $THETA line carries

@@ -6,12 +6,12 @@
 \usage{
 updateFREMmodel(
   strFREMModel,
-  strFREMData,
-  strFFEMData,
+  fremDataFile,
+  dataFile,
   cstrContCovsToAdd = NULL,
   cstrCatCovsToAdd = NULL,
   cstrCovsToAddOrder = NULL,
-  strNewFREMData = NULL,
+  newFremDataFile = NULL,
   filterString = NULL,
   strUpdateType = "DataAndModel",
   quiet = TRUE,
@@ -34,20 +34,23 @@ updateFREMmodel(
   bRecodeDichotomous = FALSE,
   allowNon01 = FALSE,
   keepDoseOnlySubjects = FALSE,
-  roundMeanTo = 2,
+  roundMeanTo = NULL,
   fixTheta = TRUE,
-  sortFREMDataset = NULL
+  sortFREMDataset = NULL,
+  strFREMData = NULL,
+  strFFEMData = NULL,
+  strNewFREMData = NULL
 )
 }
 \arguments{
 \item{strFREMModel}{File name of the FREM-model to add/remove covariates
 to/from.}
 
-\item{strFREMData}{Name of FREM-dataset (file or data.frame) to add/remove
+\item{fremDataFile}{Name of FREM-dataset (file or data.frame) to add/remove
 covariates to/from (not used with strUpdateType "NoData").}
 
-\item{strFFEMData}{Name of FFEM-dataset (normal dataset, (file or
-data.frame)) that will be used to append the FREM-dataset, (not used with
+\item{dataFile}{Name of the data set of the base model (file or
+data.frame) that will be used to append the FREM-dataset, (not used with
 strUpdateType "NoData").}
 
 \item{cstrContCovsToAdd}{A vector of continuous covariate names to add,
@@ -61,12 +64,12 @@ add, default = NULL (i.e. alphabetic order will be used), (not used with
 strUpdateType "NoData"). Note: if used, this should contain all covariates
 in cstrCatCovsToAdd as well as cstrContCovsToAdd.}
 
-\item{strNewFREMData}{Name of the new dataset,
-default=paste0(strFREMData_without_extension,"new",".",extension), (not
+\item{newFremDataFile}{Name of the new dataset,
+default=paste0(fremDataFile_without_extension,"new",".",extension), (not
 used with strUpdateType "NoData").}
 
 \item{filterString}{Optional string with an R filter expression applied to
-the FFEM data before it is used, e.g. \code{"STUDYID == 1"}. Default
+the data of the base model before it is used, e.g. \code{"STUDYID == 1"}. Default
 \code{NULL} (no filtering).}
 
 \item{strUpdateType}{Update function to run: "DataAndModel" - Create new data
@@ -77,7 +80,7 @@ terms of new inits}
 \item{quiet}{If set to FALSE, the function outputs verbose information on
 what it is doing.}
 
-\item{strID}{A string with the ID identifier column in the FFEM dataset.}
+\item{strID}{A string with the ID identifier column in the data set.}
 
 \item{basenames_th}{A vector of strings with the names of the base variables
 (used for commenting thetas), should be the same length as number of
@@ -146,11 +149,20 @@ to pass through untouched for PsN compatibility. Defaults to FALSE.}
 only dosing records) are completely excluded from the generated dataset. If \code{TRUE},
 these subjects are retained and their covariates are included as observations.}
 
-\item{roundMeanTo}{Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to 2.}
+\item{roundMeanTo}{The rounding of the covariate means, the initial values of
+their THETAs. \code{NULL} (the default) keeps 3 significant digits and never
+fewer than 2 decimals, so 0.004321 is written as 0.00432 and 86.857 as
+86.86. A number is the number of decimals.}
 
 \item{fixTheta}{Logical. Should initial THETA estimates for covariates without missing values be fixed? Defaults to TRUE.}
 
 \item{sortFREMDataset}{Deprecated.}
+
+\item{strFREMData}{Deprecated; use \code{fremDataFile}.}
+
+\item{strFFEMData}{Deprecated; use \code{dataFile}.}
+
+\item{strNewFREMData}{Deprecated; use \code{newFremDataFile}.}
 }
 \value{
 An invisible list with components data and model, containing the new
@@ -179,25 +191,25 @@ file.copy(system.file("extdata/SimNeb/run31.mod", package = "PMXFrem"), td)
 file.copy(system.file("extdata/SimNeb/run31.ext", package = "PMXFrem"), td)
 
 updateFREMmodel(
-  strFREMModel      = file.path(td, "run31.mod"),
-  strFREMData       = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
-  strFFEMData       = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
-  cstrRemoveCov     = c("SEX"),
-  strNewFREMData    = file.path(td, "frem_dataset_noSEX.csv"),
-  numNonFREMThetas  = 7,
-  numSkipOm         = 2,
-  bWriteData        = TRUE,
-  bWriteMod         = TRUE,
-  quiet             = FALSE,
-  bWriteFIX         = TRUE,
-  cstrKeepCols      = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
+  strFREMModel = file.path(td, "run31.mod"),
+  fremDataFile = system.file("extdata/SimNeb/frem_dataset.dta", package = "PMXFrem"),
+  dataFile = system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem"),
+  cstrRemoveCov = c("SEX"),
+  newFremDataFile = file.path(td, "frem_dataset_noSEX.csv"),
+  numNonFREMThetas = 7,
+  numSkipOm = 2,
+  bWriteData = TRUE,
+  bWriteMod = TRUE,
+  quiet = FALSE,
+  bWriteFIX = TRUE,
+  cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "DV", "FOOD", "FREMTYPE")
 )
 
 ## Example 2: Add Covariates to a Model
 # This example adds a new categorical covariate, "SITE", to the model.
 td <- tempdir()
 
-# First, create a temporary FFEM dataset that includes the new covariate
+# First, create a temporary data set that includes the new covariate
 ffem_df <- as.data.frame(data.table::fread(
   system.file("extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 ))
@@ -213,16 +225,16 @@ file.copy(model_path, td)
 model_in_td <- file.path(td, "run31.mod")
 
 updateFREMmodel(
-  strFREMModel      = model_in_td,
-  strFREMData       = frem_data_path,
-  strFFEMData       = ffem_df, # Use the modified data frame with SITE
-  strNewFREMData    = file.path(td, "frem_data_with_SITE.csv"),
-  cstrCatCovsToAdd  = "SITE", # Add the new SITE covariate
-  numNonFREMThetas  = 7,
-  numSkipOm         = 2,
-  bWriteData        = TRUE,
-  bWriteMod         = TRUE,
-  quiet             = FALSE
+  strFREMModel = model_in_td,
+  fremDataFile = frem_data_path,
+  dataFile = ffem_df, # Use the modified data frame with SITE
+  newFremDataFile = file.path(td, "frem_data_with_SITE.csv"),
+  cstrCatCovsToAdd = "SITE", # Add the new SITE covariate
+  numNonFREMThetas = 7,
+  numSkipOm = 2,
+  bWriteData = TRUE,
+  bWriteMod = TRUE,
+  quiet = FALSE
 )
 
 ## Example 3: Add New Individuals to an Existing FREM Dataset
@@ -244,15 +256,15 @@ ffem_new_ids$ID <- ffem_new_ids$ID + max(frem_df$ID)
 model_path <- system.file("extdata/SimNeb/run31.mod", package = "PMXFrem")
 
 result <- updateFREMmodel(
-  strFREMModel      = model_path,
-  strFREMData       = frem_df, # Pass original data as a data frame
-  strFFEMData       = ffem_new_ids, # Pass the new individuals' data
-  strNewFREMData    = file.path(td, "frem_data_with_new_ids.csv"),
-  numNonFREMThetas  = 7,
-  numSkipOm         = 2,
-  bWriteData        = TRUE,
-  bWriteMod         = FALSE, # Model structure doesn't change
-  quiet             = FALSE
+  strFREMModel = model_path,
+  fremDataFile = frem_df, # Pass original data as a data frame
+  dataFile = ffem_new_ids, # Pass the new individuals' data
+  newFremDataFile = file.path(td, "frem_data_with_new_ids.csv"),
+  numNonFREMThetas = 7,
+  numSkipOm = 2,
+  bWriteData = TRUE,
+  bWriteMod = FALSE, # Model structure doesn't change
+  quiet = FALSE
 )
 
 # The returned data frame now contains the new IDs

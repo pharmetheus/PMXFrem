@@ -234,16 +234,7 @@ createFFEMmodel <- function(runno = NULL,
   ## Replace $DATA
   strData <- findrecord(basemodel, record = "\\$DATA", quiet = TRUE)
 
-  ## The file name is the first word after $DATA (quoted if it holds spaces);
-  ## swap it for the new file and keep the rest of the line - options and
-  ## IGNOREs - as it was. Built with paste0(), not a regex replacement, so a
-  ## Windows path keeps its backslashes.
-  parts <- regmatches(strData[1], regexec("^(\\s*\\$DATA\\s+)(\"[^\"]*\"|'[^']*'|\\S+)(.*)$", strData[1]))[[1]]
-  if (length(parts) == 4) {
-    strData[1] <- paste0(parts[2], newDataFile, parts[4])
-  }
-
-  tmp <- findrecord(tmp, record = "\\$DATA", replace = strData, quiet = TRUE)
+  tmp <- findrecord(tmp, record = "\\$DATA", replace = .fremSetDataFile(strData, newDataFile), quiet = TRUE)
 
   ## Replace $OMEGA
   if (!omegaToData) {
@@ -268,9 +259,19 @@ createFFEMmodel <- function(runno = NULL,
     tmp <- findrecord(tmp, record = "\\$OMEGA", replace = omg_lines, quiet = TRUE)
   }
 
-  ## Replace $THETA
-  thvalues <- dfExt[dfExt$ITERATION == -1000000000, names(dfExt)[grepl("THETA.*", names(dfExt))]][1:numNonFREMThetas]
-  tmp <- findrecord(tmp, record = "\\$THETA", replace = paste0("$THETA", " ", thvalues, " ; TH", 1:numNonFREMThetas))
+  ## Replace $THETA: the FREM estimates of the structural THETAs, with the
+  ## bounds, FIX and comments of the base model's $THETA record. The fixed
+  ## flags come from the .ext file when it has them.
+  thNames <- names(dfExt)[grepl("THETA.*", names(dfExt))]
+  thvalues <- as.numeric(dfExt[dfExt$ITERATION == -1000000000, thNames][1:numNonFREMThetas])
+  baseTheta <- findrecord(basemodel, record = "\\$THETA", quiet = TRUE)
+  fixRow <- dfExt[dfExt$ITERATION == -1000000006, thNames, drop = FALSE]
+  thfix <- if (nrow(fixRow) > 0) as.numeric(fixRow[1, ]) else .fremThetaFixFromText(baseTheta)
+  thcomment <- .fremThetaComments(baseTheta, paste0(" ; TH", 1:numNonFREMThetas))
+  tmp <- findrecord(tmp, record = "\\$THETA", replace = .fremThetaLines(
+    thvalues, thfix[1:numNonFREMThetas], baseTheta, thcomment,
+    quiet = quiet
+  ))
 
   ## Replace $SIGMA
   nosigma <- length(dfExt[dfExt$ITERATION == -1000000000, names(dfExt)[grepl("SIGMA.*", names(dfExt))]])

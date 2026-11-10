@@ -9,7 +9,7 @@
 #' @param strID Character string specifying the subject identifier column.
 #' @param cstrKeepCols Character vector of column names to keep in the final dataset.
 #' @param bWriteData Logical; if TRUE, write the new data file.
-#' @param strNewFREMData The file path for the new FREM dataset to be written.
+#' @param newFremDataFile The file path for the new FREM dataset to be written.
 #'
 #' @return The final, processed data frame.
 #'
@@ -20,7 +20,7 @@ finalizeFremData <- function(dfFREM,
                              strID,
                              cstrKeepCols,
                              bWriteData,
-                             strNewFREMData) {
+                             newFremDataFile) {
   if (is.null(dfFREM) || nrow(dfFREM) == 0) {
     return(dfFREM)
   }
@@ -67,7 +67,7 @@ finalizeFremData <- function(dfFREM,
 
   # Write file if requested
   if (bWriteData) {
-    write.csv(dfFREM, file = strNewFREMData, row.names = FALSE, quote = FALSE)
+    write.csv(dfFREM, file = newFremDataFile, row.names = FALSE, quote = FALSE)
     if (!("FREMTYPE" %in% names(dfFREM))) {
       warning("No FREMTYPE available in dataset, add in cstrKeepCols and rerun updateFREM")
     }

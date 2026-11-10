@@ -8,7 +8,7 @@ createFREMmodel(
   runno = NULL,
   modName = NULL,
   modDevDir = NULL,
-  ffemDataFile,
+  dataFile,
   covariates,
   numNonFREMThetas = NULL,
   outputDir = NULL,
@@ -19,7 +19,7 @@ createFREMmodel(
   IDvar = "ID",
   missVal = -99,
   fixTheta = TRUE,
-  roundMeanTo = 2,
+  roundMeanTo = NULL,
   useMuModeling = TRUE,
   numSkipOm = 0,
   cstrKeepCols = c("ID", "TIME", "AMT", "II", "EVID", "SS", "RATE", "DV"),
@@ -27,7 +27,9 @@ createFREMmodel(
   bRecodeDichotomous = FALSE,
   allowNon01 = FALSE,
   keepDoseOnlySubjects = FALSE,
-  ...
+  fremDataFile = NULL,
+  ...,
+  ffemDataFile = NULL
 )
 }
 \arguments{
@@ -37,7 +39,7 @@ createFREMmodel(
 
 \item{modDevDir}{Standard PMX model development directory.}
 
-\item{ffemDataFile}{Character. Path to the Full Fixed Effects Model (FFEM) dataset.}
+\item{dataFile}{Character. Path to the data set of the base model (one row per record, covariates as columns).}
 
 \item{covariates}{Character vector. The full list of covariates to include in the FREM model.
 For a base model \verb{$INPUT} item \code{label=synonym} either name may be given.
@@ -63,7 +65,10 @@ THETA column count). Supply it explicitly if the \code{.ext} is unavailable.}
 
 \item{fixTheta}{Logical. Should the initial THETA estimates for the covariates be fixed? Defaults to \code{TRUE}.}
 
-\item{roundMeanTo}{Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to \code{2}.}
+\item{roundMeanTo}{The rounding of the covariate means, the initial values of
+their THETAs. \code{NULL} (the default) keeps 3 significant digits and never
+fewer than 2 decimals, so 0.004321 is written as 0.00432 and 86.857 as
+86.86. A number is the number of decimals.}
 
 \item{useMuModeling}{Logical. Should MU-referencing be utilized when generating the NONMEM $PK and $ERROR blocks? Defaults to \code{TRUE}.}
 
@@ -92,7 +97,15 @@ to pass through untouched for PsN compatibility. Defaults to FALSE.}
 only dosing records) are completely excluded from the generated dataset. If \code{TRUE},
 these subjects are retained and their covariates are included as observations.}
 
+\item{fremDataFile}{The FREM data set to write. \code{NULL} (the default) writes
+\verb{<fremModName>_data.csv} next to the model and names it in \verb{$DATA} without
+a path. A path is written into \verb{$DATA} as given, for example
+\code{"../../ProducedData/frem_data.csv"}; a relative one is relative to the
+model, as NONMEM reads it, and missing directories are created.}
+
 \item{...}{Additional arguments strictly passed to the Phase 1 bootstrapper (\code{createFREMmodel_phase1}).}
+
+\item{ffemDataFile}{Deprecated; use \code{dataFile}.}
 }
 \value{
 An invisible list containing the file paths to the generated assets:
@@ -113,7 +126,7 @@ cleans up all intermediate files.
 # Setup paths using package extdata
 modDevDir <- system.file("extdata", "SimNeb", package = "PMXFrem")
 modName <- "run30"
-ffemDataFile <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
+dataFile <- system.file("extdata", "SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv", package = "PMXFrem")
 
 
 td <- tempfile(pattern = "frem_example_")
@@ -128,7 +141,7 @@ keep_cols <- c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV")
 generated_files <- createFREMmodel(
   modName = modName,
   modDevDir = modDevDir,
-  ffemDataFile = ffemDataFile,
+  dataFile = dataFile,
   covariates = covariates,
   logtCovs = "WT",
   catCovs = catCovs,
