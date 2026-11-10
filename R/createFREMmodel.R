@@ -71,10 +71,13 @@
 #' them, with the columns they use added to the data set and marked `=DROP` in
 #' `$INPUT`; editing those lists brings back the records they exclude, as in
 #' the base model. Everything else the FREM data set would leave out is marked
-#' in a column `FREMEXCL` and left out by `IGNORE=(FREMEXCL.EQN.1)`: subjects
+#' 1 in a column `FREMEXCL` and left out by `IGNORE=(FREMEXCL.EQN.1)`: subjects
 #' without observations, observations with a missing DV, and the records an
 #' `ACCEPT` list of the base model excludes (NONMEM cannot combine an `ACCEPT`
-#' list with an `IGNORE` list). `createFREMmodel()` checks that the new
+#' list with an `IGNORE` list). A subject whose observations the `IGNORE` lists
+#' all exclude is marked 2 and left out by `IGNORE=(FREMEXCL.EQN.2)`, since its
+#' dose and covariate records pass the lists; delete that line as well when the
+#' edited lists should bring such subjects back. `createFREMmodel()` checks that the new
 #' `$DATA` record leaves out exactly what the default leaves out, and stops
 #' otherwise. Covariate means and the other initial estimates come from the
 #' records the filters keep, as with the default.

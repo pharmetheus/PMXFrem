@@ -13,10 +13,14 @@ records as without the option; `createFREMmodel()` checks this.
 
 The `$DATA` record of the FREM model then excludes records in two ways. It
 has the `IGNORE` lists of the base model, unchanged: these are the ones to
-edit for the sensitivity analysis. It also has `IGNORE=(FREMEXCL.EQN.1)`, on a
-new data column `FREMEXCL` that is 1 on the records `createFREMmodel()`
-leaves out for other reasons, such as a subject without observations, and 0
-on all others.
+edit for the sensitivity analysis. It also has conditions on a new data
+column `FREMEXCL`:
+
+* `IGNORE=(FREMEXCL.EQN.1)` leaves out the records `createFREMmodel()` leaves
+  out for other reasons, such as a subject without observations.
+* `IGNORE=(FREMEXCL.EQN.2)` leaves out the subjects whose observations the
+  `IGNORE` lists all exclude. Delete it too when the edited lists should bring
+  them back.
 
 ## Consistent names for data set arguments
 

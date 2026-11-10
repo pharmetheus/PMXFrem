@@ -210,7 +210,7 @@ One more `$INPUT` form is handled: a `label=synonym` item such as `CP=DV` is rea
 
 By default the FREM data set holds only the records the base model uses: the records its `IGNORE` / `ACCEPT` lists exclude are left out, and the FREM model reads its data with `IGNORE=@` alone. A sensitivity analysis that brings some of them back - here, the observations below the limit of quantification that `run30` ignores with `IGNORE(BLQ.EQN.1)` - then needs a new FREM data set.
 
-With `keepIgnoredRecords = TRUE`, the FREM data set keeps every record, with covariate records for every subject, and the `$DATA` record of the FREM model leaves out the same records again. The `IGNORE` lists of the base model are carried as the base model has them, with the columns they use added to the data set and dropped in `$INPUT`. Anything else the default would leave out, such as a subject without observations or an observation with a missing DV, is marked in the column `FREMEXCL` and left out by `IGNORE=(FREMEXCL.EQN.1)`. NONMEM reads the same records as with the default, and `createFREMmodel()` checks that before it returns.
+With `keepIgnoredRecords = TRUE`, the FREM data set keeps every record, with covariate records for every subject, and the `$DATA` record of the FREM model leaves out the same records again. The `IGNORE` lists of the base model are carried as the base model has them, with the columns they use added to the data set (when the data set does not keep them already) and dropped in `$INPUT`. Anything else the default would leave out, such as a subject without observations or an observation with a missing DV, is marked 1 in the column `FREMEXCL` and left out by `IGNORE=(FREMEXCL.EQN.1)`. A subject whose observations the `IGNORE` lists all exclude is marked 2 and left out by `IGNORE=(FREMEXCL.EQN.2)`: its dose and covariate records pass the lists, so they would otherwise be read without its observations. NONMEM reads the same records as with the default, and `createFREMmodel()` checks that before it returns.
 
 ```{r keep_create}
 keep_files <- createFREMmodel(
@@ -224,4 +224,4 @@ keep_model <- readLines(keep_files$model)
 cat(keep_model[grep("^\\$INPUT", keep_model):(grep("^\\$SUBROUTINE", keep_model) - 1)], sep = "\n")
 ```
 
-For the sensitivity run, edit or remove the `IGNORE` list of the base model in this `$DATA` record. The `FREMEXCL` condition stays: the records it leaves out are not about the question the sensitivity analysis asks.
+For the sensitivity run, edit or remove the `IGNORE` list of the base model in this `$DATA` record. When the edit should bring back subjects that the lists left without observations, delete `IGNORE=(FREMEXCL.EQN.2)` as well. `IGNORE=(FREMEXCL.EQN.1)` stays: the records it leaves out are not about the question the sensitivity analysis asks.

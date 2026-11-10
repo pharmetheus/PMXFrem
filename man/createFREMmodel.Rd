@@ -137,10 +137,13 @@ model carries the \code{IGNORE} lists of the base model as the base model has
 them, with the columns they use added to the data set and marked \verb{=DROP} in
 \verb{$INPUT}; editing those lists brings back the records they exclude, as in
 the base model. Everything else the FREM data set would leave out is marked
-in a column \code{FREMEXCL} and left out by \code{IGNORE=(FREMEXCL.EQN.1)}: subjects
+1 in a column \code{FREMEXCL} and left out by \code{IGNORE=(FREMEXCL.EQN.1)}: subjects
 without observations, observations with a missing DV, and the records an
 \code{ACCEPT} list of the base model excludes (NONMEM cannot combine an \code{ACCEPT}
-list with an \code{IGNORE} list). \code{createFREMmodel()} checks that the new
+list with an \code{IGNORE} list). A subject whose observations the \code{IGNORE} lists
+all exclude is marked 2 and left out by \code{IGNORE=(FREMEXCL.EQN.2)}, since its
+dose and covariate records pass the lists; delete that line as well when the
+edited lists should bring such subjects back. \code{createFREMmodel()} checks that the new
 \verb{$DATA} record leaves out exactly what the default leaves out, and stops
 otherwise. Covariate means and the other initial estimates come from the
 records the filters keep, as with the default.

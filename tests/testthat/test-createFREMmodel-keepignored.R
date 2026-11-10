@@ -27,13 +27,14 @@ run30Copy <- function(dataLines = NULL, inputLines = NULL, env = parent.frame())
 }
 
 ## createFREMmodel() on a base model directory, with and without the option.
-fremBoth <- function(baseDir, dataFile, covariates = c("AGE", "WT"), ...) {
+fremBoth <- function(baseDir, dataFile, covariates = c("AGE", "WT"),
+                     keepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV"), ...) {
   run <- function(keep) {
     out <- withr::local_tempdir(.local_envir = parent.frame(2))
     suppressWarnings(createFREMmodel(
       modName = "run30", modDevDir = baseDir, dataFile = dataFile,
       covariates = covariates, numSkipOm = 2,
-      cstrKeepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV"),
+      cstrKeepCols = keepCols,
       outputDir = out, fremModName = "frem", quiet = TRUE,
       keepIgnoredRecords = keep, ...
     ))
@@ -147,4 +148,62 @@ test_that("a condition on a dropped column, and subjects with only dose records"
   expect_true(doseOnly %in% kept$ID)
   expect_true(all(kept$FREMEXCL[kept$ID == doseOnly] == 1))
   expect_true(any(grepl("IGNORE=(FREMEXCL.EQN.1)", readLines(res$kept$model), fixed = TRUE)))
+})
+
+test_that("no empty =DROP item when the data set keeps every column the conditions use", {
+  ## BLQ, the column of IGNORE(BLQ.EQN.1), is kept, so no column is added.
+  res <- fremBoth(run30Copy(), origData, keepCols = c("ID", "TIME", "AMT", "EVID", "RATE", "FOOD", "DV", "BLQ"))
+  inputRec <- findrecord(readLines(res$kept$model), record = "^[$]INP(U(T)?)?[[:space:]]", quiet = TRUE)
+  expect_false(any(grepl("(^|[[:space:]])=DROP", inputRec)))
+  expect_equal(seenByNonmem(res$kept$model, res$kept$data), defaultData(res$default))
+})
+
+test_that("a subject the conditions leave without observations comes back when they are edited", {
+  orig <- utils::read.csv(origData)
+  gone <- unique(orig$ID)[2]
+  orig$BLQ[orig$ID == gone & orig$EVID == 0] <- 1
+  dataFile <- file.path(withr::local_tempdir(), "data.csv")
+  utils::write.csv(orig, dataFile, row.names = FALSE, quote = FALSE)
+
+  res <- fremBoth(run30Copy(), dataFile)
+  default <- defaultData(res$default)
+  expect_false(gone %in% default$ID)
+  expect_equal(seenByNonmem(res$kept$model, res$kept$data), default)
+
+  ## Its records are marked 2, on a line of their own, apart from what the
+  ## default leaves out for reasons that have nothing to do with the
+  ## conditions.
+  kept <- utils::read.csv(res$kept$data)
+  expect_true(all(kept$FREMEXCL[kept$ID == gone] == 2))
+  mod <- readLines(res$kept$model)
+  expect_true(any(grepl("IGNORE=(FREMEXCL.EQN.2)", mod, fixed = TRUE)))
+
+  ## Removing the condition and that line brings back its observations and
+  ## its covariate records.
+  sens <- sub("IGNORE(BLQ.EQN.1)", "", mod, fixed = TRUE)
+  sens <- sens[!grepl("IGNORE=(FREMEXCL.EQN.2)", sens, fixed = TRUE)]
+  seen <- seenByNonmem(res$kept$model, res$kept$data, modelLines = sens)
+  nObs <- sum(orig$ID == gone & orig$EVID == 0 & orig$LNDV != -99)
+  expect_gt(nObs, 0)
+  expect_equal(sum(seen$ID == gone & seen$FREMTYPE == 0 & seen$EVID == 0), nObs)
+  expect_true(any(seen$ID == gone & seen$FREMTYPE > 0))
+})
+
+test_that("an observation with a missing DV stays out when a condition that also leaves it out is removed", {
+  orig <- utils::read.csv(origData)
+  row <- which(orig$BLQ == 1 & orig$EVID == 0)[1]
+  orig$LNDV[row] <- -99
+  dataFile <- file.path(withr::local_tempdir(), "data.csv")
+  utils::write.csv(orig, dataFile, row.names = FALSE, quote = FALSE)
+
+  res <- fremBoth(run30Copy(), dataFile)
+  expect_equal(seenByNonmem(res$kept$model, res$kept$data), defaultData(res$default))
+
+  mod <- sub("IGNORE(BLQ.EQN.1)", "", readLines(res$kept$model), fixed = TRUE)
+  seen <- seenByNonmem(res$kept$model, res$kept$data, modelLines = mod)
+  expect_false(any(seen$FREMTYPE == 0 & seen$EVID == 0 & seen$DV == -99))
+  expect_equal(
+    sum(seen$FREMTYPE == 0 & seen$EVID == 0 & seen$ID == orig$ID[row]),
+    sum(orig$ID == orig$ID[row] & orig$EVID == 0 & orig$LNDV != -99)
+  )
 })
