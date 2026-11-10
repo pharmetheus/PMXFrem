@@ -1259,6 +1259,7 @@ test_that("an additive FREM parameter is kept out of the exp() splice checks by 
   # entry, so it was excluded as not spliceable and the scale gate was never
   # reached. Now the reference places its eta, and only the scale keeps the
   # exp() splice from being applied to V = TVV + ETA(4).
+  skip_if(utils::packageVersion("PMXForest") < "1.4.1", "needs the additive etaMap of PMXForest 1.4.1")
   td <- withr::local_tempdir()
   m <- .fremModReplacing(td, "^V[[:space:]]+= EXP[(]MU_4", "V     = TVV + ETA(4)", "addv.mod")
   fl <- readLines(.ffemMod(), warn = FALSE)

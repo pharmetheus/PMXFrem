@@ -45,7 +45,6 @@ warning.
 
 ## Changes to existing behaviour
 
-* **PMXFrem now requires PMXForest 1.4.1 or later.**
 * **Small covariate means are no longer written as 0.** The initial value of
   a covariate mean THETA was rounded to 2 decimals, so a mean of 0.0043
   started from 0. The new default, `roundMeanTo = NULL`, keeps 3 significant
