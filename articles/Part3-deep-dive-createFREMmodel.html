@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.4.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,13 +94,13 @@
 <h2 id="setup-and-paths">1. Setup and Paths<a class="anchor" aria-label="anchor" href="#setup-and-paths"></a>
 </h2>
 <p>First, load the package and define the paths to your base model and original clinical dataset.</p>
-<p><code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> writes into <code>modDevDir</code> by default, and stops rather than overwrite an existing file with the same <code>fremModName</code>. This vignette writes into a temporary directory instead.</p>
+<p><code><a href="../reference/createFREMmodel.html">createFREMmodel()</a></code> writes into <code>modDevDir</code> by default, and stops rather than overwrite an existing file with the same <code>fremModName</code>. This vignette writes into a temporary directory instead. The FREM data set goes next to the model as <code>&lt;fremModName&gt;_data.csv</code>; to keep it with your other data sets, give its path in <code>fremDataFile</code>, for example <code>fremDataFile = "../../ProducedData/Dataset/frem_data.csv"</code>, which is also what <code>$DATA</code> will say.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">PMXFrem</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Define paths to example data and converged models</span></span>
 <span><span class="va">modDevDir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"SimNeb"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span>
-<span><span class="va">ffemDataFile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span>
+<span><span class="va">dataFile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Create a temporary directory for all generated outputs</span></span>
 <span><span class="va">td</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
@@ -169,7 +169,7 @@
 <code class="sourceCode R"><span><span class="va">generated_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/createFREMmodel.html">createFREMmodel</a></span><span class="op">(</span></span>
 <span>  modName <span class="op">=</span> <span class="st">"run30"</span>,</span>
 <span>  modDevDir <span class="op">=</span> <span class="va">modDevDir</span>,</span>
-<span>  ffemDataFile <span class="op">=</span> <span class="va">ffemDataFile</span>,</span>
+<span>  dataFile <span class="op">=</span> <span class="va">dataFile</span>,</span>
 <span>  outputDir <span class="op">=</span> <span class="va">td</span>,</span>
 <span>  fremModName <span class="op">=</span> <span class="st">"run30_FREM"</span>,</span>
 <span></span>
@@ -338,9 +338,9 @@
 <a class="sourceLine" id="cb6-106" data-line-number="106"><span class="op">$</span><span class="kw">THETA</span> (<span class="op">-</span><span class="dv">1</span>,<span class="fl">0.152505</span>,<span class="dv">3</span>) ; <span class="fl">7.</span> MATFOOD1</a>
 <a class="sourceLine" id="cb6-107" data-line-number="107"><span class="op">$</span>THETA <span class="fl">42.97</span> ; <span class="dv">8</span> TV_AGE</a>
 <a class="sourceLine" id="cb6-108" data-line-number="108"><span class="op">$</span>THETA <span class="fl">86.8</span> ; <span class="dv">9</span> TV_WT</a>
-<a class="sourceLine" id="cb6-109" data-line-number="109"><span class="op">$</span>THETA <span class="fl">0.44</span> FIX ; <span class="dv">10</span> TV_SEX_<span class="dv">2</span></a>
-<a class="sourceLine" id="cb6-110" data-line-number="110"><span class="op">$</span>THETA <span class="fl">0.2</span> ; <span class="dv">11</span> TV_RACEL_<span class="dv">2</span></a>
-<a class="sourceLine" id="cb6-111" data-line-number="111"><span class="op">$</span>THETA <span class="fl">0.02</span> ; <span class="dv">12</span> TV_RACEL_<span class="dv">3</span></a>
+<a class="sourceLine" id="cb6-109" data-line-number="109"><span class="op">$</span>THETA <span class="fl">0.441</span> FIX ; <span class="dv">10</span> TV_SEX_<span class="dv">2</span></a>
+<a class="sourceLine" id="cb6-110" data-line-number="110"><span class="op">$</span>THETA <span class="fl">0.195</span> ; <span class="dv">11</span> TV_RACEL_<span class="dv">2</span></a>
+<a class="sourceLine" id="cb6-111" data-line-number="111"><span class="op">$</span>THETA <span class="fl">0.0246</span> ; <span class="dv">12</span> TV_RACEL_<span class="dv">3</span></a>
 <a class="sourceLine" id="cb6-112" data-line-number="112"><span class="op">$</span>OMEGA <span class="kw">BLOCK</span>(<span class="dv">1</span>) <span class="fl">0.054943</span> ; <span class="fl">1.</span> IIV on RUV</a>
 <a class="sourceLine" id="cb6-113" data-line-number="113"><span class="op">$</span>OMEGA <span class="kw">BLOCK</span>(<span class="dv">1</span>) <span class="fl">1e-04</span> FIX ; <span class="fl">2.</span> IIV on D1</a>
 <a class="sourceLine" id="cb6-114" data-line-number="114"><span class="op">$</span>OMEGA <span class="kw">BLOCK</span>(<span class="dv">8</span>) </a>
@@ -391,7 +391,7 @@
 <span><span class="co">#&gt; [1] TRUE TRUE</span></span>
 <span></span>
 <span><span class="co"># The data with a visit date as its last column</span></span>
-<span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">ffemDataFile</span><span class="op">)</span></span>
+<span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">dataFile</span><span class="op">)</span></span>
 <span><span class="va">dat</span><span class="op">$</span><span class="va">VDATE</span> <span class="op">&lt;-</span> <span class="st">"2026-01-01"</span></span>
 <span><span class="va">dropData</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">dropDir</span>, <span class="st">"data.csv"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">dat</span>, <span class="va">dropData</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span>, quote <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -409,7 +409,7 @@
 <span><span class="co">#&gt;             CRCL BMI NCI GENO2 ETHNIC SMOK RACEL NCIL VDATE=DROP</span></span></code></pre></div>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">drop_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/createFREMmodel.html">createFREMmodel</a></span><span class="op">(</span></span>
-<span>  modName <span class="op">=</span> <span class="st">"run30"</span>, modDevDir <span class="op">=</span> <span class="va">dropDir</span>, ffemDataFile <span class="op">=</span> <span class="va">dropData</span>,</span>
+<span>  modName <span class="op">=</span> <span class="st">"run30"</span>, modDevDir <span class="op">=</span> <span class="va">dropDir</span>, dataFile <span class="op">=</span> <span class="va">dropData</span>,</span>
 <span>  outputDir <span class="op">=</span> <span class="va">dropDir</span>, fremModName <span class="op">=</span> <span class="st">"run30_FREM"</span>,</span>
 <span>  covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AGE"</span>, <span class="st">"WT"</span><span class="op">)</span>, numSkipOm <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  cstrKeepCols <span class="op">=</span> <span class="va">keep_cols</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span></span>

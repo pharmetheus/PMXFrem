@@ -18,7 +18,7 @@ cleans up all intermediate files."><!-- mathjax --><script src="https://cdnjs.cl
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.4.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -76,7 +76,7 @@ cleans up all intermediate files.</p>
 <span>  runno <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  modName <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  modDevDir <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  <span class="va">ffemDataFile</span>,</span>
+<span>  <span class="va">dataFile</span>,</span>
 <span>  <span class="va">covariates</span>,</span>
 <span>  numNonFREMThetas <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  outputDir <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -87,7 +87,7 @@ cleans up all intermediate files.</p>
 <span>  IDvar <span class="op">=</span> <span class="st">"ID"</span>,</span>
 <span>  missVal <span class="op">=</span> <span class="op">-</span><span class="fl">99</span>,</span>
 <span>  fixTheta <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  roundMeanTo <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  roundMeanTo <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  useMuModeling <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  numSkipOm <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  cstrKeepCols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ID"</span>, <span class="st">"TIME"</span>, <span class="st">"AMT"</span>, <span class="st">"II"</span>, <span class="st">"EVID"</span>, <span class="st">"SS"</span>, <span class="st">"RATE"</span>, <span class="st">"DV"</span><span class="op">)</span>,</span>
@@ -95,7 +95,9 @@ cleans up all intermediate files.</p>
 <span>  bRecodeDichotomous <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  allowNon01 <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  keepDoseOnlySubjects <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  <span class="va">...</span></span>
+<span>  fremDataFile <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="va">...</span>,</span>
+<span>  ffemDataFile <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -113,8 +115,8 @@ cleans up all intermediate files.</p>
 <dd><p>Standard PMX model development directory.</p></dd>
 
 
-<dt>ffemDataFile</dt>
-<dd><p>Character. Path to the Full Fixed Effects Model (FFEM) dataset.</p></dd>
+<dt>dataFile</dt>
+<dd><p>Character. Path to the data set of the base model (one row per record, covariates as columns).</p></dd>
 
 
 <dt>covariates</dt>
@@ -162,7 +164,10 @@ THETA column count). Supply it explicitly if the <code>.ext</code> is unavailabl
 
 
 <dt>roundMeanTo</dt>
-<dd><p>Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to <code>2</code>.</p></dd>
+<dd><p>The rounding of the covariate means, the initial values of
+their THETAs. <code>NULL</code> (the default) keeps 3 significant digits and never
+fewer than 2 decimals, so 0.004321 is written as 0.00432 and 86.857 as
+86.86. A number is the number of decimals.</p></dd>
 
 
 <dt>useMuModeling</dt>
@@ -206,8 +211,20 @@ only dosing records) are completely excluded from the generated dataset. If <cod
 these subjects are retained and their covariates are included as observations.</p></dd>
 
 
+<dt>fremDataFile</dt>
+<dd><p>The FREM data set to write. <code>NULL</code> (the default) writes
+<code>&lt;fremModName&gt;_data.csv</code> next to the model and names it in <code>$DATA</code> without
+a path. A path is written into <code>$DATA</code> as given, for example
+<code>"../../ProducedData/frem_data.csv"</code>; a relative one is relative to the
+model, as NONMEM reads it, and missing directories are created.</p></dd>
+
+
 <dt>...</dt>
 <dd><p>Additional arguments strictly passed to the Phase 1 bootstrapper (<code>createFREMmodel_phase1</code>).</p></dd>
+
+
+<dt>ffemDataFile</dt>
+<dd><p>Deprecated; use <code>dataFile</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -231,7 +248,7 @@ these subjects are retained and their covariates are included as observations.</
 <span class="r-in"><span><span class="co"># Setup paths using package extdata</span></span></span>
 <span class="r-in"><span><span class="va">modDevDir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"SimNeb"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">modName</span> <span class="op">&lt;-</span> <span class="st">"run30"</span></span></span>
-<span class="r-in"><span><span class="va">ffemDataFile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">dataFile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">td</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>pattern <span class="op">=</span> <span class="st">"frem_example_"</span><span class="op">)</span></span></span>
@@ -246,7 +263,7 @@ these subjects are retained and their covariates are included as observations.</
 <span class="r-in"><span><span class="va">generated_files</span> <span class="op">&lt;-</span> <span class="fu">createFREMmodel</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  modName <span class="op">=</span> <span class="va">modName</span>,</span></span>
 <span class="r-in"><span>  modDevDir <span class="op">=</span> <span class="va">modDevDir</span>,</span></span>
-<span class="r-in"><span>  ffemDataFile <span class="op">=</span> <span class="va">ffemDataFile</span>,</span></span>
+<span class="r-in"><span>  dataFile <span class="op">=</span> <span class="va">dataFile</span>,</span></span>
 <span class="r-in"><span>  covariates <span class="op">=</span> <span class="va">covariates</span>,</span></span>
 <span class="r-in"><span>  logtCovs <span class="op">=</span> <span class="st">"WT"</span>,</span></span>
 <span class="r-in"><span>  catCovs <span class="op">=</span> <span class="va">catCovs</span>,</span></span>
@@ -261,9 +278,9 @@ these subjects are retained and their covariates are included as observations.</
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># The generated files are available in the temporary directory</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">generated_files</span><span class="op">$</span><span class="va">model</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/Rtmp3tzdJL/frem_example_1df7795b0a8cda/frem_final.mod"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpjTum9T/frem_example_b4d7047a304b5/frem_final.mod"</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">generated_files</span><span class="op">$</span><span class="va">data</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/Rtmp3tzdJL/frem_example_1df7795b0a8cda/frem_final_data.csv"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpjTum9T/frem_example_b4d7047a304b5/frem_final_data.csv"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Clean up the temporary directory</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">td</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>

@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.3.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.4.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -62,12 +62,12 @@
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">updateFREMmodel</span><span class="op">(</span></span>
 <span>  <span class="va">strFREMModel</span>,</span>
-<span>  <span class="va">strFREMData</span>,</span>
-<span>  <span class="va">strFFEMData</span>,</span>
+<span>  <span class="va">fremDataFile</span>,</span>
+<span>  <span class="va">dataFile</span>,</span>
 <span>  cstrContCovsToAdd <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cstrCatCovsToAdd <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cstrCovsToAddOrder <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  strNewFREMData <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  newFremDataFile <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  filterString <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  strUpdateType <span class="op">=</span> <span class="st">"DataAndModel"</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -90,9 +90,12 @@
 <span>  bRecodeDichotomous <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  allowNon01 <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  keepDoseOnlySubjects <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  roundMeanTo <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  roundMeanTo <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  fixTheta <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  sortFREMDataset <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  sortFREMDataset <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  strFREMData <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  strFFEMData <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  strNewFREMData <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -103,14 +106,14 @@
 to/from.</p></dd>
 
 
-<dt>strFREMData</dt>
+<dt>fremDataFile</dt>
 <dd><p>Name of FREM-dataset (file or data.frame) to add/remove
 covariates to/from (not used with strUpdateType "NoData").</p></dd>
 
 
-<dt>strFFEMData</dt>
-<dd><p>Name of FFEM-dataset (normal dataset, (file or
-data.frame)) that will be used to append the FREM-dataset, (not used with
+<dt>dataFile</dt>
+<dd><p>Name of the data set of the base model (file or
+data.frame) that will be used to append the FREM-dataset, (not used with
 strUpdateType "NoData").</p></dd>
 
 
@@ -131,15 +134,15 @@ strUpdateType "NoData"). Note: if used, this should contain all covariates
 in cstrCatCovsToAdd as well as cstrContCovsToAdd.</p></dd>
 
 
-<dt>strNewFREMData</dt>
+<dt>newFremDataFile</dt>
 <dd><p>Name of the new dataset,
-default=paste0(strFREMData_without_extension,"new",".",extension), (not
+default=paste0(fremDataFile_without_extension,"new",".",extension), (not
 used with strUpdateType "NoData").</p></dd>
 
 
 <dt>filterString</dt>
 <dd><p>Optional string with an R filter expression applied to
-the FFEM data before it is used, e.g. <code>"STUDYID == 1"</code>. Default
+the data of the base model before it is used, e.g. <code>"STUDYID == 1"</code>. Default
 <code>NULL</code> (no filtering).</p></dd>
 
 
@@ -156,7 +159,7 @@ what it is doing.</p></dd>
 
 
 <dt>strID</dt>
-<dd><p>A string with the ID identifier column in the FFEM dataset.</p></dd>
+<dd><p>A string with the ID identifier column in the data set.</p></dd>
 
 
 <dt>basenames_th</dt>
@@ -261,7 +264,10 @@ these subjects are retained and their covariates are included as observations.</
 
 
 <dt>roundMeanTo</dt>
-<dd><p>Numeric. The number of decimal places to round the calculated baseline covariate means. Defaults to 2.</p></dd>
+<dd><p>The rounding of the covariate means, the initial values of
+their THETAs. <code>NULL</code> (the default) keeps 3 significant digits and never
+fewer than 2 decimals, so 0.004321 is written as 0.00432 and 86.857 as
+86.86. A number is the number of decimals.</p></dd>
 
 
 <dt>fixTheta</dt>
@@ -270,6 +276,18 @@ these subjects are retained and their covariates are included as observations.</
 
 <dt>sortFREMDataset</dt>
 <dd><p>Deprecated.</p></dd>
+
+
+<dt>strFREMData</dt>
+<dd><p>Deprecated; use <code>fremDataFile</code>.</p></dd>
+
+
+<dt>strFFEMData</dt>
+<dd><p>Deprecated; use <code>dataFile</code>.</p></dd>
+
+
+<dt>strNewFREMData</dt>
+<dd><p>Deprecated; use <code>newFremDataFile</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -311,18 +329,18 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">updateFREMmodel</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  strFREMModel      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"run31.mod"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  strFREMData       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/frem_dataset.dta"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  strFFEMData       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  cstrRemoveCov     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"SEX"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  strNewFREMData    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"frem_dataset_noSEX.csv"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  numNonFREMThetas  <span class="op">=</span> <span class="fl">7</span>,</span></span>
-<span class="r-in"><span>  numSkipOm         <span class="op">=</span> <span class="fl">2</span>,</span></span>
-<span class="r-in"><span>  bWriteData        <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>  bWriteMod         <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>  quiet             <span class="op">=</span> <span class="cn">FALSE</span>,</span></span>
-<span class="r-in"><span>  bWriteFIX         <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>  cstrKeepCols      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ID"</span>, <span class="st">"TIME"</span>, <span class="st">"AMT"</span>, <span class="st">"EVID"</span>, <span class="st">"RATE"</span>, <span class="st">"DV"</span>, <span class="st">"FOOD"</span>, <span class="st">"FREMTYPE"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  strFREMModel <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"run31.mod"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  fremDataFile <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/frem_dataset.dta"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  dataFile <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  cstrRemoveCov <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"SEX"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  newFremDataFile <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"frem_dataset_noSEX.csv"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  numNonFREMThetas <span class="op">=</span> <span class="fl">7</span>,</span></span>
+<span class="r-in"><span>  numSkipOm <span class="op">=</span> <span class="fl">2</span>,</span></span>
+<span class="r-in"><span>  bWriteData <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  bWriteMod <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span></span>
+<span class="r-in"><span>  bWriteFIX <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  cstrKeepCols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ID"</span>, <span class="st">"TIME"</span>, <span class="st">"AMT"</span>, <span class="st">"EVID"</span>, <span class="st">"RATE"</span>, <span class="st">"DV"</span>, <span class="st">"FOOD"</span>, <span class="st">"FREMTYPE"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Found a continuous covariate to remove SEX with FREMTYPE=1100"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Removing all unwanted fremtypes from FREM dataset, in total 730 observations"</span>
@@ -345,7 +363,7 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-in"><span><span class="co"># This example adds a new categorical covariate, "SITE", to the model.</span></span></span>
 <span class="r-in"><span><span class="va">td</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># First, create a temporary FFEM dataset that includes the new covariate</span></span></span>
+<span class="r-in"><span><span class="co"># First, create a temporary data set that includes the new covariate</span></span></span>
 <span class="r-in"><span><span class="va">ffem_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fread.html" class="external-link">fread</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/DAT-2-MI-PMX-2-onlyTYPE2-new.csv"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span><span class="op">)</span></span></span>
@@ -363,16 +381,16 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-in"><span><span class="va">model_in_td</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"run31.mod"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">updateFREMmodel</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  strFREMModel      <span class="op">=</span> <span class="va">model_in_td</span>,</span></span>
-<span class="r-in"><span>  strFREMData       <span class="op">=</span> <span class="va">frem_data_path</span>,</span></span>
-<span class="r-in"><span>  strFFEMData       <span class="op">=</span> <span class="va">ffem_df</span>, <span class="co"># Use the modified data frame with SITE</span></span></span>
-<span class="r-in"><span>  strNewFREMData    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"frem_data_with_SITE.csv"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  cstrCatCovsToAdd  <span class="op">=</span> <span class="st">"SITE"</span>, <span class="co"># Add the new SITE covariate</span></span></span>
-<span class="r-in"><span>  numNonFREMThetas  <span class="op">=</span> <span class="fl">7</span>,</span></span>
-<span class="r-in"><span>  numSkipOm         <span class="op">=</span> <span class="fl">2</span>,</span></span>
-<span class="r-in"><span>  bWriteData        <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>  bWriteMod         <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>  quiet             <span class="op">=</span> <span class="cn">FALSE</span></span></span>
+<span class="r-in"><span>  strFREMModel <span class="op">=</span> <span class="va">model_in_td</span>,</span></span>
+<span class="r-in"><span>  fremDataFile <span class="op">=</span> <span class="va">frem_data_path</span>,</span></span>
+<span class="r-in"><span>  dataFile <span class="op">=</span> <span class="va">ffem_df</span>, <span class="co"># Use the modified data frame with SITE</span></span></span>
+<span class="r-in"><span>  newFremDataFile <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"frem_data_with_SITE.csv"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  cstrCatCovsToAdd <span class="op">=</span> <span class="st">"SITE"</span>, <span class="co"># Add the new SITE covariate</span></span></span>
+<span class="r-in"><span>  numNonFREMThetas <span class="op">=</span> <span class="fl">7</span>,</span></span>
+<span class="r-in"><span>  numSkipOm <span class="op">=</span> <span class="fl">2</span>,</span></span>
+<span class="r-in"><span>  bWriteData <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  bWriteMod <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  quiet <span class="op">=</span> <span class="cn">FALSE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Variables already in FREM model (n=16): AGE ALT AST BILI BMI BSA CRCL ETHNIC GENO2 HT LBWT NCIL RACEL SEX SMOK WT"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Categorical covariates that will be added to FREM (n=1): SITE"</span>
@@ -404,15 +422,15 @@ model file name will be 'stem'_new.mod).</p>
 <span class="r-in"><span><span class="va">model_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/SimNeb/run31.mod"</span>, package <span class="op">=</span> <span class="st">"PMXFrem"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">updateFREMmodel</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  strFREMModel      <span class="op">=</span> <span class="va">model_path</span>,</span></span>
-<span class="r-in"><span>  strFREMData       <span class="op">=</span> <span class="va">frem_df</span>, <span class="co"># Pass original data as a data frame</span></span></span>
-<span class="r-in"><span>  strFFEMData       <span class="op">=</span> <span class="va">ffem_new_ids</span>, <span class="co"># Pass the new individuals' data</span></span></span>
-<span class="r-in"><span>  strNewFREMData    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"frem_data_with_new_ids.csv"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  numNonFREMThetas  <span class="op">=</span> <span class="fl">7</span>,</span></span>
-<span class="r-in"><span>  numSkipOm         <span class="op">=</span> <span class="fl">2</span>,</span></span>
-<span class="r-in"><span>  bWriteData        <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>  bWriteMod         <span class="op">=</span> <span class="cn">FALSE</span>, <span class="co"># Model structure doesn't change</span></span></span>
-<span class="r-in"><span>  quiet             <span class="op">=</span> <span class="cn">FALSE</span></span></span>
+<span class="r-in"><span>  strFREMModel <span class="op">=</span> <span class="va">model_path</span>,</span></span>
+<span class="r-in"><span>  fremDataFile <span class="op">=</span> <span class="va">frem_df</span>, <span class="co"># Pass original data as a data frame</span></span></span>
+<span class="r-in"><span>  dataFile <span class="op">=</span> <span class="va">ffem_new_ids</span>, <span class="co"># Pass the new individuals' data</span></span></span>
+<span class="r-in"><span>  newFremDataFile <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"frem_data_with_new_ids.csv"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  numNonFREMThetas <span class="op">=</span> <span class="fl">7</span>,</span></span>
+<span class="r-in"><span>  numSkipOm <span class="op">=</span> <span class="fl">2</span>,</span></span>
+<span class="r-in"><span>  bWriteData <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  bWriteMod <span class="op">=</span> <span class="cn">FALSE</span>, <span class="co"># Model structure doesn't change</span></span></span>
+<span class="r-in"><span>  quiet <span class="op">=</span> <span class="cn">FALSE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Variables already in FREM model (n=16): AGE ALT AST BILI BMI BSA CRCL ETHNIC GENO2 HT LBWT NCIL RACEL SEX SMOK WT"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Found 4 individuals that should be added to the FREM dataset"</span>
