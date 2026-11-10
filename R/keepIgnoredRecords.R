@@ -10,12 +10,15 @@
 #'   the values of those columns from the first record of its subject that the
 #'   lists keep, or from the first record when they keep none, so it is kept
 #'   exactly when its subject is.
-#' * a proxy for the rest: the column `FREMEXCL`, 1 on a record the lists keep
-#'   but the usual data set leaves out (an observation with a missing DV), and
-#'   on every record of a subject left out for having no observations, and
-#'   `IGNORE=(FREMEXCL.EQN.1)`. An `ACCEPT`
+#' * a proxy for the rest: the column `FREMEXCL`, 1 on an observation with a
+#'   missing DV and on every record of a subject with no observations at all,
+#'   left out by `IGNORE=(FREMEXCL.EQN.1)`. An `ACCEPT`
 #'   list of the base model goes into the proxy too, since NONMEM allows no
 #'   `ACCEPT` list next to an `IGNORE` list (NONMEM help, `$DATA`).
+#' * `FREMEXCL` 2 on every record of a subject whose observations the
+#'   `IGNORE` lists all leave out, and `IGNORE=(FREMEXCL.EQN.2)`: its dose and
+#'   covariate records pass the lists. A sensitivity run deletes that line
+#'   along with the conditions it edits.
 #'
 #' Subjects that the usual data set leaves out altogether get covariate
 #' records, from a run on the data set without the filters (`rerun`), so that
@@ -42,12 +45,6 @@
   items <- .fremInputItems(findrecord(baseLines, record = "^\\$INP(U(T)?)?\\s", quiet = TRUE))
   synonyms <- .fremInputSynonyms(items)
   filterLists <- .fremFilterLists(findrecord(baseLines, record = "\\$DATA", quiet = TRUE))
-  if (length(filterLists$conditions) + 1 > 100) {
-    stop("keepIgnoredRecords: NONMEM allows up to 100 IGNORE / ACCEPT conditions, and the base model ",
-      "has ", length(filterLists$conditions), " before the one this option adds.",
-      call. = FALSE
-    )
-  }
 
   ## --- The original data set, its columns named by position as $INPUT names them
   if (is.data.frame(dataFile)) {
@@ -137,12 +134,30 @@
     for (cc in extraCols) text[[cc]] <- raw[[cc]][src]
     .fremFilterKeep(baseModelFile, wide, quiet = TRUE, rawData = text, synonyms = synonyms)
   }
-  ## A subject left out for having no observations is left out whole: its
-  ## records the base conditions exclude too, so that a sensitivity run that
-  ## edits those conditions cannot bring back part of it.
-  subjOut <- unique(ids[!subjOK])
-  fremExcl <- as.integer((passF & !inD) | dfF[[strID]] %in% subjOut)
-  useProxy <- any(fremExcl == 1)
+  ## 1: left out whatever the conditions say - an observation with a missing
+  ## DV, a subject with no observations at all, and with an ACCEPT list
+  ## everything the list leaves out. A subject is left out whole, so that a
+  ## sensitivity run cannot bring back part of it.
+  ## 2: a subject with observations, all of which the IGNORE conditions leave
+  ## out. Its dose and covariate records pass the conditions, so it needs the
+  ## proxy too, on a line of its own that a sensitivity run deletes with them.
+  dvOKF <- c(dvOK, rep(TRUE, nrow(covRows) + nrow(extra)))[ord]
+  recOK <- c(passBase & dvOK, rep(TRUE, nrow(covRows) + nrow(extra)))[ord]
+  subjAny <- if (keepDoseOnlySubjects || !hasEvid) rep(TRUE, nrow(num)) else ids %in% unique(ids[evid == 0])
+  subjNone <- unique(ids[!subjAny])
+  subjCond <- setdiff(unique(ids[!subjOK]), subjNone)
+  editable <- identical(filterLists$kind, "IGNORE")
+  excl1 <- !dvOKF | (passF & !recOK) | dfF[[strID]] %in% subjNone | (!editable & dfF[[strID]] %in% subjCond)
+  excl2 <- !excl1 & editable & dfF[[strID]] %in% subjCond
+  fremExcl <- ifelse(excl1, 1L, ifelse(excl2, 2L, 0L))
+  useProxy <- any(fremExcl > 0)
+  nProxy <- any(fremExcl == 1) + any(fremExcl == 2)
+  if (length(filterLists$conditions) + nProxy > 100) {
+    stop("keepIgnoredRecords: NONMEM allows up to 100 IGNORE / ACCEPT conditions, and the base model ",
+      "has ", length(filterLists$conditions), " before the ", nProxy, " this option adds.",
+      call. = FALSE
+    )
+  }
   if (useProxy) dfF$FREMEXCL <- fremExcl
   rownames(dfF) <- NULL
   utils::write.csv(dfF, finalDataPath, row.names = FALSE, quote = FALSE)
@@ -155,7 +170,12 @@
       call. = FALSE
     )
   }
-  dropItems <- c(paste0(filterLabel[match(extraCols, filterCols)], "=DROP"), if (useProxy) "FREMEXCL=DROP")
+  ## paste0() of a zero-length vector gives a bare "=DROP", so only when there
+  ## are columns to add.
+  dropItems <- c(
+    if (length(extraCols)) paste0(filterLabel[match(extraCols, filterCols)], "=DROP"),
+    if (useProxy) "FREMEXCL=DROP"
+  )
   mod <- findrecord(mod,
     record = "^\\$INP(U(T)?)?\\s",
     replace = c(paste("$INPUT", paste(cols, collapse = " ")), if (length(dropItems)) paste("      ", paste(dropItems, collapse = " "))),
@@ -177,12 +197,20 @@
       paste(";", filterLists$lists)
     )
   }
-  if (useProxy) {
+  if (any(fremExcl == 1)) {
     newData <- c(
       newData,
       "; FREMEXCL = 1: a record the FREM data set leaves out for another reason (a subject",
       "; without observations, an observation with a missing DV).",
       "       IGNORE=(FREMEXCL.EQN.1)"
+    )
+  }
+  if (any(fremExcl == 2)) {
+    newData <- c(
+      newData,
+      "; FREMEXCL = 2: a subject whose observations the IGNORE conditions above all leave out.",
+      "; Delete this line too when an edit of those conditions should bring such subjects back.",
+      "       IGNORE=(FREMEXCL.EQN.2)"
     )
   }
   mod <- findrecord(mod, record = "\\$DATA", replace = newData, quiet = TRUE)
