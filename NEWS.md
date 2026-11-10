@@ -1,27 +1,5 @@
 # PMXFrem (development version)
 
-## FREM models for sensitivity analyses on excluded records
-
-A sensitivity analysis often brings back records the base model excludes
-with `IGNORE`, for example observations below the limit of quantification.
-`createFREMmodel()` used to leave those records out of the FREM data set, so
-the analysis needed a new data set.
-
-`createFREMmodel()` now gains `keepIgnoredRecords` (default `FALSE`). With
-`TRUE`, the FREM data set keeps every record, and NONMEM still reads the same
-records as without the option; `createFREMmodel()` checks this.
-
-The `$DATA` record of the FREM model then excludes records in two ways. It
-has the `IGNORE` lists of the base model, unchanged: these are the ones to
-edit for the sensitivity analysis. It also has conditions on a new data
-column `FREMEXCL`:
-
-* `IGNORE=(FREMEXCL.EQN.1)` leaves out the records `createFREMmodel()` leaves
-  out for other reasons, such as a subject without observations.
-* `IGNORE=(FREMEXCL.EQN.2)` leaves out the subjects whose observations the
-  `IGNORE` lists all exclude. Delete it too when the edited lists should bring
-  them back.
-
 ## Consistent names for data set arguments
 
 The arguments that take the data set of the base model, or the FREM data set,

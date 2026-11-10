@@ -17,17 +17,17 @@ from `main`, `DESCRIPTION` `2.3.1.9000`, one PR per item into it:
    set `fremDataFile`; "FFEM" only for the data set of individual covariate
    effects. Old names deprecated (PRRS-327).
 5. `createFREMmodel(fremDataFile =)` (PRRS-327).
-6. `keepIgnoredRecords`: all records in the FREM data set, the base model's
-   IGNORE/ACCEPT carried into `$DATA`, proxies for the rest, so NONMEM sees
-   the same records (PRRS-322).
+6. ~~`keepIgnoredRecords`~~ (PRRS-322): withdrawn 2026-11-10. Niclas and
+   Siv decided that keeping every record gets too complicated; a sensitivity
+   analysis on excluded records needs a new base model run and a new
+   `createFREMmodel()` call. The option (#107, #111) was reverted before any
+   release.
 
 The version number is an assumption; merging into `main` and the tag are
 Niclas's go-ahead.
 
-Status 2026-11-09: 1-6 merged (#102-#107); #107 merged on Niclas's word
-before Siv's point on the order of TRTN "when all records are included" was
-known - add a test case if the answer needs one. NEWS reviewed once by
-Niclas; the first section reworded.
+Status 2026-11-10: 1-5 merged (#102-#106); 6 merged (#107) and reverted.
+NEWS reviewed once by Niclas; its first section, on item 6, is removed.
 
 Open, outside the code:
 - PRRS-293: the report template `Eq_final_cov_mod.Rnw` (ReportBuilder
