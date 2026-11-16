@@ -1,5 +1,14 @@
 # PMXFrem (development version)
 
+## Changes to existing behaviour
+
+* **FFEM data sets have the subjects of the FREM fit.**
+  `createFFEMdata()` and `createFFEMmodel()` kept every subject of the data
+  set, so the FFEM model could read subjects that the FREM model left out,
+  such as subjects with only dose records. They now keep the subjects listed
+  in the `.phi` file of the FREM model. The new argument
+  `keepDoseOnlySubjects = TRUE` keeps every subject, as before.
+
 # PMXFrem 2.4.0
 
 ## Consistent names for data set arguments
