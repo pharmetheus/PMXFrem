@@ -17,6 +17,14 @@ source. A function written by hand carries no names and is not checked.
 
 ## Changes to existing behaviour
 
+* **Two warnings of `getForestDFFREM()` are removed.** With `quiet = FALSE`,
+  "Not all covariates in frem model are present in dfCovs" was given whenever
+  FREM covariates were left out of `dfCovs`, which is the usual case. "Can't
+  find some of the covariates ... perhaps they are structural covariates!"
+  was given once per row and parameter vector, also for structural
+  covariates read correctly. A misspelled name is now reported by the
+  covariate-name check instead.
+
 * **FFEM data sets have the subjects of the FREM fit.**
   `createFFEMdata()` and `createFFEMmodel()` kept every subject of the data
   set, so the FFEM model could read subjects that the FREM model left out,

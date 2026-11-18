@@ -509,3 +509,43 @@ test_that("the covariate-name check compares the columns after one-hot encoding"
   expect_length(ws, 1)
   expect_setequal(ws[[1]][["unread"]], c("RACEL2", "RACEL3"))
 })
+
+## The warnings of one call with quiet = FALSE, muffled; the FFEM printout of
+## quiet = FALSE is captured and dropped.
+.allWarnings <- function(s, dfCovs, functionList = list(s$fun)) {
+  ws <- list()
+  utils::capture.output(withCallingHandlers(
+    getForestDFFREM(
+      dfCovs = dfCovs, runno = 31, modDevDir = s$md, dfParameters = s$dfPar,
+      functionList = functionList, functionListName = s$functionListName,
+      quiet = FALSE
+    ),
+    warning = function(w) {
+      ws[[length(ws) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  ))
+  ws
+}
+
+test_that("a subset of FREM covariates and a structural covariate give no warning with quiet = FALSE", {
+  ## This call used to warn "Not all covariates in frem model are present in
+  ## dfCovs" once, and "Can't find some of the covariates: FOOD" once per FOOD
+  ## row and parameter vector, though every name is right.
+  s <- .covCheckSetup()
+  dfCovs <- data.frame(
+    COVARIATEGROUPS = c("WT", "WT", "FOOD"),
+    WT = c(50, 100, -99),
+    FOOD = c(-99, -99, 0)
+  )
+  expect_length(.allWarnings(s, dfCovs), 0)
+  ## a hand-written function too, which the covariate-name check skips
+  expect_length(.allWarnings(s, dfCovs, functionList = list(s$handFun)), 0)
+})
+
+test_that("a misspelled name gives the covariate-name warning alone with quiet = FALSE", {
+  s <- .covCheckSetup()
+  ws <- .allWarnings(s, .dfCovsSep)
+  expect_length(ws, 1)
+  expect_s3_class(ws[[1]], "pmxCovariateMismatch")
+})

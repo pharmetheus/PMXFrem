@@ -263,9 +263,11 @@ getForestDFFREM <- function(dfCovs,
     functionList, covNames, setdiff(names(dfCovs), "COVARIATEGROUPS")
   )
 
-  # If a needed covariate is not present in dfCovs, set it to missing
+  ## A FREM covariate that dfCovs lacks is set to missing on every row, so
+  ## that the FFEM conditions only on the covariates given. Leaving some out
+  ## is the usual case and gives no message; a misspelled name is reported by
+  ## the check above.
   if (!all(covNames %in% names(dfCovs))) {
-    if (!quiet) warning("Not all covariates in frem model are present in dfCovs, setting them to missing")
     dfCovs[, covNames[!(covNames %in% names(dfCovs))]] <- missVal
   }
 
@@ -332,12 +334,6 @@ getForestDFFREM <- function(dfCovs,
     p <- 0L
 
     for (i in seq_len(nrow(dfCovs))) {
-      currentNames <- names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal]
-
-      if (any(!currentNames %in% covNames) && !quiet) {
-        warning(paste0("Can't find some of the covariates: ", currentNames, " in the FREM model, perhaps they are structural covariates!"))
-      }
-
       ## Calculate the ffemObj in case reference covariates have been specified
       if (!is.null(dfRefRow)) {
         indi <- min(i, nrow(dfRefRow))
