@@ -151,6 +151,29 @@ Create a data frame with the input to the \code{forestPlot} function in the
 \code{PMXForest} package. Statistics for covariate combination in the input
 data frame will be computed.
 }
+\details{
+\strong{Covariate names are checked against the FREM model and a generated
+parameter function.} A function made by \code{\link[=createFREMParamFunction]{createFREMParamFunction()}}
+carries the names of the structural covariates it reads, as the attribute
+\code{pmxCovariates}. \code{getForestDFFREM()} compares the columns of \code{dfCovs},
+after the encoding set by \code{oneHot} and without \code{COVARIATEGROUPS}, with
+those names and with the FREM covariates in \code{covNames}. It warns when two
+differences occur together: a column that is neither a FREM covariate nor
+read by a function in \code{functionList}, so that the rows on which only that
+column is set have no effect, and a covariate of the model that \code{dfCovs}
+lacks. A name spelled differently from the model always gives that pair,
+for example \code{RACEL2} in \code{dfCovs} for the FREM covariate \code{RACEL_2} (the
+separator, \code{sep} in \code{\link[PMXForest:setupDfCovs]{PMXForest::setupDfCovs()}} or \code{oneHotSep}), or a
+\code{RACEL_1} column for \code{RACEL_3} (the reference level, \code{catRef} in
+\code{\link[PMXForest:setupDfCovs]{PMXForest::setupDfCovs()}}). Either difference alone gives no warning.
+Most Forest plots leave some FREM covariates out of \code{dfCovs}, so in
+practice a column that nothing reads is reported whenever it occurs. A
+hand-written function carries no names, so no check is made when
+\code{functionList} holds one. The warning is given whatever the value of
+\code{quiet}. It has the class \code{pmxCovariateMismatch}, so an intended pair can
+be silenced alone:
+\code{withCallingHandlers(getForestDFFREM(...), pmxCovariateMismatch = function(w) invokeRestart("muffleWarning"))}.
+}
 \examples{
 \donttest{
 # 1. Setup paths to model and bootstrap results

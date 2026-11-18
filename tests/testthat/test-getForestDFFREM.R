@@ -379,3 +379,173 @@ test_that("a dfRefRow from setupDfRefRow() is accepted without coercion warnings
   expect_equal(length(unique(res$REFFUNC)), 1)
   expect_true(all(is.finite(res$POINT)))
 })
+
+# ---------------------------------------------------------------------------
+# covariate names of dfCovs against the FREM model and the parameter function
+# ---------------------------------------------------------------------------
+
+## run31 with the function from createFREMParamFunction(), which reads the
+## structural covariate FOOD, and two copies of the final estimates.
+.covCheckSetup <- function() {
+  md <- system.file("extdata/SimNeb", package = "PMXFrem")
+  mod <- file.path(md, "run31.mod")
+  ext <- getExt(extFile = file.path(md, "run31.ext"))
+  out <- createFREMParamFunction(mod, parameters = c("CL", "V", "MAT"), quiet = TRUE)
+  fun <- eval(parse(text = out$code))
+  list(
+    md = md,
+    covNames = getCovNames(modFile = mod)$covNames,
+    fun = fun,
+    ## the same function written by hand: same values, no list of covariates
+    handFun = function(basethetas, covthetas, dfrow, ...) {
+      fun(basethetas, covthetas, dfrow, ...)
+    },
+    functionListName = out$functionListName,
+    dfPar = ext[ext$ITERATION == -1000000000, -1][rep(1, 2), ]
+  )
+}
+
+## The pmxCovariateMismatch warnings of one call, muffled; others pass through.
+.covMismatches <- function(s, dfCovs, functionList = list(s$fun),
+                           functionListName = s$functionListName, ...) {
+  ws <- list()
+  withCallingHandlers(
+    getForestDFFREM(
+      dfCovs = dfCovs, runno = 31, modDevDir = s$md, dfParameters = s$dfPar,
+      functionList = functionList, functionListName = functionListName,
+      quiet = TRUE, ...
+    ),
+    pmxCovariateMismatch = function(w) {
+      ws[[length(ws) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  )
+  ws
+}
+
+## RACEL2 / RACEL3 for the FREM covariates RACEL_2 / RACEL_3: a separator error
+.dfCovsSep <- data.frame(
+  COVARIATEGROUPS = c("WT", "WT", "RACEL", "RACEL"),
+  WT = c(50, 100, -99, -99),
+  RACEL2 = c(-99, -99, 1, 0),
+  RACEL3 = c(-99, -99, 0, 1),
+  stringsAsFactors = FALSE
+)
+
+test_that("a FREM covariate named with the wrong separator gives one pmxCovariateMismatch warning", {
+  s <- .covCheckSetup()
+  ws <- .covMismatches(s, .dfCovsSep)
+  expect_length(ws, 1)
+  w <- ws[[1]]
+  expect_s3_class(w, "warning")
+  expect_setequal(w[["unread"]], c("RACEL2", "RACEL3"))
+  ## every FREM covariate but WT, and the structural FOOD
+  expect_setequal(w[["absent"]], c(setdiff(s$covNames, "WT"), "FOOD"))
+  expect_match(conditionMessage(w), "RACEL2, RACEL3")
+  expect_match(conditionMessage(w), "oneHotSep")
+  expect_match(conditionMessage(w), "catRef")
+})
+
+test_that("a misspelled structural covariate gives a pmxCovariateMismatch warning", {
+  s <- .covCheckSetup()
+  dfCovs <- data.frame(
+    COVARIATEGROUPS = c("WT", "WT", "FOOD"),
+    WT = c(50, 100, -99),
+    FOD = c(-99, -99, 0)
+  )
+  ws <- .covMismatches(s, dfCovs)
+  expect_length(ws, 1)
+  expect_identical(ws[[1]][["unread"]], "FOD")
+  expect_true("FOOD" %in% ws[[1]][["absent"]])
+})
+
+test_that("a structural covariate the function reads is not reported as unread", {
+  s <- .covCheckSetup()
+  dfCovs <- data.frame(
+    COVARIATEGROUPS = c("WT", "WT", "FOOD"),
+    WT = c(50, 100, -99),
+    FOOD = c(-99, -99, 0)
+  )
+  expect_length(.covMismatches(s, dfCovs), 0)
+})
+
+test_that("a subset of the covariates alone gives no pmxCovariateMismatch warning", {
+  s <- .covCheckSetup()
+  dfCovs <- PMXForest::createInputForestData(list(WT = c(50, 100), SEX = c(1, 2)))
+  expect_length(.covMismatches(s, dfCovs), 0)
+})
+
+test_that("an unread column alone gives no pmxCovariateMismatch warning", {
+  s <- .covCheckSetup()
+  ## every FREM covariate and FOOD, plus a column nothing reads
+  cols <- c(s$covNames, "FOOD", "EXTRA")
+  dfCovs <- as.data.frame(matrix(-99, nrow = 2, ncol = length(cols), dimnames = list(NULL, cols)))
+  dfCovs$WT <- c(50, -99)
+  dfCovs$EXTRA <- c(-99, 1)
+  expect_length(.covMismatches(s, dfCovs), 0)
+})
+
+test_that("no covariate-name check is made when a function in functionList is written by hand", {
+  s <- .covCheckSetup()
+  expect_null(attr(s$handFun, "pmxCovariates"))
+  expect_length(.covMismatches(s, .dfCovsSep, functionList = list(s$handFun)), 0)
+  ## one generated function and one hand-written: the columns the second
+  ## reads are not known either
+  expect_length(
+    .covMismatches(s, .dfCovsSep,
+      functionList = list(s$fun, s$handFun),
+      functionListName = c(s$functionListName, paste0(s$functionListName, "2"))
+    ),
+    0
+  )
+})
+
+test_that("the covariate-name check compares the columns after one-hot encoding", {
+  s <- .covCheckSetup()
+  dfCovsRaw <- PMXForest::createInputForestData(list(WT = c(50, 100), RACEL = c(1, 2, 3)))
+  spec <- list(RACEL = list(ref = 1))
+  expect_length(.covMismatches(s, dfCovsRaw, oneHot = spec), 0)
+  ws <- .covMismatches(s, dfCovsRaw, oneHot = spec, oneHotSep = "")
+  expect_length(ws, 1)
+  expect_setequal(ws[[1]][["unread"]], c("RACEL2", "RACEL3"))
+})
+
+## The warnings of one call with quiet = FALSE, muffled; the FFEM printout of
+## quiet = FALSE is captured and dropped.
+.allWarnings <- function(s, dfCovs, functionList = list(s$fun)) {
+  ws <- list()
+  utils::capture.output(withCallingHandlers(
+    getForestDFFREM(
+      dfCovs = dfCovs, runno = 31, modDevDir = s$md, dfParameters = s$dfPar,
+      functionList = functionList, functionListName = s$functionListName,
+      quiet = FALSE
+    ),
+    warning = function(w) {
+      ws[[length(ws) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  ))
+  ws
+}
+
+test_that("a subset of FREM covariates and a structural covariate give no warning with quiet = FALSE", {
+  ## This call used to warn "Not all covariates in frem model are present in
+  ## dfCovs" once, and "Can't find some of the covariates: FOOD" once per FOOD
+  ## row and parameter vector, though every name is right.
+  s <- .covCheckSetup()
+  dfCovs <- data.frame(
+    COVARIATEGROUPS = c("WT", "WT", "FOOD"),
+    WT = c(50, 100, -99),
+    FOOD = c(-99, -99, 0)
+  )
+  expect_length(.allWarnings(s, dfCovs), 0)
+  ## a hand-written function too, which the covariate-name check skips
+  expect_length(.allWarnings(s, dfCovs, functionList = list(s$handFun)), 0)
+})
+
+test_that("a misspelled name gives the covariate-name warning alone with quiet = FALSE", {
+  s <- .covCheckSetup()
+  ws <- .allWarnings(s, .dfCovsSep)
+  expect_length(ws, 1)
+  expect_s3_class(ws[[1]], "pmxCovariateMismatch")
+})

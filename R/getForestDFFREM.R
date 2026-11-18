@@ -4,6 +4,29 @@
 #' `PMXForest` package. Statistics for covariate combination in the input
 #' data frame will be computed.
 #'
+#' @details
+#'   **Covariate names are checked against the FREM model and a generated
+#'   parameter function.** A function made by [createFREMParamFunction()]
+#'   carries the names of the structural covariates it reads, as the attribute
+#'   `pmxCovariates`. `getForestDFFREM()` compares the columns of `dfCovs`,
+#'   after the encoding set by `oneHot` and without `COVARIATEGROUPS`, with
+#'   those names and with the FREM covariates in `covNames`. It warns when two
+#'   differences occur together: a column that is neither a FREM covariate nor
+#'   read by a function in `functionList`, so that the rows on which only that
+#'   column is set have no effect, and a covariate of the model that `dfCovs`
+#'   lacks. A name spelled differently from the model always gives that pair,
+#'   for example `RACEL2` in `dfCovs` for the FREM covariate `RACEL_2` (the
+#'   separator, `sep` in [PMXForest::setupDfCovs()] or `oneHotSep`), or a
+#'   `RACEL_1` column for `RACEL_3` (the reference level, `catRef` in
+#'   [PMXForest::setupDfCovs()]). Either difference alone gives no warning.
+#'   Most Forest plots leave some FREM covariates out of `dfCovs`, so in
+#'   practice a column that nothing reads is reported whenever it occurs. A
+#'   hand-written function carries no names, so no check is made when
+#'   `functionList` holds one. The warning is given whatever the value of
+#'   `quiet`. It has the class `pmxCovariateMismatch`, so an intended pair can
+#'   be silenced alone:
+#'   `withCallingHandlers(getForestDFFREM(...), pmxCovariateMismatch = function(w) invokeRestart("muffleWarning"))`.
+#'
 #' @import doParallel
 #' @import foreach
 #' @import dplyr
@@ -233,9 +256,18 @@ getForestDFFREM <- function(dfCovs,
     }
   }
 
-  # If a needed covariate is not present in dfCovs, set it to missing
+  ## After the one-hot encoding, so the dummy columns are compared and not the
+  ## raw covariate, and before the FREM covariates that dfCovs lacks are added
+  ## as missing columns below.
+  .fremCheckCovariateNames(
+    functionList, covNames, setdiff(names(dfCovs), "COVARIATEGROUPS")
+  )
+
+  ## A FREM covariate that dfCovs lacks is set to missing on every row, so
+  ## that the FFEM conditions only on the covariates given. Leaving some out
+  ## is the usual case and gives no message; a misspelled name is reported by
+  ## the check above.
   if (!all(covNames %in% names(dfCovs))) {
-    if (!quiet) warning("Not all covariates in frem model are present in dfCovs, setting them to missing")
     dfCovs[, covNames[!(covNames %in% names(dfCovs))]] <- missVal
   }
 
@@ -302,12 +334,6 @@ getForestDFFREM <- function(dfCovs,
     p <- 0L
 
     for (i in seq_len(nrow(dfCovs))) {
-      currentNames <- names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal]
-
-      if (any(!currentNames %in% covNames) && !quiet) {
-        warning(paste0("Can't find some of the covariates: ", currentNames, " in the FREM model, perhaps they are structural covariates!"))
-      }
-
       ## Calculate the ffemObj in case reference covariates have been specified
       if (!is.null(dfRefRow)) {
         indi <- min(i, nrow(dfRefRow))
@@ -508,4 +534,79 @@ getForestDFFREM <- function(dfCovs,
   dfret$PARAMETER <- factor(dfret$PARAMETER, levels = unique(dfret$PARAMETER))
 
   return(dfret)
+}
+
+#' Check the covariate columns of dfCovs against the FREM model and the
+#' parameter functions
+#'
+#' A function made by [createFREMParamFunction()] carries the structural
+#' covariates it reads as the attribute `pmxCovariates`; the FREM covariates
+#' are `covNames`. A name in `dfCovs` spelled differently from the model, such
+#' as `RACEL2` for `RACEL_2`, gives two differences at once: a column that is
+#' neither a FREM covariate nor read by a function, so its rows have no
+#' effect, and a covariate of the model that `dfCovs` lacks. Only that pair is
+#' reported, because either difference alone is often a deliberate choice of
+#' rows. A FREM covariate left out of `dfCovs` is the usual case, so for a
+#' FREM model the pair is close to "a column nothing reads". The check is made
+#' only when every function carries the list: a hand-written function may
+#' read any column as a structural covariate, and the FREM covariates alone
+#' cannot tell such a column from a misspelled one. The rule is the one
+#' PMXForest applies in getForestDFSCM() (epic/1.5.0).
+#'
+#' @param functionList The parameter functions.
+#' @param covNames The FREM covariates, after one-hot encoding.
+#' @param cols The column names of `dfCovs` after one-hot encoding, without
+#'   `COVARIATEGROUPS`.
+#' @return `NULL`, invisibly. Warns with class `pmxCovariateMismatch`, whose
+#'   fields `unread` and `absent` hold the names.
+#' @keywords internal
+#' @noRd
+.fremCheckCovariateNames <- function(functionList, covNames, cols) {
+  reads <- lapply(functionList, attr, which = "pmxCovariates", exact = TRUE)
+  ## A function without the list may read any column, so no column can be
+  ## called unread, and the pair cannot be found.
+  if (any(vapply(reads, is.null, logical(1)))) {
+    return(invisible(NULL))
+  }
+  known <- unique(c(covNames, unlist(reads)))
+  unread <- setdiff(cols, known)
+  absent <- setdiff(known, cols)
+  ## Either alone is an extra row or a deliberate subset; a misspelled name
+  ## always gives both.
+  if (length(unread) == 0 || length(absent) == 0) {
+    return(invisible(NULL))
+  }
+
+  msg <- c(
+    paste0(
+      "The covariate columns of dfCovs and the covariates of the FREM model and ",
+      "the parameter function differ in both directions, as they do when a name ",
+      "in dfCovs is spelled differently from the model."
+    ),
+    paste0(
+      "These columns of dfCovs are neither FREM covariates nor read by a ",
+      "parameter function: ", paste(unread, collapse = ", "),
+      ". Rows on which only these columns are set have no effect."
+    ),
+    paste0(
+      "dfCovs has no column for these FREM covariates or covariates the ",
+      "parameter function reads: ", paste(absent, collapse = ", "),
+      ". A FREM covariate among them is treated as missing on every row, and ",
+      "any other covariate stays at the reference value of the function."
+    ),
+    paste0(
+      "Check the separator of indicator columns (sep in setupDfCovs(), oneHotSep ",
+      "in getForestDFFREM()), which gives RACEL2 against RACEL_2, and the ",
+      "reference level (catRef in setupDfCovs()), which gives RACEL_1 against ",
+      "RACEL_3. If both lists are intended, the warning can be ignored."
+    )
+  )
+  warning(structure(
+    class = c("pmxCovariateMismatch", "warning", "condition"),
+    list(
+      message = paste(msg, collapse = "\n"), call = NULL,
+      unread = unread, absent = absent
+    )
+  ))
+  invisible(NULL)
 }
