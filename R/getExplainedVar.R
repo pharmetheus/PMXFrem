@@ -81,8 +81,10 @@
 #'   type=1: one row per individual in `data`, in the order in which each
 #'   individual first appears in `data`. If `NULL` when type=1 the etas are read
 #'   from the phi-file and matched to `data` by `strID`.
-#' @param quiet If output should be allowed during the function call, default=
-#'   FALSE,
+#' @param quiet If `FALSE` (default), the FFEM model of each calculation is
+#'   printed by [calcFFEM()]. If `TRUE`, nothing is printed. Mainly for
+#'   debugging. The warning about covariate names described in Details is given
+#'   whatever the value.
 #' @param ncores the number of cores to use for the calculations, default = 1
 #'   which means no parallellization.
 #'   On Windows the workers are new R sessions. They load the same package
@@ -122,6 +124,19 @@
 #' of the maximum variability (TOTCOVVAR). If NULL (default), all covariates in the frem model will be used for the derivation of TOTCOVVAR.
 #' A multi-level categorical covariate may be given by its original name (`RACEL`) or by its binarized FREM
 #' names (`RACEL_2`, `RACEL_3`); a name that is neither is an error.
+#'
+#' `getExplainedVar()` gives a warning when the columns of `dfCovs` and the
+#' covariates of the model differ in the way a misspelled name makes them
+#' differ: a column that is neither a FREM covariate nor read by a function in
+#' `functionList`, so that the rows on which only that column is set explain
+#' nothing, and a covariate of the model that `dfCovs` lacks. A categorical
+#' covariate counts under its original name and under its FREM names. The rule
+#' is the one of [getForestDFFREM()]: either difference alone gives no warning,
+#' no check is made when `functionList` holds a hand-written function, the
+#' warning is given whatever the value of `quiet`, and it has the class
+#' `pmxCovariateMismatch`. With `type` 1, 2 or 3, the values of the covariates
+#' are taken from `data`, and a column that is set on a row of `dfCovs` but
+#' missing from `data` stops the function with the name of the column.
 #'
 #' @examples
 #' \donttest{
@@ -326,6 +341,17 @@ getExplainedVar <- function(type = 1,
       )
     }
   }
+
+  ## The same check of covariate names as in getForestDFFREM(). dfCovs may name
+  ## a categorical covariate by its original name (RACEL), which stands for
+  ## its FREM names (RACEL_2, RACEL_3), so the names are compared in that form.
+  .fremCheckCovariateNames(
+    functionList, covNames, .get_frem_cov_names(names(dfCovs), fremCovs),
+    hint = paste0(
+      "A categorical covariate is named in dfCovs by its original name (RACEL) ",
+      "or by its FREM names (RACEL_2, RACEL_3), not as RACEL2."
+    )
+  )
 
   if (type == 2) {
     if (length(dfCovs) <= length(orgCovs)) {

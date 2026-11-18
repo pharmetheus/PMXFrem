@@ -92,8 +92,11 @@ directory, i.e. ".".}
 \item{availCov}{Names of the covariates to use in the calculation of the FFEM
 model.}
 
-\item{quiet}{If output should be allowed during the function call, default=
-TRUE. (This option is mainly for debugging purposes.)}
+\item{quiet}{If \code{FALSE} (default), the FFEM model of each calculation is
+printed by \code{\link[=calcFFEM]{calcFFEM()}}, and with \code{ncores > 1} the progress of the
+parallel loop is shown. If \code{TRUE}, nothing is printed. Mainly for
+debugging. The warning about covariate names described in Details is given
+whatever the value.}
 
 \item{probs}{A vector of probabilities that should be computed for each of
 the parameters from functionList. These will be used as the as the

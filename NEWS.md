@@ -1,6 +1,6 @@
 # PMXFrem (development version)
 
-## Checking covariate names in Forest plots
+## Checking covariate names in Forest plots and explained variability
 
 `getForestDFFREM()` warns when `dfCovs` has a column that is neither a FREM
 covariate nor read by a parameter function from `createFREMParamFunction()`,
@@ -14,6 +14,13 @@ class `pmxCovariateMismatch`, so that it can be silenced on its own.
 The function from `createFREMParamFunction()` carries the names of the
 structural covariates it reads, set with `structure()` in the generated
 source. A function written by hand carries no names and is not checked.
+
+`getExplainedVar()` makes the same check, with a categorical covariate counted
+under its original name (`RACEL`) as well as its FREM names. With `type = 0`,
+a misspelled name such as `WTT` for `WT` gave a row that explained nothing,
+without a message. With `type` 1, 2 or 3, a column that is set in `dfCovs` and
+missing from `data` now stops the function with the name of the column,
+instead of "undefined columns selected".
 
 ## Changes to existing behaviour
 
@@ -31,6 +38,13 @@ source. A function written by hand carries no names and is not checked.
   such as subjects with only dose records. They now keep the subjects listed
   in the `.phi` file of the FREM model. The new argument
   `keepDoseOnlySubjects = TRUE` keeps every subject, as before.
+
+## Documentation
+
+* The help page of `getForestDFFREM()` gave `TRUE` as the default of `quiet`;
+  the default is `FALSE`, as in the code. The help pages of
+  `getForestDFFREM()` and `getExplainedVar()` now say what `quiet = FALSE`
+  prints.
 
 # PMXFrem 2.4.0
 

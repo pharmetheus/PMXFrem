@@ -693,3 +693,83 @@ test_that("an underscore in a covariate's own name changes no explained variabil
   rownames(orig) <- rownames(renamed) <- NULL
   expect_equal(renamed, orig)
 })
+
+## ---- Covariate names in dfCovs ----------------------------------------------
+## A function generated for CL, V and MAT carries the covariates it reads
+## (FOOD, through MAT). The FREM covariates of run31 include WT, SEX and the
+## binarized RACEL_2 and RACEL_3.
+
+.evGen <- function(s) {
+  out <- createFREMParamFunction(s$modFile, parameters = c("CL", "V", "MAT"), quiet = TRUE)
+  list(fun = eval(parse(text = out$code)), names = out$functionListName)
+}
+
+## The pmxCovariateMismatch warnings of one call, muffled; others pass through.
+.evMismatches <- function(s, dfCovs, functionList, functionListName, type = 0) {
+  ws <- list()
+  withCallingHandlers(
+    getExplainedVar(
+      type = type, data = s$data[1:20, ], dfCovs = dfCovs,
+      cstrCovariates = paste0("ROW", seq_len(nrow(dfCovs))),
+      modDevDir = s$modDevDir, runno = 31, functionList = functionList,
+      functionListName = functionListName, quiet = TRUE, ncores = 1,
+      numETASamples = 5, seed = 1
+    ),
+    pmxCovariateMismatch = function(w) {
+      ws[[length(ws) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  )
+  ws
+}
+
+test_that("getExplainedVar warns once about a dfCovs name that nothing reads, whatever quiet is", {
+  s <- .evRun31()
+  g <- .evGen(s)
+  ws <- .evMismatches(s, data.frame(WTT = c(1, -99), SEX = c(-99, 1)), list(g$fun), g$names)
+  expect_length(ws, 1)
+  expect_identical(ws[[1]][["unread"]], "WTT")
+  expect_true(all(c("WT", "RACEL_2", "FOOD") %in% ws[[1]][["absent"]]))
+  expect_false("SEX" %in% ws[[1]][["absent"]])
+  expect_match(conditionMessage(ws[[1]]), "original name (RACEL)", fixed = TRUE)
+})
+
+test_that("getExplainedVar checks covariate names in the empirical types too", {
+  s <- .evRun31()
+  g <- .evGen(s)
+  ## FORM is in data, so type 1 runs, but no FREM covariate and not read by CL, V or MAT
+  ws <- .evMismatches(s, data.frame(FORM = c(1, -99), SEX = c(-99, 1)), list(g$fun), g$names, type = 1)
+  expect_length(ws, 1)
+  expect_identical(ws[[1]][["unread"]], "FORM")
+})
+
+test_that("original names of binarized covariates and a covariate the function reads give no covariate-name warning", {
+  s <- .evRun31()
+  g <- .evGen(s)
+  ## RACEL and NCIL stand for RACEL_2, RACEL_3, NCIL_1 and NCIL_2; FOOD is read by MAT
+  expect_length(.evMismatches(s, setupDfCovsEV(s$modFile, conditionalCovs = "FOOD"), list(g$fun), g$names), 0)
+  expect_length(.evMismatches(s, data.frame(RACEL = c(1, -99), SEX = c(-99, 1)), list(g$fun), g$names), 0)
+})
+
+test_that("getExplainedVar makes no covariate-name check with a hand-written function", {
+  s <- .evRun31()
+  g <- .evGen(s)
+  dfc <- data.frame(WTT = c(1, -99), SEX = c(-99, 1))
+  expect_length(.evMismatches(s, dfc, list(.evCL), "CL"), 0)
+  expect_length(.evMismatches(s, dfc, list(g$fun, .evCL), c(g$names, "CL2")), 0)
+})
+
+test_that("the empirical types stop with the name of a dfCovs column that data lacks", {
+  s <- .evRun31()
+  dfc <- data.frame(WTT = c(1, -99), SEX = c(-99, 1))
+  for (type in 1:3) {
+    ## type 2 also warns that FFEM covariates may be missing from dfCovs
+    quietly <- if (type == 2) suppressWarnings else identity
+    expect_error(
+      quietly(.evMismatches(s, dfc, list(.evCL), "CL", type = type)),
+      "dfCovs sets WTT.*data has no column"
+    )
+  }
+  ## a column that is missing on every row is never read from data
+  expect_no_error(.evMismatches(s, data.frame(WTT = c(-99, -99), SEX = c(-99, 1)), list(.evCL), "CL", type = 1))
+})
