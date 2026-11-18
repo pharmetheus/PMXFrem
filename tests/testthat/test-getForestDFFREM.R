@@ -549,3 +549,100 @@ test_that("a misspelled name gives the covariate-name warning alone with quiet =
   expect_length(ws, 1)
   expect_s3_class(ws[[1]], "pmxCovariateMismatch")
 })
+
+# ---------------------------------------------------------------------------
+# columns of dfRefRow against dfCovs
+# ---------------------------------------------------------------------------
+
+.dfCovsWtSex <- data.frame(WT = c(50, 100, -99), SEX = c(-99, -99, 2))
+
+test_that("a dfRefRow column that dfCovs lacks gives one pmxCovariateMismatch warning", {
+  s <- .covCheckSetup()
+  ## wt for WT
+  ws <- .covMismatches(s, .dfCovsWtSex, dfRefRow = data.frame(wt = 70, SEX = 1))
+  expect_length(ws, 1)
+  expect_identical(ws[[1]][["refOnly"]], "wt")
+  expect_match(conditionMessage(ws[[1]]), "dfRefRow has columns that dfCovs lacks: wt.", fixed = TRUE)
+  expect_match(conditionMessage(ws[[1]]), "setupDfRefRow()", fixed = TRUE)
+})
+
+test_that("a misspelled dfRefRow column is never read", {
+  s <- .covCheckSetup()
+  run <- function(dfRefRow) {
+    withCallingHandlers(
+      getForestDFFREM(
+        dfCovs = .dfCovsWtSex, runno = 31, modDevDir = s$md, dfParameters = s$dfPar,
+        functionList = list(s$fun), functionListName = s$functionListName,
+        quiet = TRUE, dfRefRow = dfRefRow
+      ),
+      pmxCovariateMismatch = function(w) invokeRestart("muffleWarning")
+    )
+  }
+  sexOnly <- run(data.frame(SEX = 1))$REFFUNC
+  expect_equal(run(data.frame(wt = 70, SEX = 1))$REFFUNC, sexOnly)
+  expect_false(isTRUE(all.equal(run(data.frame(WT = 70, SEX = 1))$REFFUNC, sexOnly)))
+})
+
+test_that("the dfRefRow check is made with a hand-written function too", {
+  s <- .covCheckSetup()
+  ws <- .covMismatches(s, .dfCovsWtSex,
+    functionList = list(s$handFun), dfRefRow = data.frame(wt = 70, SEX = 1)
+  )
+  expect_length(ws, 1)
+  expect_identical(ws[[1]][["refOnly"]], "wt")
+})
+
+test_that("a FREM covariate set in dfRefRow and in no column of dfCovs is reported", {
+  s <- .covCheckSetup()
+  ## SEX is added to dfCovs as a missing column later; the check comes first
+  ws <- .covMismatches(s, data.frame(WT = c(50, 100)), dfRefRow = data.frame(WT = 70, SEX = 1))
+  expect_length(ws, 1)
+  expect_identical(ws[[1]][["refOnly"]], "SEX")
+})
+
+test_that("a dfRefRow with fewer columns than dfCovs, or with COVARIATEGROUPS, gives no warning", {
+  s <- .covCheckSetup()
+  expect_length(.covMismatches(s, .dfCovsWtSex, dfRefRow = data.frame(WT = 70)), 0)
+  expect_length(
+    .covMismatches(s, .dfCovsWtSex, dfRefRow = data.frame(COVARIATEGROUPS = "REF", WT = 70)),
+    0
+  )
+})
+
+test_that("the dfRefRow check compares the columns after one-hot encoding", {
+  s <- .covCheckSetup()
+  dfCovsRaw <- PMXForest::createInputForestData(list(WT = c(50, 100), RACEL = c(1, 2, 3)))
+  spec <- list(RACEL = list(ref = 1))
+  ## a raw RACEL column in both
+  expect_length(
+    .covMismatches(s, dfCovsRaw, oneHot = spec, dfRefRow = data.frame(WT = 70, RACEL = 1)),
+    0
+  )
+  ## indicator columns already in dfRefRow, a raw column in dfCovs
+  expect_length(
+    .covMismatches(s, dfCovsRaw, oneHot = spec, dfRefRow = data.frame(WT = 70, RACEL_2 = 0, RACEL_3 = 0)),
+    0
+  )
+})
+
+test_that("a raw categorical column in a one-row dfRefRow is encoded like dfCovs", {
+  ## Encoded on its own, a one-row reference has one level, gets no indicator
+  ## columns and keeps the raw column, so the reference subject was not
+  ## conditioned on the covariate.
+  s <- .covCheckSetup()
+  dfCovsRaw <- PMXForest::createInputForestData(list(WT = c(50, 100), RACEL = c(1, 2, 3)))
+  run <- function(dfRefRow) {
+    getForestDFFREM(
+      dfCovs = dfCovsRaw, runno = 31, modDevDir = s$md, dfParameters = s$dfPar,
+      functionList = list(s$fun), functionListName = s$functionListName,
+      quiet = TRUE, oneHot = list(RACEL = list(ref = 1)), dfRefRow = dfRefRow
+    )
+  }
+  indicators <- run(data.frame(WT = 70, RACEL_2 = 1, RACEL_3 = 0))
+  expect_equal(run(data.frame(WT = 70, RACEL = 2))$REFFUNC, indicators$REFFUNC)
+  ## and the reference level gives zeros in both indicator columns
+  expect_equal(
+    run(data.frame(WT = 70, RACEL = 1))$REFFUNC,
+    run(data.frame(WT = 70, RACEL_2 = 0, RACEL_3 = 0))$REFFUNC
+  )
+})
