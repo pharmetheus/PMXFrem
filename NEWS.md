@@ -22,6 +22,13 @@ without a message. With `type` 1, 2 or 3, a column that is set in `dfCovs` and
 missing from `data` now stops the function with the name of the column,
 instead of "undefined columns selected".
 
+`getForestDFFREM()` also warns when `dfRefRow` has a column that `dfCovs`
+lacks. Until now, with `wt` in `dfRefRow` for `WT` in `dfCovs`, the reference
+subject was not conditioned on weight, every row of the Forest plot was
+shifted, and no message was given. This check is made for hand-written
+parameter functions too. A reference row from `setupDfRefRow()` has the
+columns of `dfCovs` and never gives the warning.
+
 ## Changes to existing behaviour
 
 * **Two warnings of `getForestDFFREM()` are removed.** With `quiet = FALSE`,
@@ -38,6 +45,14 @@ instead of "undefined columns selected".
   such as subjects with only dose records. They now keep the subjects listed
   in the `.phi` file of the FREM model. The new argument
   `keepDoseOnlySubjects = TRUE` keeps every subject, as before.
+
+## Bug fixes
+
+* **A raw categorical column in `dfRefRow` is encoded with `oneHot`.** In
+  `getForestDFFREM()` with `oneHot`, a one-row `dfRefRow` with a raw column
+  such as `RACEL = 2` got no indicator columns, so the reference subject was
+  not conditioned on that covariate. The levels are now taken from `dfCovs`,
+  as in PMXForest.
 
 ## Documentation
 

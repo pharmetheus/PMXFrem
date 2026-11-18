@@ -27,6 +27,15 @@
 #'   be silenced alone:
 #'   `withCallingHandlers(getForestDFFREM(...), pmxCovariateMismatch = function(w) invokeRestart("muffleWarning"))`.
 #'
+#'   **The columns of `dfRefRow` are checked against `dfCovs`.** A column of
+#'   `dfRefRow` that `dfCovs` lacks, after the encoding set by `oneHot`, gives
+#'   a warning of the same class, with the names in the field `refOnly`. With
+#'   a name spelled differently, such as `wt` in `dfRefRow` for `WT` in
+#'   `dfCovs`, the reference subject is not conditioned on that covariate, and
+#'   every row is shifted. This check is made for hand-written functions too.
+#'   A reference row from [PMXForest::setupDfRefRow()] has the columns of
+#'   `dfCovs` and is never reported.
+#'
 #' @import doParallel
 #' @import foreach
 #' @import dplyr
@@ -245,11 +254,18 @@ getForestDFFREM <- function(dfCovs,
   ## Optionally one-hot encode raw multi-level categorical columns so dfCovs can
   ## be built without the FREM <cov>_<level> dummy columns.
   if (!is.null(oneHot)) {
+    ## The levels are resolved against dfCovs and reused for dfRefRow, as in
+    ## PMXForest. Resolved from a one-row dfRefRow, a covariate had one level,
+    ## got no indicator columns and kept the raw column, so the reference
+    ## subject was not conditioned on it.
+    oneHot <- .fremResolveOneHot(oneHot, dfCovs, missVal)
     dfCovs <- PMXForest::oneHotEncode(dfCovs,
       spec = oneHot, sep = oneHotSep,
       missVal = missVal, dropOriginal = TRUE
     )
     if (!is.null(dfRefRow) && is.data.frame(dfRefRow)) {
+      ## A dfRefRow that already has the indicator columns and not the raw one
+      ## is left as it is, apart from a warning.
       dfRefRow <- suppressWarnings(
         PMXForest::oneHotEncode(dfRefRow,
           spec = oneHot, sep = oneHotSep,
@@ -271,6 +287,11 @@ getForestDFFREM <- function(dfCovs,
       "RACEL_3."
     )
   )
+  ## Before the FREM covariates that dfCovs lacks are added below, so that a
+  ## FREM covariate set only in dfRefRow is reported.
+  if (!is.null(dfRefRow) && is.data.frame(dfRefRow)) {
+    .fremCheckRefRowNames(names(dfRefRow), names(dfCovs))
+  }
 
   ## A FREM covariate that dfCovs lacks is set to missing on every row, so
   ## that the FFEM conditions only on the covariates given. Leaving some out
@@ -617,4 +638,87 @@ getForestDFFREM <- function(dfCovs,
     )
   ))
   invisible(NULL)
+}
+
+#' Warn when dfRefRow has a column that dfCovs lacks
+#'
+#' A column of `dfRefRow` that `dfCovs` lacks is either a name spelled
+#' differently from `dfCovs`, which leaves the reference subject unconditioned
+#' on that covariate (or at the reference of the parameter function, for a
+#' structural covariate), or a covariate set in the reference subject and in no
+#' row. Either way every row of the Forest plot is shifted. The check needs no
+#' list of the columns a function reads, so it is made for hand-written
+#' functions too. A column of `dfCovs` that `dfRefRow` lacks is not reported.
+#' The rule is the one PMXForest applies in getForestDFSCM() (epic/1.5.0).
+#'
+#' @param refNames The column names of `dfRefRow` after one-hot encoding.
+#' @param covNames The column names of `dfCovs` after one-hot encoding, before
+#'   the FREM covariates that `dfCovs` lacks are added.
+#' @return `NULL`, invisibly. Warns with class `pmxCovariateMismatch`, whose
+#'   field `refOnly` holds the names.
+#' @keywords internal
+#' @noRd
+.fremCheckRefRowNames <- function(refNames, covNames) {
+  ## PMXForest::setupDfRefRow() copies COVARIATEGROUPS from dfCovs.
+  refOnly <- setdiff(refNames, c(covNames, "COVARIATEGROUPS"))
+  if (length(refOnly) == 0) {
+    return(invisible(NULL))
+  }
+
+  msg <- c(
+    paste0("dfRefRow has columns that dfCovs lacks: ", paste(refOnly, collapse = ", "), "."),
+    paste0(
+      "With a name spelled differently from dfCovs, such as wt for WT, the reference ",
+      "subject is not conditioned on that covariate, or is held at the reference of ",
+      "the parameter function for a structural covariate, and every row of the ",
+      "Forest plot is shifted."
+    ),
+    paste0(
+      "A covariate set in dfRefRow and in no column of dfCovs has a value in the ",
+      "reference subject and none in the rows, so every row is shifted."
+    ),
+    paste0(
+      "PMXForest::setupDfRefRow() builds dfRefRow with the columns of dfCovs. If the ",
+      "columns are intended, the warning can be ignored."
+    )
+  )
+  warning(structure(
+    class = c("pmxCovariateMismatch", "warning", "condition"),
+    list(message = paste(msg, collapse = "\n"), call = NULL, refOnly = refOnly)
+  ))
+  invisible(NULL)
+}
+
+#' Resolve a one-hot specification against dfCovs
+#'
+#' Gives each covariate of `oneHot` that `dfCovs` has an explicit reference
+#' level and an explicit list of the levels that get an indicator column, both
+#' taken from `dfCovs`, in the form [PMXForest::oneHotEncode()] accepts. The same
+#' specification then encodes `dfRefRow`, whose single row would otherwise give
+#' one level and no indicator columns. A covariate with explicit `levels`, one
+#' that `dfCovs` lacks, one with fewer than two levels in `dfCovs`, and one whose
+#' reference level does not occur in `dfCovs` are left as they are, so that
+#' `oneHotEncode()` gives the same warnings as before.
+#'
+#' @param oneHot The `oneHot` argument: a character vector or a named list.
+#' @param dfCovs The covariate data frame, before encoding.
+#' @param missVal The missing value.
+#' @return The specification as a named list.
+#' @keywords internal
+#' @noRd
+.fremResolveOneHot <- function(oneHot, dfCovs, missVal) {
+  if (is.character(oneHot)) {
+    oneHot <- stats::setNames(vector("list", length(oneHot)), oneHot)
+  }
+  for (cov in intersect(names(oneHot), names(dfCovs))) {
+    el <- oneHot[[cov]]
+    if (is.list(el) && !is.null(el$levels)) next
+    obs <- dfCovs[[cov]]
+    levs <- sort(unique(obs[!is.na(obs) & obs != missVal]))
+    ref <- if (is.list(el)) el$ref else el
+    if (is.null(ref)) ref <- levs[1]
+    if (length(levs) < 2 || !ref %in% levs) next
+    oneHot[[cov]] <- list(ref = ref, levels = setdiff(levs, ref))
+  }
+  oneHot
 }
