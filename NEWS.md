@@ -1,5 +1,20 @@
 # PMXFrem (development version)
 
+## Checking covariate names in Forest plots
+
+`getForestDFFREM()` warns when `dfCovs` has a column that is neither a FREM
+covariate nor read by a parameter function from `createFREMParamFunction()`,
+and also lacks a covariate of the model. That pair always occurs when a name
+is misspelled. Until now, with indicator columns named `RACEL2` and `RACEL3`
+in `dfCovs` for the FREM covariates `RACEL_2` and `RACEL_3`, every RACEL row
+of the Forest plot had no effect, and with `quiet = TRUE` no message was
+given. The new warning is given whatever the value of `quiet`. It has the
+class `pmxCovariateMismatch`, so that it can be silenced on its own.
+
+The function from `createFREMParamFunction()` carries the names of the
+structural covariates it reads, set with `structure()` in the generated
+source. A function written by hand carries no names and is not checked.
+
 ## Changes to existing behaviour
 
 * **FFEM data sets have the subjects of the FREM fit.**
