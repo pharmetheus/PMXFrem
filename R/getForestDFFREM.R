@@ -51,8 +51,11 @@
 #'   distribution. The vector of final parameter estimates is assumed to be in
 #'   the first row. The column order is assumed the same as in the NONMEM ext
 #'   file except the ITERATION and OBJ columns whichshould not be included.
-#' @param quiet If output should be allowed during the function call, default=
-#'   TRUE. (This option is mainly for debugging purposes.)
+#' @param quiet If `FALSE` (default), the FFEM model of each calculation is
+#'   printed by [calcFFEM()], and with `ncores > 1` the progress of the
+#'   parallel loop is shown. If `TRUE`, nothing is printed. Mainly for
+#'   debugging. The warning about covariate names described in Details is given
+#'   whatever the value.
 #' @param probs A vector of probabilities that should be computed for each of
 #'   the parameters from functionList. These will be used as the as the
 #'   uncertainties in the Forest plots. The probs vector position one and two
@@ -260,7 +263,13 @@ getForestDFFREM <- function(dfCovs,
   ## raw covariate, and before the FREM covariates that dfCovs lacks are added
   ## as missing columns below.
   .fremCheckCovariateNames(
-    functionList, covNames, setdiff(names(dfCovs), "COVARIATEGROUPS")
+    functionList, covNames, setdiff(names(dfCovs), "COVARIATEGROUPS"),
+    hint = paste0(
+      "Check the separator of indicator columns (sep in setupDfCovs(), oneHotSep ",
+      "in getForestDFFREM()), which gives RACEL2 against RACEL_2, and the ",
+      "reference level (catRef in setupDfCovs()), which gives RACEL_1 against ",
+      "RACEL_3."
+    )
   )
 
   ## A FREM covariate that dfCovs lacks is set to missing on every row, so
@@ -551,17 +560,21 @@ getForestDFFREM <- function(dfCovs,
 #' only when every function carries the list: a hand-written function may
 #' read any column as a structural covariate, and the FREM covariates alone
 #' cannot tell such a column from a misspelled one. The rule is the one
-#' PMXForest applies in getForestDFSCM() (epic/1.5.0).
+#' PMXForest applies in getForestDFSCM() (epic/1.5.0). Used by
+#' getForestDFFREM() and getExplainedVar().
 #'
 #' @param functionList The parameter functions.
 #' @param covNames The FREM covariates, after one-hot encoding.
-#' @param cols The column names of `dfCovs` after one-hot encoding, without
+#' @param cols The column names of `dfCovs`, with every categorical covariate
+#'   under its FREM names (`RACEL_2`, `RACEL_3`) and without
 #'   `COVARIATEGROUPS`.
+#' @param hint The last paragraph of the message: where a misspelled name
+#'   usually comes from in the calling function.
 #' @return `NULL`, invisibly. Warns with class `pmxCovariateMismatch`, whose
 #'   fields `unread` and `absent` hold the names.
 #' @keywords internal
 #' @noRd
-.fremCheckCovariateNames <- function(functionList, covNames, cols) {
+.fremCheckCovariateNames <- function(functionList, covNames, cols, hint) {
   reads <- lapply(functionList, attr, which = "pmxCovariates", exact = TRUE)
   ## A function without the list may read any column, so no column can be
   ## called unread, and the pair cannot be found.
@@ -594,12 +607,7 @@ getForestDFFREM <- function(dfCovs,
       ". A FREM covariate among them is treated as missing on every row, and ",
       "any other covariate stays at the reference value of the function."
     ),
-    paste0(
-      "Check the separator of indicator columns (sep in setupDfCovs(), oneHotSep ",
-      "in getForestDFFREM()), which gives RACEL2 against RACEL_2, and the ",
-      "reference level (catRef in setupDfCovs()), which gives RACEL_1 against ",
-      "RACEL_3. If both lists are intended, the warning can be ignored."
-    )
+    paste(hint, "If both lists are intended, the warning can be ignored.")
   )
   warning(structure(
     class = c("pmxCovariateMismatch", "warning", "condition"),
