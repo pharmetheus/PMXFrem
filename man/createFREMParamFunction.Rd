@@ -92,9 +92,9 @@ A list:
 The function in it is wrapped in \code{structure()} and carries the
 attribute \code{pmxCovariates}: the structural covariates it reads,
 followed by any column a \code{secondary} entry reads as \code{dfrow$NAME},
-\code{df$NAME}, \code{dfrow[["NAME"]]} or \code{df[["NAME"]]}. The FREM covariates
-are not in the list, because they reach the function through
-\code{covthetas}. \code{\link[=getForestDFFREM]{getForestDFFREM()}} checks the columns of \code{dfCovs}
+\code{df$NAME}, \code{dfrow[["NAME"]]} or \code{df[["NAME"]]}. A FREM covariate is
+in the list only when a \code{secondary} entry reads it, because the FREM
+covariates reach the function through \code{covthetas}. \code{\link[=getForestDFFREM]{getForestDFFREM()}} checks the columns of \code{dfCovs}
 against the list and the FREM covariates. When \code{dfrow} or \code{df}
 appears in a \code{secondary} entry in any other way, such as \code{nrow(df)},
 the columns read are not known, and the function carries no

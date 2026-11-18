@@ -123,9 +123,9 @@
 #'       The function in it is wrapped in `structure()` and carries the
 #'       attribute `pmxCovariates`: the structural covariates it reads,
 #'       followed by any column a `secondary` entry reads as `dfrow$NAME`,
-#'       `df$NAME`, `dfrow[["NAME"]]` or `df[["NAME"]]`. The FREM covariates
-#'       are not in the list, because they reach the function through
-#'       `covthetas`. [getForestDFFREM()] checks the columns of `dfCovs`
+#'       `df$NAME`, `dfrow[["NAME"]]` or `df[["NAME"]]`. A FREM covariate is
+#'       in the list only when a `secondary` entry reads it, because the FREM
+#'       covariates reach the function through `covthetas`. [getForestDFFREM()] checks the columns of `dfCovs`
 #'       against the list and the FREM covariates. When `dfrow` or `df`
 #'       appears in a `secondary` entry in any other way, such as `nrow(df)`,
 #'       the columns read are not known, and the function carries no
@@ -939,9 +939,9 @@ createFREMParamFunction <- function(fremModel = NULL,
   } else {
     c(
       "},",
-      "## The columns of dfrow read above, other than the FREM covariates. The",
-      "## columns of dfCovs are checked against this list by getForestDFFREM();",
-      "## edit it too if you edit what is read.",
+      "## The columns of dfrow read above. getForestDFFREM() checks the columns",
+      "## of dfCovs against this list and the FREM covariates; edit it too if",
+      "## you edit what is read.",
       paste0(
         "pmxCovariates = ",
         if (length(reads) == 0) {
