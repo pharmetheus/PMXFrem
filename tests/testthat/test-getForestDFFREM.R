@@ -646,3 +646,12 @@ test_that("a raw categorical column in a one-row dfRefRow is encoded like dfCovs
     run(data.frame(WT = 70, RACEL_2 = 0, RACEL_3 = 0))$REFFUNC
   )
 })
+
+test_that("a oneHot reference level that dfCovs lacks is still reported by the encoder", {
+  s <- .covCheckSetup()
+  dfCovsRaw <- PMXForest::createInputForestData(list(WT = c(50, 100), RACEL = c(1, 2, 3)))
+  expect_warning(
+    .covMismatches(s, dfCovsRaw, oneHot = list(RACEL = list(ref = 9))),
+    "reference level 9"
+  )
+})
