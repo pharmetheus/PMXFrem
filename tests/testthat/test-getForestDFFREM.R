@@ -438,9 +438,9 @@ test_that("a FREM covariate named with the wrong separator gives one pmxCovariat
   expect_length(ws, 1)
   w <- ws[[1]]
   expect_s3_class(w, "warning")
-  expect_setequal(w$unread, c("RACEL2", "RACEL3"))
+  expect_setequal(w[["unread"]], c("RACEL2", "RACEL3"))
   ## every FREM covariate but WT, and the structural FOOD
-  expect_setequal(w$absent, c(setdiff(s$covNames, "WT"), "FOOD"))
+  expect_setequal(w[["absent"]], c(setdiff(s$covNames, "WT"), "FOOD"))
   expect_match(conditionMessage(w), "RACEL2, RACEL3")
   expect_match(conditionMessage(w), "oneHotSep")
   expect_match(conditionMessage(w), "catRef")
@@ -455,8 +455,8 @@ test_that("a misspelled structural covariate gives a pmxCovariateMismatch warnin
   )
   ws <- .covMismatches(s, dfCovs)
   expect_length(ws, 1)
-  expect_identical(ws[[1]]$unread, "FOD")
-  expect_true("FOOD" %in% ws[[1]]$absent)
+  expect_identical(ws[[1]][["unread"]], "FOD")
+  expect_true("FOOD" %in% ws[[1]][["absent"]])
 })
 
 test_that("a structural covariate the function reads is not reported as unread", {
@@ -507,5 +507,5 @@ test_that("the covariate-name check compares the columns after one-hot encoding"
   expect_length(.covMismatches(s, dfCovsRaw, oneHot = spec), 0)
   ws <- .covMismatches(s, dfCovsRaw, oneHot = spec, oneHotSep = "")
   expect_length(ws, 1)
-  expect_setequal(ws[[1]]$unread, c("RACEL2", "RACEL3"))
+  expect_setequal(ws[[1]][["unread"]], c("RACEL2", "RACEL3"))
 })
