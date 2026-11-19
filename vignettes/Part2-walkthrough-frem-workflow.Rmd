@@ -25,8 +25,8 @@ knitr::opts_chunk$set(
 
 This walkthrough builds on the Quick-Start vignette and follows a FREM analysis
 end to end: the FFEM conversion, goodness-of-fit diagnostics, ETAs against
-EBEs, a Visual Predictive Check, the parameter and covariate tables, and
-updating the model afterwards.
+EBEs, a Visual Predictive Check, the parameter and covariate tables, the
+covariate equations for a report, and updating the model afterwards.
 
 # 1. Setup and Global Options
 
@@ -277,6 +277,46 @@ parTableData$coefficientTable_wide %>%
   kbl(caption = "Table 2. FREM Covariate Coefficients") %>%
   kable_classic(full_width = FALSE, html_font = "Cambria") %>%
   kable_styling(position = "center")
+```
+
+## Covariate Equations
+
+For a report, `fremEqLatex()` writes the covariate effects of the FFEM as LaTeX
+equations, one per parameter. Each term is a coefficient times a covariate
+minus the FREM estimate of its mean. The effects are on the scale of the ETA:
+`COV_CL` enters the FFEM as `CL = TVCL * EXP(COV_CL + ETA(3))`.
+
+The covariates, and the levels of the categorical covariates, are labelled with
+`name_map` and `level_map`, the same objects as for the Forest plot labels of
+`generateCovNames()`. The two maps below are those of the Forest plot deep
+dive. In a chunk with `results = "asis"`, the equations go straight into a
+LaTeX report, which needs the amsmath package. On this page, MathJax renders
+the same code.
+
+```{r cov_equations, results = "asis"}
+name_map <- c(
+  AGE = "Age", ALT = "ALT", AST = "AST", BILI = "Total Bilirubin",
+  BMI = "BMI", BSA = "BSA", CRCL = "Creatinine CL",
+  ETHNIC = "Ethnicity", GENO2 = "Genotype", HT = "Height",
+  LBWT = "Lean Body Wt", NCIL = "NCI", RACEL = "Race",
+  SEX = "Sex", SMOK = "Smoking Status", WT = "Weight"
+)
+
+level_map <- list(
+  SEX   = c("1" = "Male", "2" = "Female"),
+  RACEL = c("1" = "Caucasian", "2" = "Black", "3" = "Other"),
+  SMOK  = c("0" = "Non-smoking", "1" = "Smoking"),
+  NCIL  = c("0" = "NCI Grade 0", "1" = "NCI Grade 1", "2" = "NCI Grade 2"),
+  GENO2 = c("1" = "Poor metab.", "2" = "Extensive metab.")
+)
+
+fremEqLatex(
+  runno     = 31,
+  modDevDir = modDevDir,
+  parNames  = c("CL", "V", "MAT"),
+  name_map  = name_map,
+  level_map = level_map
+)
 ```
 
 ---

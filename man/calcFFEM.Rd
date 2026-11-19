@@ -143,7 +143,8 @@ calcFFEMtestout <- calcFFEM(dfExt,
 \seealso{
 Other FFEM Conversion: 
 \code{\link{createFFEMdata}()},
-\code{\link{createFFEMmodel}()}
+\code{\link{createFFEMmodel}()},
+\code{\link{fremEqLatex}()}
 }
 \concept{FFEM Conversion}
 \concept{ffem_conversion}

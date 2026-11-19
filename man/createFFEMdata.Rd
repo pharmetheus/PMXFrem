@@ -209,7 +209,8 @@ ffemDataDerived <- createFFEMdata(
 
 Other FFEM Conversion: 
 \code{\link{calcFFEM}()},
-\code{\link{createFFEMmodel}()}
+\code{\link{createFFEMmodel}()},
+\code{\link{fremEqLatex}()}
 }
 \concept{FFEM Conversion}
 \concept{ffem_conversion}
