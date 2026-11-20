@@ -16,16 +16,16 @@
   trimws(formatC(signif(abs(x), digits), format = "fg", digits = digits))
 }
 
-test_that("fremEqLatex() gives one equation per parameter, named by parNames", {
+test_that("fremEqLatex() gives one block of display math per parameter, named by parNames", {
   eqs <- .eq()
   expect_type(eqs, "character")
   expect_named(eqs, .eqPars)
   for (p in .eqPars) {
     expect_true(startsWith(
       eqs[[p]],
-      paste0("\\begin{equation*}\n\\begin{aligned}\n\\text{COV}_{\\text{", p, "}} &= ")
+      paste0("\\[\n\\begin{aligned}\n\\text{COV}_{\\text{", p, "}} &= ")
     ))
-    expect_true(endsWith(eqs[[p]], "\n\\end{aligned}\n\\end{equation*}"))
+    expect_true(endsWith(eqs[[p]], "\n\\end{aligned}\n\\]"))
   }
 })
 

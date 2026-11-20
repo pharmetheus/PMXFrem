@@ -289,9 +289,10 @@ minus the FREM estimate of its mean. The effects are on the scale of the ETA:
 The covariates, and the levels of the categorical covariates, are labelled with
 `name_map` and `level_map`, the same objects as for the Forest plot labels of
 `generateCovNames()`. The two maps below are those of the Forest plot deep
-dive. In a chunk with `results = "asis"`, the equations go straight into a
-LaTeX report, which needs the amsmath package. On this page, MathJax renders
-the same code.
+dive. With `perLine`, the number of terms on each line is set, here two to fit
+the width of the page. In a chunk with `results = "asis"`, the equations go
+straight into a LaTeX report, which needs the amsmath package. On this page,
+MathJax renders the same code.
 
 ```{r cov_equations, results = "asis"}
 name_map <- c(
@@ -315,7 +316,8 @@ fremEqLatex(
   modDevDir = modDevDir,
   parNames  = c("CL", "V", "MAT"),
   name_map  = name_map,
-  level_map = level_map
+  level_map = level_map,
+  perLine   = 2
 )
 ```
 

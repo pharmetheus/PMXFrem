@@ -110,10 +110,10 @@ shown by its code. An entry of \code{name_map} for the whole name, such as
 \code{RACEL_2}, takes precedence. Characters with a special meaning in LaTeX,
 such as \verb{_}, \code{&} and \verb{\%}, are escaped in every label.
 
-Each equation is an \code{aligned} environment inside \verb{equation*}, from the
-amsmath LaTeX package. In a knitr chunk with \code{results = "asis"}, the printed
-equations go straight into the document; in R Markdown, MathJax renders the
-same code.
+Each equation is an \code{aligned} environment, from the amsmath LaTeX package,
+in display math (\verb{\[ ... \]}). In a knitr chunk with \code{results = "asis"}, the
+printed equations go straight into the document. In R Markdown, each
+equation is then a block of display math, which MathJax renders.
 }
 \examples{
 modDevDir <- system.file("extdata/SimNeb", package = "PMXFrem")

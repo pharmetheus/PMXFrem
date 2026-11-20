@@ -27,10 +27,10 @@
 #' `RACEL_2`, takes precedence. Characters with a special meaning in LaTeX,
 #' such as `_`, `&` and `%`, are escaped in every label.
 #'
-#' Each equation is an `aligned` environment inside `equation*`, from the
-#' amsmath LaTeX package. In a knitr chunk with `results = "asis"`, the printed
-#' equations go straight into the document; in R Markdown, MathJax renders the
-#' same code.
+#' Each equation is an `aligned` environment, from the amsmath LaTeX package,
+#' in display math (`\[ ... \]`). In a knitr chunk with `results = "asis"`, the
+#' printed equations go straight into the document. In R Markdown, each
+#' equation is then a block of display math, which MathJax renders.
 #'
 #' @inheritParams getFileNames
 #' @param dfext A data frame of the ext file of the FREM model, as from
@@ -165,10 +165,13 @@ fremEqLatex <- function(dfext = NULL,
         collapse = " \\\\\n  & \\quad "
       )
     }
+    ## \[ ... \] rather than equation*: pandoc reads consecutive equation*
+    ## environments as one block, which MathJax cannot render, but makes a
+    ## separate block of each \[ ... \].
     paste0(
-      "\\begin{equation*}\n\\begin{aligned}\n",
+      "\\[\n\\begin{aligned}\n",
       "\\text{COV}_{\\text{", .fremTexEscape(parNames[p]), "}} &= ", body,
-      "\n\\end{aligned}\n\\end{equation*}"
+      "\n\\end{aligned}\n\\]"
     )
   }, character(1))
   names(eqs) <- parNames
