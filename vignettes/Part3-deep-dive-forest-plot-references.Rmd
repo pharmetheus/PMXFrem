@@ -222,6 +222,61 @@ fp(dfres_typRef,
 )
 ```
 
+## A reference subject at another level of a categorical covariate
+
+The most common level of `RACEL` is level 1, which is also the level that the
+indicator columns of the FREM model leave out. A reference subject at another
+level, here level 2 (Black), is built with `catRef` in `setupDfCovs()`.
+`setupDfRefRow()` takes the same `catRef` from `dfCovs`, so it is not repeated:
+
+```{r ref_level}
+dfCovsBlack <- setupDfCovs(
+  data       = data,
+  covariates = covariates,
+  probs      = c(0.05, 0.9),
+  idVar      = "ID",
+  missVal    = -99,
+  catRef     = list(RACEL = 2)
+)
+
+dfRefRowBlack <- setupDfRefRow(
+  dfCovs     = dfCovsBlack,
+  data       = data,
+  covariates = covariates,
+  singleRef  = TRUE
+)
+
+dfRefRowBlack
+```
+
+The indicator columns are now `RACEL_1` and `RACEL_3`, while the model has
+`RACEL_2` and `RACEL_3`. `getForestDFFREM()` recodes the columns of `dfCovs`
+and `dfRefRow` to those of the model, and each row keeps its level of `RACEL`.
+With `quiet = FALSE`, a message names the recoded columns.
+
+```{r ref_level_df}
+dfres_blackRef <- getForestDFFREM(
+  dfCovs           = dfCovsBlack,
+  runno            = 31,
+  modDevDir        = modDevDir,
+  dfParameters     = dfParameters,
+  functionList     = functionList,
+  functionListName = "CL",
+  dfRefRow         = dfRefRowBlack,
+  quiet            = TRUE
+)
+```
+
+```{r ref_level_plot, fig.width = 10, fig.height = 5, out.width = "100%"}
+fp(dfres_blackRef,
+  referenceInfo = "Reference: median AGE and WT, most common GENO2, RACEL level 2 (Black)"
+)
+```
+
+Before this recoding, a reference subject at another level than the model
+needed the coding of the model and the level written into `dfRefRow` by hand,
+and with `useMissVal = FALSE` into every row of `dfCovs` as well.
+
 # 7. Conditioning the predictions: mimicking SCM
 
 To read the plot the way an SCM plot is read, the predictions have to be

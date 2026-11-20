@@ -764,3 +764,128 @@ test_that("a dfRefRow with every covariate missing gives the reference of no dfR
   res <- .runFood(s, data.frame(WT = -99, FOOD = -99))
   expect_equal(res$REFFUNC, .runFood(s, NULL)$REFFUNC)
 })
+
+# ---------------------------------------------------------------------------
+# Indicator columns of another reference level than the model
+# ---------------------------------------------------------------------------
+
+## run31 codes RACEL (levels 1, 2, 3) with the indicators RACEL_2 and RACEL_3,
+## so level 1 is the reference of the model. A dfCovs built with level 2 as the
+## reference (catRef = list(RACEL = 2) in setupDfCovs()) has RACEL_1 and
+## RACEL_3 instead. The rows below are levels 1, 2, 3 of RACEL and two WT rows
+## with RACEL in the background at level 2.
+.dfRacelRef2 <- data.frame(
+  COVARIATEGROUPS = c("WT", "WT", "RACEL", "RACEL", "RACEL"),
+  WT = c(56, 126, -99, -99, -99),
+  RACEL_1 = c(0, 0, 1, 0, 0),
+  RACEL_3 = c(0, 0, 0, 0, 1),
+  stringsAsFactors = FALSE
+)
+## the same rows in the coding of the model
+.dfRacelModel <- data.frame(
+  COVARIATEGROUPS = c("WT", "WT", "RACEL", "RACEL", "RACEL"),
+  WT = c(56, 126, -99, -99, -99),
+  RACEL_2 = c(1, 1, 0, 1, 0),
+  RACEL_3 = c(0, 0, 0, 0, 1),
+  stringsAsFactors = FALSE
+)
+.runRacel <- function(s, dfCovs, dfRefRow = NULL, quiet = TRUE) {
+  getForestDFFREM(
+    dfCovs = dfCovs, runno = 31, modDevDir = s$md, dfParameters = s$dfPar,
+    functionList = list(s$fun), functionListName = s$functionListName,
+    quiet = quiet, dfRefRow = dfRefRow
+  )
+}
+.numCols <- function(r) r[, vapply(r, is.numeric, logical(1))]
+
+test_that("indicator columns of another reference level are recoded to the columns of the model", {
+  s <- .covCheckSetup()
+  expect_equal(
+    .numCols(.runRacel(s, .dfRacelRef2)),
+    .numCols(.runRacel(s, .dfRacelModel))
+  )
+  ## and the covariate-name check has nothing to report
+  expect_length(.covMismatches(s, .dfRacelRef2), 0)
+})
+
+test_that("a reference subject at another level than the reference of the model needs no editing", {
+  s <- .covCheckSetup()
+  ref2 <- .runRacel(s, .dfRacelRef2, dfRefRow = data.frame(WT = 84.3, RACEL_1 = 0, RACEL_3 = 0))
+  model <- .runRacel(s, .dfRacelModel, dfRefRow = data.frame(WT = 84.3, RACEL_2 = 1, RACEL_3 = 0))
+  expect_equal(ref2$REFFUNC, model$REFFUNC)
+  expect_equal(ref2$POINT_REL_REFFUNC, model$POINT_REL_REFFUNC)
+  ## a dfRefRow in the coding of the model with a dfCovs in another coding
+  mixed <- .runRacel(s, .dfRacelRef2, dfRefRow = data.frame(WT = 84.3, RACEL_2 = 1, RACEL_3 = 0))
+  expect_equal(mixed$POINT_REL_REFFUNC, model$POINT_REL_REFFUNC)
+})
+
+test_that("setupDfCovs() with catRef at another level gives the result of the edits by hand", {
+  ## The edits a user made before: the coding of the model, then level 2 of
+  ## RACEL written into the background of dfCovs and into dfRefRow.
+  s <- .covCheckSetup()
+  data <- utils::read.csv(file.path(s$md, "DAT-2-MI-PMX-2-onlyTYPE2-new.csv"))
+  covs <- c("WT", "RACEL")
+  dfCovs2 <- PMXForest::setupDfCovs(data, covs, catRef = list(RACEL = 2), useMissVal = FALSE, idVar = "ID")
+  dfRef2 <- PMXForest::setupDfRefRow(dfCovs2, data = data, covariates = covs, idVar = "ID")
+
+  dfCovs1 <- PMXForest::setupDfCovs(data, covs, useMissVal = FALSE, idVar = "ID")
+  bg <- dfCovs1$COVARIATEGROUPS != "RACEL"
+  dfCovs1$RACEL_2[bg] <- 1
+  dfCovs1$RACEL_3[bg] <- 0
+  dfRef1 <- PMXForest::setupDfRefRow(dfCovs1, data = data, covariates = covs, idVar = "ID")
+  dfRef1$RACEL_2 <- 1
+  dfRef1$RACEL_3 <- 0
+
+  byHand <- .runRacel(s, dfCovs1, dfRefRow = dfRef1)
+  recoded <- .runRacel(s, dfCovs2, dfRefRow = dfRef2)
+  expect_equal(recoded$POINT, byHand$POINT)
+  expect_equal(recoded$REFFUNC, byHand$REFFUNC)
+})
+
+test_that("the recoding keeps the other columns when the indicator columns come first", {
+  s <- .covCheckSetup()
+  first <- .dfRacelRef2[, c("RACEL_1", "RACEL_3", "WT", "COVARIATEGROUPS")]
+  res <- .runRacel(s, first, dfRefRow = data.frame(RACEL_1 = 0, RACEL_3 = 0, WT = 84.3))
+  model <- .runRacel(s, .dfRacelModel, dfRefRow = data.frame(WT = 84.3, RACEL_2 = 1, RACEL_3 = 0))
+  expect_equal(res$WT, model$WT)
+  expect_equal(res$POINT, model$POINT)
+  expect_equal(res$REFFUNC, model$REFFUNC)
+})
+
+test_that("missing indicator rows stay missing and a row missing in part stops", {
+  s <- .covCheckSetup()
+  withMiss <- rbind(.dfRacelRef2, data.frame(COVARIATEGROUPS = "WT", WT = 70, RACEL_1 = -99, RACEL_3 = -99))
+  modelMiss <- rbind(.dfRacelModel, data.frame(COVARIATEGROUPS = "WT", WT = 70, RACEL_2 = -99, RACEL_3 = -99))
+  expect_equal(.numCols(.runRacel(s, withMiss)), .numCols(.runRacel(s, modelMiss)))
+
+  partly <- rbind(.dfRacelRef2, data.frame(COVARIATEGROUPS = "WT", WT = 70, RACEL_1 = 0, RACEL_3 = -99))
+  expect_error(.runRacel(s, partly), "Row 6 of dfCovs")
+})
+
+test_that("fractions of the levels are recoded as well", {
+  ## a population with 20% at level 1, 30% at level 2 and 50% at level 3
+  s <- .covCheckSetup()
+  frac2 <- data.frame(COVARIATEGROUPS = "RACEL", RACEL_1 = 0.2, RACEL_3 = 0.5)
+  fracModel <- data.frame(COVARIATEGROUPS = "RACEL", RACEL_2 = 0.3, RACEL_3 = 0.5)
+  expect_equal(.runRacel(s, frac2)$POINT, .runRacel(s, fracModel)$POINT)
+})
+
+test_that("a message names the recoded columns with quiet = FALSE", {
+  s <- .covCheckSetup()
+  expect_message(
+    utils::capture.output(.runRacel(s, .dfRacelRef2, quiet = FALSE)),
+    "RACEL_1, RACEL_3 of dfCovs (reference level 2) are recoded to the indicator columns RACEL_2, RACEL_3",
+    fixed = TRUE
+  )
+  expect_no_message(.runRacel(s, .dfRacelRef2, quiet = TRUE))
+})
+
+test_that("indicator columns that cannot be a recoding are left to the covariate-name check", {
+  ## RACEL_1 alone: two levels are missing from the columns, so the level of a
+  ## row of zeros is not known.
+  s <- .covCheckSetup()
+  one <- data.frame(COVARIATEGROUPS = c("RACEL", "RACEL"), RACEL_1 = c(1, 0))
+  ws <- .covMismatches(s, one)
+  expect_length(ws, 1)
+  expect_equal(ws[[1]][["unread"]], "RACEL_1")
+})

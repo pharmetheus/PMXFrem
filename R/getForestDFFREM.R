@@ -5,6 +5,26 @@
 #' data frame will be computed.
 #'
 #' @details
+#'   **Indicator columns are recoded to the coding of the FREM model.** The
+#'   indicator columns of a categorical FREM covariate leave out one level,
+#'   the reference level of the model: `RACEL_2` and `RACEL_3` in the bundled
+#'   run31, where level 1 is left out. [PMXForest::setupDfCovs()] and
+#'   [PMXForest::setupDfRefRow()] leave out the level set by `catRef`, which
+#'   is also the level of the reference subject and, with
+#'   `useMissVal = FALSE`, of the background of the other rows. With
+#'   `catRef = list(RACEL = 2)`, for a reference subject at level 2, the
+#'   columns are `RACEL_1` and `RACEL_3`. When the indicator columns of
+#'   `dfCovs` or `dfRefRow` and those of the model leave out one level each of
+#'   the same levels, the columns are recoded to those of the model, and each
+#'   row keeps its level. A reference subject at any level is therefore built
+#'   with `catRef` alone, without editing `dfCovs` and `dfRefRow` by hand. A row
+#'   with fractions of the levels is recoded as well. With `quiet = FALSE`, a
+#'   message names the recoded columns. The levels of the data are assumed to be
+#'   those of the model: indicator columns that name more or fewer levels than
+#'   the model are not recoded, and a data set that lacks a level of the model
+#'   and has a level that the model lacks would be recoded with the wrong
+#'   reference level.
+#'
 #'   **Covariate names are checked against the FREM model and a generated
 #'   parameter function.** A function made by [createFREMParamFunction()]
 #'   carries the names of the structural covariates it reads, as the attribute
@@ -17,8 +37,9 @@
 #'   lacks. A name spelled differently from the model always gives that pair,
 #'   for example `RACEL2` in `dfCovs` for the FREM covariate `RACEL_2` (the
 #'   separator, `sep` in [PMXForest::setupDfCovs()] or `oneHotSep`), or a
-#'   `RACEL_1` column for `RACEL_3` (the reference level, `catRef` in
-#'   [PMXForest::setupDfCovs()]). Either difference alone gives no warning.
+#'   `RACEL_4` column for a level that the model lacks. The check is made
+#'   after the recoding of indicator columns. Either difference alone gives
+#'   no warning.
 #'   Most Forest plots leave some FREM covariates out of `dfCovs`, so in
 #'   practice a column that nothing reads is reported whenever it occurs. A
 #'   hand-written function carries no names, so no check is made when
@@ -75,7 +96,8 @@
 #'   the reference covariate combination
 #' @param dfRefRow A data frame  (one row or equal number of rows as dfCovs)
 #'   with the covariate values that will be used as the reference, if NULL the
-#'   typical subject is used as reference.
+#'   typical subject is used as reference. Indicator columns of another
+#'   reference level than the model are recoded, as described in Details.
 #' @param cGrouping A vector of numbers defining how to group the y-axis of the
 #'   Forest plot, the length of the vector should match the number of rows in
 #'   dfCovs. If NULL (default) an educated guess of the grouping will be set
@@ -282,6 +304,15 @@ getForestDFFREM <- function(dfCovs,
     }
   }
 
+  ## Indicator columns of another reference level than the model, as from
+  ## setupDfCovs() with another catRef, are recoded to the columns of the
+  ## model, so that the reference subject can be at any level. After the
+  ## one-hot encoding, which can give such columns too, and before the checks.
+  dfCovs <- .fremRecodeIndicators(dfCovs, covNames, missVal, "dfCovs", quiet)
+  if (!is.null(dfRefRow) && is.data.frame(dfRefRow)) {
+    dfRefRow <- .fremRecodeIndicators(dfRefRow, covNames, missVal, "dfRefRow", quiet)
+  }
+
   ## After the one-hot encoding, so the dummy columns are compared and not the
   ## raw covariate, and before the FREM covariates that dfCovs lacks are added
   ## as missing columns below.
@@ -289,9 +320,9 @@ getForestDFFREM <- function(dfCovs,
     functionList, covNames, setdiff(names(dfCovs), "COVARIATEGROUPS"),
     hint = paste0(
       "Check the separator of indicator columns (sep in setupDfCovs(), oneHotSep ",
-      "in getForestDFFREM()), which gives RACEL2 against RACEL_2, and the ",
-      "reference level (catRef in setupDfCovs()), which gives RACEL_1 against ",
-      "RACEL_3."
+      "in getForestDFFREM()), which gives RACEL2 against RACEL_2, and the levels ",
+      "of a categorical covariate: indicator columns of another reference level ",
+      "are recoded to those of the model, but a level that the model lacks is not."
     )
   )
   ## Before the FREM covariates that dfCovs lacks are added below, so that a
@@ -710,6 +741,94 @@ getForestDFFREM <- function(dfCovs,
     ),
     call. = FALSE
   )
+}
+
+#' Recode indicator columns to the indicator columns of the FREM model
+#'
+#' The indicator columns of a categorical FREM covariate leave out one level,
+#' the reference level of the model: `RACEL_2` and `RACEL_3` in run31.
+#' `PMXForest::setupDfCovs()` and `setupDfRefRow()` leave out the level set by
+#' `catRef`, which is also the level of the reference subject and of the
+#' background rows, so a reference subject at another level than the model
+#' gives other columns: `RACEL_1` and `RACEL_3` for `catRef = list(RACEL = 2)`.
+#' When the columns of `df` and of the model leave out one level each of the
+#' same levels, the columns of `df` are recoded to those of the model. Each row
+#' keeps its level, or the fraction of each level, since a row of zeros in `df`
+#' is the level that `df` leaves out. A row with every indicator column missing
+#' stays missing. Columns that name more or fewer levels than the model are
+#' left as they are, for the covariate-name check to report. The levels of
+#' `df` and of the model are assumed to be the same: a data set that lacks a
+#' level of the model and has a level that the model lacks would be recoded
+#' with the wrong reference level.
+#'
+#' @param df `dfCovs` or `dfRefRow`, after one-hot encoding.
+#' @param covNames The FREM covariates of the model.
+#' @param missVal The missing value.
+#' @param what `"dfCovs"` or `"dfRefRow"`, for the messages.
+#' @param quiet If `FALSE`, a message names the recoded columns.
+#' @return `df`, with the indicator columns of the model in place of the
+#'   recoded ones.
+#' @keywords internal
+#' @noRd
+.fremRecodeIndicators <- function(df, covNames, missVal, what, quiet) {
+  isLevel <- function(x) grepl("^[0-9]+$", x)
+  ## the indicator columns of base among nms, in the order of the levels
+  colsOf <- function(nms, base) {
+    pre <- paste0(base, "_")
+    out <- nms[startsWith(nms, pre) & isLevel(substring(nms, nchar(pre) + 1))]
+    out[order(as.numeric(substring(out, nchar(pre) + 1)))]
+  }
+  bases <- unique(sub("_[0-9]+$", "", covNames[grepl("_[0-9]+$", covNames)]))
+  for (base in bases) {
+    modCols <- colsOf(covNames, base)
+    dfCols <- colsOf(names(df), base)
+    if (length(dfCols) == 0 || setequal(dfCols, modCols)) next
+    modLev <- substring(modCols, nchar(base) + 2)
+    dfLev <- substring(dfCols, nchar(base) + 2)
+    allLev <- union(modLev, dfLev)
+    if (length(dfLev) != length(modLev) || length(allLev) != length(modLev) + 1) next
+    dfRef <- setdiff(allLev, dfLev)
+    modRef <- setdiff(allLev, modLev)
+
+    m <- vapply(dfCols, function(cc) as.numeric(df[[cc]]), numeric(nrow(df)))
+    m <- matrix(m, nrow = nrow(df), dimnames = list(NULL, dfLev))
+    nMiss <- rowSums(m == missVal)
+    partly <- which(nMiss > 0 & nMiss < ncol(m))
+    if (length(partly) > 0) {
+      stop(
+        "Row ", paste(partly, collapse = ", "), " of ", what, " has missing and ",
+        "non-missing values in the indicator columns ", paste(dfCols, collapse = ", "),
+        ", so it cannot be recoded to the indicator columns ",
+        paste(modCols, collapse = ", "), " of the FREM model. Set every ",
+        "indicator column of ", base, " in a row to the missing value, or none.",
+        call. = FALSE
+      )
+    }
+    full <- cbind(m, 1 - rowSums(m))
+    colnames(full) <- c(dfLev, dfRef)
+    new <- full[, modLev, drop = FALSE]
+    new[nMiss == ncol(m), ] <- missVal
+    colnames(new) <- modCols
+
+    ## the columns of the model take the place of the first recoded column
+    pos <- seq_along(names(df))
+    at <- min(match(dfCols, names(df)))
+    before <- setdiff(names(df)[pos < at], dfCols)
+    after <- setdiff(names(df)[pos > at], dfCols)
+    attrs <- attributes(df)[setdiff(names(attributes(df)), c("names", "row.names", "class"))]
+    df <- cbind(df[, before, drop = FALSE], as.data.frame(new), df[, after, drop = FALSE])
+    for (a in names(attrs)) attr(df, a) <- attrs[[a]]
+
+    if (!quiet) {
+      message(
+        "The indicator columns ", paste(dfCols, collapse = ", "), " of ", what,
+        " (reference level ", dfRef, ") are recoded to the indicator columns ",
+        paste(modCols, collapse = ", "), " of the FREM model (reference level ",
+        modRef, "). Each row keeps its level of ", base, "."
+      )
+    }
+  }
+  df
 }
 
 #' Warn when dfRefRow has a column that dfCovs lacks
