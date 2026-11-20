@@ -44,8 +44,11 @@
 #' @param numSkipOm Number of diagonal OMEGAs before the FREM block that are not
 #'   part of the FREM calculations. Derived as `numNonFREMThetas` is when
 #'   `NULL` (default); without a model, 0.
-#' @param covNames Names of the FREM covariates, as in [calcFFEM()]. If `NULL`
-#'   (default), they are read from the model file with [getCovNames()].
+#' @param covNames Names of the FREM covariates, in the order of the model, as
+#'   in [calcFFEM()]. If `NULL` (default), they are read from the model file
+#'   with [getCovNames()]. When the model file is found, a `covNames` that
+#'   differs from the covariates of the model in content or order stops the
+#'   function, because the coefficients are attached to the names by position.
 #' @param parNames Names of the parameters with covariate effects, as in
 #'   [calcFFEM()], one per row of the coefficients. They are used in the
 #'   left-hand side of each equation (`COV_CL`). If `NULL` (default), `Par1`,
@@ -113,6 +116,7 @@ fremEqLatex <- function(dfext = NULL,
       numNonFREMThetas = numNonFREMThetas, numSkipOm = numSkipOm
     )
     if (is.null(covNames)) covNames <- info$covNames
+    .fremCheckCovNamesModel(covNames, info$covNames, fileNames$mod)
     numNonFREMThetas <- info$numNonFREMThetas
     numSkipOm <- info$numSkipOm
   }
