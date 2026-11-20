@@ -138,7 +138,7 @@ functionList <- list(
 )
 ```
 
-`RACEL` is coded 1 Caucasian, 2 Black and 3 Asian, with level 1 as the
+`RACEL` is coded 1 Caucasian, 2 Black and 3 Other, with level 1 as the
 reference, so the one-hot columns `RACEL_2` and `RACEL_3` carry the other two.
 
 For didactic purposes in this vignette, the default labels are kept in full. The
@@ -325,11 +325,11 @@ fp(dfres_varRef,
 
 # 9. Which plot answers which question
 
-The two readings can disagree, and on this model they do. Take Asian subjects -
-`RACEL` level 3:
+The two readings can disagree, and on this model they do. Take the subjects of
+`RACEL` level 3, Other:
 
 ```{r estimands}
-# the dfCovs row for Asian subjects. Match on the row number rather than
+# the dfCovs row for RACEL level 3. Match on the row number rather than
 # the label: conditioning rewrites the label to carry every covariate it fixes.
 iRacel3 <- which(dfCovs$COVARIATEGROUPS == "RACEL" & dfCovs$RACEL_3 == 1)
 
@@ -342,11 +342,12 @@ c(unconditional = pick(dfres_varRef), conditional = pick(dfres_scm))
 ```
 
 * **Unconditional**, `r pick(dfres_varRef)` of the reference: a subject known
-  only to be Asian can be expected to have a *lower* CL than a Caucasian one.
-  This is the reading for a label statement or a dosing recommendation.
-* **Conditional**, `r pick(dfres_scm)` of the reference: an Asian subject who is
-  otherwise typical can be expected to have a slightly *higher* CL than an
-  otherwise identical Caucasian subject. This is the mechanistic reading, and
+  only to be in the Other group can be expected to have a *lower* CL than a
+  Caucasian one. This is the reading for a label statement or a dosing
+  recommendation.
+* **Conditional**, `r pick(dfres_scm)` of the reference: a subject of the Other
+  group who is otherwise typical can be expected to have a slightly *higher* CL
+  than an otherwise identical Caucasian subject. This is the mechanistic reading, and
   the one an SCM Forest plot gives.
 
 Neither number is wrong. They answer different questions, and a plot that does
