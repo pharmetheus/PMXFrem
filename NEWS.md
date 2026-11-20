@@ -29,6 +29,14 @@ shifted, and no message was given. This check is made for hand-written
 parameter functions too. A reference row from `setupDfRefRow()` has the
 columns of `dfCovs` and never gives the warning.
 
+## LaTeX equations of the covariate effects for reports
+
+`fremEqLatex()` writes the covariate effects of the FFEM as LaTeX, one
+equation per parameter: each term is the coefficient times the covariate minus
+its mean, such as `-0.00591 (WT - 86.9)`. The covariates and their levels are
+labelled with the `name_map` and `level_map` of `generateCovNames()`. In a
+report, the equations can replace a listing of the `eqFile` of `calcFFEM()`.
+
 ## Changes to existing behaviour
 
 * **Two warnings of `getForestDFFREM()` are removed.** With `quiet = FALSE`,
