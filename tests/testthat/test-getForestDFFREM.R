@@ -443,7 +443,8 @@ test_that("a FREM covariate named with the wrong separator gives one pmxCovariat
   expect_setequal(w[["absent"]], c(setdiff(s$covNames, "WT"), "FOOD"))
   expect_match(conditionMessage(w), "RACEL2, RACEL3")
   expect_match(conditionMessage(w), "oneHotSep")
-  expect_match(conditionMessage(w), "catRef")
+  ## another reference level is recoded, so the hint is about levels the model lacks
+  expect_match(conditionMessage(w), "a level that the model lacks")
 })
 
 test_that("a misspelled structural covariate gives a pmxCovariateMismatch warning", {
@@ -877,7 +878,17 @@ test_that("a message names the recoded columns with quiet = FALSE", {
     "RACEL_1, RACEL_3 of dfCovs (reference level 2) are recoded to the indicator columns RACEL_2, RACEL_3",
     fixed = TRUE
   )
-  expect_no_message(.runRacel(s, .dfRacelRef2, quiet = TRUE))
+  ## counted by hand: expect_no_message() of testthat 3.1.7 never fails (it
+  ## looks for the class "messsage")
+  n <- 0
+  withCallingHandlers(
+    .runRacel(s, .dfRacelRef2, quiet = TRUE),
+    message = function(m) {
+      n <<- n + 1
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_equal(n, 0)
 })
 
 test_that("indicator columns that cannot be a recoding are left to the covariate-name check", {
