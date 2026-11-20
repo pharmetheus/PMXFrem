@@ -1,10 +1,24 @@
 # PMXFrem 2.5.0
 
+## A reference subject at any level of a categorical covariate
+
+`getForestDFFREM()` now recodes the indicator columns of a categorical
+covariate to the coding of the full random effects model (FREM), so that the
+reference subject of a Forest plot can be at any level. The indicator columns
+of a FREM model leave out one level, such as level 1 of `RACEL` with the
+columns `RACEL_2` and `RACEL_3`. A `dfCovs` built with
+`catRef = list(RACEL = 2)` in `PMXForest::setupDfCovs()`, for a reference
+subject at level 2, has the columns `RACEL_1` and `RACEL_3`. These columns are
+now recoded to the columns of the model, with the same level on each row.
+Until now, the coding of the model had to be kept, and level 2 written by hand
+into `dfRefRow` and, with `useMissVal = FALSE`, into every row of `dfCovs`. The
+Forest plot references deep dive has an example.
+
 ## Checking covariate names in Forest plots and explained variability
 
 `getForestDFFREM()` and `getExplainedVar()` now warn when the covariate names
 in `dfCovs`, the data frame with the covariate values of each row, do not
-match the full random effects model (FREM). The warning is given when
+match the FREM model. The warning is given when
 `dfCovs` has a column that is not a covariate of the model and also lacks a
 covariate of the model, which is what a misspelled name gives. Until now, with
 `RACEL2` in `dfCovs` for the FREM covariate `RACEL_2`, there was no covariate
@@ -24,6 +38,13 @@ the Forest plot was compared with another subject than intended. A reference
 row made with `setupDfRefRow()` has the columns of `dfCovs`, so this warning
 is never given for it.
 
+`getForestDFFREM()` and `fremEqLatex()` now stop when `covNames` differs from
+the FREM covariates of the model in content or order, and the model file is
+given with `runno` or `modName`. The coefficients of the full fixed effects
+model (FFEM) are attached to `covNames` by position, so a `covNames` copied
+from the columns of `dfCovs` gave the covariate effects to the wrong levels,
+without a message. Left out, `covNames` is read from the model.
+
 In `getExplainedVar()` with `type` 1, 2 or 3, the covariate values are taken
 from `data`. A column of `dfCovs` that `data` lacks now stops the function
 with the name of the column, instead of the error "undefined columns
@@ -31,14 +52,16 @@ selected".
 
 ## LaTeX equations of the covariate effects for reports
 
-`fremEqLatex()` writes the covariate effects of the full fixed effects model
-(FFEM) as LaTeX equations, one per parameter, for use in a report. Each term
+`fremEqLatex()` writes the covariate effects of the FFEM as LaTeX equations, one per parameter, for use in a report. Each term
 is a coefficient times a covariate minus the mean of the covariate, such as
 `-0.00591 (WT - 86.9)`. The covariates, and the levels of the categorical
 covariates, are labelled with `name_map` and `level_map`, the same maps that
 `generateCovNames()` uses for the labels of a Forest plot.
 
 ## Changes to existing behaviour
+
+* **PMXForest 1.4.1 or later is required.** PMXFrem 2.4.0 required PMXForest
+  1.4.0. PMXFrem is tested with PMXForest 1.4.1.
 
 * **FFEM data sets have the subjects of the FREM fit.** `createFFEMdata()`
   and `createFFEMmodel()` now keep only the subjects in the `.phi` file of
@@ -65,6 +88,12 @@ covariates, are labelled with `name_map` and `level_map`, the same maps that
   one-row `dfRefRow`, so the reference subject did not have that level. The
   levels are now taken from `dfCovs`, as in `PMXForest::getForestDFSCM()`.
 
+* **A `dfRefRow` that sets no FREM covariate is accepted.** In
+  `getForestDFFREM()`, a reference row with only structural covariates, or
+  with every covariate missing, stopped with "replacement has length zero".
+  The reference subject now gets no covariate effect, as a row of `dfCovs`
+  without FREM covariates does.
+
 ## Documentation
 
 * On the help page of `getForestDFFREM()`, the default of `quiet` was given
@@ -73,6 +102,9 @@ covariates, are labelled with `name_map` and `level_map`, the same maps that
   the FFEM of each calculation.
 * The walkthrough vignette has a section on the covariate equations from
   `fremEqLatex()`, with the labels of the Forest plot deep dive.
+* In the Forest plot references deep dive, level 3 of `RACEL` is called
+  Other, as in the level maps of the other vignettes. The text called it
+  Asian.
 
 # PMXFrem 2.4.0
 

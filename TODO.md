@@ -244,47 +244,17 @@ comment lines back to find the covariates, so the change needs a round-trip
 test (`createFREMmodel()` then `getCovNames()` / `updateFREMmodel()` on the
 result) before and after, and a check of the snapshots that hold model text.
 
-## T50 - a reference subject at another level than the indicator coding of the FREM model (PMXForest too)
-
-Reported 2026-11-20 from a user script, for a later release.
-
-In PMXForest `setupDfCovs()` and `setupDfRefRow()`, `catRef` sets two things
-at once: the level dropped in the one-hot coding and the level of the
-reference subject (with `useMissVal = FALSE`, also the background level in
-the rows that do not vary the covariate). For a FREM model, the coding is
-fixed by the indicator names of the model. A reference subject at another
-level therefore means keeping the coding of the model and editing `dfRefRow`
-and every background row of `dfCovs` by hand. Changing `catRef` instead
-changes the coding: with a `covNames` copied from `dfCovs`, the effects land
-on the wrong levels without a message (release board card
-`rel250-covnames`); with `covNames` from the model, the indicator that
-`dfCovs` lacks is treated as missing, and since 2.5.0 the covariate-name
-check warns.
-
-Two pieces would close the gap:
-
-- A PMXFrem helper that derives `catRef` from the FREM model: for each
-  categorical covariate with indicators `X_l` in `getCovNames()`, the dropped
-  level is the level of the data without an indicator. Passed to
-  `setupDfCovs()` and `setupDfRefRow()`, it gives a `dfCovs` that matches the
-  model by construction. PMXForest `catRef = "model"` reads references from
-  the `$PK` code, as `createParamFunction()` does, and the FREM covariates
-  are not in that code; whether it resolves a FREM indicator is not checked.
-- A reference-subject setting separate from the coding, applied to
-  `dfRefRow` and to the `useMissVal = FALSE` background of `dfCovs`: a change
-  to `setupDfCovs()` and `setupDfRefRow()` in PMXForest, with a PMXFrem
-  helper on top.
-
-Part of it works already: with the `oneHot` argument of `getForestDFFREM()`,
-a one-row `dfRefRow` with a raw categorical column (`RACEL = 2`) is encoded
-with the coding of `dfCovs` since 2.5.0 (#120, test "a raw categorical column
-in a one-row dfRefRow is encoded like dfCovs"). That covers the reference
-row; the background rows of `dfCovs` are not checked. Proposed order: show
-that route in the Forest plot references deep dive, then the `catRef`
-helper, then the PMXForest setting.
-
 ## Done
 
+- **T50** - a reference subject at another level than the indicator coding
+  of the FREM model. `getForestDFFREM()` recodes indicator columns that
+  leave out another level than the model to the columns of the model (#128),
+  so `catRef` in `setupDfCovs()` sets the reference level and the coding is
+  taken care of. The `catRef` helper from `getCovNames()` and a reference
+  setting in PMXForest were not needed. Shown in the Forest plot references
+  deep dive. Assumes the levels of the data are those of the model.
+- **T28, the skip** - removed with the requirement `PMXForest (>= 1.4.1)` in
+  2.5.0: the test of the scale gate of `verifyFREMParamFunction()` always runs.
 - **Release plan 2.4.0** - released 2026-11-10 (tag `v2.4.0`, #109). The
   backlog rows PRRS-328, 321, 327 and 293 were addressed in #102-#106:
   `createFFEMmodel()` keeps THETA bounds and FIX, the `calcFFEM()` help
