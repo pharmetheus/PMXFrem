@@ -727,3 +727,40 @@ test_that("without the model, a covNames in another order is used as given", {
   cl <- function(r) r$POINT[r$PARAMETER == "CL"]
   expect_equal(cl(swapped), rev(cl(right)))
 })
+
+# ---------------------------------------------------------------------------
+# A dfRefRow that sets no FREM covariate
+# ---------------------------------------------------------------------------
+
+## FOOD is a structural covariate of run31, read by MAT; WT is a FREM
+## covariate. The FFEM of a reference row without FREM covariates has no
+## covariate terms, as for a row of dfCovs without FREM covariates.
+.dfCovsFood <- data.frame(
+  COVARIATEGROUPS = c("WT", "WT", "FOOD"),
+  WT = c(50, 100, -99),
+  FOOD = c(-99, -99, 1),
+  stringsAsFactors = FALSE
+)
+.runFood <- function(s, dfRefRow) {
+  getForestDFFREM(
+    dfCovs = .dfCovsFood, runno = 31, modDevDir = s$md, dfParameters = s$dfPar,
+    functionList = list(s$fun), functionListName = s$functionListName,
+    quiet = TRUE, dfRefRow = dfRefRow
+  )
+}
+
+test_that("a dfRefRow with only a structural covariate gives the reference without covariate effects", {
+  s <- .covCheckSetup()
+  res <- .runFood(s, data.frame(WT = -99, FOOD = 1))
+  ## the reference equals the FOOD = 1 row of dfCovs, which sets no FREM covariate
+  noRef <- .runFood(s, NULL)
+  foodRow <- noRef[noRef$COVNAME == "FOOD=1", ]
+  expect_equal(unique(res$REFFUNC[res$PARAMETER == "MAT"]), foodRow$POINT[foodRow$PARAMETER == "MAT"])
+  expect_equal(unique(res$REFFUNC[res$PARAMETER == "CL"]), foodRow$POINT[foodRow$PARAMETER == "CL"])
+})
+
+test_that("a dfRefRow with every covariate missing gives the reference of no dfRefRow", {
+  s <- .covCheckSetup()
+  res <- .runFood(s, data.frame(WT = -99, FOOD = -99))
+  expect_equal(res$REFFUNC, .runFood(s, NULL)$REFFUNC)
+})
