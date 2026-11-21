@@ -507,21 +507,22 @@ samplesFREM <- getSamples(file.path(simVal, "bs22-3.dir/raw_results_run22-3bs.cs
 
 # row labels, with the names and level names of the PMXForest walkthrough
 # vignette
+mapsWE <- list(
+  name_map = c(
+    WT = "Weight", SEX = "Sex", FORM = "Formulation", FOOD = "Food status",
+    GENO = "2D6 genotype", AGE = "Age", CRCL = "CRCL"
+  ),
+  unit_map = c(WT = "kg", AGE = "y", CRCL = "mL/min"),
+  level_map = list(
+    SEX  = c("1" = "Male", "2" = "Female"),
+    FORM = c("0" = "Oral tablet", "1" = "FDC"),
+    FOOD = c("0" = "Fasted", "1" = "Fed"),
+    GENO = c("1" = "2D6 UM", "2" = "2D6 EM", "3" = "2D6 IM", "4" = "2D6 PM")
+  ),
+  group_map = c(CRCL = "Creatinine\nclearance")
+)
 labelWE <- function(dfCovs, dfres) {
-  generateCovNames(dfCovs, dfres,
-    name_map = c(
-      WT = "Weight", SEX = "Sex", FORM = "Formulation", FOOD = "Food status",
-      GENO = "2D6 genotype", AGE = "Age", CRCL = "CRCL"
-    ),
-    unit_map = c(WT = "kg", AGE = "y", CRCL = "mL/min"),
-    level_map = list(
-      SEX  = c("1" = "Male", "2" = "Female"),
-      FORM = c("0" = "Oral tablet", "1" = "FDC"),
-      FOOD = c("0" = "Fasted", "1" = "Fed"),
-      GENO = c("1" = "2D6 UM", "2" = "2D6 EM", "3" = "2D6 IM", "4" = "2D6 PM")
-    ),
-    group_map = c(CRCL = "Creatinine\nclearance")
-  )
+  do.call(generateCovNames, c(list(dfCovs, dfres), mapsWE))
 }
 
 # the CL/F rows, with a panel name in PARAMETER, for plots side by side
@@ -808,3 +809,46 @@ covariate is missing. The other FREM covariates are therefore integrated out,
 and weight, formulation, food and genotype are at the reference of the model.
 The reference subject for weight weighs `r dfRefRowWE$WT` kg, and the reference
 subjects for the other covariates weigh 75 kg.
+
+## compareFREMSCM() builds the whole comparison in one call
+
+`compareFREMSCM()` builds the comparison of the worked example in one call. The
+function sets every FREM covariate on every row, gives both models one
+reference subject, passes genotype to each model in the coding the model reads,
+and draws the two plots side by side. The function also returns a table of the
+effects of both models, a text that describes the differences, and a figure
+legend. By default, the covariates on the plot are those that the SCM model
+reads for the parameters given. Here, the covariates of the worked example are
+given instead, so that age and creatinine clearance are on the plot as well.
+The labels are those of the worked example, in `mapsWE`.
+
+```{r we_compare, fig.width = 10, fig.height = 7, out.width = "100%"}
+resWE <- do.call(compareFREMSCM, c(
+  list(
+    scmModel        = file.path(simVal, "run7.mod"),
+    fremModel       = file.path(simVal, "run22-3.mod"),
+    data            = dataWE,
+    parameters      = c("FREL", "CL"),
+    secondary       = secondaryWE,
+    plotParameters  = "CLF",
+    parameterLabels = c(CLF = "CL/F"),
+    covariates      = shownWE,
+    samplesSCM      = file.path(simVal, "bs7.dir/raw_results_run7bs.csv"),
+    samplesFREM     = file.path(simVal, "bs22-3.dir/raw_results_run22-3bs.csv")
+  ),
+  mapsWE
+))
+resWE
+```
+
+The values on `CL/F` are those of the fully conditioned plots of the worked
+example, which were computed with the same bootstraps. The text and the legend
+are printed with `print(resWE, text = TRUE)`, or read from the result. No
+verdict on the agreement of the two models is given in the text: the rows are
+counted by the direction of the two effects relative to 1, and each row is
+described with the two point estimates.
+
+```{r we_compare_text}
+writeLines(resWE$description)
+writeLines(strwrap(resWE$legend))
+```
