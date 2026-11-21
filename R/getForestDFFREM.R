@@ -374,13 +374,16 @@ getForestDFFREM <- function(dfCovs,
       ## Calculate the ffemObj in case reference covariates have been specified
       if (!is.null(dfRefRow)) {
         indi <- min(i, nrow(dfRefRow))
+        refRow <- dfRefRow[indi, , drop = FALSE]
+        availRef <- names(refRow)[as.numeric(refRow) != missVal]
+        availRef <- availRef[availRef %in% covNames]
 
         ffemObjRef <- calcFFEM(
           numSkipOm        = numSkipOm,
           numNonFREMThetas = numNonFREMThetas,
           dfext            = dfext,
           covNames         = covNames,
-          availCov         = names(dfRefRow[indi, , drop = FALSE])[as.numeric(dfRefRow[indi, , drop = FALSE]) != missVal][names(dfRefRow[indi, , drop = FALSE])[as.numeric(dfRefRow[indi, , drop = FALSE]) != missVal] %in% covNames],
+          availCov         = availRef,
           quiet            = quiet
         )
       }
@@ -408,7 +411,11 @@ getForestDFFREM <- function(dfCovs,
           coveffects[j] <- as.numeric(eval(parse(text = ffem_expr)))
         }
 
-        if (!is.null(dfRefRow)) {
+        ## A reference row without FREM covariates has no covariate effect, as
+        ## a row of dfCovs without them. The FFEM expression of no covariates
+        ## still names every FREM covariate, and dfRefRow, unlike dfCovs, is not
+        ## given the FREM covariates it lacks, so it cannot be evaluated.
+        if (!is.null(dfRefRow) && length(availRef) > 0) {
           data47_jxrtp_ref <- dfRefRow[indi, , drop = FALSE]
           ffem_expr_base <- str_replace_all(ffemObjRef$Expr[j], pattern = "data\\$", replacement = "data47_jxrtp_ref$")
           coveffects_base[j] <- as.numeric(eval(parse(text = ffem_expr_base)))
