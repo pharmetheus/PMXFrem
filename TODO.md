@@ -246,6 +246,15 @@ result) before and after, and a check of the snapshots that hold model text.
 
 ## Done
 
+- **T50** - a reference subject at another level than the indicator coding
+  of the FREM model. `getForestDFFREM()` recodes indicator columns that
+  leave out another level than the model to the columns of the model (#128),
+  so `catRef` in `setupDfCovs()` sets the reference level and the coding is
+  taken care of. The `catRef` helper from `getCovNames()` and a reference
+  setting in PMXForest were not needed. Shown in the Forest plot references
+  deep dive. Assumes the levels of the data are those of the model.
+- **T28, the skip** - removed with the requirement `PMXForest (>= 1.4.1)` in
+  2.5.0: the test of the scale gate of `verifyFREMParamFunction()` always runs.
 - **Release plan 2.4.0** - released 2026-11-10 (tag `v2.4.0`, #109). The
   backlog rows PRRS-328, 321, 327 and 293 were addressed in #102-#106:
   `createFFEMmodel()` keeps THETA bounds and FIX, the `calcFFEM()` help
