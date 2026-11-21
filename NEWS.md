@@ -22,39 +22,19 @@ Forest Plots" has an example.
 
 ## Checking covariate names in Forest plots and explained variability
 
-`getForestDFFREM()` and `getExplainedVar()` now warn when the covariate names
-in `dfCovs` do not match the FREM model. The warning is given when
-`dfCovs` has a column that is not a covariate of the model and also lacks a
-covariate of the model, which is what a misspelled name gives. Until now, with
-`RACEL2` in `dfCovs` for the FREM covariate `RACEL_2`, there was no covariate
-effect in the RACEL rows of a Forest plot, and no message was given.
+`getForestDFFREM()` and `getExplainedVar()` now warn when `dfCovs` has a
+column that is not a covariate of the model and lacks a covariate of the
+model, as with `RACEL2` for `RACEL_2`. Until now, the misspelled covariate
+had no effect, and no message was given. `getForestDFFREM()` also warns when
+`dfRefRow` has a column that `dfCovs` lacks.
 
-The warning is given whatever the value of `quiet`. It has the class
-`pmxCovariateMismatch`, so that it can be silenced without silencing other
-warnings. A structural covariate, such as body weight in an allometric model,
-counts as a covariate of the model when the parameter function comes from
-`createFREMParamFunction()`. With a parameter function written by hand, the
-structural covariates are not known, and no check is made.
+When the model file is given, `getForestDFFREM()` and `fremEqLatex()` stop
+if `covNames` differs from the FREM covariates of the model in names or
+order. The coefficients of the full fixed effects model (FFEM) are matched to
+`covNames` by position, so the effects would go to the wrong covariates.
 
-`getForestDFFREM()` also warns when the reference row `dfRefRow` has a column
-that `dfCovs` lacks. Until now, with `wt` in `dfRefRow` for `WT` in `dfCovs`,
-the weight of the reference subject was treated as missing, and every row of
-the Forest plot was compared with another subject than intended. A reference
-row made with `setupDfRefRow()` has the columns of `dfCovs`, so this warning
-is never given for it.
-
-When the model file is given with `runno` or `modName`, `getForestDFFREM()`
-and `fremEqLatex()` now stop if the names in `covNames` differ from the FREM
-covariates of the model, or are in another order. The coefficients of the
-full fixed effects model (FFEM) are matched to `covNames` by position. With a
-`covNames` copied from the columns of `dfCovs`, the covariate effects were
-therefore given to the wrong levels without a message. When `covNames` is
-left out, the names are read from the model.
-
-In `getExplainedVar()` with `type` 1, 2 or 3, the covariate values are taken
-from `data`. A column of `dfCovs` that `data` lacks now stops the function
-with the name of the column, instead of the error "undefined columns
-selected".
+`getExplainedVar()` with `type` 1, 2 or 3 stops with the name of a column of
+`dfCovs` that `data` lacks.
 
 ## LaTeX equations of the covariate effects for reports
 
