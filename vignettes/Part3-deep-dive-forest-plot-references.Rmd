@@ -636,7 +636,7 @@ forestPlot(dfresCLF,
 )
 ```
 
-For the covariates in the SCM model, the two plots agree on `CL/F`. The weight
+For the covariates in the SCM model, the two plots agree. The weight
 rows are equal in the two models and have no uncertainty, because the
 allometric exponents of weight are fixed in both models. `CL/F` with the
 fixed-dose combination (FDC) is `r rel(dfresSCM, "FDC", "CLF")` times `CL/F`
