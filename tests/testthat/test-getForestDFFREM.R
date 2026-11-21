@@ -655,3 +655,75 @@ test_that("a oneHot reference level that dfCovs lacks is still reported by the e
     "reference level 9"
   )
 })
+
+# ---------------------------------------------------------------------------
+# covNames against the FREM covariates of the model
+# ---------------------------------------------------------------------------
+
+## The FFEM coefficients are attached to covNames by position. In run31.mod,
+## RACEL_3 is the 12th FREM covariate and RACEL_2 the 13th, so a covNames
+## copied from the columns of a dfCovs (RACEL_2 before RACEL_3) swaps the two
+## effects.
+.dfCovsRacel <- data.frame(
+  COVARIATEGROUPS = c("RACEL", "RACEL"),
+  RACEL_2 = c(1, 0),
+  RACEL_3 = c(0, 1),
+  stringsAsFactors = FALSE
+)
+.swapRacel <- function(covNames) {
+  i <- match(c("RACEL_2", "RACEL_3"), covNames)
+  covNames[i] <- covNames[rev(i)]
+  covNames
+}
+
+test_that("a covNames in another order than the model stops getForestDFFREM()", {
+  s <- .covCheckSetup()
+  expect_error(
+    .covMismatches(s, .dfCovsRacel, covNames = .swapRacel(s$covNames)),
+    "Position 12: RACEL_2 in `covNames`, RACEL_3 in the model"
+  )
+})
+
+test_that("a covNames with other names than the model stops getForestDFFREM()", {
+  ## the indicators of a dfCovs built with level 3 of RACEL as the reference
+  s <- .covCheckSetup()
+  other <- s$covNames
+  other[other == "RACEL_3"] <- "RACEL_1"
+  expect_error(
+    .covMismatches(s, .dfCovsRacel, covNames = other),
+    "Position 12: RACEL_1 in `covNames`, RACEL_3 in the model"
+  )
+  expect_error(
+    .covMismatches(s, .dfCovsRacel, covNames = s$covNames[-18]),
+    "`covNames` has 17 names and the model 18. Not in `covNames`: SMOK"
+  )
+})
+
+test_that("the covNames of the model give the result of a covNames left out", {
+  s <- .covCheckSetup()
+  run <- function(covNames) {
+    getForestDFFREM(
+      dfCovs = .dfCovsRacel, covNames = covNames, runno = 31, modDevDir = s$md,
+      dfParameters = s$dfPar, functionList = list(s$fun),
+      functionListName = s$functionListName, quiet = TRUE
+    )
+  }
+  expect_equal(run(s$covNames), run(NULL))
+})
+
+test_that("without the model, a covNames in another order is used as given", {
+  ## Nothing can be compared, so a renamed covNames stays possible.
+  s <- .covCheckSetup()
+  run <- function(covNames) {
+    getForestDFFREM(
+      dfCovs = .dfCovsRacel, covNames = covNames, numNonFREMThetas = 7,
+      numSkipOm = 2, dfParameters = s$dfPar, functionList = list(s$fun),
+      functionListName = s$functionListName, quiet = TRUE
+    )
+  }
+  right <- run(s$covNames)
+  swapped <- run(.swapRacel(s$covNames))
+  ## the effects of RACEL_2 and RACEL_3 change places
+  cl <- function(r) r$POINT[r$PARAMETER == "CL"]
+  expect_equal(cl(swapped), rev(cl(right)))
+})

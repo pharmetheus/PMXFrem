@@ -51,9 +51,15 @@ will be calculated. If the function returns a vector of values, each value
 will be used but functionListName must contain the names with a length of
 all return for all functions in the functionList}
 
-\item{covNames}{Names of the covariates. If \code{NULL} (default), locate the model
-file via \code{runno} / \code{modName} / \code{modDevDir} so they can be derived; otherwise
-required.}
+\item{covNames}{Names of the FREM covariates, in the order of the model. If
+\code{NULL} (default), they are read from the model file found with \code{runno} /
+\code{modName} / \code{modDevDir}; otherwise required. The FFEM coefficients are
+attached to the names by position. When the model file is found, a
+\code{covNames} that differs from the covariates of the model in content or
+order stops the function. A copy of the column names of \code{dfCovs} is not
+the same: the indicator columns follow the levels of the data and
+\code{catRef}, not the order of the model. Without the model file, nothing is
+compared.}
 
 \item{functionListName}{A vector of strings (names) of the parameters for
 each function in the functionList}

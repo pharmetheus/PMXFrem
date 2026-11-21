@@ -103,9 +103,15 @@
 #'   `modName` / `modDevDir`, it is derived via [fremModelInfo()] (warn-and-keep
 #'   on a disagreeing explicit value); otherwise it defaults to 0.
 #' @param parNames Names of the parameters
-#' @param covNames Names of the covariates. If `NULL` (default), locate the model
-#'   file via `runno` / `modName` / `modDevDir` so they can be derived; otherwise
-#'   required.
+#' @param covNames Names of the FREM covariates, in the order of the model. If
+#'   `NULL` (default), they are read from the model file found with `runno` /
+#'   `modName` / `modDevDir`; otherwise required. The FFEM coefficients are
+#'   attached to the names by position. When the model file is found, a
+#'   `covNames` that differs from the covariates of the model in content or
+#'   order stops the function. A copy of the column names of `dfCovs` is not
+#'   the same: the indicator columns follow the levels of the data and
+#'   `catRef`, not the order of the model. Without the model file, nothing is
+#'   compared.
 #' @param availCov Names of the covariates to use in the calculation of the FFEM
 #'   model.
 #' @param oneHot An optional one-hot encoding specification (see
@@ -240,6 +246,7 @@ getForestDFFREM <- function(dfCovs,
       numSkipOm = numSkipOm
     )
     if (is.null(covNames)) covNames <- .info$covNames
+    .fremCheckCovNamesModel(covNames, .info$covNames, modFile)
     if (is.null(numNonFREMThetas)) numNonFREMThetas <- .info$numNonFREMThetas
     if (is.null(numSkipOm)) numSkipOm <- .info$numSkipOm
   }
@@ -638,6 +645,64 @@ getForestDFFREM <- function(dfCovs,
     )
   ))
   invisible(NULL)
+}
+
+#' Stop when covNames differs from the FREM covariates of the model
+#'
+#' [calcFFEM()] attaches the coefficient of the c-th FREM covariate to
+#' `covNames[c]`, so a `covNames` in another order than the model, or with
+#' other names, puts the effects on the wrong covariates without an error. A
+#' `covNames` copied from the columns of a `dfCovs` is such a case: the
+#' indicator columns follow the levels of the data, not the order of the model,
+#' and follow `catRef`. The covariate-name check of the columns of `dfCovs`
+#' cannot see it, because `dfCovs` and `covNames` then agree.
+#'
+#' @param covNames The `covNames` that will be used.
+#' @param modelCovNames The FREM covariates of the model, from [getCovNames()].
+#' @param modFile The model file, named in the message.
+#' @return `NULL`, invisibly; stops when the two differ in content or order.
+#' @keywords internal
+#' @noRd
+.fremCheckCovNamesModel <- function(covNames, modelCovNames, modFile) {
+  if (identical(as.character(covNames), as.character(modelCovNames))) {
+    return(invisible(NULL))
+  }
+  if (length(covNames) == length(modelCovNames)) {
+    pos <- which(covNames != modelCovNames)
+    detail <- paste0(
+      "Position ", pos, ": ", covNames[pos], " in `covNames`, ",
+      modelCovNames[pos], " in the model."
+    )
+  } else {
+    detail <- paste0(
+      "`covNames` has ", length(covNames), " names and the model ",
+      length(modelCovNames), "."
+    )
+    notCov <- setdiff(modelCovNames, covNames)
+    notMod <- setdiff(covNames, modelCovNames)
+    if (length(notCov) > 0) detail <- c(detail, paste0("Not in `covNames`: ", paste(notCov, collapse = ", "), "."))
+    if (length(notMod) > 0) detail <- c(detail, paste0("Not in the model: ", paste(notMod, collapse = ", "), "."))
+    detail <- paste(detail, collapse = " ")
+  }
+  stop(
+    paste(
+      c(
+        paste0(
+          "`covNames` differs from the FREM covariates of the model ",
+          basename(modFile), ". The FFEM coefficients are attached to `covNames` ",
+          "by position, so the effects would be given to the wrong covariates."
+        ),
+        detail,
+        paste0(
+          "Leave `covNames` out to read the names from the model. A copy of the ",
+          "column names of dfCovs is not the same: the indicator columns follow ",
+          "the levels of the data and catRef, not the order of the model."
+        )
+      ),
+      collapse = "\n"
+    ),
+    call. = FALSE
+  )
 }
 
 #' Warn when dfRefRow has a column that dfCovs lacks

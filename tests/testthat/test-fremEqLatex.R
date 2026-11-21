@@ -180,3 +180,16 @@ test_that("fremEqLatex() says which input is missing", {
   expect_error(fremEqLatex(dfext = .eqExt, covNames = .eqCovs, quiet = TRUE), "numNonFREMThetas")
   expect_error(fremEqLatex(dfext = .eqExt, numNonFREMThetas = 7, quiet = TRUE), "covNames")
 })
+
+test_that("fremEqLatex() stops on a covNames in another order than the model", {
+  swapped <- .eqCovs
+  i <- match(c("RACEL_2", "RACEL_3"), swapped)
+  swapped[i] <- swapped[rev(i)]
+  expect_error(.eq(covNames = swapped), "Position 12: RACEL_2 in `covNames`, RACEL_3 in the model")
+  ## the names of the model are accepted, and without the model nothing is compared
+  expect_equal(.eq(covNames = .eqCovs), .eq())
+  expect_silent(fremEqLatex(
+    dfext = .eqExt, numNonFREMThetas = 7, numSkipOm = 2, covNames = swapped,
+    parNames = .eqPars, quiet = TRUE
+  ))
+})

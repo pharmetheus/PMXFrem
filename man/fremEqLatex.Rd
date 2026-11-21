@@ -36,8 +36,11 @@ gives a warning and is kept.}
 part of the FREM calculations. Derived as \code{numNonFREMThetas} is when
 \code{NULL} (default); without a model, 0.}
 
-\item{covNames}{Names of the FREM covariates, as in \code{\link[=calcFFEM]{calcFFEM()}}. If \code{NULL}
-(default), they are read from the model file with \code{\link[=getCovNames]{getCovNames()}}.}
+\item{covNames}{Names of the FREM covariates, in the order of the model, as
+in \code{\link[=calcFFEM]{calcFFEM()}}. If \code{NULL} (default), they are read from the model file
+with \code{\link[=getCovNames]{getCovNames()}}. When the model file is found, a \code{covNames} that
+differs from the covariates of the model in content or order stops the
+function, because the coefficients are attached to the names by position.}
 
 \item{parNames}{Names of the parameters with covariate effects, as in
 \code{\link[=calcFFEM]{calcFFEM()}}, one per row of the coefficients. They are used in the
