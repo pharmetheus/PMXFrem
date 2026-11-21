@@ -83,6 +83,11 @@ covariates, are labelled with `name_map` and `level_map`, the same maps that
 
 ## Documentation
 
+* The deep dive "Reconciling FREM and SCM Forest Plots" has a worked example
+  on two models of one data set from PMXForest: a model built by stepwise
+  covariate modelling (SCM) and a FREM model. The SCM Forest plot is shown
+  next to the fully conditioned FREM plot, and the default FREM plot next to
+  the recommended one, which is unconditional with a reference per covariate.
 * On the help page of `getForestDFFREM()`, the default of `quiet` was given
   as `TRUE`; the default is `FALSE`. The help pages of `getForestDFFREM()`
   and `getExplainedVar()` now describe what is printed with `quiet = FALSE`:
