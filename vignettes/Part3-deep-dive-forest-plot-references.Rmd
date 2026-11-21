@@ -222,6 +222,78 @@ fp(dfres_typRef,
 )
 ```
 
+## A reference subject at another level of a categorical covariate
+
+The most common level of `RACEL` is level 1. Level 1 is also the level that is
+left out of the indicator columns of the FREM model, `RACEL_2` and `RACEL_3`.
+A reference subject at another level, here level 2 (Black), is built with
+`catRef` in `setupDfCovs()`. `setupDfCovs()` records `catRef` in an attribute
+of `dfCovs`, and `setupDfRefRow()` reads it from there, so `catRef` is given
+once:
+
+```{r ref_level}
+dfCovsBlack <- setupDfCovs(
+  data       = data,
+  covariates = covariates,
+  probs      = c(0.05, 0.9),
+  idVar      = "ID",
+  missVal    = -99,
+  catRef     = list(RACEL = 2)
+)
+
+dfRefRowBlack <- setupDfRefRow(
+  dfCovs     = dfCovsBlack,
+  data       = data,
+  covariates = covariates,
+  singleRef  = TRUE
+)
+
+dfRefRowBlack
+```
+
+In `dfCovsBlack` and `dfRefRowBlack`, the indicator columns are `RACEL_1` and
+`RACEL_3`: level 2 is left out, and a row of zeros is level 2. The model has
+`RACEL_2` and `RACEL_3`. `getForestDFFREM()` recodes the columns of `dfCovs`
+and `dfRefRow` to the columns of the model, and every row describes the same
+subject after the recoding: the reference row, a row of zeros before, has
+`RACEL_2 = 1` and `RACEL_3 = 0` after. With `quiet = FALSE`,
+`getForestDFFREM()` prints a message with the recoded columns.
+
+```{r ref_level_df}
+dfres_blackRef <- getForestDFFREM(
+  dfCovs           = dfCovsBlack,
+  runno            = 31,
+  modDevDir        = modDevDir,
+  dfParameters     = dfParameters,
+  functionList     = functionList,
+  functionListName = "CL",
+  dfRefRow         = dfRefRowBlack,
+  quiet            = TRUE
+)
+```
+
+The rows of `dfCovsBlack` describe the same subjects as the rows of `dfCovs`,
+so the point estimates are those of the plot with the typical subject as the
+reference. Only the reference has moved, from level 1 to level 2 of `RACEL`:
+
+```{r ref_level_check}
+all.equal(dfres_blackRef$POINT, dfres_typRef$POINT)
+
+c(level1 = dfres_typRef$REFFUNC[1], level2 = dfres_blackRef$REFFUNC[1])
+```
+
+```{r ref_level_plot, fig.width = 10, fig.height = 5, out.width = "100%"}
+fp(dfres_blackRef,
+  referenceInfo = "Reference: median AGE and WT, most common GENO2, RACEL level 2 (Black)"
+)
+```
+
+In PMXFrem 2.4.0 and earlier, the indicator columns were not recoded. A
+reference subject at level 2 then needed a `dfCovs` and a `dfRefRow` in the
+coding of the model, with `RACEL_2 = 1` written by hand into `dfRefRow` and,
+with `useMissVal = FALSE`, into every row of `dfCovs` that does not vary
+`RACEL`.
+
 # 7. Conditioning the predictions: mimicking SCM
 
 To read the plot the way an SCM plot is read, the predictions have to be

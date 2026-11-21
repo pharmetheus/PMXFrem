@@ -116,7 +116,8 @@ the reference covariate combination}
 
 \item{dfRefRow}{A data frame  (one row or equal number of rows as dfCovs)
 with the covariate values that will be used as the reference, if NULL the
-typical subject is used as reference.}
+typical subject is used as reference. Indicator columns of another
+reference level than the model are recoded, as described in Details.}
 
 \item{cGrouping}{A vector of numbers defining how to group the y-axis of the
 Forest plot, the length of the vector should match the number of rows in
@@ -161,6 +162,26 @@ Create a data frame with the input to the \code{forestPlot} function in the
 data frame will be computed.
 }
 \details{
+\strong{Indicator columns are recoded to the coding of the FREM model.} The
+indicator columns of a categorical FREM covariate leave out one level,
+the reference level of the model: \code{RACEL_2} and \code{RACEL_3} in the bundled
+run31, where level 1 is left out. \code{\link[PMXForest:setupDfCovs]{PMXForest::setupDfCovs()}} and
+\code{\link[PMXForest:setupDfRefRow]{PMXForest::setupDfRefRow()}} leave out the level set by \code{catRef}, which
+is also the level of the reference subject and, with
+\code{useMissVal = FALSE}, of the background of the other rows. With
+\code{catRef = list(RACEL = 2)}, for a reference subject at level 2, the
+columns are \code{RACEL_1} and \code{RACEL_3}. When the indicator columns of
+\code{dfCovs} or \code{dfRefRow} and those of the model leave out one level each of
+the same levels, the columns are recoded to those of the model, and each
+row keeps its level. A reference subject at any level is therefore built
+with \code{catRef} alone, without editing \code{dfCovs} and \code{dfRefRow} by hand. A row
+with fractions of the levels is recoded as well. With \code{quiet = FALSE}, a
+message names the recoded columns. The levels of the data are assumed to be
+those of the model: indicator columns that name more or fewer levels than
+the model are not recoded, and a data set that lacks a level of the model
+and has a level that the model lacks would be recoded with the wrong
+reference level.
+
 \strong{Covariate names are checked against the FREM model and a generated
 parameter function.} A function made by \code{\link[=createFREMParamFunction]{createFREMParamFunction()}}
 carries the names of the structural covariates it reads, as the attribute
@@ -173,8 +194,9 @@ column is set have no effect, and a covariate of the model that \code{dfCovs}
 lacks. A name spelled differently from the model always gives that pair,
 for example \code{RACEL2} in \code{dfCovs} for the FREM covariate \code{RACEL_2} (the
 separator, \code{sep} in \code{\link[PMXForest:setupDfCovs]{PMXForest::setupDfCovs()}} or \code{oneHotSep}), or a
-\code{RACEL_1} column for \code{RACEL_3} (the reference level, \code{catRef} in
-\code{\link[PMXForest:setupDfCovs]{PMXForest::setupDfCovs()}}). Either difference alone gives no warning.
+\code{RACEL_4} column for a level that the model lacks. The check is made
+after the recoding of indicator columns. Either difference alone gives
+no warning.
 Most Forest plots leave some FREM covariates out of \code{dfCovs}, so in
 practice a column that nothing reads is reported whenever it occurs. A
 hand-written function carries no names, so no check is made when
