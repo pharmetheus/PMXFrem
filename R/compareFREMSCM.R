@@ -227,8 +227,9 @@ compareFREMSCM <- function(scmModel,
   allCovs <- unique(c(covariates, bases$bases))
 
   ## One set of rows and one reference row for both models. A single setting
-  ## is passed as list(default = ...), because generateCovNames() looks the
-  ## setting up by covariate name.
+  ## is passed as list(default = ...), because generateCovNames() of PMXForest
+  ## before 1.4.2 stops on a single catRef value. The conversion can go once
+  ## PMXFrem requires PMXForest 1.4.2.
   if (!is.list(contRef)) contRef <- list(default = contRef)
   if (!is.list(catRef)) catRef <- list(default = catRef)
   dfCovsAll <- PMXForest::setupDfCovs(data,
