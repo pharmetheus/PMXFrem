@@ -9,8 +9,8 @@
 \arguments{
 \item{x}{An object returned by \code{\link[=compareFREMSCM]{compareFREMSCM()}}.}
 
-\item{text}{If \code{TRUE}, the description and the figure legend are printed
-after the plot is drawn. Default is \code{FALSE}.}
+\item{text}{If \code{TRUE}, the description and the figure legends are printed
+after the plots are drawn. Default is \code{FALSE}.}
 
 \item{...}{Not used.}
 }

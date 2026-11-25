@@ -3,37 +3,50 @@
 #' @description Draws the Forest plot of a model built by stepwise covariate
 #'   modelling (SCM) next to the Forest plot of a full random effects model
 #'   (FREM) of the same data, set up so that the two plots can be compared.
-#'   The function also returns a table of the effects of both models, a text
-#'   that describes the differences, and a figure legend. The text and the
-#'   legend are kept in the returned object and are printed only on request.
+#'   One plot is drawn per parameter, with the covariates that the SCM model
+#'   has on that parameter. The function also returns a table of the effects
+#'   of both models, a text that describes the differences, and a figure
+#'   legend per plot. The text and the legends are kept in the returned object
+#'   and are printed only on request.
 #'
 #' @details A FREM Forest plot can be compared with an SCM Forest plot only
 #'   when two conditions hold together:
 #'
-#'   * **The FREM predictions are fully conditioned:** on each row, every FREM
-#'   covariate is set to the value of the reference subject, apart from the
-#'   covariate that varies on the row, so that no FREM covariate is integrated
-#'   out. The rows of an SCM plot are conditioned in this way by construction.
+#'   * **The FREM predictions on a parameter cover the covariates of the SCM
+#'   model on that parameter:** the rows and the reference row of a parameter
+#'   hold the covariates that the SCM model has on that parameter. On each
+#'   row, these covariates are at the values of the reference subject, apart
+#'   from the covariate that varies on the row. The other FREM covariates are
+#'   missing, so that the FREM predictions are integrated over them. An SCM
+#'   model leaves those covariates out of the parameter, so both models
+#'   average over the same covariates.
 #'   * **Both plots have the same reference subject:** a relative value is the
 #'   prediction on a row divided by the prediction for the reference subject.
 #'
-#'   The rows of both plots come from one call of [PMXForest::setupDfCovs()]
-#'   with `useMissVal = FALSE`. That call covers the covariates on the plot,
-#'   every covariate that either model reads, and every FREM covariate, so that
-#'   all of them are set on every row. Only the rows that vary a covariate on
-#'   the plot are kept. The reference row comes from
-#'   [PMXForest::setupDfRefRow()]: by default, the median of each continuous
-#'   covariate and the most common level of each categorical covariate.
+#'   The covariates that the SCM model has on a parameter are found from the
+#'   SCM model itself: a covariate is on the parameter when the relative value
+#'   of the parameter differs from 1 on a row of that covariate in at least one
+#'   sample. For a secondary parameter such as `CLF = CL / FREL`, these are the
+#'   covariates of `CL` and of `FREL` together. A parameter on which the SCM
+#'   model has no covariate gets no plot, and a message is given.
+#'
+#'   For each parameter, the rows come from one call of
+#'   [PMXForest::setupDfCovs()] with `useMissVal = FALSE`. That call covers the
+#'   covariates of the parameter and every covariate that either model reads
+#'   in `$PK`, so that all of them are set on every row; a covariate read in
+#'   `$PK` that is not on the parameter stays at the reference value. Only the
+#'   rows that vary a covariate of the parameter are kept. The reference row
+#'   comes from [PMXForest::setupDfRefRow()]: by default, the median of each
+#'   continuous covariate and the most common level of each categorical
+#'   covariate.
 #'
 #'   A model can read a categorical covariate as the column itself or as
 #'   indicator columns, such as `GENO1` or `GENO_1` for level 1 of `GENO`.
 #'   Each model is given a copy of the rows and of the reference row in the
 #'   coding that the model reads, so that the same subjects reach both models.
-#'
-#'   By default, the covariates on the plot are those that the SCM model reads
-#'   for `parameters`. Indicator columns that cover all levels but one of a
-#'   covariate in `data`, such as `GENO1`, `GENO3` and `GENO4` of `GENO`, are
-#'   shown as that covariate, with one row per level.
+#'   Indicator columns that cover all levels but one of a covariate in `data`,
+#'   such as `GENO1`, `GENO3` and `GENO4` of `GENO`, are shown as that
+#'   covariate, with one row per level.
 #'
 #'   The uncertainty of each model is computed with
 #'   [PMXForest::getSamples()]. By default, both models use samples from the
@@ -41,9 +54,9 @@
 #'   their uncertainty from different methods.
 #'
 #'   A model has no effect of a covariate on a parameter when the relative
-#'   value is 1 in every sample, as for a covariate that the model does not
-#'   have on that parameter. The direction of an effect is judged from the
-#'   point estimate, relative to 1.
+#'   value is 1 in every sample, as for a level of a categorical covariate that
+#'   the model does not have on that parameter. The direction of an effect is
+#'   judged from the point estimate, relative to 1.
 #'
 #'   No verdict on the agreement of the two models is given in the text. For
 #'   each parameter, the rows are counted by the direction of the two effects,
@@ -71,10 +84,12 @@
 #'   clearance alone, compute `FREL` and `CL` with `parameters`, define `CLF`
 #'   with `secondary` and set `plotParameters = "CLF"`.
 #' @param parameterLabels Labels of the parameters for the panels, the text
-#'   and the legend, as a named character vector such as `c(CLF = "CL/F")`.
+#'   and the legends, as a named character vector such as `c(CLF = "CL/F")`.
 #'   A parameter without a label is shown by name.
-#' @param covariates The covariates on the plot. By default, the covariates
-#'   that the SCM model reads for `parameters` are shown.
+#' @param covariates The covariates on the plots. By default, each parameter
+#'   gets the covariates that the SCM model has on that parameter. When
+#'   `covariates` is given, every parameter gets these covariates, and the FREM
+#'   predictions are integrated over the other FREM covariates.
 #' @param contRef,catRef The reference of continuous and categorical
 #'   covariates, passed to [PMXForest::setupDfCovs()] and
 #'   [PMXForest::setupDfRefRow()]: by default, the median and the most common
@@ -93,38 +108,41 @@
 #'   [PMXForest::createParamFunction()] and [createFREMParamFunction()], set
 #'   only when one of these functions stops and asks for them, for a
 #'   covariate whose reference the control stream does not state. The values
-#'   do not change the plot, because every covariate that a model reads is set
-#'   on every row and in the reference row.
+#'   do not change the plots, because every covariate that a model reads in
+#'   `$PK` is set on every row and in the reference row.
 #' @param idVar The name of the subject identifier column in `data`.
 #' @param missVal The value of a missing covariate.
 #' @param name_map,unit_map,level_map,group_map Labels of the covariates and
 #'   levels, passed to [PMXForest::generateCovNames()], and used for the
-#'   reference subject in the legend.
+#'   reference subject in the legends.
 #' @param logScale If `TRUE` (default), the x axis is logarithmic.
 #' @param quiet If `TRUE` (default), the messages of the Forest plot functions
 #'   are not printed.
 #' @param ... Other arguments of [PMXForest::forestPlot()], such as `xlim`.
 #'
 #' @return An object of class `compareFREMSCM`: a list with
-#'   * `plot`: the Forest plot, with an SCM panel and a FREM panel for each of
-#'   `plotParameters`.
+#'   * `plot`: a list with one Forest plot per plotted parameter, named by the
+#'   parameter. Each plot has an SCM panel and a FREM panel.
 #'   * `comparison`: one row per parameter and row of the plot, with the
 #'   label, the point estimate and the interval of each model
 #'   (`SCM`, `SCM_LOWER`, `SCM_UPPER`, `FREM`, `FREM_LOWER`, `FREM_UPPER`),
 #'   the ratio FREM/SCM, and the direction: `"reference"`, `"same"`,
 #'   `"opposite"`, `"no effect in SCM"`, `"no effect in FREM"` or
-#'   `"no effect in either"`.
+#'   `"no effect in either"`. The row number `COVNUM` counts the rows of
+#'   each parameter.
 #'   * `dfres`: the output of [PMXForest::getForestDFSCM()] and
-#'   [getForestDFFREM()], with the model in the column `MODEL`.
+#'   [getForestDFFREM()] for the plotted parameters, with the model in the
+#'   column `MODEL`.
 #'   * `description`: the text that describes the differences, one sentence
 #'   per element.
-#'   * `legend`: the figure legend.
-#'   * `settings`: the covariates on the plot, the FREM covariates, the rows and
-#'   the reference row (shared, and the copy of each model), the uncertainty
-#'   method and number of samples of each model, and `probs`.
+#'   * `legend`: the figure legend of each plot, named by the parameter.
+#'   * `settings`: per parameter, the covariates, the rows and the reference
+#'   row (shared, and the copy of each model) and the FREM covariates that the
+#'   predictions are integrated over; and the uncertainty method and number of
+#'   samples of each model, and `probs`.
 #'
-#'   Printing the object draws the plot. `print(x, text = TRUE)` also prints
-#'   the text and the legend.
+#'   Printing the object draws the plots. `print(x, text = TRUE)` also prints
+#'   the text and the legends.
 #'
 #' @seealso The deep dive "Reconciling FREM and SCM Forest Plots",
 #'   `vignette("Part3-deep-dive-forest-plot-references", package = "PMXFrem")`,
@@ -183,7 +201,7 @@ compareFREMSCM <- function(scmModel,
     FREM = tools::file_path_sans_ext(basename(fremModel))
   )
 
-  ## The parameter functions, and the covariates each model reads
+  ## The parameter functions, and the covariates each model reads in $PK
   genSCM <- .cfsGenerate(
     PMXForest::createParamFunction, scmModel, parameters, secondary, covRef
   )
@@ -204,16 +222,14 @@ compareFREMSCM <- function(scmModel,
     }
   }
 
-  ## The covariates of the rows: those on the plot, every covariate that
-  ## either model reads, and every FREM covariate
-  given <- c(covariates, fremInfo$orgCovNames)
-  absent <- setdiff(given, names(data))
+  absent <- setdiff(covariates, names(data))
   if (length(absent) > 0) {
     stop("Covariates not in `data`: ", paste(absent, collapse = ", "), ".")
   }
+  ## The covariates of the data behind the names that the models read in $PK
   bases <- .cfsBases(
-    reads = unique(c(readsSCM, readsFREM, fremCovNames)),
-    data = data, bases = unique(given), missVal = missVal
+    reads = unique(c(readsSCM, readsFREM)), data = data,
+    bases = unique(covariates), missVal = missVal
   )
   if (length(bases$dropped) > 0) {
     message(
@@ -221,41 +237,50 @@ compareFREMSCM <- function(scmModel,
       paste(bases$dropped, collapse = ", "), "."
     )
   }
-  if (is.null(covariates)) {
-    covariates <- .cfsShown(setdiff(readsSCM, bases$dropped), data, bases$bases, missVal)
-  }
-  allCovs <- unique(c(covariates, bases$bases))
+  readsSCM <- setdiff(readsSCM, bases$dropped)
+  readsFREM <- setdiff(readsFREM, bases$dropped)
 
-  ## One set of rows and one reference row for both models. A single setting
-  ## is passed as list(default = ...), because generateCovNames() of PMXForest
-  ## before 1.4.2 stops on a single catRef value. The conversion can go once
-  ## PMXFrem requires PMXForest 1.4.2.
+  ## A single setting is passed as list(default = ...), because
+  ## generateCovNames() of PMXForest before 1.4.2 stops on a single catRef
+  ## value. The conversion can go once PMXFrem requires PMXForest 1.4.2.
   if (!is.list(contRef)) contRef <- list(default = contRef)
   if (!is.list(catRef)) catRef <- list(default = catRef)
-  dfCovsAll <- PMXForest::setupDfCovs(data,
-    covariates = allCovs, useMissVal = FALSE, contRef = contRef,
-    catRef = catRef, idVar = idVar, missVal = missVal, sep = "_"
-  )
-  dfRefRow <- PMXForest::setupDfRefRow(dfCovsAll,
-    data = data, covariates = allCovs, contRef = contRef, catRef = catRef,
-    idVar = idVar, missVal = missVal, sep = "_"
-  )
-  keep <- dfCovsAll$COVARIATEGROUPS %in% covariates
-  dfCovs <- dfCovsAll[keep, , drop = FALSE]
-  rownames(dfCovs) <- NULL
-  raw <- .cfsDecode(dfCovs, allCovs, data, missVal)
-  rawRef <- .cfsDecode(dfRefRow, allCovs, data, missVal)
 
-  ## A copy of each in the coding each model reads
-  mapSCM <- .cfsResolve(setdiff(readsSCM, bases$dropped), data, allCovs, missVal)
-  mapFREM <- .cfsResolve(
-    setdiff(unique(c(fremCovNames, readsFREM)), bases$dropped), data, allCovs, missVal
-  )
-  groups <- data.frame(COVARIATEGROUPS = dfCovs$COVARIATEGROUPS)
-  dfCovsSCM <- cbind(.cfsEncode(raw, mapSCM, missVal), groups)
-  dfCovsFREM <- cbind(.cfsEncode(raw, mapFREM, missVal), groups)
-  dfRefRowSCM <- .cfsEncode(rawRef, mapSCM, missVal)
-  dfRefRowFREM <- .cfsEncode(rawRef, mapFREM, missVal)
+  ## The rows and the reference row for the covariates `covs`, and a copy of
+  ## each in the coding each model reads. Every covariate read in $PK is set;
+  ## a FREM covariate that cannot be derived from `covs` is missing.
+  rowsFor <- function(covs) {
+    allCovs <- unique(c(covs, bases$bases))
+    dfAll <- PMXForest::setupDfCovs(data,
+      covariates = allCovs, useMissVal = FALSE, contRef = contRef,
+      catRef = catRef, idVar = idVar, missVal = missVal, sep = "_"
+    )
+    dfRefRow <- PMXForest::setupDfRefRow(dfAll,
+      data = data, covariates = allCovs, contRef = contRef, catRef = catRef,
+      idVar = idVar, missVal = missVal, sep = "_"
+    )
+    dfCovs <- dfAll[dfAll$COVARIATEGROUPS %in% covs, , drop = FALSE]
+    rownames(dfCovs) <- NULL
+    raw <- .cfsDecode(dfCovs, allCovs, data, missVal)
+    rawRef <- .cfsDecode(dfRefRow, allCovs, data, missVal)
+    fremSet <- fremCovNames[.cfsDerivable(fremCovNames, data, covs, missVal)]
+    fremMissing <- setdiff(fremCovNames, c(fremSet, readsFREM))
+    mapSCM <- .cfsResolve(readsSCM, data, allCovs, missVal)
+    mapFREM <- .cfsResolve(unique(c(readsFREM, fremSet)), data, allCovs, missVal)
+    groups <- data.frame(COVARIATEGROUPS = dfCovs$COVARIATEGROUPS)
+    list(
+      dfCovs = dfCovs, dfRefRow = dfRefRow, raw = raw, rawRef = rawRef,
+      dfCovsSCM = cbind(.cfsEncode(raw, mapSCM, missVal), groups),
+      dfRefRowSCM = .cfsEncode(rawRef, mapSCM, missVal),
+      dfCovsFREM = cbind(
+        .cfsMissing(.cfsEncode(raw, mapFREM, missVal), fremMissing, missVal), groups
+      ),
+      dfRefRowFREM = .cfsMissing(.cfsEncode(rawRef, mapFREM, missVal), fremMissing, missVal),
+      integrated = fremInfo$orgCovNames[
+        !.cfsDerivable(fremInfo$orgCovNames, data, covs, missVal)
+      ]
+    )
+  }
 
   ## The uncertainty of each model
   smpSCM <- .cfsSamples(samplesSCM, scmModel, nSamples)
@@ -266,51 +291,100 @@ compareFREMSCM <- function(scmModel,
       " and the uncertainty of the FREM model from ", .cfsMethodText(smpFREM), "."
     )
   }
+  runSCM <- function(r) {
+    as.data.frame(PMXForest::getForestDFSCM(
+      dfCovs           = r$dfCovsSCM,
+      dfRefRow         = r$dfRefRowSCM,
+      functionList     = list(funSCM),
+      functionListName = genSCM$functionListName,
+      noBaseThetas     = genSCM$noBaseThetas,
+      dfParameters     = smpSCM$df,
+      probs            = probs,
+      quiet            = quiet
+    ))
+  }
+  runFREM <- function(r) {
+    as.data.frame(getForestDFFREM(
+      dfCovs           = r$dfCovsFREM,
+      dfRefRow         = r$dfRefRowFREM,
+      covNames         = fremCovNames,
+      numNonFREMThetas = genFREM$numNonFREMThetas,
+      numSkipOm        = genFREM$numSkipOm,
+      dfParameters     = smpFREM$df,
+      functionList     = list(funFREM),
+      functionListName = genFREM$functionListName,
+      probs            = probs,
+      quiet            = quiet
+    ))
+  }
 
-  dfresSCM <- PMXForest::getForestDFSCM(
-    dfCovs           = dfCovsSCM,
-    dfRefRow         = dfRefRowSCM,
-    functionList     = list(funSCM),
-    functionListName = genSCM$functionListName,
-    noBaseThetas     = genSCM$noBaseThetas,
-    dfParameters     = smpSCM$df,
-    probs            = probs,
-    quiet            = quiet
-  )
-  dfresFREM <- getForestDFFREM(
-    dfCovs           = dfCovsFREM,
-    dfRefRow         = dfRefRowFREM,
-    covNames         = fremCovNames,
-    numNonFREMThetas = genFREM$numNonFREMThetas,
-    numSkipOm        = genFREM$numSkipOm,
-    dfParameters     = smpFREM$df,
-    functionList     = list(funFREM),
-    functionListName = genFREM$functionListName,
-    probs            = probs,
-    quiet            = quiet
-  )
-  label <- function(dfres) {
-    PMXForest::generateCovNames(dfCovs, dfres,
-      name_map = name_map, unit_map = unit_map, level_map = level_map,
-      group_map = group_map, warn_unused = FALSE
+  ## The covariates of each parameter: given, or those with an effect on the
+  ## parameter in the SCM model
+  if (is.null(covariates)) {
+    candidates <- .cfsShown(readsSCM, data, bases$bases, missVal)
+    r0 <- rowsFor(candidates)
+    d0 <- runSCM(r0)
+    d0$COVARIATE <- r0$dfCovs$COVARIATEGROUPS[d0$COVNUM]
+    covsBy <- lapply(plotParameters, function(p) {
+      hit <- d0$COVARIATE[as.character(d0$PARAMETER) == p & d0$COVEFF]
+      candidates[candidates %in% hit]
+    })
+  } else {
+    covsBy <- rep(list(covariates), length(plotParameters))
+  }
+  names(covsBy) <- plotParameters
+  none <- plotParameters[lengths(covsBy) == 0]
+  if (length(none) == length(plotParameters)) {
+    stop("The SCM model has no covariate effect on any parameter in `plotParameters`.")
+  }
+  if (length(none) > 0) {
+    message(
+      "The SCM model has no covariate effect on ", paste(none, collapse = ", "),
+      ", which ", if (length(none) == 1) "is" else "are", " not plotted."
     )
   }
-  dfresSCM <- as.data.frame(label(dfresSCM))
-  dfresFREM <- as.data.frame(label(dfresFREM))
-  cols <- intersect(names(dfresSCM), names(dfresFREM))
-  dfres <- rbind(
-    cbind(MODEL = "SCM", dfresSCM[, cols]),
-    cbind(MODEL = "FREM", dfresFREM[, cols])
-  )
-  dfres <- dfres[dfres$PARAMETER %in% plotParameters, ]
+  covsBy <- covsBy[lengths(covsBy) > 0]
+  plotParameters <- names(covsBy)
+
+  ## One comparison per parameter
+  per <- lapply(plotParameters, function(p) {
+    r <- rowsFor(covsBy[[p]])
+    label <- function(dfres) {
+      d <- as.data.frame(PMXForest::generateCovNames(r$dfCovs, dfres,
+        name_map = name_map, unit_map = unit_map, level_map = level_map,
+        group_map = group_map, warn_unused = FALSE
+      ))
+      d$PARAMETER <- as.character(d$PARAMETER)
+      d[d$PARAMETER == p, , drop = FALSE]
+    }
+    s <- label(runSCM(r))
+    f <- label(runFREM(r))
+    cols <- intersect(names(s), names(f))
+    dfres <- rbind(cbind(MODEL = "SCM", s[, cols]), cbind(MODEL = "FREM", f[, cols]))
+    rownames(dfres) <- NULL
+    list(
+      rows = r, dfres = dfres,
+      comparison = .cfsCompare(dfres, r$raw, r$rawRef, r$dfCovs$COVARIATEGROUPS, p)
+    )
+  })
+  names(per) <- plotParameters
+  pick <- function(what) lapply(per, function(x) x$rows[[what]])
+  cols <- Reduce(intersect, lapply(per, function(x) names(x$dfres)))
+  dfres <- do.call(rbind, lapply(per, function(x) x$dfres[, cols]))
   rownames(dfres) <- NULL
+  comparison <- do.call(rbind, lapply(per, `[[`, "comparison"))
+  rownames(comparison) <- NULL
+  comparison$DIRECTION <- .cfsClassify(comparison)
 
   settings <- list(
-    models = models, covariates = covariates,
-    fremCovariates = fremInfo$orgCovNames, dfCovs = dfCovs,
-    dfRefRow = dfRefRow, dfCovsSCM = dfCovsSCM, dfCovsFREM = dfCovsFREM,
-    dfRefRowSCM = dfRefRowSCM, dfRefRowFREM = dfRefRowFREM,
-    reference = rawRef[, covariates, drop = FALSE],
+    models = models, covariates = covsBy, covariatesGiven = !is.null(covariates),
+    fremCovariates = fremInfo$orgCovNames, integrated = pick("integrated"),
+    dfCovs = pick("dfCovs"), dfRefRow = pick("dfRefRow"),
+    dfCovsSCM = pick("dfCovsSCM"), dfCovsFREM = pick("dfCovsFREM"),
+    dfRefRowSCM = pick("dfRefRowSCM"), dfRefRowFREM = pick("dfRefRowFREM"),
+    reference = lapply(plotParameters, function(p) {
+      per[[p]]$rows$rawRef[, covsBy[[p]], drop = FALSE]
+    }),
     uncertainty = data.frame(
       method = c(smpSCM$method, smpFREM$method),
       n = c(smpSCM$n, smpFREM$n), row.names = c("SCM", "FREM")
@@ -320,10 +394,11 @@ compareFREMSCM <- function(scmModel,
     labels = list(name_map = name_map, unit_map = unit_map, level_map = level_map),
     logScale = logScale
   )
-  comparison <- .cfsCompare(dfres, raw, rawRef, dfCovs$COVARIATEGROUPS, plotParameters)
-  comparison$DIRECTION <- .cfsClassify(comparison)
+  names(settings$reference) <- plotParameters
 
-  plot <- .cfsPlot(dfres, plotParameters, settings, ...)
+  plot <- lapply(plotParameters, function(p) .cfsPlot(per[[p]]$dfres, p, settings, ...))
+  names(plot) <- plotParameters
+  legend <- vapply(plotParameters, .cfsLegend, character(1), settings = settings)
 
   structure(
     list(
@@ -331,7 +406,7 @@ compareFREMSCM <- function(scmModel,
       comparison = comparison,
       dfres = dfres,
       description = .cfsDescribe(comparison, settings),
-      legend = .cfsLegend(settings),
+      legend = legend,
       settings = settings
     ),
     class = "compareFREMSCM"
@@ -341,19 +416,37 @@ compareFREMSCM <- function(scmModel,
 #' Print a comparison of an SCM and a FREM Forest plot
 #'
 #' @param x An object returned by [compareFREMSCM()].
-#' @param text If `TRUE`, the description and the figure legend are printed
-#'   after the plot is drawn. Default is `FALSE`.
+#' @param text If `TRUE`, the description and the figure legends are printed
+#'   after the plots are drawn. Default is `FALSE`.
 #' @param ... Not used.
 #' @return `x`, invisibly.
 #' @concept diagnostics
 #' @export
 print.compareFREMSCM <- function(x, text = FALSE, ...) {
-  print(x$plot)
+  for (p in x$plot) print(p)
   if (text) {
     cat(paste0(x$description, "\n"), sep = "")
     cat("\n", paste0(x$legend, "\n"), sep = "")
   }
   invisible(x)
+}
+
+## Which of `names` (FREM covariates) can be derived from the covariates
+## `covs`: the covariate itself, or an indicator of a level of it.
+.cfsDerivable <- function(names, data, covs, missVal) {
+  vapply(names, function(n) {
+    if (n %in% covs) {
+      return(TRUE)
+    }
+    s <- .cfsSplit(n, data, missVal)
+    !is.null(s) && s$base %in% covs
+  }, logical(1), USE.NAMES = FALSE)
+}
+
+## Add the columns `names` as missing to `df`.
+.cfsMissing <- function(df, names, missVal) {
+  for (n in names) df[[n]] <- rep(missVal, nrow(df))
+  df
 }
 
 ## Build a parameter function. Without `covRef` first; with `covRef` only when
@@ -589,9 +682,39 @@ print.compareFREMSCM <- function(x, text = FALSE, ...) {
   if (!is.null(labels) && p %in% names(labels)) labels[[p]] else p
 }
 
-## The description: for each parameter, the rows counted by direction, then
-## one sentence per row, opposite directions first. Each sentence names the
-## row and the parameter.
+
+## The label of a covariate, or the name when it has none.
+.cfsCovLabel <- function(cv, lab) {
+  if (!is.null(lab$name_map) && cv %in% names(lab$name_map)) lab$name_map[[cv]] else cv
+}
+
+## A list of words joined by commas and "and".
+.cfsAnd <- function(x) {
+  if (length(x) < 2) {
+    return(paste(x, collapse = ""))
+  }
+  paste(paste(utils::head(x, -1), collapse = ", "), "and", utils::tail(x, 1))
+}
+
+## The sentence on what the FREM predictions are conditioned on.
+.cfsConditionText <- function(settings) {
+  if (isTRUE(settings$covariatesGiven)) {
+    paste0(
+      "On each parameter, the FREM predictions are conditioned on the ",
+      "covariates on the plot and integrated over the other FREM covariates."
+    )
+  } else {
+    paste0(
+      "On each parameter, the FREM predictions are conditioned on the ",
+      "covariates that the SCM model has on that parameter and integrated ",
+      "over the other FREM covariates."
+    )
+  }
+}
+
+## The description: for each parameter, the covariates and the rows counted
+## by direction, then one sentence per row, opposite directions first. Each
+## sentence names the row and the parameter.
 .cfsDescribe <- function(cmp, settings) {
   m <- settings$models
   out <- c(
@@ -600,7 +723,7 @@ print.compareFREMSCM <- function(x, text = FALSE, ...) {
       "the same for the SCM model ", m[["SCM"]], " and the FREM model ",
       m[["FREM"]], "."
     ),
-    "The FREM predictions are conditioned on every FREM covariate.",
+    .cfsConditionText(settings),
     paste0(
       "A model has no effect of a covariate on a parameter when the relative ",
       "value is 1 in every sample."
@@ -618,6 +741,11 @@ print.compareFREMSCM <- function(x, text = FALSE, ...) {
   }
   for (p in unique(cmp$PARAMETER)) {
     pl <- .cfsParLabel(p, settings$parameterLabels)
+    covs <- settings$covariates[[p]]
+    if (length(covs) > 0) {
+      labs <- vapply(covs, .cfsCovLabel, character(1), lab = settings$labels)
+      out <- c(out, paste0("The plot of ", pl, " has rows for ", .cfsAnd(labs), "."))
+    }
     all <- cmp[cmp$PARAMETER == p, ]
     d <- all[all$DIRECTION != "reference", ]
     n <- nrow(d)
@@ -669,12 +797,9 @@ print.compareFREMSCM <- function(x, text = FALSE, ...) {
 }
 
 ## The reference subject in words, with the labels of the covariates.
-.cfsReferenceText <- function(settings) {
-  ref <- settings$reference
-  lab <- settings$labels
+.cfsReferenceText <- function(ref, lab) {
   parts <- vapply(names(ref), function(cv) {
     v <- ref[[cv]][1]
-    name <- if (!is.null(lab$name_map) && cv %in% names(lab$name_map)) lab$name_map[[cv]] else cv
     lv <- lab$level_map[[cv]]
     value <- if (!is.null(lv) && as.character(v) %in% names(lv)) {
       lv[[as.character(v)]]
@@ -682,35 +807,41 @@ print.compareFREMSCM <- function(x, text = FALSE, ...) {
       unit <- if (!is.null(lab$unit_map) && cv %in% names(lab$unit_map)) paste0(" ", lab$unit_map[[cv]]) else ""
       paste0(format(v), unit)
     }
-    paste0(name, " = ", value)
+    paste0(.cfsCovLabel(cv, lab), " = ", value)
   }, character(1))
   paste(parts, collapse = ", ")
 }
 
-## The figure legend.
-.cfsLegend <- function(settings) {
+## The figure legend of the plot of parameter `p`.
+.cfsLegend <- function(p, settings) {
   m <- settings$models
   u <- settings$uncertainty
-  pars <- vapply(settings$plotParameters, .cfsParLabel, character(1), labels = settings$parameterLabels)
-  if (length(pars) > 1) {
-    pars <- paste(paste(utils::head(pars, -1), collapse = ", "), "and", utils::tail(pars, 1))
-  }
+  pl <- .cfsParLabel(p, settings$parameterLabels)
   refKind <- if (identical(settings$contRef, list(default = "median")) &&
     identical(settings$catRef, list(default = "mode"))) {
     "the median of each continuous covariate and the most common level of each categorical covariate"
   } else {
     "the reference values set by `contRef` and `catRef`"
   }
+  rowsText <- if (isTRUE(settings$covariatesGiven)) {
+    "The rows hold the covariates on the plot. "
+  } else {
+    paste0("The rows hold the covariates that the SCM model has on ", pl, ". ")
+  }
+  nInt <- length(settings$integrated[[p]])
   level <- round(100 * diff(settings$probs))
   methodOf <- function(model) .cfsMethodText(list(method = u[model, "method"], n = u[model, "n"]))
   paste0(
-    "Covariate effects on ", pars, " in the SCM model ", m[["SCM"]],
-    " (SCM panels) and the FREM model ", m[["FREM"]],
-    " (FREM panels), relative to one reference subject for both models. ",
-    "The reference subject has ", refKind, ": ", .cfsReferenceText(settings), ". ",
-    "The FREM predictions are conditioned on all ",
-    length(settings$fremCovariates), " FREM covariates, which are set to the ",
-    "values of the reference subject apart from the covariate of the row. ",
+    "Covariate effects on ", pl, " in the SCM model ", m[["SCM"]],
+    " (SCM panel) and the FREM model ", m[["FREM"]],
+    " (FREM panel), relative to one reference subject for both models. ",
+    "The reference subject has ", refKind, ": ",
+    .cfsReferenceText(settings$reference[[p]], settings$labels), ". ",
+    rowsText,
+    "On each row, these covariates are at the values of the reference subject, ",
+    "apart from the covariate of the row. ",
+    "The FREM predictions are integrated over the other ", nInt, " of the ",
+    length(settings$fremCovariates), " FREM covariates. ",
     "Points are point estimates, and bars are ", level, "% confidence intervals. ",
     "The intervals are from ", methodOf("SCM"), " for the SCM model and from ",
     methodOf("FREM"), " for the FREM model. ",
@@ -719,17 +850,21 @@ print.compareFREMSCM <- function(x, text = FALSE, ...) {
   )
 }
 
-## The Forest plot, with an SCM and a FREM panel per parameter.
-.cfsPlot <- function(dfres, plotParameters, settings, ...) {
+## The Forest plot of parameter `p`, with an SCM and a FREM panel.
+.cfsPlot <- function(dfres, p, settings, ...) {
   d <- dfres
-  lab <- vapply(as.character(d$PARAMETER), .cfsParLabel, character(1), labels = settings$parameterLabels)
-  d$PARAMETER <- paste(d$MODEL, lab)
+  pl <- .cfsParLabel(p, settings$parameterLabels)
+  d$PARAMETER <- paste(d$MODEL, pl)
   d$MODEL <- NULL
-  pl <- vapply(plotParameters, .cfsParLabel, character(1), labels = settings$parameterLabels)
-  panels <- as.vector(rbind(paste("SCM", pl), paste("FREM", pl)))
+  info <- if (isTRUE(settings$covariatesGiven)) {
+    "FREM conditioned on the covariates on the plot"
+  } else {
+    "FREM conditioned on the SCM covariates of the parameter"
+  }
   args <- list(
-    dfres = d, parameters = panels, rightStrip = FALSE, statisticsLabel = "",
-    referenceInfo = "Reference: one subject for both models; FREM conditioned on every FREM covariate"
+    dfres = d, parameters = c(paste("SCM", pl), paste("FREM", pl)),
+    rightStrip = FALSE, statisticsLabel = "",
+    referenceInfo = paste0("Reference: one subject for both models; ", info)
   )
   if (isTRUE(settings$logScale)) {
     args$addcodeErr <- "scale_x_log10(breaks = c(0.0625, 0.125, 0.25, 0.5, 1, 2, 4, 8))"

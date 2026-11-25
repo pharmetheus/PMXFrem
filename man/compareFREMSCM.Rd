@@ -55,11 +55,13 @@ clearance alone, compute \code{FREL} and \code{CL} with \code{parameters}, defin
 with \code{secondary} and set \code{plotParameters = "CLF"}.}
 
 \item{parameterLabels}{Labels of the parameters for the panels, the text
-and the legend, as a named character vector such as \code{c(CLF = "CL/F")}.
+and the legends, as a named character vector such as \code{c(CLF = "CL/F")}.
 A parameter without a label is shown by name.}
 
-\item{covariates}{The covariates on the plot. By default, the covariates
-that the SCM model reads for \code{parameters} are shown.}
+\item{covariates}{The covariates on the plots. By default, each parameter
+gets the covariates that the SCM model has on that parameter. When
+\code{covariates} is given, every parameter gets these covariates, and the FREM
+predictions are integrated over the other FREM covariates.}
 
 \item{contRef, catRef}{The reference of continuous and categorical
 covariates, passed to \code{\link[PMXForest:setupDfCovs]{PMXForest::setupDfCovs()}} and
@@ -83,8 +85,8 @@ confidence intervals. The default, \code{c(0.05, 0.95)}, gives 90\% intervals.}
 \code{\link[PMXForest:createParamFunction]{PMXForest::createParamFunction()}} and \code{\link[=createFREMParamFunction]{createFREMParamFunction()}}, set
 only when one of these functions stops and asks for them, for a
 covariate whose reference the control stream does not state. The values
-do not change the plot, because every covariate that a model reads is set
-on every row and in the reference row.}
+do not change the plots, because every covariate that a model reads in
+\verb{$PK} is set on every row and in the reference row.}
 
 \item{idVar}{The name of the subject identifier column in \code{data}.}
 
@@ -92,7 +94,7 @@ on every row and in the reference row.}
 
 \item{name_map, unit_map, level_map, group_map}{Labels of the covariates and
 levels, passed to \code{\link[PMXForest:generateCovNames]{PMXForest::generateCovNames()}}, and used for the
-reference subject in the legend.}
+reference subject in the legends.}
 
 \item{logScale}{If \code{TRUE} (default), the x axis is logarithmic.}
 
@@ -104,64 +106,80 @@ are not printed.}
 \value{
 An object of class \code{compareFREMSCM}: a list with
 \itemize{
-\item \code{plot}: the Forest plot, with an SCM panel and a FREM panel for each of
-\code{plotParameters}.
+\item \code{plot}: a list with one Forest plot per plotted parameter, named by the
+parameter. Each plot has an SCM panel and a FREM panel.
 \item \code{comparison}: one row per parameter and row of the plot, with the
 label, the point estimate and the interval of each model
 (\code{SCM}, \code{SCM_LOWER}, \code{SCM_UPPER}, \code{FREM}, \code{FREM_LOWER}, \code{FREM_UPPER}),
 the ratio FREM/SCM, and the direction: \code{"reference"}, \code{"same"},
 \code{"opposite"}, \code{"no effect in SCM"}, \code{"no effect in FREM"} or
-\code{"no effect in either"}.
+\code{"no effect in either"}. The row number \code{COVNUM} counts the rows of
+each parameter.
 \item \code{dfres}: the output of \code{\link[PMXForest:getForestDFSCM]{PMXForest::getForestDFSCM()}} and
-\code{\link[=getForestDFFREM]{getForestDFFREM()}}, with the model in the column \code{MODEL}.
+\code{\link[=getForestDFFREM]{getForestDFFREM()}} for the plotted parameters, with the model in the
+column \code{MODEL}.
 \item \code{description}: the text that describes the differences, one sentence
 per element.
-\item \code{legend}: the figure legend.
-\item \code{settings}: the covariates on the plot, the FREM covariates, the rows and
-the reference row (shared, and the copy of each model), the uncertainty
-method and number of samples of each model, and \code{probs}.
+\item \code{legend}: the figure legend of each plot, named by the parameter.
+\item \code{settings}: per parameter, the covariates, the rows and the reference
+row (shared, and the copy of each model) and the FREM covariates that the
+predictions are integrated over; and the uncertainty method and number of
+samples of each model, and \code{probs}.
 }
 
-Printing the object draws the plot. \code{print(x, text = TRUE)} also prints
-the text and the legend.
+Printing the object draws the plots. \code{print(x, text = TRUE)} also prints
+the text and the legends.
 }
 \description{
 Draws the Forest plot of a model built by stepwise covariate
 modelling (SCM) next to the Forest plot of a full random effects model
 (FREM) of the same data, set up so that the two plots can be compared.
-The function also returns a table of the effects of both models, a text
-that describes the differences, and a figure legend. The text and the
-legend are kept in the returned object and are printed only on request.
+One plot is drawn per parameter, with the covariates that the SCM model
+has on that parameter. The function also returns a table of the effects
+of both models, a text that describes the differences, and a figure
+legend per plot. The text and the legends are kept in the returned object
+and are printed only on request.
 }
 \details{
 A FREM Forest plot can be compared with an SCM Forest plot only
 when two conditions hold together:
 \itemize{
-\item \strong{The FREM predictions are fully conditioned:} on each row, every FREM
-covariate is set to the value of the reference subject, apart from the
-covariate that varies on the row, so that no FREM covariate is integrated
-out. The rows of an SCM plot are conditioned in this way by construction.
+\item \strong{The FREM predictions on a parameter cover the covariates of the SCM
+model on that parameter:} the rows and the reference row of a parameter
+hold the covariates that the SCM model has on that parameter. On each
+row, these covariates are at the values of the reference subject, apart
+from the covariate that varies on the row. The other FREM covariates are
+missing, so that the FREM predictions are integrated over them. An SCM
+model leaves those covariates out of the parameter, so both models
+average over the same covariates.
 \item \strong{Both plots have the same reference subject:} a relative value is the
 prediction on a row divided by the prediction for the reference subject.
 }
 
-The rows of both plots come from one call of \code{\link[PMXForest:setupDfCovs]{PMXForest::setupDfCovs()}}
-with \code{useMissVal = FALSE}. That call covers the covariates on the plot,
-every covariate that either model reads, and every FREM covariate, so that
-all of them are set on every row. Only the rows that vary a covariate on
-the plot are kept. The reference row comes from
-\code{\link[PMXForest:setupDfRefRow]{PMXForest::setupDfRefRow()}}: by default, the median of each continuous
-covariate and the most common level of each categorical covariate.
+The covariates that the SCM model has on a parameter are found from the
+SCM model itself: a covariate is on the parameter when the relative value
+of the parameter differs from 1 on a row of that covariate in at least one
+sample. For a secondary parameter such as \code{CLF = CL / FREL}, these are the
+covariates of \code{CL} and of \code{FREL} together. A parameter on which the SCM
+model has no covariate gets no plot, and a message is given.
+
+For each parameter, the rows come from one call of
+\code{\link[PMXForest:setupDfCovs]{PMXForest::setupDfCovs()}} with \code{useMissVal = FALSE}. That call covers the
+covariates of the parameter and every covariate that either model reads
+in \verb{$PK}, so that all of them are set on every row; a covariate read in
+\verb{$PK} that is not on the parameter stays at the reference value. Only the
+rows that vary a covariate of the parameter are kept. The reference row
+comes from \code{\link[PMXForest:setupDfRefRow]{PMXForest::setupDfRefRow()}}: by default, the median of each
+continuous covariate and the most common level of each categorical
+covariate.
 
 A model can read a categorical covariate as the column itself or as
 indicator columns, such as \code{GENO1} or \code{GENO_1} for level 1 of \code{GENO}.
 Each model is given a copy of the rows and of the reference row in the
 coding that the model reads, so that the same subjects reach both models.
-
-By default, the covariates on the plot are those that the SCM model reads
-for \code{parameters}. Indicator columns that cover all levels but one of a
-covariate in \code{data}, such as \code{GENO1}, \code{GENO3} and \code{GENO4} of \code{GENO}, are
-shown as that covariate, with one row per level.
+Indicator columns that cover all levels but one of a covariate in \code{data},
+such as \code{GENO1}, \code{GENO3} and \code{GENO4} of \code{GENO}, are shown as that
+covariate, with one row per level.
 
 The uncertainty of each model is computed with
 \code{\link[PMXForest:getSamples]{PMXForest::getSamples()}}. By default, both models use samples from the
@@ -169,9 +187,9 @@ covariance matrix of the run. A message is given when the two models get
 their uncertainty from different methods.
 
 A model has no effect of a covariate on a parameter when the relative
-value is 1 in every sample, as for a covariate that the model does not
-have on that parameter. The direction of an effect is judged from the
-point estimate, relative to 1.
+value is 1 in every sample, as for a level of a categorical covariate that
+the model does not have on that parameter. The direction of an effect is
+judged from the point estimate, relative to 1.
 
 No verdict on the agreement of the two models is given in the text. For
 each parameter, the rows are counted by the direction of the two effects,

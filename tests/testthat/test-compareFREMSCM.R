@@ -1,13 +1,34 @@
-## compareFREMSCM() is checked against the step-by-step recipe of the deep
-## dive "Reconciling FREM and SCM Forest Plots" (section 10), on the SCM and
-## FREM models of the PMXForest SimVal data with the 30-sample bootstraps.
+## compareFREMSCM() is checked against a step-by-step recipe on the SCM and
+## FREM models of the PMXForest SimVal data with the 30-sample bootstraps. For
+## each parameter, the rows and the reference row hold the covariates that the
+## SCM model has on that parameter; the other FREM covariates are missing, so
+## that the FREM predictions are integrated over them.
 
 cfsSimVal <- function(...) {
   file.path(system.file("extdata/SimVal", package = "PMXForest"), ...)
 }
 
-## Computed once per test run: the function result, the warnings given while
-## it ran, and the reference result of the recipe.
+## The covariates that run7 has on each parameter, read from the $PK block of
+## the model: FREL has sex, genotype (level 4) and formulation, CL has food,
+## genotype and weight, and CL/F = CL / FREL has all five.
+cfsCovsBy <- list(
+  FREL = c("SEX", "GENO", "FORM"),
+  CL = c("FOOD", "GENO", "WT"),
+  CLF = c("SEX", "GENO", "FORM", "FOOD", "WT")
+)
+
+## The relative values that forestPlot() draws, by row number and parameter.
+cfsValues <- function(dfres) {
+  cols <- c("COVNUM", "PARAMETER", "POINT_NOVAR_REL_REFFUNC", "Q1_NOVAR_REL_REFFUNC", "Q2_NOVAR_REL_REFFUNC")
+  out <- as.data.frame(dfres)[, cols]
+  out$PARAMETER <- as.character(out$PARAMETER)
+  out <- out[order(out$PARAMETER, out$COVNUM), ]
+  rownames(out) <- NULL
+  out
+}
+
+## Computed once per test run: the function result, the warnings and messages
+## given while it ran, and the reference results of the recipe.
 cfsFixture <- local({
   cache <- NULL
   function() {
@@ -37,20 +58,6 @@ cfsFixture <- local({
       }
     )
 
-    ## The recipe of the deep dive: genotype coded as the models read it,
-    ## every FREM covariate set on every row, one reference row for both.
-    shown <- res$settings$covariates
-    fremCovs <- getCovNames(modFile = cfsSimVal("run22-3.mod"))$orgCovNames
-    allCovs <- unique(c(shown, fremCovs))
-    dfCovsAll <- PMXForest::setupDfCovs(data,
-      covariates = allCovs, useMissVal = FALSE, idVar = "ID",
-      catRef = list(GENO = 2), sep = ""
-    )
-    dfCovs <- dfCovsAll[dfCovsAll$COVARIATEGROUPS %in% shown, ]
-    dfRefRow <- PMXForest::setupDfRefRow(dfCovsAll,
-      data = data, covariates = allCovs, idVar = "ID",
-      catRef = list(GENO = 2), sep = ""
-    )
     secondary <- list(CLF = "CL / FREL")
     genSCM <- suppressWarnings(PMXForest::createParamFunction(cfsSimVal("run7.mod"),
       parameters = c("FREL", "CL"), covRef = list(GENO1 = 0, GENO3 = 0),
@@ -68,47 +75,133 @@ cfsFixture <- local({
     samplesFREM <- PMXForest::getSamples(cfsSimVal("bs22-3n30.dir", "raw_results_run22-3bs.csv"),
       extFile = cfsSimVal("run22-3.ext"), quiet = TRUE
     )
-    refSCM <- PMXForest::getForestDFSCM(
-      dfCovs = dfCovs, dfRefRow = dfRefRow, functionList = list(funSCM),
-      functionListName = genSCM$functionListName,
-      noBaseThetas = genSCM$noBaseThetas, dfParameters = samplesSCM,
-      quiet = TRUE
+    scm <- function(dfCovs, dfRefRow) {
+      PMXForest::getForestDFSCM(
+        dfCovs = dfCovs, dfRefRow = dfRefRow, functionList = list(funSCM),
+        functionListName = genSCM$functionListName,
+        noBaseThetas = genSCM$noBaseThetas, dfParameters = samplesSCM,
+        quiet = TRUE
+      )
+    }
+
+    ## The recipe, per parameter. The five covariates that run7 reads are set
+    ## on every row, genotype as the indicators GENO1, GENO3 and GENO4 that
+    ## both models read; a covariate that the SCM model does not have on the
+    ## parameter stays at the reference value. Sex is the one FREM covariate
+    ## among them: where the SCM model has no sex effect on the parameter, sex
+    ## is missing in the rows of the FREM model. The other FREM covariates are
+    ## not in the rows.
+    readsAll <- c("SEX", "GENO", "FORM", "FOOD", "WT")
+    dfAll <- PMXForest::setupDfCovs(data,
+      covariates = readsAll, useMissVal = FALSE, idVar = "ID",
+      catRef = list(GENO = 2), sep = ""
     )
-    refFREM <- suppressWarnings(getForestDFFREM(
-      dfCovs = dfCovs, dfRefRow = dfRefRow, modName = "run22-3",
-      modDevDir = cfsSimVal(), dfParameters = samplesFREM,
-      functionList = list(funFREM),
-      functionListName = genFREM$functionListName, quiet = TRUE
-    ))
+    dfRefRow <- PMXForest::setupDfRefRow(dfAll,
+      data = data, covariates = readsAll, idVar = "ID",
+      catRef = list(GENO = 2), sep = ""
+    )
+    refSCM <- list()
+    refFREM <- list()
+    rows <- list()
+    for (p in names(cfsCovsBy)) {
+      covs <- cfsCovsBy[[p]]
+      dfCovs <- dfAll[dfAll$COVARIATEGROUPS %in% covs, ]
+      dfCovsF <- dfCovs
+      dfRefRowF <- dfRefRow
+      if (!("SEX" %in% covs)) {
+        dfCovsF$SEX <- -99
+        dfRefRowF$SEX <- -99
+      }
+      s <- scm(dfCovs, dfRefRow)
+      f <- suppressWarnings(getForestDFFREM(
+        dfCovs = dfCovsF, dfRefRow = dfRefRowF, modName = "run22-3",
+        modDevDir = cfsSimVal(), dfParameters = samplesFREM,
+        functionList = list(funFREM),
+        functionListName = genFREM$functionListName, quiet = TRUE
+      ))
+      refSCM[[p]] <- s[s$PARAMETER == p, ]
+      refFREM[[p]] <- f[f$PARAMETER == p, ]
+      rows[[p]] <- dfCovs
+    }
+
+    ## The SCM values of the earlier design, in which every FREM covariate was
+    ## set on every row. The SCM model reads none of them, so the SCM values
+    ## are the same in both designs.
+    fremCovs <- getCovNames(modFile = cfsSimVal("run22-3.mod"))$orgCovNames
+    allCovs <- unique(c(readsAll, fremCovs))
+    dfFullAll <- PMXForest::setupDfCovs(data,
+      covariates = allCovs, useMissVal = FALSE, idVar = "ID",
+      catRef = list(GENO = 2), sep = ""
+    )
+    dfFull <- dfFullAll[dfFullAll$COVARIATEGROUPS %in% readsAll, ]
+    fullSCM <- as.data.frame(scm(dfFull, PMXForest::setupDfRefRow(dfFullAll,
+      data = data, covariates = allCovs, idVar = "ID",
+      catRef = list(GENO = 2), sep = ""
+    )))
+    fullSCM$COVARIATE <- dfFull$COVARIATEGROUPS[fullSCM$COVNUM]
+
     cache <<- list(
       res = res, warns = warns, msgs = msgs, data = data,
-      refSCM = refSCM, refFREM = refFREM, dfCovs = dfCovs
+      refSCM = refSCM, refFREM = refFREM, rows = rows, fullSCM = fullSCM
     )
     cache
   }
 })
 
-## The relative values that forestPlot() draws, by row number and parameter.
-cfsValues <- function(dfres) {
-  cols <- c("COVNUM", "PARAMETER", "POINT_NOVAR_REL_REFFUNC", "Q1_NOVAR_REL_REFFUNC", "Q2_NOVAR_REL_REFFUNC")
-  out <- as.data.frame(dfres)[, cols]
-  out <- out[order(out$PARAMETER, out$COVNUM), ]
-  rownames(out) <- NULL
-  out
-}
-
 test_that("compareFREMSCM gives the values of the step-by-step recipe for both models", {
   skip_on_cran()
   fx <- cfsFixture()
   got <- fx$res$dfres
-  expect_equal(cfsValues(got[got$MODEL == "SCM", ]), cfsValues(fx$refSCM), tolerance = 1e-10)
-  expect_equal(cfsValues(got[got$MODEL == "FREM", ]), cfsValues(fx$refFREM), tolerance = 1e-10)
+  for (p in names(cfsCovsBy)) {
+    g <- got[got$PARAMETER == p, ]
+    expect_equal(cfsValues(g[g$MODEL == "SCM", ]), cfsValues(fx$refSCM[[p]]), tolerance = 1e-10)
+    expect_equal(cfsValues(g[g$MODEL == "FREM", ]), cfsValues(fx$refFREM[[p]]), tolerance = 1e-10)
+  }
 })
 
-test_that("compareFREMSCM shows the covariates that the SCM model reads, genotype as one covariate", {
+test_that("compareFREMSCM gives each parameter the covariates the SCM model has on it", {
   skip_on_cran()
   fx <- cfsFixture()
-  expect_setequal(fx$res$settings$covariates, c("SEX", "GENO", "FORM", "FOOD", "WT"))
+  cv <- fx$res$settings$covariates
+  expect_setequal(names(cv), names(cfsCovsBy))
+  for (p in names(cfsCovsBy)) expect_setequal(cv[[p]], cfsCovsBy[[p]])
+  cmp <- fx$res$comparison
+  for (p in names(cfsCovsBy)) {
+    expect_setequal(unique(cmp$COVARIATE[cmp$PARAMETER == p]), cfsCovsBy[[p]])
+  }
+})
+
+test_that("compareFREMSCM gives the SCM values of the design that conditioned on every FREM covariate", {
+  skip_on_cran()
+  fx <- cfsFixture()
+  cmp <- fx$res$comparison
+  full <- fx$fullSCM
+  for (p in names(cfsCovsBy)) {
+    for (cv in cfsCovsBy[[p]]) {
+      new <- cmp$SCM[cmp$PARAMETER == p & cmp$COVARIATE == cv]
+      old <- full$POINT_NOVAR_REL_REFFUNC[full$PARAMETER == p & full$COVARIATE == cv]
+      expect_equal(new, old, tolerance = 1e-10, label = paste(p, cv))
+    }
+  }
+})
+
+test_that("compareFREMSCM leaves the FREM covariates that the SCM model does not have on a parameter missing", {
+  skip_on_cran()
+  fx <- cfsFixture()
+  s <- fx$res$settings
+  fremCovs <- getCovNames(modFile = cfsSimVal("run22-3.mod"))$covNames
+  for (p in names(cfsCovsBy)) {
+    set <- if ("SEX" %in% cfsCovsBy[[p]]) "SEX" else character()
+    for (df in list(s$dfCovsFREM[[p]], s$dfRefRowFREM[[p]])) {
+      for (cv in setdiff(fremCovs, set)) {
+        expect_true(!(cv %in% names(df)) || all(df[[cv]] == -99), label = paste(p, cv))
+      }
+      for (cv in set) expect_false(any(df[[cv]] == -99), label = paste(p, cv))
+    }
+  }
+  ## sex is missing on every row of CL in the FREM model, and set in the SCM model
+  expect_true(all(s$dfCovsFREM$CL$SEX == -99))
+  expect_false(any(s$dfCovsSCM$CL$SEX == -99))
 })
 
 test_that("compareFREMSCM gives rows at the reference level the value 1 in both models", {
@@ -116,8 +209,9 @@ test_that("compareFREMSCM gives rows at the reference level the value 1 in both 
   fx <- cfsFixture()
   cmp <- fx$res$comparison
   ref <- cmp[cmp$DIRECTION == "reference", ]
-  ## one reference row each for sex, formulation, food and genotype, per parameter
-  expect_equal(nrow(ref), 4 * 3)
+  ## one reference row per categorical covariate on each parameter: sex,
+  ## genotype and formulation on FREL; food and genotype on CL; all four on CL/F
+  expect_equal(nrow(ref), 3 + 2 + 4)
   expect_true(all(ref$SCM == 1))
   expect_true(all(ref$FREM == 1))
 })
@@ -127,22 +221,27 @@ test_that("compareFREMSCM gives the weight rows the same values in both models",
   fx <- cfsFixture()
   cmp <- fx$res$comparison
   wt <- cmp[cmp$COVARIATE == "WT", ]
-  expect_equal(nrow(wt), 2 * 3)
+  ## weight is on CL and CL/F, and is not a FREM covariate of run22-3
+  expect_equal(nrow(wt), 2 * 2)
   expect_equal(wt$SCM, wt$FREM, tolerance = 1e-12)
 })
 
-test_that("compareFREMSCM sets every covariate of each model on every row and in the reference row", {
+test_that("compareFREMSCM sets every covariate read in $PK on every row and in the reference row", {
   skip_on_cran()
   fx <- cfsFixture()
   s <- fx$res$settings
-  for (df in list(s$dfCovsSCM, s$dfCovsFREM, s$dfRefRowSCM, s$dfRefRowFREM)) {
-    num <- df[, setdiff(names(df), "COVARIATEGROUPS"), drop = FALSE]
-    expect_false(any(num == -99))
+  for (p in names(cfsCovsBy)) {
+    for (df in list(s$dfCovsSCM[[p]], s$dfRefRowSCM[[p]])) {
+      num <- df[, setdiff(names(df), "COVARIATEGROUPS"), drop = FALSE]
+      expect_false(any(num == -99))
+    }
+    expect_true(all(c("GENO1", "GENO3", "GENO4") %in% names(s$dfCovsSCM[[p]])))
+    for (df in list(s$dfCovsFREM[[p]], s$dfRefRowFREM[[p]])) {
+      for (cv in c("GENO1", "GENO3", "GENO4", "FORM", "FOOD", "WT")) {
+        expect_false(any(df[[cv]] == -99), label = paste(p, cv))
+      }
+    }
   }
-  ## the FREM copy holds every FREM covariate, the SCM copy the genotype
-  ## indicators that run7 reads
-  expect_true(all(getCovNames(modFile = cfsSimVal("run22-3.mod"))$covNames %in% names(s$dfCovsFREM)))
-  expect_true(all(c("GENO1", "GENO3", "GENO4") %in% names(s$dfCovsSCM)))
 })
 
 test_that("compareFREMSCM passes genotype to the SCM model in the coding the model reads", {
@@ -155,12 +254,36 @@ test_that("compareFREMSCM passes genotype to the SCM model in the coding the mod
   expect_equal(pm$DIRECTION, "same")
 })
 
+test_that("compareFREMSCM gives no rows to a parameter on which the SCM model has no covariate, and says so", {
+  skip_on_cran()
+  fx <- cfsFixture()
+  msgs <- character()
+  res <- withCallingHandlers(
+    suppressWarnings(compareFREMSCM(
+      scmModel = cfsSimVal("run7.mod"), fremModel = cfsSimVal("run22-3.mod"),
+      data = fx$data, parameters = c("FREL", "CL", "MAT"),
+      plotParameters = c("CL", "MAT"),
+      samplesSCM = cfsSimVal("bs7n30.dir", "raw_results_run7bs.csv"),
+      samplesFREM = cfsSimVal("bs22-3n30.dir", "raw_results_run22-3bs.csv")
+    )),
+    message = function(m) {
+      msgs <<- c(msgs, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_equal(sum(grepl("MAT", msgs)), 1)
+  expect_equal(unique(res$comparison$PARAMETER), "CL")
+  expect_equal(names(res$plot), "CL")
+  expect_equal(nrow(res$comparison), nrow(fx$rows$CL))
+})
+
 test_that("compareFREMSCM has one comparison row per row of the plot and parameter", {
   skip_on_cran()
   fx <- cfsFixture()
   cmp <- fx$res$comparison
-  expect_equal(nrow(cmp), nrow(fx$dfCovs) * 3)
-  expect_equal(as.vector(table(cmp$PARAMETER)), rep(nrow(fx$dfCovs), 3))
+  for (p in names(cfsCovsBy)) {
+    expect_equal(sum(cmp$PARAMETER == p), nrow(fx$rows[[p]]))
+  }
   expect_false(any(duplicated(cmp[, c("PARAMETER", "COVNUM")])))
 })
 
@@ -210,7 +333,7 @@ test_that("compareFREMSCM gives one message when the uncertainty methods differ"
   expect_equal(unname(res$settings$uncertainty$n), c(30, 10))
   expect_equal(unique(res$comparison$PARAMETER), "CLF")
   expect_equal(sum(res$comparison$LABEL == "genotype"), 4)
-  expect_equal(nrow(res$comparison), nrow(fx$dfCovs))
+  expect_equal(nrow(res$comparison), nrow(fx$rows$CLF))
   expect_false(any(duplicated(res$comparison$COVNUM)))
 })
 
