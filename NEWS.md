@@ -12,7 +12,9 @@ effects of both models, a text that describes the differences and a figure
 legend per plot are returned with the plots. No verdict on agreement is given in the text: the direction of each
 pair of effects relative to 1 is described, with effects in opposite
 directions first. The deep dive "Reconciling FREM and SCM Forest Plots" uses
-the function on the SCM and FREM models of the PMXForest example data.
+the function on the SCM and FREM models of the PMXForest example data, and the
+worked example of the deep dive now conditions the FREM plot on the covariates
+that the SCM model has on the parameter.
 
 # PMXFrem 2.5.0
 

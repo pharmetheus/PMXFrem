@@ -41,7 +41,9 @@ whatever else it travels with in the population. It supports label statements
 and dosing recommendations - what to expect of a subject known only by this one
 covariate - and it is what a univariable model estimates.
 
-An SCM produces one multivariable model, so its Forest plot is conditional. FREM
+An SCM produces one multivariable model. The Forest plot of an SCM model is
+conditional on the covariates in the model, and the predictions are averages
+over the covariates that are left out. FREM
 estimates the covariates jointly and can be reduced to any subset of them, so a
 single FREM model can answer either question. Which one it answers depends on
 how the plot is set up.
@@ -429,11 +431,16 @@ not say which one it answers invites the reader to take the wrong one.
 
 On the same data, a Forest plot from a full random effects model (FREM) agrees
 with the Forest plot of a model built by stepwise covariate modelling (SCM), for
-the covariates in the SCM model, when two conditions hold: the FREM predictions
-are fully conditioned, and the FREM plot has the reference subject of the SCM
-plot. The differences that remain arise because, in FREM, every covariate has an
-effect on every parameter. For a label statement or a dose recommendation, the
-recommended FREM plot is unconditional, with a reference per covariate.
+the covariates in the SCM model, when two conditions hold. On each parameter,
+the FREM predictions are conditioned on the covariates that the SCM model has on
+that parameter and integrated over the other FREM covariates. The FREM plot
+also has the reference subject of the SCM plot. A FREM plot conditioned on every FREM
+covariate gives the effect of a covariate with every other FREM covariate held
+fixed. That effect differs from the SCM effect when a FREM covariate outside the
+SCM model differs between the levels of the covariate of the row, as height
+differs between males and females. For a label
+statement or a dose recommendation, the recommended FREM plot is unconditional,
+with a reference per covariate.
 
 ## Two models of one data set
 
@@ -461,14 +468,18 @@ Genotype is the 2D6 genotype, with four levels: ultrarapid (2D6 UM), extensive
 Every plot of the worked example is a plot of the apparent clearance `CL/F`,
 which is `CL` divided by `FREL`. After an oral dose, the area under the
 concentration curve is the dose divided by `CL/F`, so the exposure of a subject
-is inversely proportional to `CL/F`.
+is inversely proportional to `CL/F`. The covariates that the SCM model has on
+`CL/F` are those of `CL` and of `FREL` together: weight, sex, formulation, food
+and genotype.
 
 ```{r we_setup}
 simVal <- system.file("extdata/SimVal", package = "PMXForest")
 dataWE <- read.csv(file.path(simVal, "DAT-1-MI-PMX-2.csv"))
+# one record per subject
+baseWE <- dataWE[!duplicated(dataWE$ID), ]
 
-# the covariates on the rows of the plots
-shownWE <- c("WT", "SEX", "FORM", "FOOD", "GENO", "AGE", "CRCL")
+# the covariates that the SCM model has on CL/F
+scmCovsWE <- c("WT", "SEX", "FORM", "FOOD", "GENO")
 # the FREM covariates of run22-3
 fremCovsWE <- getCovNames(modFile = file.path(simVal, "run22-3.mod"))$orgCovNames
 fremCovsWE
@@ -510,19 +521,33 @@ samplesFREM <- getSamples(file.path(simVal, "bs22-3.dir/raw_results_run22-3bs.cs
 mapsWE <- list(
   name_map = c(
     WT = "Weight", SEX = "Sex", FORM = "Formulation", FOOD = "Food status",
-    GENO = "2D6 genotype", AGE = "Age", CRCL = "CRCL"
+    GENO = "2D6 genotype"
   ),
-  unit_map = c(WT = "kg", AGE = "y", CRCL = "mL/min"),
+  unit_map = c(WT = "kg"),
   level_map = list(
     SEX  = c("1" = "Male", "2" = "Female"),
     FORM = c("0" = "Oral tablet", "1" = "FDC"),
     FOOD = c("0" = "Fasted", "1" = "Fed"),
     GENO = c("1" = "2D6 UM", "2" = "2D6 EM", "3" = "2D6 IM", "4" = "2D6 PM")
-  ),
-  group_map = c(CRCL = "Creatinine\nclearance")
+  )
 )
 labelWE <- function(dfCovs, dfres) {
   do.call(generateCovNames, c(list(dfCovs, dfres), mapsWE))
+}
+
+# the FREM predictions for the rows dfCovs and the reference row dfRefRow
+fremWE <- function(dfCovs, dfRefRow = NULL) {
+  dfres <- getForestDFFREM(
+    dfCovs           = dfCovs,
+    dfRefRow         = dfRefRow,
+    modName          = "run22-3",
+    modDevDir        = simVal,
+    dfParameters     = samplesFREM,
+    functionList     = list(funFREM),
+    functionListName = genFREM$functionListName,
+    quiet            = TRUE
+  )
+  labelWE(dfCovs, dfres)
 }
 
 # the CL/F rows, with a panel name in PARAMETER, for plots side by side
@@ -543,19 +568,19 @@ rel <- function(dfres, row, par) {
 }
 ```
 
-## The fully conditioned FREM plot agrees with the SCM plot on apparent clearance
+## The FREM plot conditioned on the SCM covariates agrees with the SCM plot on apparent clearance
 
 A FREM plot can be compared with an SCM plot only when both of two conditions
 hold:
 
-* **Fully conditioned predictions:** on each row of the FREM plot, every FREM
-  covariate is set to the value of the reference subject, apart from the
-  covariate that varies on the row, so that no FREM covariate is integrated
-  out. Every FREM covariate is set in this way, not only the covariates on the
-  plot. The rows of an SCM plot are conditioned in this way by construction.
-  When the other FREM covariates of a row are left missing (at `missVal`), the
-  effect on the row is unconditional and includes the effects of the
-  covariates that go with the varied covariate in the data.
+* **Predictions conditioned on the SCM covariates of the parameter:** on each
+  row of the FREM plot, the covariates that the SCM model has on the parameter
+  are set to the values of the reference subject, apart from the covariate that
+  varies on the row. The other FREM covariates are left missing (at
+  `missVal`), so that the FREM predictions are integrated over them. The other
+  FREM covariates are not in the SCM model on the parameter, and the
+  predictions of the SCM model are averages over the other FREM covariates in
+  the same way.
 * **The reference subject of the SCM plot:** a relative value is the
   prediction on a row divided by the prediction for the reference subject, so
   the relative values of two plots with different reference subjects differ
@@ -566,12 +591,13 @@ hold:
 In the worked example, the reference subject has the median of each continuous
 covariate and the most common level of each categorical covariate. The same
 rows (`dfCovs`) and the same reference row (`dfRefRow`) are used for both
-models. The rows are built with the covariates in `shownWE` and the FREM
-covariates, with `useMissVal = FALSE`, so that every FREM covariate is set on
-every row. The rows that vary a FREM covariate outside `shownWE` are then
-dropped, to keep the plot short. Each continuous covariate has a row at the 5th
-and a row at the 95th percentile of the data, the default of `setupDfCovs()`,
-and each categorical covariate has one row per level.
+models. The rows are built with the SCM covariates of `CL/F` in `scmCovsWE`,
+with `useMissVal = FALSE`, so that every one of the five covariates is set on
+every row. Sex is the one FREM covariate among the five SCM covariates. The ten
+other FREM covariates are not in the rows, and `getForestDFFREM()` treats a FREM covariate
+without a column as missing. Each continuous covariate has a row at the 5th and
+a row at the 95th percentile of the data, the default of `setupDfCovs()`, and
+each categorical covariate has one row per level.
 
 In both models, genotype is coded as the indicators `GENO1`, `GENO3` and
 `GENO4`, with level 2 as the reference. With `catRef = list(GENO = 2)`,
@@ -580,14 +606,12 @@ the two functions write the indicator columns without a separator, as `GENO1`
 rather than `GENO_1`.
 
 ```{r we_conditioned}
-allCovsWE <- unique(c(shownWE, fremCovsWE))
-dfCovsAllWE <- setupDfCovs(dataWE,
-  covariates = allCovsWE, useMissVal = FALSE, idVar = "ID",
+dfCovsWE <- setupDfCovs(dataWE,
+  covariates = scmCovsWE, useMissVal = FALSE, idVar = "ID",
   catRef = list(GENO = 2), sep = ""
 )
-dfCovsWE <- dfCovsAllWE[dfCovsAllWE$COVARIATEGROUPS %in% shownWE, ]
-dfRefRowWE <- setupDfRefRow(dfCovsAllWE,
-  data = dataWE, covariates = allCovsWE, idVar = "ID",
+dfRefRowWE <- setupDfRefRow(dfCovsWE,
+  data = dataWE, covariates = scmCovsWE, idVar = "ID",
   catRef = list(GENO = 2), sep = ""
 )
 
@@ -602,24 +626,20 @@ dfresSCM <- getForestDFSCM(
 )
 dfresSCM <- labelWE(dfCovsWE, dfresSCM)
 
-dfresFREMcond <- getForestDFFREM(
-  dfCovs           = dfCovsWE,
-  dfRefRow         = dfRefRowWE,
-  modName          = "run22-3",
-  modDevDir        = simVal,
-  dfParameters     = samplesFREM,
-  functionList     = list(funFREM),
-  functionListName = genFREM$functionListName,
-  quiet            = TRUE
-)
-dfresFREMcond <- labelWE(dfCovsWE, dfresFREMcond)
+dfresFREMscm <- fremWE(dfCovsWE, dfRefRowWE)
 
 # one data frame with a panel per model
-cols <- intersect(names(dfresSCM), names(dfresFREMcond))
+cols <- intersect(names(dfresSCM), names(dfresFREMscm))
 dfresCLF <- rbind(
   panelWE(dfresSCM, "SCM")[cols],
-  panelWE(dfresFREMcond, "FREM")[cols]
+  panelWE(dfresFREMscm, "FREM")[cols]
 )
+
+# the largest difference between the point estimates of the two models
+maxDiffWE <- max(abs(
+  panelWE(dfresSCM, "SCM")$POINT_NOVAR_REL_REFFUNC -
+    panelWE(dfresFREMscm, "FREM")$POINT_NOVAR_REL_REFFUNC
+))
 ```
 
 In the relative plots of the worked example, the bars are 90% confidence
@@ -627,7 +647,7 @@ intervals from the bootstrap. The grey band is the range of relative values
 from 0.8 to 1.25. The x axis is logarithmic, so that an effect and the inverse
 of the effect, such as 0.5 and 2, are at the same distance from 1.
 
-```{r we_clf_plot, fig.width = 10, fig.height = 7, out.width = "100%"}
+```{r we_clf_plot, fig.width = 10, fig.height = 6, out.width = "100%"}
 forestPlot(dfresCLF,
   parameters = c("SCM", "FREM"),
   xlb = "Relative CL/F",
@@ -637,29 +657,84 @@ forestPlot(dfresCLF,
 )
 ```
 
-For the covariates in the SCM model, the two plots agree. The weight
-rows are equal in the two models and have no uncertainty, because the
-allometric exponents of weight are fixed in both models. `CL/F` with the
-fixed-dose combination (FDC) is `r rel(dfresSCM, "FDC", "CLF")` times `CL/F`
-with the oral tablet in the SCM model, and
-`r rel(dfresFREMcond, "FDC", "CLF")` times in FREM. `CL/F` of fasted subjects
-is `r rel(dfresSCM, "Fasted", "CLF")` times that of fed subjects in the SCM
-model, and `r rel(dfresFREMcond, "Fasted", "CLF")` times in FREM. In both
-models, genotype has an effect on `CL`, and the poor metaboliser genotype has
-an effect on `FREL` as well. `CL/F` of poor metabolisers is
+On every row, the point estimates of the two models differ by at most
+`r formatC(maxDiffWE, format = "f", digits = 2)`. The weight rows are equal in the two models
+and have no uncertainty, because the allometric exponents of weight are fixed in
+both models. `CL/F` with the fixed-dose combination (FDC) is
+`r rel(dfresSCM, "FDC", "CLF")` times `CL/F` with the oral tablet in the SCM
+model, and `r rel(dfresFREMscm, "FDC", "CLF")` times in FREM. `CL/F` of fasted
+subjects is `r rel(dfresSCM, "Fasted", "CLF")` times that of fed subjects in
+the SCM model, and `r rel(dfresFREMscm, "Fasted", "CLF")` times in FREM. In
+both models, genotype has an effect on `CL`, and the poor metaboliser genotype
+has an effect on `FREL` as well. `CL/F` of poor metabolisers is
 `r rel(dfresSCM, "2D6 PM", "CLF")` times that of extensive metabolisers in the
-SCM model, and `r rel(dfresFREMcond, "2D6 PM", "CLF")` times in FREM.
+SCM model, and `r rel(dfresFREMscm, "2D6 PM", "CLF")` times in FREM.
 
 In the SCM model, sex has an effect on `FREL` alone, while in FREM, sex has an
 effect on every parameter. `CL/F` of females is
 `r rel(dfresSCM, "Female", "CLF")` times that of males in the SCM model, and
-`r rel(dfresFREMcond, "Female", "CLF")` times in FREM, with overlapping
-confidence intervals. Age and creatinine clearance are not in the SCM model, so
-every row of the two covariates is at 1 in the SCM plot. In FREM, age and
-creatinine clearance have effects on `CL/F` as well, but the effects are close
-to 1, and the confidence intervals include 1. In an SCM, only the effects that
-pass the selection are kept in the model, so small effects of this size are
-left out.
+`r rel(dfresFREMscm, "Female", "CLF")` times in FREM. Covariates that are not in
+the SCM model, such as age and creatinine clearance, are not on the plots: the
+SCM model has no effect of them, and the FREM predictions are integrated over
+them.
+
+## Conditioned on every FREM covariate, the FREM sex effect differs from the SCM sex effect
+
+In a fully conditioned FREM plot, every FREM covariate is set to the value of
+the reference subject on every row, apart from the covariate that varies on the
+row, so that no FREM covariate is integrated over. The rows are built with the
+SCM covariates and all FREM covariates, with `useMissVal = FALSE`, and the rows
+that vary a FREM covariate outside the SCM covariates are then dropped. A
+second plot is conditioned on the SCM covariates and height alone.
+
+```{r we_full}
+# the rows of the SCM covariates, conditioned on the covariates in `covs`
+condWE <- function(covs) {
+  dfCovsAll <- setupDfCovs(dataWE,
+    covariates = covs, useMissVal = FALSE, idVar = "ID",
+    catRef = list(GENO = 2), sep = ""
+  )
+  dfCovs <- dfCovsAll[dfCovsAll$COVARIATEGROUPS %in% scmCovsWE, ]
+  dfRefRow <- setupDfRefRow(dfCovsAll,
+    data = dataWE, covariates = covs, idVar = "ID",
+    catRef = list(GENO = 2), sep = ""
+  )
+  fremWE(dfCovs, dfRefRow)
+}
+dfresFREMfull <- condWE(unique(c(scmCovsWE, fremCovsWE)))
+dfresFREMheight <- condWE(c(scmCovsWE, "HT"))
+
+# mean height of males and females in the data, in cm
+heightWE <- round(tapply(baseWE$HT, baseWE$SEX, mean))
+heightWE
+
+# CL/F of females relative to males under each conditioning
+sapply(
+  list(
+    "SCM model"                       = dfresSCM,
+    "FREM, SCM covariates"            = dfresFREMscm,
+    "FREM, SCM covariates and height" = dfresFREMheight,
+    "FREM, every FREM covariate"      = dfresFREMfull
+  ),
+  rel,
+  row = "Female", par = "CLF"
+)
+```
+
+Conditioned on every FREM covariate, `CL/F` of females is
+`r rel(dfresFREMfull, "Female", "CLF")` times that of males, against
+`r rel(dfresFREMscm, "Female", "CLF")` when only the SCM covariates are set. The
+fully conditioned effect is the effect of sex in a female and a male with the
+same values of the ten other FREM covariates, such as height, age and the
+laboratory values. In the data, females are shorter than
+males on average, at `r heightWE[["2"]]` against `r heightWE[["1"]]` cm, and
+height is a FREM covariate. Conditioned on height as well as the SCM
+covariates, `CL/F` of females is `r rel(dfresFREMheight, "Female", "CLF")`
+times that of males, so a part of the difference comes from height, and the
+rest from the other FREM covariates. Height is not in the SCM model, and the sex
+effect of the SCM model is estimated in a population where height varies with
+sex. The SCM effect is therefore compared with the FREM effect integrated over
+height.
 
 ## Without a reference row, the reference of a FREM plot lies between the levels of a categorical covariate
 
@@ -682,39 +757,20 @@ so that the plot is less surprising to read.
 ```{r we_unconditional}
 # unconditional rows: one covariate set per row, the others missing
 dfCovsUncondWE <- setupDfCovs(dataWE,
-  covariates = shownWE, idVar = "ID",
+  covariates = scmCovsWE, idVar = "ID",
   catRef = list(GENO = 2), sep = ""
 )
 
 # the FREM default, without dfRefRow
-dfresFREMdefault <- getForestDFFREM(
-  dfCovs           = dfCovsUncondWE,
-  modName          = "run22-3",
-  modDevDir        = simVal,
-  dfParameters     = samplesFREM,
-  functionList     = list(funFREM),
-  functionListName = genFREM$functionListName,
-  quiet            = TRUE
-)
-dfresFREMdefault <- labelWE(dfCovsUncondWE, dfresFREMdefault)
+dfresFREMdefault <- fremWE(dfCovsUncondWE)
 
 # a reference per covariate: in each reference row, the covariate of the
 # row is at the median or the most common level, and the others are missing
 dfRefRowVaryingWE <- setupDfRefRow(dfCovsUncondWE,
-  data = dataWE, covariates = shownWE, singleRef = FALSE, idVar = "ID",
+  data = dataWE, covariates = scmCovsWE, singleRef = FALSE, idVar = "ID",
   catRef = list(GENO = 2), sep = ""
 )
-dfresFREMuncond <- getForestDFFREM(
-  dfCovs           = dfCovsUncondWE,
-  dfRefRow         = dfRefRowVaryingWE,
-  modName          = "run22-3",
-  modDevDir        = simVal,
-  dfParameters     = samplesFREM,
-  functionList     = list(funFREM),
-  functionListName = genFREM$functionListName,
-  quiet            = TRUE
-)
-dfresFREMuncond <- labelWE(dfCovsUncondWE, dfresFREMuncond)
+dfresFREMuncond <- fremWE(dfCovsUncondWE, dfRefRowVaryingWE)
 
 # one data frame with a panel per reference
 cols <- intersect(names(dfresFREMdefault), names(dfresFREMuncond))
@@ -723,12 +779,11 @@ dfresRefWE <- rbind(
   panelWE(dfresFREMuncond, "Reference per covariate")[cols]
 )
 
-# the number of subjects with each formulation, one record per subject
-baseWE <- dataWE[!duplicated(dataWE$ID), ]
+# the number of subjects with each formulation
 table(baseWE$FORM)
 ```
 
-```{r we_reference_plot, fig.width = 10, fig.height = 7, out.width = "100%"}
+```{r we_reference_plot, fig.width = 10, fig.height = 6, out.width = "100%"}
 forestPlot(dfresRefWE,
   parameters = c("No reference row", "Reference per covariate"),
   xlb = "Relative CL/F",
@@ -770,26 +825,25 @@ plot, while the effects stay unconditional. The unconditional plot with a
 reference per covariate is therefore the recommended way to present a FREM-based
 Forest plot.
 
-```{r we_height}
-# mean height of males and females in the data, one record per subject
-heightWE <- round(tapply(baseWE$HT, baseWE$SEX, mean))
-heightWE
-```
-
 In the unconditional plot with a reference per covariate, `CL/F` of females is
-`r rel(dfresFREMuncond, "Female", "CLF")` times that of males, against
-`r rel(dfresFREMcond, "Female", "CLF")` in the fully conditioned FREM plot. In
-the data, females are shorter than males on average, at `r heightWE[["2"]]`
-against `r heightWE[["1"]]` cm, and height is a FREM covariate. The
-unconditional effect of sex includes the effect of a difference in height,
-while in the fully conditioned plot, height is held at the reference.
+`r rel(dfresFREMuncond, "Female", "CLF")` times that of males, and
+`r rel(dfresFREMscm, "Female", "CLF")` times in the FREM plot conditioned on the
+SCM covariates: the two values are equal, and so are the intervals. Weight,
+formulation, food and genotype are not FREM covariates of `run22-3.mod`, and the
+effects of the four covariates are factors of `CL` and `FREL`. The values at
+which the four covariates are held are the same for females and males, and drop
+out of the ratio. In both plots, the effect of sex is integrated over the ten
+other FREM covariates. The two effects are equal because sex is the only FREM
+covariate among the SCM covariates of `CL/F`. In this example, the unconditional
+effect of sex, which a label statement is about, is therefore also the effect to
+compare with the sex effect of the SCM model.
 
 On the absolute scale, the reference of each covariate can be seen. Each
 covariate has a reference line, at the predicted `CL/F` for the reference
 subject of the covariate. The grey band around each line is the range from 0.8
 to 1.25 times the reference.
 
-```{r we_absolute_plot, fig.width = 10, fig.height = 7, out.width = "100%"}
+```{r we_absolute_plot, fig.width = 10, fig.height = 6, out.width = "100%"}
 forestPlot(dfresFREMuncond,
   parameters = "CLF",
   parameterLabels = "CL/F",
@@ -812,19 +866,15 @@ subjects for the other covariates weigh 75 kg.
 
 ## compareFREMSCM() builds the comparison in one call
 
-`compareFREMSCM()` builds a comparison of the two models in one call, with one
-plot per parameter. The rows of a parameter hold the covariates that the SCM
-model has on that parameter, and the FREM predictions are integrated over the
-other FREM covariates, as the predictions of the SCM model are by leaving those
-covariates out. On `CL/F`, which is `CL` divided by `FREL`, the rows therefore
-hold weight, sex, formulation, food and genotype, the covariates of `CL` and of
-`FREL` together. Sex is the one FREM covariate among them, so the FREM
-predictions are integrated over the other ten FREM covariates, including height.
-The function gives both models one reference subject, passes genotype to each
-model in the coding the model reads, and draws the two plots side by side. The
-function also returns a table of the effects of both models, a text that
-describes the differences, and a figure legend. The labels are those of the
-worked example, in `mapsWE`.
+`compareFREMSCM()` builds the comparison of the SCM model and the FREM model in
+one call, with one plot per parameter. For each parameter, the function finds
+the covariates that the SCM model has on the parameter, builds the rows and the
+reference row with those covariates, and leaves the other FREM covariates
+missing. The function gives both models one reference subject, passes genotype
+to each model in the coding the model reads, and draws the two plots side by
+side. The function also returns a table of the effects of both models, a text
+that describes the differences, and a figure legend. The labels are those of
+the worked example, in `mapsWE`.
 
 ```{r we_compare, fig.width = 10, fig.height = 6, out.width = "100%"}
 resWE <- do.call(compareFREMSCM, c(
@@ -844,15 +894,10 @@ resWE <- do.call(compareFREMSCM, c(
 resWE
 ```
 
-The SCM values are those of the plots above, because the SCM model reads none
-of the FREM covariates other than sex. In FREM, `CL/F` of females is
-`r rel(resWE$dfres[resWE$dfres$MODEL == "FREM", ], "Female", "CLF")` times that
-of males, against `r rel(resWE$dfres[resWE$dfres$MODEL == "SCM", ], "Female", "CLF")`
-in the SCM model and `r rel(dfresFREMcond, "Female", "CLF")` in the fully
-conditioned FREM plot. In the fully conditioned plot, height and the other FREM
-covariates are held at the reference. Here, the FREM predictions are integrated
-over them, as the predictions of the SCM model are. The text and the legend are
-printed with
+The covariates on `CL/F` are the five SCM covariates in `scmCovsWE`. The values
+are those of `dfresSCM` and `dfresFREMscm`, the SCM plot and the FREM plot
+conditioned on the SCM covariates, which were computed with the same
+bootstraps. The text and the legend are printed with
 `print(resWE, text = TRUE)`, or read from the result. No verdict on the
 agreement of the two models is given in the text: the rows are counted by the
 direction of the two effects relative to 1, and each row is described with the
