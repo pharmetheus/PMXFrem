@@ -507,21 +507,22 @@ samplesFREM <- getSamples(file.path(simVal, "bs22-3.dir/raw_results_run22-3bs.cs
 
 # row labels, with the names and level names of the PMXForest walkthrough
 # vignette
+mapsWE <- list(
+  name_map = c(
+    WT = "Weight", SEX = "Sex", FORM = "Formulation", FOOD = "Food status",
+    GENO = "2D6 genotype", AGE = "Age", CRCL = "CRCL"
+  ),
+  unit_map = c(WT = "kg", AGE = "y", CRCL = "mL/min"),
+  level_map = list(
+    SEX  = c("1" = "Male", "2" = "Female"),
+    FORM = c("0" = "Oral tablet", "1" = "FDC"),
+    FOOD = c("0" = "Fasted", "1" = "Fed"),
+    GENO = c("1" = "2D6 UM", "2" = "2D6 EM", "3" = "2D6 IM", "4" = "2D6 PM")
+  ),
+  group_map = c(CRCL = "Creatinine\nclearance")
+)
 labelWE <- function(dfCovs, dfres) {
-  generateCovNames(dfCovs, dfres,
-    name_map = c(
-      WT = "Weight", SEX = "Sex", FORM = "Formulation", FOOD = "Food status",
-      GENO = "2D6 genotype", AGE = "Age", CRCL = "CRCL"
-    ),
-    unit_map = c(WT = "kg", AGE = "y", CRCL = "mL/min"),
-    level_map = list(
-      SEX  = c("1" = "Male", "2" = "Female"),
-      FORM = c("0" = "Oral tablet", "1" = "FDC"),
-      FOOD = c("0" = "Fasted", "1" = "Fed"),
-      GENO = c("1" = "2D6 UM", "2" = "2D6 EM", "3" = "2D6 IM", "4" = "2D6 PM")
-    ),
-    group_map = c(CRCL = "Creatinine\nclearance")
-  )
+  do.call(generateCovNames, c(list(dfCovs, dfres), mapsWE))
 }
 
 # the CL/F rows, with a panel name in PARAMETER, for plots side by side
@@ -808,3 +809,56 @@ covariate is missing. The other FREM covariates are therefore integrated out,
 and weight, formulation, food and genotype are at the reference of the model.
 The reference subject for weight weighs `r dfRefRowWE$WT` kg, and the reference
 subjects for the other covariates weigh 75 kg.
+
+## compareFREMSCM() builds the comparison in one call
+
+`compareFREMSCM()` builds a comparison of the two models in one call, with one
+plot per parameter. The rows of a parameter hold the covariates that the SCM
+model has on that parameter, and the FREM predictions are integrated over the
+other FREM covariates, as the predictions of the SCM model are by leaving those
+covariates out. On `CL/F`, which is `CL` divided by `FREL`, the rows therefore
+hold weight, sex, formulation, food and genotype, the covariates of `CL` and of
+`FREL` together. Sex is the one FREM covariate among them, so the FREM
+predictions are integrated over the other ten FREM covariates, including height.
+The function gives both models one reference subject, passes genotype to each
+model in the coding the model reads, and draws the two plots side by side. The
+function also returns a table of the effects of both models, a text that
+describes the differences, and a figure legend. The labels are those of the
+worked example, in `mapsWE`.
+
+```{r we_compare, fig.width = 10, fig.height = 6, out.width = "100%"}
+resWE <- do.call(compareFREMSCM, c(
+  list(
+    scmModel        = file.path(simVal, "run7.mod"),
+    fremModel       = file.path(simVal, "run22-3.mod"),
+    data            = dataWE,
+    parameters      = c("FREL", "CL"),
+    secondary       = secondaryWE,
+    plotParameters  = "CLF",
+    parameterLabels = c(CLF = "CL/F"),
+    samplesSCM      = file.path(simVal, "bs7.dir/raw_results_run7bs.csv"),
+    samplesFREM     = file.path(simVal, "bs22-3.dir/raw_results_run22-3bs.csv")
+  ),
+  mapsWE
+))
+resWE
+```
+
+The SCM values are those of the plots above, because the SCM model reads none
+of the FREM covariates other than sex. In FREM, `CL/F` of females is
+`r rel(resWE$dfres[resWE$dfres$MODEL == "FREM", ], "Female", "CLF")` times that
+of males, against `r rel(resWE$dfres[resWE$dfres$MODEL == "SCM", ], "Female", "CLF")`
+in the SCM model and `r rel(dfresFREMcond, "Female", "CLF")` in the fully
+conditioned FREM plot. In the fully conditioned plot, height and the other FREM
+covariates are held at the reference. Here, the FREM predictions are integrated
+over them, as the predictions of the SCM model are. The text and the legend are
+printed with
+`print(resWE, text = TRUE)`, or read from the result. No verdict on the
+agreement of the two models is given in the text: the rows are counted by the
+direction of the two effects relative to 1, and each row is described with the
+two point estimates.
+
+```{r we_compare_text}
+writeLines(resWE$description)
+writeLines(strwrap(resWE$legend))
+```

@@ -1,5 +1,19 @@
 # PMXFrem (development version)
 
+## Comparing a FREM and an SCM Forest plot in one call
+
+`compareFREMSCM()` draws the Forest plot of a model built by stepwise
+covariate modelling (SCM) next to the Forest plot of a full random effects
+model (FREM) of the same data, one plot per parameter. For the two plots to
+be comparable, the rows of a parameter hold the covariates that the SCM model
+has on that parameter, the FREM predictions are integrated over the other FREM
+covariates, and both plots have the same reference subject. A table of the
+effects of both models, a text that describes the differences and a figure
+legend per plot are returned with the plots. No verdict on agreement is given in the text: the direction of each
+pair of effects relative to 1 is described, with effects in opposite
+directions first. The deep dive "Reconciling FREM and SCM Forest Plots" uses
+the function on the SCM and FREM models of the PMXForest example data.
+
 # PMXFrem 2.5.0
 
 ## A reference subject at any level of a categorical covariate
