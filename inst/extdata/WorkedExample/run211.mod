@@ -1,0 +1,155 @@
+;; 1. Based on: run202
+;; 2. Description:
+;;    FREM base model: no covariates except food on MAT, which varies within subjects and is kept
+;;    outside the MU expression; IMPMAP; OMEGA BLOCK(3) for CL, V and MAT
+;; 3. Label:
+;;    FREM base model, studies 7 and 3
+;------------------------------------------------------------------------------
+$PROBLEM    run210
+$INPUT ID STUDYID TAD TIME OCC AMT RATE SS II EVID ODV DV DOSE FOOD FREMTYPE
+$DATA run211_data.csv IGNORE=@
+$SUBROUTINE ADVAN2 TRANS2
+$PK
+
+IF(FOOD.EQ.1) MATFOOD = 1  ; Most common
+IF(FOOD.EQ.0) MATFOOD = ( 1 + THETA(5))
+
+TVCL    = THETA(1)
+TVV     = THETA(2)
+TVMAT   = THETA(3)
+TVD1    = THETA(4)
+
+MU_2  = TVD1
+MU_3  = LOG(TVCL)
+MU_4  = LOG(TVV)
+MU_5  = LOG(TVMAT)
+
+FRD1  = MU_2     + ETA(2)
+CL    = EXP(MU_3 + ETA(3))
+V     = EXP(MU_4 + ETA(4))
+
+;; MATFOOD is kept outside the MU expression since FOOD varies with time
+MAT   = MATFOOD * EXP(MU_5 + ETA(5))
+
+D1    = MAT*(1-TVD1)
+
+KA    = 1 / (MAT-D1)
+S2    = V
+
+      MU_6 = THETA(6)
+      COV6 = MU_6 + ETA(6)
+      MU_7 = THETA(7)
+      COV7 = MU_7 + ETA(7)
+      MU_8 = THETA(8)
+      COV8 = MU_8 + ETA(8)
+      MU_9 = THETA(9)
+      COV9 = MU_9 + ETA(9)
+      MU_10 = THETA(10)
+      COV10 = MU_10 + ETA(10)
+      MU_11 = THETA(11)
+      COV11 = MU_11 + ETA(11)
+      MU_12 = THETA(12)
+      COV12 = MU_12 + ETA(12)
+      MU_13 = THETA(13)
+      COV13 = MU_13 + ETA(13)
+      MU_14 = THETA(14)
+      COV14 = MU_14 + ETA(14)
+      MU_15 = THETA(15)
+      COV15 = MU_15 + ETA(15)
+$ERROR
+CP    = A(2)*1000 / V
+IPRED = LOG(CP + 0.00001)
+Y     = IPRED + EPS(1) * EXP(ETA(1))
+
+;;;FREM CODE BEGIN COMPACT
+;;;DO NOT MODIFY
+      IF(FREMTYPE.EQ.100) THEN
+;        LNWT 1
+         Y = COV6 + EPS(2)
+         IPRED = COV6
+      END IF
+      IF(FREMTYPE.EQ.200) THEN
+;        HT 1
+         Y = COV7 + EPS(2)
+         IPRED = COV7
+      END IF
+      IF(FREMTYPE.EQ.300) THEN
+;        AGE 1
+         Y = COV8 + EPS(2)
+         IPRED = COV8
+      END IF
+      IF(FREMTYPE.EQ.400) THEN
+;        BMI 1
+         Y = COV9 + EPS(2)
+         IPRED = COV9
+      END IF
+      IF(FREMTYPE.EQ.500) THEN
+;        CRCL 1
+         Y = COV10 + EPS(2)
+         IPRED = COV10
+      END IF
+      IF(FREMTYPE.EQ.600) THEN
+;        RACE_2 1
+         Y = COV11 + EPS(2)
+         IPRED = COV11
+      END IF
+      IF(FREMTYPE.EQ.700) THEN
+;        RACE_3 1
+         Y = COV12 + EPS(2)
+         IPRED = COV12
+      END IF
+      IF(FREMTYPE.EQ.800) THEN
+;        NCI_1 1
+         Y = COV13 + EPS(2)
+         IPRED = COV13
+      END IF
+      IF(FREMTYPE.EQ.900) THEN
+;        SEX_2 1
+         Y = COV14 + EPS(2)
+         IPRED = COV14
+      END IF
+      IF(FREMTYPE.EQ.1000) THEN
+;        SMOK_1 1
+         Y = COV15 + EPS(2)
+         IPRED = COV15
+      END IF
+;;;FREM CODE END COMPACT
+$THETA (0,7.32464) ; 1. TVCL
+$THETA (0,154.738) ; 2. TVV
+$THETA (0,2.06702) ; 3. TVMAT
+$THETA (0,0.395131,1) ; 4. fr D1
+$THETA (-1,-0.130447,3) ; 5. MATFOOD
+$THETA 4.49 FIX ; 6 TV_LNWT
+$THETA 169.61 ; 7 TV_HT
+$THETA 49.95 FIX ; 8 TV_AGE
+$THETA 31.74 FIX ; 9 TV_BMI
+$THETA 119.2 FIX ; 10 TV_CRCL
+$THETA 0.156 FIX ; 11 TV_RACE_2
+$THETA 0.0473 FIX ; 12 TV_RACE_3
+$THETA 0.158 FIX ; 13 TV_NCI_1
+$THETA 0.43 FIX ; 14 TV_SEX_2
+$THETA 0.0335 FIX ; 15 TV_SMOK_1
+$OMEGA BLOCK(1) 0.234575 ; 1. IIV on RUV
+$OMEGA BLOCK(1) 1e-04 FIX ; 2. FRD1
+$OMEGA BLOCK(13) 
+0.217401  ; 3. IIV on CL
+0.116532 0.217551  ; 4. IIV on V
+0.0102563 0.0506263 0.064418  ; 5. IIV on MAT
+1e-05 1e-05 1e-05 0.0425359  ; 6 BSV_LNWT
+1e-05 1e-05 1e-05 1e-05 113.418502309644  ; 7 BSV_HT
+1e-05 1e-05 1e-05 1e-05 1e-05 112.501110929205  ; 8 BSV_AGE
+1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 31.8103462201121  ; 9 BSV_BMI
+1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 614.131121765637  ; 10 BSV_CRCL
+1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 0.131799081631858  ; 11 BSV_RACE_2
+1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 0.0451855836471221  ; 12 BSV_RACE_3
+1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 0.133155584660601  ; 13 BSV_NCI_1
+1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 0.24558162016356  ; 14 BSV_SEX_2
+1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 0.0324703167512532  ; 15 BSV_SMOK_1
+$SIGMA  0.0328          ; 1. RUV
+$SIGMA 0.0000001 FIX
+$ESTIMATION METHOD=IMPMAP AUTO=1 RANMETHOD=3P INTER NOABORT PRINT=1
+            NOCOV=1 ISAMPEND=100 NITER=200 ISAMPLE=300 CTYPE=1 CITER=15
+            CALPHA=0.001
+$ESTIMATION METHOD=IMPMAP INTER EONLY=1 NITER=10 ISAMPLE=1000 NOCOV=0
+            PHITYPE=1
+$COVARIANCE PRINT=E UNCONDITIONAL

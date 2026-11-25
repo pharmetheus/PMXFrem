@@ -1,0 +1,203 @@
+Model directory scm200.dir/rundir/m1
+
+MODEL            TEST     BASE OFV     NEW OFV         TEST OFV (DROP)    GOAL     dDF    SIGNIFICANT PVAL
+CLAGE-4          PVAL  -3156.73722  -3156.74366              0.00644  >   6.63490    1              0.936060 
+CLBMI-4          PVAL  -3156.73722  -3156.77432              0.03710  >   6.63490    1              0.847260 
+CLCRCL-4         PVAL  -3156.73722  -3158.59631              1.85909  >   6.63490    1              0.172730 
+CLHT-4           PVAL  -3156.73722  -3163.64485              6.90762  >   6.63490    1        YES!  0.008583 
+CLLNWT-4         PVAL  -3156.73722  -3158.14064              1.40342  >   6.63490    1              0.236150 
+CLNCI-2          PVAL  -3156.73722  -3181.74149             25.00427  >   6.63490    1        YES!  0.000001 
+CLRACE-2         PVAL  -3156.73722  -3159.28045              2.54323  >   9.21030    2              0.280380 
+CLSEX-2          PVAL  -3156.73722  -3172.09986             15.36264  >   6.63490    1        YES!  0.000089 
+CLSMOK-2         PVAL  -3156.73722  -3162.14575              5.40853  >   6.63490    1              0.020039 
+MATFOOD-2        PVAL  -3156.73722  -3207.27279             50.53557  >   6.63490    1        YES!  1.17e-12 
+VBMI-4           PVAL  -3156.73722  -3205.20713             48.46991  >   6.63490    1        YES!  3.35e-12 
+VHT-4            PVAL  -3156.73722  -3156.86024              0.12302  >   6.63490    1              0.725780 
+VLNWT-4          PVAL  -3156.73722  -3183.87900             27.14178  >   6.63490    1        YES!  1.89e-07 
+VSEX-2           PVAL  -3156.73722  -3186.87269             30.13546  >   6.63490    1        YES!  4.03e-08 
+
+Parameter-covariate relation chosen in this forward step: MAT-FOOD-2
+CRITERION              PVAL < 0.01
+BASE_MODEL_OFV       -3156.73722
+CHOSEN_MODEL_OFV     -3207.27279
+Relations included after this step:
+CL      
+MAT     FOOD-2           
+V       
+--------------------
+
+
+Taking a step forward in adaptive scope reduction scm after reducing scope with 7 relations : CL-AGE,CL-BMI,CL-CRCL,CL-LNWT,CL-RACE,CL-SMOK,V-HT
+Model directory scm200.dir/rundir/reduced_forward_scm_dir2/m1
+
+MODEL            TEST     BASE OFV     NEW OFV         TEST OFV (DROP)    GOAL     dDF    SIGNIFICANT PVAL
+CLHT-4           PVAL  -3207.27279  -3214.20248              6.92969  >   6.63490    1        YES!  0.008478 
+CLNCI-2          PVAL  -3207.27279  -3232.20109             24.92830  >   6.63490    1        YES!  0.000001 
+CLSEX-2          PVAL  -3207.27279  -3222.61827             15.34548  >   6.63490    1        YES!  0.000090 
+VBMI-4           PVAL  -3207.27279  -3254.60683             47.33404  >   6.63490    1        YES!  5.99e-12 
+VLNWT-4          PVAL  -3207.27279  -3233.65161             26.37881  >   6.63490    1        YES!  2.81e-07 
+VSEX-2           PVAL  -3207.27279  -3237.47179             30.19900  >   6.63490    1        YES!  3.90e-08 
+
+Parameter-covariate relation chosen in this forward step: V-BMI-4
+CRITERION              PVAL < 0.01
+BASE_MODEL_OFV       -3207.27279
+CHOSEN_MODEL_OFV     -3254.60683
+Relations included after this step:
+CL      
+MAT     FOOD-2           
+V       BMI-4            
+--------------------
+
+Model directory scm200.dir/rundir/reduced_forward_scm_dir2/scm_dir1/m1
+
+MODEL            TEST     BASE OFV     NEW OFV         TEST OFV (DROP)    GOAL     dDF    SIGNIFICANT PVAL
+CLHT-4           PVAL  -3254.60683  -3260.62052              6.01369  >   6.63490    1              0.014195 
+CLNCI-2          PVAL  -3254.60683  -3281.34101             26.73419  >   6.63490    1        YES!  2.33e-07 
+CLSEX-2          PVAL  -3254.60683  -3265.74854             11.14171  >   6.63490    1        YES!  0.000844 
+VLNWT-4          PVAL  -3254.60683  -3254.80662              0.19979  >   6.63490    1              0.654890 
+VSEX-2           PVAL  -3254.60683  -3276.46905             21.86222  >   6.63490    1        YES!  0.000003 
+
+Parameter-covariate relation chosen in this forward step: CL-NCI-2
+CRITERION              PVAL < 0.01
+BASE_MODEL_OFV       -3254.60683
+CHOSEN_MODEL_OFV     -3281.34101
+Relations included after this step:
+CL      NCI-2            
+MAT     FOOD-2           
+V       BMI-4            
+--------------------
+
+Model directory scm200.dir/rundir/reduced_forward_scm_dir2/scm_dir1/scm_dir1/m1
+
+MODEL            TEST     BASE OFV     NEW OFV         TEST OFV (DROP)    GOAL     dDF    SIGNIFICANT PVAL
+CLHT-4           PVAL  -3281.34101  -3290.70546              9.36444  >   6.63490    1        YES!  0.002212 
+CLSEX-2          PVAL  -3281.34101  -3298.64763             17.30662  >   6.63490    1        YES!  0.000032 
+VLNWT-4          PVAL  -3281.34101  -3281.68869              0.34768  >   6.63490    1              0.555430 
+VSEX-2           PVAL  -3281.34101  -3306.13626             24.79525  >   6.63490    1        YES!  0.000001 
+
+Parameter-covariate relation chosen in this forward step: V-SEX-2
+CRITERION              PVAL < 0.01
+BASE_MODEL_OFV       -3281.34101
+CHOSEN_MODEL_OFV     -3306.13626
+Relations included after this step:
+CL      NCI-2            
+MAT     FOOD-2           
+V       BMI-4            SEX-2            
+--------------------
+
+Model directory scm200.dir/rundir/reduced_forward_scm_dir2/scm_dir1/scm_dir1/scm_dir1/m1
+
+MODEL            TEST     BASE OFV     NEW OFV         TEST OFV (DROP)    GOAL     dDF    SIGNIFICANT PVAL
+CLHT-4           PVAL  -3306.13626  -3308.78597              2.64971  >   6.63490    1              0.103570 
+CLSEX-2          PVAL  -3306.13626  -3309.67692              3.54066  >   6.63490    1              0.059882 
+VLNWT-4          PVAL  -3306.13626  -3319.06737             12.93111  >   6.63490    1        YES!  0.000323 
+
+Parameter-covariate relation chosen in this forward step: V-LNWT-4
+CRITERION              PVAL < 0.01
+BASE_MODEL_OFV       -3306.13626
+CHOSEN_MODEL_OFV     -3319.06737
+Relations included after this step:
+CL      NCI-2            
+MAT     FOOD-2           
+V       BMI-4            LNWT-4           SEX-2            
+--------------------
+
+Model directory scm200.dir/rundir/reduced_forward_scm_dir2/scm_dir1/scm_dir1/scm_dir1/scm_dir1/m1
+
+MODEL            TEST     BASE OFV     NEW OFV         TEST OFV (DROP)    GOAL     dDF    SIGNIFICANT PVAL
+CLHT-4           PVAL  -3319.06737  -3329.16245             10.09508  >   6.63490    1        YES!  0.001487 
+CLSEX-2          PVAL  -3319.06737  -3322.74160              3.67423  >   6.63490    1              0.055260 
+
+Parameter-covariate relation chosen in this forward step: CL-HT-4
+CRITERION              PVAL < 0.01
+BASE_MODEL_OFV       -3319.06737
+CHOSEN_MODEL_OFV     -3329.16245
+Relations included after this step:
+CL      HT-4             NCI-2            
+MAT     FOOD-2           
+V       BMI-4            LNWT-4           SEX-2            
+--------------------
+
+Model directory scm200.dir/rundir/reduced_forward_scm_dir2/scm_dir1/scm_dir1/scm_dir1/scm_dir1/scm_dir1/m1
+
+MODEL            TEST     BASE OFV     NEW OFV         TEST OFV (DROP)    GOAL     dDF    SIGNIFICANT PVAL
+CLSEX-2          PVAL  -3329.16245  -3329.21084              0.04839  >   6.63490    1              0.825890 
+
+--------------------
+
+
+adaptive scope reduction scm forward search with reduced scope is done.
+Included relations so far:  CL-HT-4,CL-NCI-2,MAT-FOOD-2,V-BMI-4,V-LNWT-4,V-SEX-2
+Re-testing 7 relations after adaptive scope reduction scm reduced forward search : CL-AGE,CL-BMI,CL-CRCL,CL-LNWT,CL-RACE,CL-SMOK,V-HT
+Model directory scm200.dir/rundir/readded_forward_scm_dir8/m1
+
+MODEL            TEST     BASE OFV     NEW OFV         TEST OFV (DROP)    GOAL     dDF    SIGNIFICANT PVAL
+CLAGE-4          PVAL  -3329.16245  -3330.02399              0.86154  >   6.63490    1              0.353310 
+CLBMI-4          PVAL  -3329.16245  -3344.99817             15.83572  >   6.63490    1        YES!  0.000069 
+CLCRCL-4         PVAL  -3329.16245  -3343.63558             14.47313  >   6.63490    1        YES!  0.000142 
+CLLNWT-4         PVAL  -3329.16245  -3342.73969             13.57724  >   6.63490    1        YES!  0.000229 
+CLRACE-2         PVAL  -3329.16245  -3331.65151              2.48906  >   9.21030    2              0.288080 
+CLSMOK-2         PVAL  -3329.16245  -3333.20330              4.04085  >   6.63490    1              0.044411 
+VHT-4            PVAL  -3329.16245  -3331.16865              2.00620  >   6.63490    1              0.156660 
+
+Parameter-covariate relation chosen in this forward step: CL-BMI-4
+CRITERION              PVAL < 0.01
+BASE_MODEL_OFV       -3329.16245
+CHOSEN_MODEL_OFV     -3344.99817
+Relations included after this step:
+CL      BMI-4            HT-4             NCI-2            
+MAT     FOOD-2           
+V       BMI-4            LNWT-4           SEX-2            
+--------------------
+
+Model directory scm200.dir/rundir/readded_forward_scm_dir8/scm_dir1/m1
+
+MODEL            TEST     BASE OFV     NEW OFV         TEST OFV (DROP)    GOAL     dDF    SIGNIFICANT PVAL
+CLAGE-4          PVAL  -3344.99817  -3345.38208              0.38391  >   6.63490    1              0.535520 
+CLCRCL-4         PVAL  -3344.99817  -3348.80529              3.80712  >   6.63490    1              0.051035 
+CLLNWT-4         PVAL  -3344.99817  -3344.99912              0.00095  >   6.63490    1              0.975450 
+CLRACE-2         PVAL  -3344.99817  -3346.92681              1.92864  >   9.21030    2              0.381240 
+CLSMOK-2         PVAL  -3344.99817  -3349.74116              4.74299  >   6.63490    1              0.029418 
+VHT-4            PVAL  -3344.99817  -3347.24021              2.24204  >   6.63490    1              0.134300 
+
+--------------------
+
+
+scmplus forward search is done.
+Starting scmplus backward search
+Model directory scm200.dir/rundir/backward_scm_dir10/m1
+
+MODEL            TEST     BASE OFV     NEW OFV         TEST OFV (DROP)    GOAL     dDF  INSIGNIFICANT PVAL
+CLBMI-1          PVAL  -3344.99817  -3329.16245            -15.83572  > -10.82800   -1              0.000069 
+CLHT-1           PVAL  -3344.99817  -3334.08831            -10.90986  > -10.82800   -1              0.000957 
+CLNCI-1          PVAL  -3344.99817  -3313.48235            -31.51583  > -10.82800   -1              1.98e-08 
+MATFOOD-1        PVAL  -3344.99817  -3295.48210            -49.51607  > -10.82800   -1              1.97e-12 
+VBMI-1           PVAL  -3344.99817  -3344.99813             -0.00004  > -10.82800   -1        YES!  0.994940 
+VLNWT-1          PVAL  -3344.99817  -3324.54095            -20.45722  > -10.82800   -1              0.000006 
+VSEX-1           PVAL  -3344.99817  -3307.25078            -37.74739  > -10.82800   -1              8.05e-10 
+
+Parameter-covariate relation chosen in this backward step: V-BMI-1
+CRITERION              PVAL > 0.001
+BASE_MODEL_OFV       -3344.99817
+CHOSEN_MODEL_OFV     -3344.99813
+Relations included after this step:
+CL      BMI-4            HT-4             NCI-2            
+MAT     FOOD-2           
+V       LNWT-4           SEX-2            
+--------------------
+
+Model directory scm200.dir/rundir/backward_scm_dir10/scm_dir1/m1
+
+MODEL            TEST     BASE OFV     NEW OFV         TEST OFV (DROP)    GOAL     dDF  INSIGNIFICANT PVAL
+CLBMI-1          PVAL  -3344.99813  -3328.03521            -16.96292  > -10.82800   -1              0.000038 
+CLHT-1           PVAL  -3344.99813  -3332.99336            -12.00477  > -10.82800   -1              0.000531 
+CLNCI-1          PVAL  -3344.99813  -3313.38717            -31.61097  > -10.82800   -1              1.88e-08 
+MATFOOD-1        PVAL  -3344.99813  -3295.48123            -49.51690  > -10.82800   -1              1.97e-12 
+VLNWT-1          PVAL  -3344.99813  -3268.67369            -76.32444  > -10.82800   -1              2.41e-18 
+VSEX-1           PVAL  -3344.99813  -3288.49002            -56.50811  > -10.82800   -1              5.60e-14 
+
+--------------------
+
+
+scmplus backward search is done.
+

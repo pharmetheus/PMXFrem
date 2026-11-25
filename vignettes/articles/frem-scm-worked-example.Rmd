@@ -1,0 +1,879 @@
+---
+title: "Worked example: a stepwise covariate search and FREM applied to one simulated data set"
+---
+
+```{r, include = FALSE}
+# the folder with the control streams, the NONMEM output and the data
+resDir <- system.file("extdata", "WorkedExample", package = "PMXFrem")
+```
+
+```{r we-options, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", message = FALSE, warning = FALSE,
+                      dpi = 200, fig.align = "center")
+# the HTML page shows every code chunk, the Word document the main ones only
+showAll <- knitr::is_html_output()
+```
+
+```{r we-calc, include = FALSE, ref.label = c("we-helpers", "we-setup", "we-truth-setup", "we-functions", "we-coding", "we-gof", "we-plot-forest", "we-scm-default", "we-frem-default", "we-condition-all", "we-plot-compare", "we-reconcile", "we-explained-var", "we-facts")}
+```
+
+```{r we-helpers, include = FALSE, eval = FALSE}
+## Helpers for the figures and for the numbers in the text; not shown.
+
+# the relative value on one or more rows
+relNum <- function(dfres, row, par = "CL") {
+  dfres$POINT_NOVAR_REL_REFFUNC[dfres$COVNAME %in% row & dfres$PARAMETER == par]
+}
+num <- function(x, digits = 2) formatC(x, format = "f", digits = digits)
+rel <- function(dfres, row, par = "CL", digits = 2) num(relNum(dfres, row, par), digits)
+relCI <- function(dfres, row, par = "CL", digits = 2) {
+  d <- dfres[dfres$COVNAME == row & dfres$PARAMETER == par, ]
+  paste(num(d$Q1_NOVAR_REL_REFFUNC, digits), "to", num(d$Q2_NOVAR_REL_REFFUNC, digits))
+}
+includes1 <- function(dfres, row, par) {
+  d <- dfres[dfres$COVNAME %in% row & dfres$PARAMETER %in% par, ]
+  d$Q1_NOVAR_REL_REFFUNC <= 1 & d$Q2_NOVAR_REL_REFFUNC >= 1
+}
+# the true value on a row
+truthNum <- function(tr, row, par = "CL") tr$TRUTH[tr$COVNAME %in% row & tr$PARAMETER == par]
+truthOf <- function(tr, row, par = "CL", digits = 2) num(truthNum(tr, row, par), digits)
+
+# final estimates of a run
+extFinal <- function(run) {
+  ext <- getExt(extFile = file.path(resDir, paste0(run, ".ext")))
+  ext <- ext[ext$ITERATION == -1000000000, ]
+  ext[nrow(ext), ]   # the last estimation step
+}
+
+# The flow chart: the left panel holds the covariates of the scm+ model on CL/F, the bottom panel
+# the comparison of CL/F with FREM conditioned on the same covariates (forestCompareWE()).
+flowChart <- function(dfresSCMdef, dfresFREMdef, dfresSCMpar, dfresFREMpar, truthPar,
+                      baseText, scmText, fremText) {
+  colSCM <- colModel[["scm+"]]
+  colFREM <- colModel[["FREM"]]
+  colEdge <- "grey35"
+  mini <- function(res, truth = NULL) {
+    forestWE(res, truth, pars = "CL", base = 6.5, pointSize = 0.9, xlab = "Relative CL/F") +
+      theme(strip.text = element_blank(), legend.position = "none",
+        plot.margin = margin(2, 4, 2, 2), plot.background = element_blank())
+  }
+  boxes <- data.frame(
+    xmin = c(27, 2, 53, 2, 53, 22), xmax = c(73, 47, 98, 47, 98, 78),
+    ymin = c(91, 76, 76, 42, 42, 1), ymax = c(99, 86, 86, 72, 72, 35),
+    edge = c(colEdge, colSCM, colFREM, colSCM, colFREM, colFREM)
+  )
+  labs <- data.frame(x = c(50, 24.5, 75.5), y = c(95, 81, 81),
+    label = c(baseText, scmText, fremText))
+  heads <- data.frame(
+    x = c(24.5, 75.5, 50), y = c(70.4, 70.4, 33.4),
+    label = c(
+      "Default scm+ plot: conditional effects",
+      "Default FREM plot: unconditional effects,\nreference per covariate",
+      "FREM conditioned on the scm+ covariates of CL/F, with the\nreference subject of the scm+ plot, next to the scm+ model"
+    )
+  )
+  arrows <- data.frame(
+    x = c(40, 60, 24.5, 75.5, 24.5, 75.5), y = c(91, 91, 76, 76, 42, 42),
+    xend = c(24.5, 75.5, 24.5, 75.5, 36, 64), yend = c(86, 86, 72, 72, 35, 35)
+  )
+  notes <- data.frame(x = c(21, 79), y = c(38.5, 38.5), hjust = c(1, 0),
+    label = c("same reference\nsubject", "condition on the\nscm+ covariates"))
+  arr <- arrow(length = unit(5, "pt"), type = "closed")
+  ggplot() +
+    geom_rect(data = boxes, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+      fill = "white", colour = boxes$edge, linewidth = 0.5) +
+    geom_segment(data = arrows, aes(x = x, y = y, xend = xend, yend = yend),
+      arrow = arr, colour = colEdge, linewidth = 0.4) +
+    geom_text(data = labs, aes(x = x, y = y, label = label), size = 2.9, lineheight = 0.95) +
+    geom_text(data = heads, aes(x = x, y = y, label = label), size = 2.6,
+      fontface = "bold", lineheight = 0.95, vjust = 1) +
+    geom_text(data = notes, aes(x = x, y = y, label = label, hjust = hjust),
+      size = 2.4, colour = "grey30", lineheight = 0.95) +
+    coord_cartesian(xlim = c(0, 100), ylim = c(0, 100), expand = FALSE) +
+    theme_void() +
+    annotation_custom(ggplotGrob(mini(list("scm+" = dfresSCMdef[dfresSCMdef$GROUPNAME %in%
+      scmGroupsWE(dfresSCMdef, "CL"), ]))),
+      xmin = 3, xmax = 46, ymin = 42.5, ymax = 67.5) +
+    annotation_custom(ggplotGrob(mini(list(FREM = dfresFREMdef))),
+      xmin = 54, xmax = 97, ymin = 42.5, ymax = 66) +
+    annotation_custom(
+      ggplotGrob(forestCompareWE(dfresSCMpar, dfresFREMpar, truthPar, par = "CL", base = 6.5,
+        pointSize = 0.9, xlab = "Relative CL/F", legend = FALSE) +
+        theme(plot.margin = margin(2, 4, 2, 2), plot.background = element_blank())),
+      xmin = 24, xmax = 76, ymin = 1.5, ymax = 28.5)
+}
+```
+
+```{r we-facts, include = FALSE, eval = FALSE}
+## Objects and functions for the numbers in the text; not shown.
+
+# the observations and subjects of the analysis
+nObsWE  <- nrow(tabSCM)
+nSubjWE <- length(unique(tabSCM$ID))
+stopifnot(nrow(tabFREM) == nObsWE, length(unique(tabFREM$ID)) == nSubjWE,
+          nSubjWE == 507, nObsWE == 2829)
+baseWE <- dataWE[!duplicated(dataWE$ID), ]
+nHtMissing <- sum(baseWE$HT == -99)
+
+# the log of the scm+ search: one line per candidate model
+scmLog   <- readLines(file.path(resDir, "scm200.dir", "scmlog.txt"))
+scmTests <- grep("^[A-Z]+-[0-9] +PVAL", scmLog, value = TRUE)
+nScmFits <- length(scmTests)
+scmTest <- function(model, which = 1) {
+  x <- scmTests[grepl(paste0("^", model, " "), scmTests)]
+  x <- if (identical(which, "last")) x[length(x)] else x[which]
+  f <- strsplit(trimws(x), " +")[[1]]
+  list(drop = abs(as.numeric(f[5])), p = as.numeric(f[length(f)]))
+}
+
+# subjects per study, and the subjects in whom food status changes
+nStudy <- table(baseWE$STUDYID)
+nFoodVaries <- sum(tapply(dataWE$FOOD, dataWE$ID, function(x) length(unique(x)) > 1))
+
+# scm+ bootstrap fits that ended with rounding errors (kept)
+rawSCM <- read.csv(file.path(resDir, "bs203n30.dir", "raw_results_run203bs.csv"))
+nScmRound <- sum(rawSCM$rounding_errors[rawSCM$model != 0] == 1 & bsSCM$kept)
+
+# agreement of the predictions of the two paths
+corIPRED <- cor(tabSCM$IPRED, tabFREM$IPRED)
+corPRED  <- cor(tabSCM$PRED, tabFREM$PRED)
+
+# the heights that the FREM model estimates for the subjects without a height
+# record (THETA(7) + ETA(7)), against the true heights of the simulation
+phiLines <- readLines(file.path(resDir, "run211.phi"))
+phiLast  <- read.table(text = phiLines[(max(grep("^TABLE NO", phiLines)) + 1):length(phiLines)],
+                       header = TRUE)   # the last table of the .phi file holds the ETAs
+stopifnot(all(phiLast$ID == baseWE$ID))
+htEst  <- extFinal("run211")$THETA7 + phiLast$ETA.7.
+htMiss <- baseWE$HT == -99
+htTrue <- subjWE$HT[match(baseWE$ID, subjWE$ID)]
+htCor  <- cor(htEst[htMiss], htTrue[htMiss])
+htMAE  <- mean(abs(htEst[htMiss] - htTrue[htMiss]))
+htSD   <- sd(htTrue[htMiss])
+# the share of the variance of height that the other FREM covariates explain in a
+# linear regression, in the subjects with a height record
+htObs  <- baseWE[!htMiss, ]
+htR2   <- summary(lm(HT ~ LNWT + BMI + AGE + CRCL + factor(RACE) + NCI + SEX + SMOK,
+                     data = htObs))$r.squared
+
+# objective function values of the base models of the block selection
+ofvBlock <- sapply(c(diag = "run200", block2 = "run201", block3 = "run202"),
+                   function(r) extFinal(r)$OBJ)
+
+# with the reference subject of the scm+ plot, the conditioned scm+ values are those of the
+# default scm+ plot (the model centres height at 170.09 cm, the reference row at the median)
+stopifnot(max(abs(byParameter(dfresSCMcond) / byParameter(dfresSCMdef) - 1)) < 0.005)
+# the scm+ values of the per-parameter comparison equal those with every covariate set
+keySCM <- function(d) setNames(d$POINT_NOVAR_REL_REFFUNC, paste(d$PARAMETER, d$COVNAME))
+stopifnot(isTRUE(all.equal(keySCM(dfresSCMpar), keySCM(dfresSCMcond)[names(keySCM(dfresSCMpar))])))
+stopifnot(identical(sort(unique(as.character(dfresSCMpar$GROUPNAME[dfresSCMpar$PARAMETER == "CL"]))),
+                    sort(scmGroupsWE(dfresSCMdef, "CL"))),
+          identical(sort(unique(as.character(dfresSCMpar$GROUPNAME[dfresSCMpar$PARAMETER == "V"]))),
+                    sort(scmGroupsWE(dfresSCMdef, "V"))))
+
+# the true effects of the default scm+ plot do not depend on which reference row is used
+stopifnot(isTRUE(all.equal(truthSCMdef$TRUTH,
+  truthAt(dfCovsOne, dfRefRowOne, dfresSCMdef, "conditionalSim")$TRUTH)))
+
+# explained variability, in percent of the total variability
+ev <- function(cov, par = "CL", digits = 1) {
+  d <- dfresEV[dfresEV$COVNAME == cov & dfresEV$PARAMETER == par, ]
+  num(100 * d$COVVAR / d$TOTVAR, digits)
+}
+
+# the minutes of all estimation steps of a run, from the NONMEM output
+estMinutes <- function(run) {
+  lst <- readLines(file.path(resDir, paste0(run, ".lst")))
+  x <- grep("Elapsed estimation +time in seconds", lst, value = TRUE)
+  sum(as.numeric(sub(".*: *", "", x))) / 60
+}
+```
+
+## Purpose
+
+This vignette goes through a covariate analysis with the full random effects model (FREM) step by step, next to a stepwise covariate search of the same data. The stepwise search is scm+ of the software PsN (Svensson and Jonsson 2022), labelled "scm+" in the figures. The default Forest plots of the two methods answer different questions, and the vignette explains why. It then describes how a plot from the same FREM fit answers the question of the stepwise plot, and where the two analyses still differ (Figure 1). One difference, for impaired liver function, is a concrete case of omission bias in the stepwise model. The vignette describes the methods; it does not evaluate how well either method performs.
+
+```{r fig-flowchart, echo = FALSE, fig.width = 6.5, fig.height = 7.6, out.width = "100%", fig.cap = "**Figure 1.** The two paths of the worked example, with small versions of the Forest plots of apparent clearance (CL/F). The stepwise plot shows the covariates of the stepwise model on CL/F. Points are point estimates and bars are 90% confidence intervals. In the bottom plot, diamonds are the stepwise model and crosses are the true effects, conditioned on the same covariates. \"scm+\" is the stepwise search."}
+flowChart(dfresSCMdef, dfresFREMdef, dfresSCMpar, dfresFREMpar, truthPar,
+  baseText = "Base model without covariates\n(food status on MAT added in both paths)",
+  scmText  = "scm+ search, 14 relations on CL, V and MAT\nfull covariance block, FOCE-I",
+  fremText = "FREM model, 9 covariates on CL, V and MAT\nfull covariance block, IMPMAP"
+)
+```
+
+## Example data and base model
+
+The data are simulated, and the simulation model differs on purpose from both fitted models. The data set holds 2,829 log-transformed concentrations from 507 subjects in two studies, of 475 and 32 subjects. Because the simulation model is known, the true covariate effects were computed from it and are marked in every Forest plot as a check.
+
+Nine covariates enter both analyses: weight, height, body mass index (BMI), age, creatinine clearance (CRCL), race (three levels), liver function, sex and smoking. Liver function is the National Cancer Institute (NCI) grade, with grade 0 against impaired liver function (grade 1 or 2). A tenth covariate, food status, changes within the 32 subjects of a crossover study. Food status therefore enters both models as a fixed effect on the mean absorption time, because covariates that change within a subject are kept outside the FREM part of the model.
+
+Both analyses start from the same base model: one compartment, with sequential zero-order and first-order absorption. The between-subject variability of clearance, volume and mean absorption time has a full covariance block. No bioavailability is estimated, so clearance and volume are the apparent values CL/F and V/F.
+
+```{r we-setup, eval = FALSE, echo = showAll}
+library(PMXFrem)
+library(PMXForest)
+library(ggplot2)
+library(grid)
+
+set.seed(20261125)
+
+# resDir is the folder with the control streams, the NONMEM output and the data.
+# The data hold log weight, LNWT = log(WT), which both models use for weight.
+dataWE <- read.csv(file.path(resDir, "dataset3-r2.csv"))
+
+scmMod  <- file.path(resDir, "run203.mod")   # final scm+ model
+fremMod <- file.path(resDir, "run211.mod")   # FREM model
+```
+
+```{r we-truth-setup, eval = FALSE, echo = showAll}
+# The true effects of the simulation model at the rows of each plot. The
+# functions in truth-functions.R write the $PK of the simulation model in R and
+# integrate over the random renal fraction; they were checked against NONMEM.
+source(file.path(resDir, "truth-functions.R"))
+subjWE <- truthSubjects(file.path(resDir, "dataset3-r2.csv"),
+                        file.path(resDir, "true-height.csv"))
+
+# the true effects at the rows of a plot (dfCovs, the reference dfRef), labelled as
+# the rows of the results dfres: the columns COVNAME, PARAMETER and TRUTH, which the
+# plot functions draw as open diamonds or crosses
+truthAt <- function(dfCovs, dfRef, dfres, type, ...) {
+  t <- trueEffects(subjWE, dfCovs, dfRef, type, ...)
+  rows <- unique(dfres$COVNAME)   # one label per row of dfCovs, in the same order
+  stopifnot(length(rows) == nrow(dfCovs))
+  data.frame(COVNAME = rows[t$row], PARAMETER = c(CLF = "CL", VF = "V")[t$param],
+             TRUTH = t$ratio)
+}
+trueEV <- trueExplained(subjWE)
+```
+
+## Covariate model
+
+The stepwise search ends with one selected model, in which BMI and height on CL/F together approximate the effect of weight. The search tested 14 covariate-parameter relations that were chosen as plausible. A relation was added at p < 0.01 and kept in the backward elimination at p < 0.001. Six relations were kept: liver function, height and BMI on CL/F, weight and sex on V/F, and food status on the mean absorption time. Once BMI was on CL/F, adding weight lowered the objective function value by only 0.001.
+
+In FREM, every covariate enters the model, and no covariate is selected or left out. Each covariate is entered as an observation of the subject, with its own random effect. The covariance of each covariate with each model parameter is estimated in one covariance matrix, and the covariate effects are derived from that matrix after estimation. The function `createFREMmodel()` of the R package PMXFrem writes the FREM model from the base model and the data (Code excerpt 1).
+
+**Code excerpt 1.** The FREM model is written from the base model in one call.
+
+```{r we-create-frem, results = "hide"}
+# the FREM covariates: every covariate of the example except food status, which
+# changes within subjects and is a fixed effect of the FREM base model
+covariates <- c("LNWT", "HT", "AGE", "BMI", "CRCL", "RACE", "NCI", "SEX", "SMOK")
+
+# the files of the FREM base model, copied to a working folder
+workDir <- file.path(tempdir(), "frem")
+dir.create(workDir, showWarnings = FALSE)
+file.copy(file.path(resDir, c("run210.mod", "run210.ext", "dataset3-r2.csv")), workDir)
+
+fremFiles <- createFREMmodel(
+  modName            = "run210",
+  modDevDir          = workDir,
+  dataFile           = file.path(workDir, "dataset3-r2.csv"),
+  covariates         = covariates,
+  catCovs            = c("RACE", "NCI", "SEX", "SMOK"),
+  numSkipOm          = 2,   # the IIV on the residual error and on FRD1 precede the block
+  cstrKeepCols       = c("ID", "STUDYID", "TAD", "TIME", "OCC", "AMT", "RATE", "SS", "II",
+                         "EVID", "ODV", "DV", "DOSE", "FOOD"),
+  bRecodeDichotomous = TRUE,
+  fremModName        = "run211",
+  quiet              = TRUE
+)
+```
+
+```{r we-create-frem-check, include = FALSE}
+# the model written here is the model that was run, apart from the header lines
+norm <- function(f) {
+  x <- readLines(f)
+  x[!grepl("^;;|^[$]PROBLEM", x)]
+}
+stopifnot(identical(norm(fremFiles$model), norm(fremMod)))
+unlink(workDir, recursive = TRUE)
+```
+
+## Missing covariate values
+
+FREM needs no imputation rule for a missing covariate value. Height was missing in 133 of 507 subjects. In FREM, a subject without height has no height observation, so the missing value is integrated out of the likelihood. The concentrations and the other covariates of the subject still contribute to the fit. In the stepwise model, a subject without height is given the effect of the median observed height, 170 cm.
+
+## Uncertainty
+
+The 90% confidence intervals of both methods come from a small bootstrap (Jonsson and Nyberg 2022). Each final model was fitted to 30 bootstrap data sets, stratified by study. From the variance-covariance matrix of the 30 sets of estimates, 200 parameter vectors were drawn. Each interval is the 5th to the 95th percentile of the predictions over these vectors.
+
+```{r we-functions, eval = FALSE, echo = showAll}
+# the parameters of both models; no bioavailability is estimated, so CL and V
+# are the apparent clearance and volume, CL/F and V/F
+parsWE      <- c("CL", "V")
+plotParsWE  <- c("CL", "V")
+parLabelsWE <- c(CL = "CL/F", V = "V/F")
+
+# the parameter function of each model, written from the control stream
+genSCM  <- createParamFunction(scmMod, parameters = parsWE, quiet = TRUE)
+funSCM  <- eval(parse(text = paste(genSCM$code, collapse = "\n")))
+genFREM <- createFREMParamFunction(fremMod, parameters = parsWE, quiet = TRUE)
+funFREM <- eval(parse(text = paste(genFREM$code, collapse = "\n")))
+
+# Small bootstrap. A fit is left out only when a parameter is at a bound; fits
+# with rounding errors (scm+) and fits that used all iterations (FREM) are kept.
+thetaBounds <- function(modFile) {
+  th <- grep("^[$]THETA", readLines(modFile), value = TRUE)
+  b <- t(sapply(sub(";.*", "", th), function(l) {
+    v <- as.numeric(strsplit(gsub("[$]THETA|[()]|FIX", "", l), ",")[[1]])
+    if (length(v) == 3) v[c(1, 3)] else if (length(v) == 2) c(v[1], Inf) else c(-Inf, Inf)
+  }))
+  data.frame(lower = b[, 1], upper = b[, 2], row.names = NULL)
+}
+atBound <- function(fits, modFile) {
+  b <- thetaBounds(modFile)
+  th <- as.matrix(fits[, paste0("THETA", seq_len(nrow(b)))])
+  near <- function(x, y) abs(x - y) < 1e-4 * pmax(1, abs(y))
+  apply(near(th, rep(b$lower, each = nrow(th))) | near(th, rep(b$upper, each = nrow(th))), 1, any)
+}
+# 200 parameter vectors drawn from the covariance matrix of the bootstrap
+# estimates; the first row holds the final estimates
+samplesWE <- function(rawFile, run, modFile) {
+  boot  <- getSamples(rawFile, extFile = file.path(resDir, paste0(run, ".ext")))
+  final <- boot[1, ]                              # row 1: the fit of the original data
+  fits  <- boot[-1, names(boot) != "OBJ"]         # the bootstrap fits
+  # a fit is at a bound when a THETA is at its bound, or when NONMEM flags an
+  # estimate near a boundary (such as a correlation of random effects near 1)
+  raw   <- read.csv(rawFile)
+  raw   <- raw[raw$model != 0, ]
+  stopifnot(nrow(raw) == nrow(fits))
+  flag  <- if ("estimate_near_boundary" %in% names(raw)) raw$estimate_near_boundary %in% 1 else FALSE
+  use   <- !atBound(fits, modFile) & !flag
+  list(samples = rbind(final, getSamples(fits[use, ], n = 200)[names(final)]),
+       nFits = nrow(fits), nAtBound = sum(!use), kept = use)
+}
+bsSCM  <- samplesWE(file.path(resDir, "bs203n30.dir", "raw_results_run203bs.csv"), "run203", scmMod)
+bsFREM <- samplesWE(file.path(resDir, "bs211n30.dir", "raw_results_run211bs.csv"), "run211", fremMod)
+samplesSCM  <- bsSCM$samples
+samplesFREM <- bsFREM$samples
+
+# the covariates on the rows of the plots, and their labels
+shownWE <- c("LNWT", "HT", "BMI", "AGE", "CRCL", "RACE", "NCI", "SEX", "SMOK")
+mapsWE <- list(
+  name_map = c(LNWT = "Weight", HT = "Height", BMI = "BMI", AGE = "Age", CRCL = "CRCL",
+               RACE = "Race", NCI = "NCI grade", SEX = "Sex", SMOK = "Smoking"),
+  unit_map = c(HT = "cm", AGE = "y", CRCL = "mL/min"),
+  level_map = list(
+    RACE = c("1" = "Race 1", "2" = "Race 2", "3" = "Race 3"),
+    NCI  = c("0" = "NCI grade 0", "1" = "NCI grade 1-2"),
+    SEX  = c("1" = "Male", "2" = "Female"),
+    SMOK = c("0" = "Non-smoker", "1" = "Smoker")
+  ),
+  group_map = c(CRCL = "Creatinine\nclearance")
+)
+# Weight is on the log scale in both models; the rows are labelled in kg
+kgLabel <- function(dfres) {
+  relabel <- function(x) {
+    w <- grepl("^Weight = ", x)
+    v <- as.numeric(sub("^Weight = ([-0-9.]+).*$", "\\1", x[w]))
+    x[w] <- paste0("Weight ", round(exp(v)), " kg")
+    x
+  }
+  if (is.factor(dfres$COVNAME)) {
+    levels(dfres$COVNAME) <- relabel(levels(dfres$COVNAME))
+  } else {
+    dfres$COVNAME <- relabel(dfres$COVNAME)
+  }
+  dfres
+}
+labelWE <- function(dfCovs, dfres) {
+  kgLabel(do.call(generateCovNames, c(list(dfCovs, dfres), mapsWE, warn_unused = FALSE)))
+}
+# the relative values of the plotted parameters, ordered by parameter
+byParameter <- function(dfres) {
+  dfres <- dfres[dfres$PARAMETER %in% plotParsWE, ]
+  dfres$POINT_NOVAR_REL_REFFUNC[order(match(dfres$PARAMETER, plotParsWE))]
+}
+```
+
+The stepwise model was fitted again without a new search, so the stepwise intervals do not include the uncertainty of the selection. FREM has no selection step: every covariate is in the model from the start. The FREM intervals therefore cover all the estimation uncertainty of the covariate effects, without that approximation.
+
+## Goodness of fit
+
+Standard diagnostics are available for FREM, through the corresponding fixed effects model. The population predictions of the FREM model carry no covariate effects and are therefore not the predictions to check. In the corresponding fixed effects model, the covariate terms of each subject from the FREM fit enter as data. The function `createFFEMmodel()` of PMXFrem writes this model, which is then evaluated in NONMEM at the FREM estimates without estimation (Code excerpt 2). The fit of the stepwise model is read from the tabulated NONMEM output of the final model. The two analyses fit the data alike (Figure 2), and their individual predictions correlate at 0.999.
+
+**Code excerpt 2.** The corresponding fixed effects model is written from the FREM fit.
+
+```{r we-ffem, eval = FALSE}
+# the FFEM model: the FREM base model with each subject's covariate terms for
+# CL, V and MAT as data columns, computed from the FREM estimates
+createFFEMmodel(
+  modName     = "run211",
+  baseModName = "run210",
+  modDevDir   = resDir,
+  parNames    = c("CL", "V", "MAT"),
+  numSkipOm   = 2,
+  dataFile    = file.path(resDir, "dataset3-r2.csv"),
+  newDataFile = file.path(resDir, "run212_data.csv"),
+  ffemModName = file.path(resDir, "run212.mod"),
+  ffemTabName = "goftab212"
+)
+# run212.mod is then run in NONMEM with $ESTIMATION MAXEVAL=0, which evaluates
+# the predictions and residuals at the FREM estimates without estimating
+```
+
+```{r we-gof, eval = FALSE, echo = showAll}
+# goodness-of-fit panels from a NONMEM table
+readTab <- function(file) {
+  tab <- read.table(file, skip = 1, header = TRUE)
+  tab[tab$EVID == 0, ]
+}
+gofPanels <- function(tab, rowTitle) {
+  pt <- function() geom_point(alpha = 0.15, size = 0.4)
+  sm <- function() {
+    geom_smooth(method = "loess", formula = y ~ x, se = FALSE, colour = "#0f766e", linewidth = 0.6)
+  }
+  th <- theme_bw(base_size = 8)
+  lim <- range(c(tab$DV, tab$PRED, tab$IPRED))
+  p1 <- ggplot(tab, aes(PRED, DV)) + pt() + geom_abline(linewidth = 0.3) + sm() +
+    coord_cartesian(xlim = lim, ylim = lim) +
+    labs(x = "Population prediction", y = "Observation", title = rowTitle) + th
+  p2 <- ggplot(tab, aes(IPRED, DV)) + pt() + geom_abline(linewidth = 0.3) + sm() +
+    coord_cartesian(xlim = lim, ylim = lim) +
+    labs(x = "Individual prediction", y = "Observation", title = "") + th
+  p3 <- ggplot(tab, aes(PRED, CWRES)) + pt() + geom_hline(yintercept = 0, linewidth = 0.3) + sm() +
+    labs(x = "Population prediction", y = "CWRES", title = "") + th
+  p4 <- ggplot(tab, aes(TAD, CWRES)) + pt() + geom_hline(yintercept = 0, linewidth = 0.3) + sm() +
+    labs(x = "Time after dose (h)", y = "CWRES", title = "") + th
+  gridExtra::arrangeGrob(p1, p2, p3, p4, nrow = 1)
+}
+
+# the tables of the final scm+ model and of the FFEM model run at the FREM estimates
+tabSCM  <- readTab(file.path(resDir, "goftab203"))
+tabFREM <- readTab(file.path(resDir, "goftab212"))
+```
+
+```{r fig-gof, echo = showAll, fig.width = 7, fig.height = 4.4, out.width = "100%", fig.cap = "**Figure 2.** Basic goodness of fit of the stepwise model (top) and of the FREM model (bottom). Observations and predictions are natural logarithms of the concentration. The green line is a smooth. CWRES: conditional weighted residuals. For the FREM model, the predictions and residuals come from the corresponding fixed effects model, evaluated at the FREM estimates without estimation."}
+gridExtra::grid.arrange(
+  gofPanels(tabSCM, "scm+ model"),
+  gofPanels(tabFREM, "FREM model"),
+  nrow = 2
+)
+```
+
+## Default Forest plots
+
+The default Forest plots of the two methods answer different questions, and neither plot is wrong. In the simulation, being female multiplies V/F by 1.30 when every other covariate is held fixed. When the other covariates vary as in the population, the factor is 1.18, because women weigh less.
+
+In the default stepwise plot, the effects are conditional: one covariate changes, and every other covariate stays at the value of one reference subject (Figure 3). The reference subject has the median or the most common value of each covariate. A covariate that is not in the stepwise model has an effect of exactly 1, without an interval. In the default FREM plot, the effects are unconditional, and each covariate has its own reference, the median or the most common value of that covariate (Figure 4).
+
+An unconditional effect is the effect to expect in a patient known only by that covariate, as in a statement in the product information. In the example, the default FREM plot lies close to the true unconditional effects. For weight at 65 kg, the FREM effect on CL/F is 0.87, against a true value of 0.85. For impaired liver function, the FREM effect and the true value on CL/F are both 0.66.
+
+```{r we-scm-default, eval = FALSE, echo = showAll}
+# rows: one covariate set per row; in an scm+ model the other covariates are
+# then at the reference of the model, so the effects are conditional
+dfCovsOne <- setupDfCovs(dataWE, covariates = shownWE, idVar = "ID")
+dfresSCMdef <- getForestDFSCM(
+  dfCovs           = dfCovsOne,
+  functionList     = list(funSCM),
+  functionListName = genSCM$functionListName,
+  noBaseThetas     = genSCM$noBaseThetas,
+  dfParameters     = samplesSCM,
+  quiet            = TRUE
+)
+dfresSCMdef <- labelWE(dfCovsOne, dfresSCMdef)
+
+# the true conditional effects of the simulation model at the same rows, with the
+# reference subject of the plot: the median or most common level of each covariate
+dfRefRowSCM <- setupDfRefRow(dfCovsOne, data = dataWE, covariates = shownWE, idVar = "ID")
+truthSCMdef <- truthAt(dfCovsOne, dfRefRowSCM, dfresSCMdef, "conditionalSim")
+```
+
+```{r we-plot-forest, eval = FALSE, echo = showAll}
+# A Forest plot: one panel per parameter, points with 90% intervals, the true value as an open
+# diamond. `res` is a list of results (one per model, the names are the legend), `truth` a data
+# frame with COVNAME, PARAMETER and TRUTH.
+colModel <- c("scm+" = "#2f5d8a", "FREM" = "#0f766e")
+forestWE <- function(res, truth = NULL, pars = plotParsWE, base = 9, pointSize = 1.6,
+                     xlab = "Relative to the reference", xlim = c(0.4, 2.5)) {
+  d <- do.call(rbind, lapply(names(res), function(m) {
+    x <- res[[m]][res[[m]]$PARAMETER %in% pars,
+      c("COVNAME", "GROUPNAME", "PARAMETER", "POINT_NOVAR_REL_REFFUNC",
+        "Q1_NOVAR_REL_REFFUNC", "Q2_NOVAR_REL_REFFUNC")]
+    x$MODEL <- m
+    x
+  }))
+  rows <- unique(d$COVNAME)
+  d$YROW <- factor(d$COVNAME, levels = rev(rows))
+  d$GROUP <- factor(d$GROUPNAME, levels = unique(d$GROUPNAME))
+  d$PARLAB <- factor(parLabelsWE[d$PARAMETER], levels = parLabelsWE[pars])
+  dodge <- if (length(res) > 1) position_dodge(width = 0.6) else position_identity()
+  p <- ggplot(d, aes(x = POINT_NOVAR_REL_REFFUNC, y = YROW, colour = MODEL)) +
+    annotate("rect", xmin = 0.8, xmax = 1.25, ymin = -Inf, ymax = Inf, fill = "grey92") +
+    geom_vline(xintercept = 1, linetype = "dotted", linewidth = 0.3) +
+    geom_errorbarh(aes(xmin = Q1_NOVAR_REL_REFFUNC, xmax = Q2_NOVAR_REL_REFFUNC),
+      height = 0, linewidth = 0.5, position = dodge) +
+    geom_point(size = pointSize, position = dodge)
+  if (!is.null(truth)) {
+    t <- truth[truth$PARAMETER %in% pars & truth$COVNAME %in% rows, ]
+    t$YROW <- factor(t$COVNAME, levels = levels(d$YROW))
+    t$GROUP <- factor(d$GROUPNAME[match(t$COVNAME, d$COVNAME)], levels = levels(d$GROUP))
+    t$PARLAB <- factor(parLabelsWE[t$PARAMETER], levels = levels(d$PARLAB))
+    t$MODEL <- "Truth"
+    p <- p + geom_point(data = t, aes(x = TRUTH, y = YROW), shape = 5, size = pointSize + 0.9,
+      stroke = 0.6, colour = "grey15", inherit.aes = FALSE)
+  }
+  p + scale_colour_manual(values = colModel, name = NULL) +
+    scale_x_log10(breaks = c(0.5, 0.7, 1, 1.4, 2)) +
+    coord_cartesian(xlim = xlim) +   # an interval beyond the limits is cut at the edge
+    facet_grid(GROUP ~ PARLAB, scales = "free_y", space = "free_y") +
+    labs(x = xlab, y = NULL) +
+    theme_bw(base_size = base) +
+    theme(strip.text.y = element_blank(), panel.grid.minor = element_blank(),
+      panel.grid.major.y = element_blank(), panel.spacing.y = unit(2, "pt"),
+      legend.position = if (length(res) > 1) "bottom" else "none")
+}
+```
+
+```{r fig-scm-default, echo = showAll, fig.width = 8, fig.height = 5.6, out.width = "100%", fig.cap = "**Figure 3.** Default Forest plot of the stepwise model: conditional effects on apparent clearance (CL/F) and apparent volume (V/F), relative to the reference subject of the model. Bars are 90% confidence intervals from the small bootstrap. Open diamonds are the true conditional effects. The grey band is the range from 0.8 to 1.25."}
+forestWE(list("scm+" = dfresSCMdef), truthSCMdef)
+```
+
+```{r we-coding, eval = FALSE, echo = showAll}
+# setupDfCovs() writes race, a covariate with three levels, as the indicator
+# columns RACE_2 and RACE_3, which are the names of the FREM covariates. The
+# FREM model holds the two-level covariates as indicators as well: NCI_1, SEX_2
+# and SMOK_1. With oneHot, getForestDFFREM() makes these columns from the
+# columns NCI, SEX and SMOK of the rows. The scm+ model reads NCI and SEX as
+# they are in the data, so its rows need no recoding.
+oneHotWE <- list(
+  NCI  = list(ref = 0, levels = 1),
+  SEX  = list(ref = 1, levels = 2),
+  SMOK = list(ref = 0, levels = 1)
+)
+```
+
+```{r we-frem-default, eval = FALSE, echo = showAll}
+# the same rows; in a FREM model the covariates that are not set on a row are
+# integrated out, so the effects are unconditional. The reference is given per
+# covariate: the median or the most common level of the covariate on the row
+dfRefRowPer <- setupDfRefRow(dfCovsOne,
+  data = dataWE, covariates = shownWE, singleRef = FALSE, idVar = "ID"
+)
+dfresFREMdef <- getForestDFFREM(
+  dfCovs           = dfCovsOne,
+  dfRefRow         = dfRefRowPer,
+  oneHot           = oneHotWE,
+  modName          = "run211",
+  modDevDir        = resDir,
+  dfParameters     = samplesFREM,
+  functionList     = list(funFREM),
+  functionListName = genFREM$functionListName,
+  quiet            = TRUE
+)
+dfresFREMdef <- labelWE(dfCovsOne, dfresFREMdef)
+
+# the true unconditional effects at the same rows, with the same reference per covariate
+truthFREMdef <- truthAt(dfCovsOne, dfRefRowPer, dfresFREMdef, "unconditional")
+```
+
+```{r fig-frem-default, echo = showAll, fig.width = 8, fig.height = 5.6, out.width = "100%", fig.cap = "**Figure 4.** Default Forest plot of the FREM model: unconditional effects on apparent clearance (CL/F) and apparent volume (V/F), each covariate relative to the median or the most common value of that covariate. Bars are 90% confidence intervals from the small bootstrap. Open diamonds are the true unconditional effects. The grey band is the range from 0.8 to 1.25."}
+forestWE(list(FREM = dfresFREMdef), truthFREMdef)
+```
+
+## Explained variability
+
+The same FREM fit also gives the share of the between-subject variability in each parameter that the covariates explain (Figure 5). Together, the nine covariates explain 17% of the variability in CL/F and 26% in V/F. The true shares in the simulation are 19% and 28%. For CL/F, liver function alone explains the largest share, 10%. Because the covariates are correlated, the shares of single covariates do not add up to the share of all covariates.
+
+```{r we-explained-var, eval = FALSE, echo = showAll}
+# one row per FREM covariate, and a first row with all of them
+dfCovsEV <- setupDfCovsEV(modFileName = fremMod)
+
+covLabelsEV <- c(
+  All = "All covariates", LNWT = "Weight", HT = "Height", AGE = "Age",
+  BMI = "Body mass index", CRCL = "Creatinine clearance", RACE = "Race",
+  NCI = "NCI grade", SEX = "Sex", SMOK = "Smoking"
+)
+
+dfresEV <- getExplainedVar(
+  type             = 0,   # the delta rule
+  data             = NULL,
+  dfCovs           = dfCovsEV,
+  functionList     = list(funFREM),
+  functionListName = genFREM$functionListName,
+  cstrCovariates   = c("All", names(dfCovsEV)),
+  modDevDir        = resDir,
+  modName          = "run211",
+  quiet            = TRUE
+)
+```
+
+```{r fig-explained-var, echo = showAll, fig.width = 8, fig.height = 4.2, out.width = "100%", fig.cap = "**Figure 5.** Explained variability in the FREM model, computed with the delta rule: the share of the between-subject variability in apparent clearance (CL/F) and apparent volume (V/F) that the covariates explain, all together and one at a time."}
+plotExplainedVar(dfresEV[dfresEV$PARAMETER %in% plotParsWE, ],
+  parameters = plotParsWE, parameterLabels = parLabelsWE[plotParsWE],
+  covariateLabels = covLabelsEV
+)
+```
+
+## Reconciling scm and FREM
+
+From the same FREM fit, a Forest plot can be generated that is directly comparable with the stepwise plot. The comparison is made to show that the two models describe the data in the same way and do not contradict each other. Two conditions must hold. First, for each parameter, the FREM predictions are conditioned only on the covariates that the stepwise model has on that parameter. The other FREM covariates are integrated out, as they are in the stepwise model, which leaves them out. Second, both analyses use the same reference subject: the median or the most common value of each of these covariates. No second FREM analysis is needed.
+
+```{r we-reconcile, include = FALSE, eval = FALSE}
+# The comparison per parameter: the rows and the reference subject hold only
+# the covariates of the scm+ model for that parameter, each set on every row
+# (useMissVal = FALSE), at the reference value unless the row varies it. The
+# other FREM covariates are not in the rows, so the FREM model integrates
+# them out, as the scm+ model does by leaving them out.
+scmCovsWE <- list(CL = c("HT", "BMI", "NCI"), V = c("LNWT", "SEX"))  # the final scm+ model
+compareParWE <- function(par) {
+  covs   <- scmCovsWE[[par]]
+  dfCovs <- setupDfCovs(dataWE, covariates = covs, useMissVal = FALSE, idVar = "ID")
+  dfRef  <- setupDfRefRow(dfCovs, data = dataWE, covariates = covs, idVar = "ID")
+  scm <- getForestDFSCM(
+    dfCovs           = dfCovs,
+    dfRefRow         = dfRef,
+    functionList     = list(funSCM),
+    functionListName = genSCM$functionListName,
+    noBaseThetas     = genSCM$noBaseThetas,
+    dfParameters     = samplesSCM,
+    quiet            = TRUE
+  )
+  oneHot <- oneHotWE[intersect(names(oneHotWE), covs)]
+  frem <- getForestDFFREM(
+    dfCovs           = dfCovs,
+    dfRefRow         = dfRef,
+    oneHot           = if (length(oneHot) > 0) oneHot else NULL,
+    modName          = "run211",
+    modDevDir        = resDir,
+    dfParameters     = samplesFREM,
+    functionList     = list(funFREM),
+    functionListName = genFREM$functionListName,
+    quiet            = TRUE
+  )
+  keep <- function(d) d[d$PARAMETER == par, ]
+  list(dfCovs = dfCovs, dfRef = dfRef,
+       scm = keep(labelWE(dfCovs, scm)), frem = keep(labelWE(dfCovs, frem)))
+}
+cmpWE <- lapply(setNames(names(scmCovsWE), names(scmCovsWE)), compareParWE)
+stackWE <- function(x) {   # the rows of both parameters, in the columns they share
+  cols <- Reduce(intersect, lapply(x, names))
+  do.call(rbind, c(lapply(x, function(d) d[, cols]), make.row.names = FALSE))
+}
+dfresSCMpar  <- stackWE(lapply(cmpWE, `[[`, "scm"))
+dfresFREMpar <- stackWE(lapply(cmpWE, `[[`, "frem"))
+
+# per parameter, conditioned on the covariates of the scm+ model for that
+# parameter: a linear regression of the expected log parameter on them alone
+truthPar <- do.call(rbind, lapply(names(cmpWE), function(par) {
+  x <- cmpWE[[par]]
+  t <- truthAt(x$dfCovs, x$dfRef, x$frem, "conditionalFREM",
+               params = c(CL = "CLF", V = "VF")[[par]], on = scmCovsWE[[par]])
+  t[t$PARAMETER == par, ]
+}))
+```
+
+Compared in this way, the two models agree for height, BMI, weight and sex (Figures 6 and 7). For each of these rows, the stepwise value lies within the 90% interval of the FREM value. For impaired liver function, the FREM effect on CL/F is 0.66 and the stepwise effect 0.76, outside the FREM interval. The FREM value lies at the true value of 0.66. The difference is omission bias, the bias in an estimated effect when a true covariate-parameter relation is left out of the model (Nyberg and Jonsson 2025). In the simulation, impaired liver function also changes the bioavailability, so it affects V/F as well as CL/F. The search tested liver function on CL/F only, so the effect on V/F was left out of the stepwise model and biased the effect on CL/F. With liver function added on V/F, the stepwise effect on CL/F became 0.67. FREM has every covariate on every parameter, so no relation of this kind is left out.
+
+**Table 1.** Effects in the FREM model, conditioned on the covariates of the stepwise model for each parameter, and in the stepwise model, with the same reference subject. Values in brackets are 90% confidence intervals.
+
+| Parameter | Row | FREM, conditioned | Stepwise model |
+|---|---|---|---|
+| CL/F | Height 152 cm | 0.90 (0.85 to 0.95) | 0.88 |
+| CL/F | Height 187 cm | 1.11 (1.05 to 1.17) | 1.13 |
+| CL/F | BMI 23.5 | 0.90 (0.87 to 0.94) | 0.89 |
+| CL/F | BMI 41.6 | 1.14 (1.08 to 1.20) | 1.16 |
+| CL/F | Impaired liver function (NCI grade 1 or 2) | 0.66 (0.60 to 0.75) | 0.76 |
+| V/F | Weight 65 kg | 0.75 (0.70 to 0.80) | 0.72 |
+| V/F | Weight 126 kg | 1.36 (1.27 to 1.45) | 1.41 |
+| V/F | Female | 1.35 (1.25 to 1.48) | 1.41 |
+
+```{r we-plot-compare, include = FALSE, eval = FALSE}
+# The comparison plot of one parameter. Only the covariates of the scm+ model for that
+# parameter are shown: a covariate is in the scm+ model for the parameter when its scm+
+# rows differ from 1. Marks: FREM as points with 90% intervals (shape 16), scm+ as open
+# diamonds (shape 5), the true effect conditioned on the same covariates as crosses (shape 4).
+scmGroupsWE <- function(scm, par) {
+  s <- scm[scm$PARAMETER == par, ]
+  unique(as.character(s$GROUPNAME[abs(s$POINT_NOVAR_REL_REFFUNC - 1) > 1e-8]))
+}
+forestCompareWE <- function(scm, frem, truth = NULL, par = "CL", base = 9, pointSize = 2,
+                            xlab = paste("Relative", parLabelsWE[[par]]), xlim = c(0.4, 2.5),
+                            legend = TRUE) {
+  groups <- scmGroupsWE(scm, par)
+  pick <- function(x) x[x$PARAMETER == par & as.character(x$GROUPNAME) %in% groups, ]
+  s <- pick(scm)
+  f <- pick(frem)
+  rows <- unique(as.character(f$COVNAME))
+  yrow <- function(x) factor(as.character(x), levels = rev(rows))
+  grp  <- function(x) factor(as.character(x), levels = groups)
+  pts <- rbind(
+    data.frame(COVNAME = f$COVNAME, GROUPNAME = f$GROUPNAME, X = f$POINT_NOVAR_REL_REFFUNC,
+      MARK = "FREM"),
+    data.frame(COVNAME = s$COVNAME, GROUPNAME = s$GROUPNAME, X = s$POINT_NOVAR_REL_REFFUNC,
+      MARK = "scm+")
+  )
+  if (!is.null(truth)) {
+    t <- truth[truth$PARAMETER == par & truth$COVNAME %in% rows, ]
+    pts <- rbind(pts, data.frame(COVNAME = t$COVNAME,
+      GROUPNAME = f$GROUPNAME[match(t$COVNAME, f$COVNAME)], X = t$TRUTH,
+      MARK = "True effect"))
+  }
+  pts$YROW <- yrow(pts$COVNAME)
+  pts$GROUP <- grp(pts$GROUPNAME)
+  pts$MARK <- factor(pts$MARK, levels = c("FREM", "scm+",
+    "True effect"))
+  f$YROW <- yrow(f$COVNAME)
+  f$GROUP <- grp(f$GROUPNAME)
+  marks <- c("FREM" = 16, "scm+" = 5, "True effect" = 4)
+  cols  <- c("FREM" = colModel[["FREM"]], "scm+" = colModel[["scm+"]],
+    "True effect" = "grey15")
+  sizes <- c("FREM" = pointSize, "scm+" = pointSize + 1.2,
+    "True effect" = pointSize - 0.2)
+  ggplot(pts, aes(x = X, y = YROW)) +
+    annotate("rect", xmin = 0.8, xmax = 1.25, ymin = -Inf, ymax = Inf, fill = "grey92") +
+    geom_vline(xintercept = 1, linetype = "dotted", linewidth = 0.3) +
+    geom_errorbarh(data = f, aes(xmin = Q1_NOVAR_REL_REFFUNC,
+      xmax = Q2_NOVAR_REL_REFFUNC, y = YROW), height = 0, linewidth = 0.5,
+      colour = colModel[["FREM"]], inherit.aes = FALSE) +
+    geom_point(aes(shape = MARK, colour = MARK, size = MARK), stroke = 0.9) +
+    scale_shape_manual(values = marks, name = NULL) +
+    scale_colour_manual(values = cols, name = NULL) +
+    scale_size_manual(values = sizes, name = NULL) +
+    scale_x_log10(breaks = c(0.5, 0.7, 1, 1.4, 2)) +
+    coord_cartesian(xlim = xlim) +   # an interval beyond the limits is cut at the edge
+    facet_grid(GROUP ~ ., scales = "free_y", space = "free_y") +
+    labs(x = xlab, y = NULL) +
+    theme_bw(base_size = base) +
+    theme(strip.text.y = element_blank(), panel.grid.minor = element_blank(),
+      panel.grid.major.y = element_blank(), panel.spacing.y = unit(2, "pt"),
+      legend.position = if (legend) "bottom" else "none")
+}
+```
+
+```{r fig-reconciled-cl, echo = FALSE, fig.width = 6.5, fig.height = 3, out.width = "80%", fig.cap = "**Figure 6.** Effects on apparent clearance (CL/F) of the covariates in the stepwise model (scm+) for CL/F, with one reference subject for both models. Points and bars: the FREM model, conditioned on the same covariates, with 90% confidence intervals from the small bootstrap. Diamonds: the stepwise model. Crosses: the true effects, conditioned on the same covariates. The grey band is the range from 0.8 to 1.25."}
+forestCompareWE(dfresSCMpar, dfresFREMpar, truthPar, par = "CL")
+```
+
+```{r fig-reconciled-v, echo = FALSE, fig.width = 6.5, fig.height = 2.4, out.width = "80%", fig.cap = "**Figure 7.** Effects on apparent volume (V/F) of the covariates in the stepwise model (scm+) for V/F, with one reference subject for both models. Points and bars: the FREM model, conditioned on the same covariates, with 90% confidence intervals from the small bootstrap. Diamonds: the stepwise model. Crosses: the true effects, conditioned on the same covariates. The grey band is the range from 0.8 to 1.25."}
+forestCompareWE(dfresSCMpar, dfresFREMpar, truthPar, par = "V")
+```
+
+## Correlated covariates
+
+In the stepwise model, height and BMI on CL/F together approximate the effect of weight, and FREM conditioned on height and BMI gives nearly the same effects (Table 1). BMI is weight divided by the square of height, so the three covariates carry much of the same information. The stepwise search keeps one description of body size; FREM keeps all three covariates and can be conditioned on the set that the question names.
+
+The choice of set matters when covariates are correlated. If FREM is conditioned on all nine covariates, weight is almost fixed by height and BMI, and the interval of the weight effect on CL/F runs from 0.86 to 2.83. For body size as a whole, the unconditional effect of weight in the default FREM plot applies (Figure 4).
+
+```{r we-condition-all, eval = FALSE}
+# Full conditioning, for comparison: every FREM covariate is set on every row
+# (useMissVal = FALSE), at the reference value unless the row varies it.
+# 1. the rows
+fremCovsWE <- getCovNames(modFile = fremMod)$orgCovNames
+allCovsWE  <- unique(c(shownWE, fremCovsWE))
+dfCovsAll  <- setupDfCovs(dataWE, covariates = allCovsWE, useMissVal = FALSE, idVar = "ID")
+dfCovsCond <- dfCovsAll[dfCovsAll$COVARIATEGROUPS %in% shownWE, ]
+
+# 2. one reference subject for both models: the median of each continuous
+#    covariate and the most common level of each categorical covariate
+dfRefRowOne <- setupDfRefRow(dfCovsAll, data = dataWE, covariates = allCovsWE, idVar = "ID")
+
+# 3. the same rows and the same reference through both models
+dfresSCMcond <- getForestDFSCM(
+  dfCovs           = dfCovsCond,
+  dfRefRow         = dfRefRowOne,
+  functionList     = list(funSCM),
+  functionListName = genSCM$functionListName,
+  noBaseThetas     = genSCM$noBaseThetas,
+  dfParameters     = samplesSCM,
+  quiet            = TRUE
+)
+dfresSCMcond <- labelWE(dfCovsCond, dfresSCMcond)
+
+dfresFREMcond <- getForestDFFREM(
+  dfCovs           = dfCovsCond,
+  dfRefRow         = dfRefRowOne,
+  oneHot           = oneHotWE,
+  modName          = "run211",
+  modDevDir        = resDir,
+  dfParameters     = samplesFREM,
+  functionList     = list(funFREM),
+  functionListName = genFREM$functionListName,
+  quiet            = TRUE
+)
+dfresFREMcond <- labelWE(dfCovsCond, dfresFREMcond)
+
+# the true effects at the same rows: through the simulation model with every other
+# covariate at the reference, and as a regression on all FREM covariates
+truthCondSim  <- truthAt(dfCovsCond, dfRefRowOne, dfresSCMcond, "conditionalSim")
+truthCondFREM <- truthAt(dfCovsCond, dfRefRowOne, dfresFREMcond, "conditionalFREM")
+```
+
+## Settings
+
+- **Software:** NONMEM 7.5.1; PsN 5.7.2 (scmplus, execute and bootstrap); R 4.2.2; PMXFrem in the development version that becomes 2.6.0; PMXForest 1.4.2.
+- **Estimation:** the stepwise models with first-order conditional estimation with interaction (FOCE-I). The FREM models with importance sampling assisted by mode a posteriori estimation (IMPMAP): 300 samples per subject, at most 200 iterations, the NONMEM convergence test (CTYPE=1), and one evaluation step with 1,000 samples. The objective function values of the two methods are not compared.
+- **Covariance structure:** a full covariance block for CL/F, V/F and the mean absorption time, chosen before the search with the likelihood ratio test at p = 0.05.
+- **Stepwise search:** 14 relations; forward addition at p < 0.01; backward elimination at p < 0.001; relations that failed early tested again at the end.
+- **Data coding:** race levels 3 to 5 combined, and NCI grades 1 and 2 combined, so that no level has fewer than 10 subjects. Weight enters both models as log weight.
+- **Bootstrap:** 30 fits per model, stratified by study, with a fixed seed; fits with a parameter at a bound were left out; 200 parameter vectors drawn from the variance-covariance matrix of the estimates.
+
+```{r text-checks, include = FALSE}
+badText <- character(0)
+says <- function(value, stated, digits = 2) {
+  got <- if (is.character(value)) value else num(value, digits)
+  if (!identical(got, stated)) {
+    badText <<- c(badText, paste0("the text says ", stated, " but the result is ", got))
+  }
+}
+# Example data and base model
+says(nObsWE, "2829", 0); says(nSubjWE, "507", 0)
+says(as.numeric(nStudy[["7"]]), "475", 0); says(as.numeric(nStudy[["3"]]), "32", 0)
+says(nFoodVaries, "32", 0)
+# Covariate model, missing values, uncertainty, goodness of fit
+says(num(scmTest("CLLNWT-4", 3)$drop, 3), "0.001")
+says(nHtMissing, "133", 0)
+says(median(baseWE$HT[baseWE$HT != -99]), "170", 0)
+says(bsSCM$nFits, "30", 0); says(bsFREM$nFits, "30", 0)
+says(corIPRED, "0.999", 3)
+# Default Forest plots
+says(truthOf(truthCondSim, "Female", "V"), "1.30")
+says(truthOf(truthFREMdef, "Female", "V"), "1.18")
+says(rel(dfresFREMdef, "Weight 65 kg"), "0.87"); says(truthOf(truthFREMdef, "Weight 65 kg"), "0.85")
+says(rel(dfresFREMdef, "NCI grade 1-2"), "0.66"); says(truthOf(truthFREMdef, "NCI grade 1-2"), "0.66")
+# Explained variability
+says(ev("All", "CL", 0), "17"); says(ev("All", "V", 0), "26")
+says(num(100 * trueEV[["CLF"]], 0), "19"); says(num(100 * trueEV[["VF"]], 0), "28")
+says(ev("NCI", "CL", 0), "10")
+# Forest plots with the same question: Table 1 and the text
+tab1 <- list(
+  list("CL", "Height = 152 cm", "0.90", "0.85 to 0.95", "0.88"),
+  list("CL", "Height = 187 cm", "1.11", "1.05 to 1.17", "1.13"),
+  list("CL", "BMI = 23.5",      "0.90", "0.87 to 0.94", "0.89"),
+  list("CL", "BMI = 41.6",      "1.14", "1.08 to 1.20", "1.16"),
+  list("CL", "NCI grade 1-2",   "0.66", "0.60 to 0.75", "0.76"),
+  list("V",  "Weight 65 kg",    "0.75", "0.70 to 0.80", "0.72"),
+  list("V",  "Weight 126 kg",   "1.36", "1.27 to 1.45", "1.41"),
+  list("V",  "Female",          "1.35", "1.25 to 1.48", "1.41")
+)
+for (r in tab1) {
+  says(rel(dfresFREMpar, r[[2]], r[[1]]), r[[3]])
+  says(relCI(dfresFREMpar, r[[2]], r[[1]]), r[[4]])
+  says(rel(dfresSCMpar, r[[2]], r[[1]]), r[[5]])
+}
+# the stepwise value lies within the FREM interval for height, BMI, weight and sex, not for liver function
+inside <- function(row, par) {
+  s <- relNum(dfresSCMpar, row, par)
+  f <- dfresFREMpar[dfresFREMpar$COVNAME == row & dfresFREMpar$PARAMETER == par, ]
+  s >= f$Q1_NOVAR_REL_REFFUNC & s <= f$Q2_NOVAR_REL_REFFUNC
+}
+stopifnot(all(sapply(tab1[c(1:4, 6:8)], function(r) inside(r[[2]], r[[1]]))),
+          !inside("NCI grade 1-2", "CL"))
+says(truthOf(truthPar, "NCI grade 1-2"), "0.66")
+says(1 + extFinal("run205")$THETA7, "0.67")   # the stepwise model with liver function on V/F
+# Correlated covariates
+says(relCI(dfresFREMcond, "Weight 65 kg"), "0.86 to 2.83")
+if (length(badText) > 0) {
+  stop("Numbers in the text do not match the results:\n", paste(badText, collapse = "\n"))
+}
+```
+
+## References
+
+- Jonsson EN, Nyberg J. A quantitative approach to the choice of number of samples for percentile
+  estimation in bootstrap and visual predictive check analyses. CPT Pharmacometrics Syst Pharmacol.
+  2022;11:673-686.
+- Nyberg J, Jonsson EN. The impact of misspecified covariate models on inclusion and omission bias
+  when using fixed effects and full random effects models. J Pharmacokinet Pharmacodyn. 2025;52:18.
+- Svensson RJ, Jonsson EN. Efficient and relevant stepwise covariate model building for
+  pharmacometrics. CPT Pharmacometrics Syst Pharmacol. 2022;11:1210-1222.
