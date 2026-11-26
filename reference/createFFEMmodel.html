@@ -12,7 +12,7 @@ GOF plots and VPC analyses."><!-- mathjax --><script src="https://cdnjs.cloudfla
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.5.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -88,6 +88,7 @@ GOF plots and VPC analyses.</p>
 <span>  ffemTabName <span class="op">=</span> <span class="st">"ffemtab"</span>,</span>
 <span>  ffemModName <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  omegaToData <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  keepDoseOnlySubjects <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -226,6 +227,16 @@ NULL is the default</p></dd>
 OMEGA block and implements a Cholesky decomposition in the model code. Defaults to <code>FALSE</code>.</p></dd>
 
 
+<dt>keepDoseOnlySubjects</dt>
+<dd><p>Logical. If <code>FALSE</code> (default), the FFEM data set
+keeps the subjects of the FREM fit, as listed in the <code>.phi</code> file of the
+FREM model, so that it has the same subjects as the FREM data set. A FREM
+model from <code><a href="createFREMmodel.html">createFREMmodel()</a></code> leaves out subjects without observations,
+such as subjects with only dose records, unless its own
+<code>keepDoseOnlySubjects</code> is <code>TRUE</code>. Without a <code>.phi</code> file, every subject is
+kept, with a warning. If <code>TRUE</code>, every subject of <code>dataFile</code> is kept.</p></dd>
+
+
 <dt>...</dt>
 <dd><p>Arguments passed to <code>createFFEMdata</code></p></dd>
 
@@ -285,7 +296,8 @@ simulations for a VPC analysis.</p>
     <div class="dont-index"><p><code><a href="getFileNames.html">getFileNames()</a></code> <code><a href="createFFEMdata.html">createFFEMdata()</a></code> <code><a href="calcFFEM.html">calcFFEM()</a></code></p>
 <p>Other FFEM Conversion: 
 <code><a href="calcFFEM.html">calcFFEM</a>()</code>,
-<code><a href="createFFEMdata.html">createFFEMdata</a>()</code></p></div>
+<code><a href="createFFEMdata.html">createFFEMdata</a>()</code>,
+<code><a href="fremEqLatex.html">fremEqLatex</a>()</code></p></div>
     </div>
 
     <div class="section level2">

@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.5.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -80,6 +80,7 @@
 <span>  dfext <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  missVal <span class="op">=</span> <span class="op">-</span><span class="fl">99</span>,</span>
 <span>  omegaToData <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  keepDoseOnlySubjects <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -196,6 +197,16 @@ $EST.</p></dd>
 are appended to the output dataset as V-columns (e.g., V11, V21). Defaults to <code>FALSE</code>.</p></dd>
 
 
+<dt>keepDoseOnlySubjects</dt>
+<dd><p>Logical. If <code>FALSE</code> (default), the FFEM data set
+keeps the subjects of the FREM fit, as listed in the <code>.phi</code> file of the
+FREM model, so that it has the same subjects as the FREM data set. A FREM
+model from <code><a href="createFREMmodel.html">createFREMmodel()</a></code> leaves out subjects without observations,
+such as subjects with only dose records, unless its own
+<code>keepDoseOnlySubjects</code> is <code>TRUE</code>. Without a <code>.phi</code> file, every subject is
+kept, with a warning. If <code>TRUE</code>, every subject of <code>dataFile</code> is kept.</p></dd>
+
+
 <dt>...</dt>
 <dd><p>Additional arguments passed on to <code><a href="getFileNames.html">getFileNames()</a></code>.</p></dd>
 
@@ -248,7 +259,8 @@ the console.</p>
     <div class="dont-index"><p><code><a href="createFFEMmodel.html">createFFEMmodel()</a></code></p>
 <p>Other FFEM Conversion: 
 <code><a href="calcFFEM.html">calcFFEM</a>()</code>,
-<code><a href="createFFEMmodel.html">createFFEMmodel</a>()</code></p></div>
+<code><a href="createFFEMmodel.html">createFFEMmodel</a>()</code>,
+<code><a href="fremEqLatex.html">fremEqLatex</a>()</code></p></div>
     </div>
 
     <div class="section level2">

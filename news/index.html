@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.5.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -53,6 +53,42 @@
       
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2.5.0" id="pmxfrem-2-5-0">PMXFrem 2.5.0<a class="anchor" aria-label="anchor" href="#pmxfrem-2-5-0"></a></h2>
+<div class="section level3">
+<h3 id="a-reference-subject-at-any-level-of-a-categorical-covariate-2-5-0">A reference subject at any level of a categorical covariate<a class="anchor" aria-label="anchor" href="#a-reference-subject-at-any-level-of-a-categorical-covariate-2-5-0"></a></h3>
+<p>The reference subject of a Forest plot from <code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code> can now be at any level of a categorical covariate, set with <code>catRef</code> in <code><a href="https://rdrr.io/pkg/PMXForest/man/setupDfCovs.html" class="external-link">PMXForest::setupDfCovs()</a></code>. In a full random effects model (FREM), a categorical covariate has one indicator column per level but one: in the bundled example, <code>RACEL_2</code> and <code>RACEL_3</code>, with level 1 left out. <code>catRef</code> sets both the level of the reference subject and the level left out, so <code>catRef = list(RACEL = 2)</code> gives the columns <code>RACEL_1</code> and <code>RACEL_3</code> in <code>dfCovs</code>, the data frame with the covariate values of each row, and in the reference row <code>dfRefRow</code>. <code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code> now recodes such columns to the columns of the model, so that each row describes the same subject as before the recoding.</p>
+<p>Until now, a reference subject at level 2 needed the coding of the model, with <code>RACEL_2 = 1</code> written by hand into <code>dfRefRow</code>. With <code>useMissVal = FALSE</code>, the same value had to be written into every row of <code>dfCovs</code> that does not vary <code>RACEL</code>. The deep dive “Reconciling FREM and SCM Forest Plots” has an example.</p>
+</div>
+<div class="section level3">
+<h3 id="checking-covariate-names-in-forest-plots-and-explained-variability-2-5-0">Checking covariate names in Forest plots and explained variability<a class="anchor" aria-label="anchor" href="#checking-covariate-names-in-forest-plots-and-explained-variability-2-5-0"></a></h3>
+<p><code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code> and <code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code> now warn when <code>dfCovs</code> has a column that is not a covariate of the model and lacks a covariate of the model, as with <code>RACEL2</code> for <code>RACEL_2</code>. Until now, the misspelled covariate had no effect, and no message was given. <code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code> also warns when <code>dfRefRow</code> has a column that <code>dfCovs</code> lacks.</p>
+<p>When the model file is given, <code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code> and <code><a href="../reference/fremEqLatex.html">fremEqLatex()</a></code> stop if <code>covNames</code> differs from the FREM covariates of the model in names or order. The coefficients of the full fixed effects model (FFEM) are matched to <code>covNames</code> by position, so the effects would go to the wrong covariates.</p>
+<p><code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code> with <code>type</code> 1, 2 or 3 stops with the name of a column of <code>dfCovs</code> that <code>data</code> lacks.</p>
+</div>
+<div class="section level3">
+<h3 id="latex-equations-of-the-covariate-effects-for-reports-2-5-0">LaTeX equations of the covariate effects for reports<a class="anchor" aria-label="anchor" href="#latex-equations-of-the-covariate-effects-for-reports-2-5-0"></a></h3>
+<p><code><a href="../reference/fremEqLatex.html">fremEqLatex()</a></code> writes the covariate effects of the FFEM as LaTeX equations, one per parameter, for use in a report. Each term is a coefficient times a covariate minus the mean of the covariate, such as <code>-0.00591 (WT - 86.9)</code>. The covariates, and the levels of the categorical covariates, are labelled with <code>name_map</code> and <code>level_map</code>, the same maps that <code><a href="https://rdrr.io/pkg/PMXForest/man/generateCovNames.html" class="external-link">generateCovNames()</a></code> uses for the labels of a Forest plot.</p>
+</div>
+<div class="section level3">
+<h3 id="changes-to-existing-behaviour-2-5-0">Changes to existing behaviour<a class="anchor" aria-label="anchor" href="#changes-to-existing-behaviour-2-5-0"></a></h3>
+<ul><li><p><strong>PMXForest 1.4.1 or later is required.</strong> PMXFrem 2.4.0 required PMXForest 1.4.0. PMXFrem is tested with PMXForest 1.4.1, and one test of <code><a href="../reference/verifyFREMParamFunction.html">verifyFREMParamFunction()</a></code> needs it.</p></li>
+<li><p><strong>FFEM data sets have the subjects of the FREM fit.</strong> <code><a href="../reference/createFFEMdata.html">createFFEMdata()</a></code> and <code><a href="../reference/createFFEMmodel.html">createFFEMmodel()</a></code> now keep only the subjects in the <code>.phi</code> file of the FREM model, the file of individual estimates, so that the FFEM model has the same subjects as the FREM model. Until now, every subject of the data set was kept, including subjects left out of the FREM fit, such as subjects with only dose records. An FFEM data set made again with 2.5.0 can therefore have fewer subjects than before. With <code>keepDoseOnlySubjects = TRUE</code>, every subject is kept, as before.</p></li>
+<li><p><strong>Two warnings of <code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code> are removed.</strong> The warning “Not all covariates in frem model are present in dfCovs” was given with <code>quiet = FALSE</code> whenever FREM covariates were left out of <code>dfCovs</code>, which is usual. The warning that starts “Can’t find some of the covariates” was given once for every row of <code>dfCovs</code> and every parameter vector in <code>dfParameters</code>, also for structural covariates that were read correctly. A misspelled name is now reported by the covariate-name check.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-2-5-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-2-5-0"></a></h3>
+<ul><li><p><strong>A raw categorical column in a one-row <code>dfRefRow</code> is encoded with <code>oneHot</code>.</strong> In <code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code> with the argument <code>oneHot</code>, no indicator columns were made for a raw categorical column, such as <code>RACEL = 2</code>, in a one-row <code>dfRefRow</code>, so the reference subject did not have that level. The levels are now taken from <code>dfCovs</code>, as in <code><a href="https://rdrr.io/pkg/PMXForest/man/getForestDFSCM.html" class="external-link">PMXForest::getForestDFSCM()</a></code>.</p></li>
+<li><p><strong>A <code>dfRefRow</code> that sets no FREM covariate is accepted.</strong> In <code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code>, a reference row with only structural covariates, or with every covariate missing, stopped with “replacement has length zero”. The reference subject now gets no covariate effect, as a row of <code>dfCovs</code> without FREM covariates does.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-2-5-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-2-5-0"></a></h3>
+<ul><li>The deep dive “Reconciling FREM and SCM Forest Plots” has a worked example on two models of one data set from PMXForest: a model built by stepwise covariate modelling (SCM) and a FREM model. The SCM Forest plot is shown next to the fully conditioned FREM plot, and the default FREM plot next to the recommended one, which is unconditional with a reference per covariate.</li>
+<li>On the help page of <code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code>, the default of <code>quiet</code> was given as <code>TRUE</code>; the default is <code>FALSE</code>. The help pages of <code><a href="../reference/getForestDFFREM.html">getForestDFFREM()</a></code> and <code><a href="../reference/getExplainedVar.html">getExplainedVar()</a></code> now describe what is printed with <code>quiet = FALSE</code>: the FFEM of each calculation.</li>
+<li>The walkthrough vignette has a section on the covariate equations from <code><a href="../reference/fremEqLatex.html">fremEqLatex()</a></code>, with the labels of the Forest plot deep dive.</li>
+<li>In the deep dive “Reconciling FREM and SCM Forest Plots”, level 3 of <code>RACEL</code> is called Other, as in the level maps of the other vignettes. Until now, level 3 was called Asian in the text.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.4.0" id="pmxfrem-2-4-0">PMXFrem 2.4.0<a class="anchor" aria-label="anchor" href="#pmxfrem-2-4-0"></a></h2>
 <div class="section level3">

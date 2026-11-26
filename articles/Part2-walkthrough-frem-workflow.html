@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.5.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,7 +85,7 @@
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>This walkthrough builds on the Quick-Start vignette and follows a FREM analysis end to end: the FFEM conversion, goodness-of-fit diagnostics, ETAs against EBEs, a Visual Predictive Check, the parameter and covariate tables, and updating the model afterwards.</p>
+<p>This walkthrough builds on the Quick-Start vignette and follows a FREM analysis end to end: the FFEM conversion, goodness-of-fit diagnostics, ETAs against EBEs, a Visual Predictive Check, the parameter and covariate tables, the covariate equations for a report, and updating the model afterwards.</p>
 </div>
 <div class="section level2">
 <h2 id="setup-and-global-options">1. Setup and Global Options<a class="anchor" aria-label="anchor" href="#setup-and-global-options"></a>
@@ -920,6 +920,76 @@ SMOK
 </tr>
 </tbody>
 </table>
+</div>
+<div class="section level3">
+<h3 id="covariate-equations">Covariate Equations<a class="anchor" aria-label="anchor" href="#covariate-equations"></a>
+</h3>
+<p>For a report, <code><a href="../reference/fremEqLatex.html">fremEqLatex()</a></code> writes the covariate effects of the FFEM as LaTeX equations, one per parameter. Each term is a coefficient times a covariate minus the FREM estimate of its mean. The effects are on the scale of the ETA: <code>COV_CL</code> enters the FFEM as <code>CL = TVCL * EXP(COV_CL + ETA(3))</code>.</p>
+<p>The covariates, and the levels of the categorical covariates, are labelled with <code>name_map</code> and <code>level_map</code>, the same objects as for the Forest plot labels of <code><a href="https://rdrr.io/pkg/PMXForest/man/generateCovNames.html" class="external-link">generateCovNames()</a></code>. The two maps below are those of the Forest plot deep dive. With <code>perLine</code>, the number of terms on each line is set, here two to fit the width of the page. In a chunk with <code>results = "asis"</code>, the equations go straight into a LaTeX report, which needs the amsmath package. On this page, MathJax renders the same code.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">name_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  AGE <span class="op">=</span> <span class="st">"Age"</span>, ALT <span class="op">=</span> <span class="st">"ALT"</span>, AST <span class="op">=</span> <span class="st">"AST"</span>, BILI <span class="op">=</span> <span class="st">"Total Bilirubin"</span>,</span>
+<span>  BMI <span class="op">=</span> <span class="st">"BMI"</span>, BSA <span class="op">=</span> <span class="st">"BSA"</span>, CRCL <span class="op">=</span> <span class="st">"Creatinine CL"</span>,</span>
+<span>  ETHNIC <span class="op">=</span> <span class="st">"Ethnicity"</span>, GENO2 <span class="op">=</span> <span class="st">"Genotype"</span>, HT <span class="op">=</span> <span class="st">"Height"</span>,</span>
+<span>  LBWT <span class="op">=</span> <span class="st">"Lean Body Wt"</span>, NCIL <span class="op">=</span> <span class="st">"NCI"</span>, RACEL <span class="op">=</span> <span class="st">"Race"</span>,</span>
+<span>  SEX <span class="op">=</span> <span class="st">"Sex"</span>, SMOK <span class="op">=</span> <span class="st">"Smoking Status"</span>, WT <span class="op">=</span> <span class="st">"Weight"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">level_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  SEX   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"1"</span> <span class="op">=</span> <span class="st">"Male"</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">"Female"</span><span class="op">)</span>,</span>
+<span>  RACEL <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"1"</span> <span class="op">=</span> <span class="st">"Caucasian"</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">"Black"</span>, <span class="st">"3"</span> <span class="op">=</span> <span class="st">"Other"</span><span class="op">)</span>,</span>
+<span>  SMOK  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0"</span> <span class="op">=</span> <span class="st">"Non-smoking"</span>, <span class="st">"1"</span> <span class="op">=</span> <span class="st">"Smoking"</span><span class="op">)</span>,</span>
+<span>  NCIL  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0"</span> <span class="op">=</span> <span class="st">"NCI Grade 0"</span>, <span class="st">"1"</span> <span class="op">=</span> <span class="st">"NCI Grade 1"</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">"NCI Grade 2"</span><span class="op">)</span>,</span>
+<span>  GENO2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"1"</span> <span class="op">=</span> <span class="st">"Poor metab."</span>, <span class="st">"2"</span> <span class="op">=</span> <span class="st">"Extensive metab."</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/fremEqLatex.html">fremEqLatex</a></span><span class="op">(</span></span>
+<span>  runno     <span class="op">=</span> <span class="fl">31</span>,</span>
+<span>  modDevDir <span class="op">=</span> <span class="va">modDevDir</span>,</span>
+<span>  parNames  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CL"</span>, <span class="st">"V"</span>, <span class="st">"MAT"</span><span class="op">)</span>,</span>
+<span>  name_map  <span class="op">=</span> <span class="va">name_map</span>,</span>
+<span>  level_map <span class="op">=</span> <span class="va">level_map</span>,</span>
+<span>  perLine   <span class="op">=</span> <span class="fl">2</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><span class="math display">\[
+\begin{aligned}
+\text{COV}_{\text{CL}} &amp;= -0.00591\,(\text{Weight} - 86.9) - 0.0287\,(\text{Height} - 170) \\
+  &amp; \quad - 0.0181\,(\text{Lean Body Wt} - 57.5) + 2.75\,(\text{BSA} - 2.01) \\
+  &amp; \quad + 0.00215\,(\text{Age} - 43.8) - 0.00466\,(\text{AST} - 25.6) \\
+  &amp; \quad + 0.00427\,(\text{ALT} - 28.5) + 0.00201\,(\text{Total Bilirubin} - 9.82) \\
+  &amp; \quad + 0.00117\,(\text{Creatinine CL} - 119) - 0.05\,(\text{BMI} - 30.1) \\
+  &amp; \quad - 0.168\,(\text{Sex} - 1.44) + 0.00281\,(\text{Race}_{\text{Other}} - 0.0247) \\
+  &amp; \quad + 0.008\,(\text{Race}_{\text{Black}} - 0.196) - 0.517\,(\text{NCI}_{\text{NCI Grade 2}} - 0.0225) \\
+  &amp; \quad - 0.238\,(\text{NCI}_{\text{NCI Grade 1}} - 0.158) + 0.737\,(\text{Genotype} - 1.8) \\
+  &amp; \quad - 0.0533\,(\text{Ethnicity} - 0.458) + 0.367\,(\text{Smoking Status} - 0.037)
+\end{aligned}
+\]</span></p>
+<p><span class="math display">\[
+\begin{aligned}
+\text{COV}_{\text{V}} &amp;= -0.0265\,(\text{Weight} - 86.9) - 0.0279\,(\text{Height} - 170) \\
+  &amp; \quad - 0.0111\,(\text{Lean Body Wt} - 57.5) + 4.01\,(\text{BSA} - 2.01) \\
+  &amp; \quad - 0.000617\,(\text{Age} - 43.8) + 0.000291\,(\text{AST} - 25.6) \\
+  &amp; \quad + 0.000161\,(\text{ALT} - 28.5) + 0.000162\,(\text{Total Bilirubin} - 9.82) \\
+  &amp; \quad - 0.000471\,(\text{Creatinine CL} - 119) - 0.0146\,(\text{BMI} - 30.1) \\
+  &amp; \quad + 0.153\,(\text{Sex} - 1.44) + 0.0197\,(\text{Race}_{\text{Other}} - 0.0247) \\
+  &amp; \quad + 0.00167\,(\text{Race}_{\text{Black}} - 0.196) - 0.0215\,(\text{NCI}_{\text{NCI Grade 2}} - 0.0225) \\
+  &amp; \quad + 0.0227\,(\text{NCI}_{\text{NCI Grade 1}} - 0.158) + 0.734\,(\text{Genotype} - 1.8) \\
+  &amp; \quad - 0.0631\,(\text{Ethnicity} - 0.458) + 0.25\,(\text{Smoking Status} - 0.037)
+\end{aligned}
+\]</span></p>
+<p><span class="math display">\[
+\begin{aligned}
+\text{COV}_{\text{MAT}} &amp;= 0.00556\,(\text{Weight} - 86.9) - 0.0102\,(\text{Height} - 170) \\
+  &amp; \quad - 0.000679\,(\text{Lean Body Wt} - 57.5) + 0.202\,(\text{BSA} - 2.01) \\
+  &amp; \quad + 0.00319\,(\text{Age} - 43.8) - 0.00894\,(\text{AST} - 25.6) \\
+  &amp; \quad + 0.00616\,(\text{ALT} - 28.5) + 0.00228\,(\text{Total Bilirubin} - 9.82) \\
+  &amp; \quad + 0.00189\,(\text{Creatinine CL} - 119) - 0.0274\,(\text{BMI} - 30.1) \\
+  &amp; \quad - 0.0419\,(\text{Sex} - 1.44) + 0.016\,(\text{Race}_{\text{Other}} - 0.0247) \\
+  &amp; \quad + 0.0392\,(\text{Race}_{\text{Black}} - 0.196) - 0.174\,(\text{NCI}_{\text{NCI Grade 2}} - 0.0225) \\
+  &amp; \quad - 0.106\,(\text{NCI}_{\text{NCI Grade 1}} - 0.158) + 0.0128\,(\text{Genotype} - 1.8) \\
+  &amp; \quad - 0.0158\,(\text{Ethnicity} - 0.458) + 0.0664\,(\text{Smoking Status} - 0.037)
+\end{aligned}
+\]</span></p>
 <hr>
 </div>
 </div>
@@ -928,7 +998,7 @@ SMOK
 </h2>
 <p>If you need to add or remove covariates without restarting the base workflow, <code><a href="../reference/updateFREMmodel.html">updateFREMmodel()</a></code> restructures the data set and rebuilds the matrices for you.</p>
 <p>The example below writes a new data set and control stream into the temporary directory:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># To avoid modifying the read-only package directory, we copy the base model</span></span>
 <span><span class="co"># and its .ext file to our temporary directory first.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.copy</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">modDevDir</span>, <span class="st">"run31.mod"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">td</span>, <span class="st">"run31.mod"</span><span class="op">)</span><span class="op">)</span></span>

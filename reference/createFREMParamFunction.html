@@ -56,7 +56,7 @@ getExplainedVar() explained-variability plot."><!-- mathjax --><script src="http
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.5.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -244,7 +244,18 @@ columns are <code>dfrow$NAME</code>. Handled by <code><a href="https://rdrr.io/p
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     
 
-<p>A list:</p><ul><li><p><code>code</code> - the generated R source, class <code>"pmxFREMParamFunction"</code>.</p></li>
+<p>A list:</p><ul><li><p><code>code</code> - the generated R source, class <code>"pmxFREMParamFunction"</code>.
+The function in it is wrapped in <code><a href="https://rdrr.io/r/base/structure.html" class="external-link">structure()</a></code> and carries the
+attribute <code>pmxCovariates</code>: the structural covariates it reads,
+followed by any column a <code>secondary</code> entry reads as <code>dfrow$NAME</code>,
+<code>df$NAME</code>, <code>dfrow[["NAME"]]</code> or <code>df[["NAME"]]</code>. A FREM covariate is
+in the list only when a <code>secondary</code> entry reads it, because the FREM
+covariates reach the function through <code>covthetas</code>. <code><a href="getForestDFFREM.html">getForestDFFREM()</a></code> checks the columns of <code>dfCovs</code>
+against the list and the FREM covariates. When <code>dfrow</code> or <code>df</code>
+appears in a <code>secondary</code> entry in any other way, such as <code>nrow(df)</code>,
+the columns read are not known, and the function carries no
+attribute and is not checked. Edit the attribute too if you edit the
+source to read other columns.</p></li>
 <li><p><code>functionListName</code> - <code>parameters</code>, with any <code>secondary</code> names
 appended (so <code><a href="getForestDFFREM.html">getForestDFFREM()</a></code> / <code><a href="getExplainedVar.html">getExplainedVar()</a></code> pick them up).</p></li>
 <li><p><code>primaryNames</code> - <code>parameters</code> alone.</p></li>
@@ -347,7 +358,7 @@ twice.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ## are model-length however few parameters were requested. Every other</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ## ETA() -&gt; 0. Review against the control stream before use.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> paramFunction &lt;- function(basethetas, covthetas, dfrow, etas = rep(0, 23), ...) {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> paramFunction &lt;- structure(function(basethetas, covthetas, dfrow, etas = rep(0, 23), ...) {</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   .eta &lt;- function(e, i) {</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     if (length(e) &lt; i) {</span>
@@ -381,7 +392,12 @@ twice.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     V = V,</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     MAT = MAT</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   )</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> },</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ## The columns of dfrow read above. getForestDFFREM() checks the columns</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ## of dfCovs against this list and the FREM covariates; edit it too if</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ## you edit what is read.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> pmxCovariates = c("FOOD")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> )</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Same result, located by run number instead of a path:</span></span></span>
 <span class="r-in"><span><span class="va">out2</span> <span class="op">&lt;-</span> <span class="fu">createFREMParamFunction</span><span class="op">(</span></span></span>

@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.5.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -157,22 +157,22 @@
 <span><span class="co">#&gt; [1] "AUC"   "THALF"</span></span></code></pre></div>
 <p><code>numSkipOm</code> and <code>numNonFREMThetas</code> were derived from the model and its <code>.ext</code> (via <code><a href="../reference/fremModelInfo.html">fremModelInfo()</a></code>); nothing had to be passed by hand.</p>
 <p>The tail of the generated source – the constant binding, then each entry in its own <code><a href="https://rdrr.io/r/base/eval.html" class="external-link">local()</a></code> block, then the extended return list:</p>
-<pre><code> [1] "  ## AUC  (inline snippet)"           
- [2] "  AUC &lt;- local({"                     
- [3] "    dose &lt;- 100"                      
- [4] "dose / CL"                            
- [5] "  })"                                 
- [6] "  ## THALF  (inline snippet)"         
- [7] "  THALF &lt;- local({ log(2) * V / CL })"
- [8] ""                                     
- [9] "  list("                              
-[10] "    CL = CL,"                         
-[11] "    V = V,"                           
-[12] "    MAT = MAT,"                       
-[13] "    AUC = AUC,"                       
-[14] "    THALF = THALF"                    
-[15] "  )"                                  
-[16] "}"                                    </code></pre>
+<pre><code> [1] "  ## THALF  (inline snippet)"                                            
+ [2] "  THALF &lt;- local({ log(2) * V / CL })"                                   
+ [3] ""                                                                        
+ [4] "  list("                                                                 
+ [5] "    CL = CL,"                                                            
+ [6] "    V = V,"                                                              
+ [7] "    MAT = MAT,"                                                          
+ [8] "    AUC = AUC,"                                                          
+ [9] "    THALF = THALF"                                                       
+[10] "  )"                                                                     
+[11] "},"                                                                      
+[12] "## The columns of dfrow read above. getForestDFFREM() checks the columns"
+[13] "## of dfCovs against this list and the FREM covariates; edit it too if"  
+[14] "## you edit what is read."                                               
+[15] "pmxCovariates = c(\"FOOD\")"                                             
+[16] ")"                                                                       </code></pre>
 </div>
 <div class="section level3">
 <h3 id="sanity-check-at-the-final-estimates">1.3 Sanity-check at the final estimates<a class="anchor" aria-label="anchor" href="#sanity-check-at-the-final-estimates"></a>

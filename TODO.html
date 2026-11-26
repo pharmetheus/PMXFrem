@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="index.html">PMXFrem</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.5.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -56,22 +56,10 @@
 <div id="pmxfrem-design-backlog" class="section level1">
 <p>Items parked for future consideration. Not a substitute for GitHub issues; move an item there when it becomes active work.</p>
 <div class="section level2">
-<h2 id="release-plan-2-4-0">Release plan: 2.4.0<a class="anchor" aria-label="anchor" href="#release-plan-2-4-0"></a></h2>
-<p>Agreed 2026-11-09 (Niclas): address the open backlog rows for PMXFrem before the next release - PRRS-328, 321, 327, 322, 304 and 293. Branch <code>epic/2.4.0</code> from <code>main</code>, <code>DESCRIPTION</code> <code>2.3.1.9000</code>, one PR per item into it:</p>
-<ol style="list-style-type: decimal"><li>
-<code><a href="reference/createFFEMmodel.html">createFFEMmodel()</a></code> keeps THETA bounds and FIX (PRRS-328).</li>
-<li>
-<code><a href="reference/calcFFEM.html">calcFFEM()</a></code> help: subsets of covariates, not missing values; the equations are the shift added to the ETA (PRRS-321, 293).</li>
-<li>Covariate means default to 3 significant digits (PRRS-327).</li>
-<li>One name per data set: the original data set <code>dataFile</code>, the FREM data set <code>fremDataFile</code>; “FFEM” only for the data set of individual covariate effects. Old names deprecated (PRRS-327).</li>
-<li>
-<code>createFREMmodel(fremDataFile =)</code> (PRRS-327).</li>
-<li>
-<del><code>keepIgnoredRecords</code></del> (PRRS-322): withdrawn 2026-11-10. Niclas and Siv decided that keeping every record gets too complicated; a sensitivity analysis on excluded records needs a new base model run and a new <code><a href="reference/createFREMmodel.html">createFREMmodel()</a></code> call. The option (#107, #111) was reverted before any release.</li>
-</ol><p>The version number is an assumption; merging into <code>main</code> and the tag are Niclas’s go-ahead.</p>
-<p>Status 2026-11-10: 1-5 merged (#102-#106); 6 merged (#107) and reverted. NEWS reviewed once by Niclas; its first section, on item 6, is removed.</p>
-<p>Open, outside the code: - PRRS-293: the report template <code>Eq_final_cov_mod.Rnw</code> (ReportBuilder directory, not this repository) prints <code>CL=CLstruct+...</code>; the FFEM is <code>CL = CLstruct*EXP(&lt;expression&gt; + ETA)</code> for an exponential IIV. Its owners change the template text. - PRRS-304 / 327 point 2 (T40): ask the reporter for the error message when PMXForest is not attached, with the PMXRenv calls used. - PRRS-327 points 4 and 5: <code>$COVARIANCE</code> and <code>$ESTIMATION</code> are copied from the base model; an answer, no code change. - After the release: Status, release and Resolution of each PRRS row, on Niclas’s go-ahead.</p>
-</div>
+<h2 id="backlog-rows-left-open-after-2-4-0">Backlog rows left open after 2.4.0<a class="anchor" aria-label="anchor" href="#backlog-rows-left-open-after-2-4-0"></a></h2>
+<ul><li>PRRS-293: the report template <code>Eq_final_cov_mod.Rnw</code> (ReportBuilder directory, not this repository) prints <code>CL=CLstruct+...</code>; the FFEM is <code>CL = CLstruct*EXP(&lt;expression&gt; + ETA)</code> for an exponential IIV. The owners of the template change the text. The PMXFrem side (the <code><a href="reference/calcFFEM.html">calcFFEM()</a></code> help and <code>eqFile</code>) shipped in 2.4.0.</li>
+<li>PRRS-327 point 2: see T40. The other points of PRRS-327 are answered in the Resolution of the backlog row (2026-11-11).</li>
+</ul></div>
 <div class="section level2">
 <h2 id="deep-dive-vignette-extending-a-frem-model-with-thetas-and-iivs">Deep-dive vignette — extending a FREM model with THETAs and IIVs<a class="anchor" aria-label="anchor" href="#deep-dive-vignette-extending-a-frem-model-with-thetas-and-iivs"></a></h2>
 <p>Now unblocked: T3 / T4 landed in PR #62, so the signatures and output shape are settled. Walk through <code><a href="reference/addFremStructuralTheta.html">addFremStructuralTheta()</a></code> with <code>addEta</code> on and off, <code><a href="reference/addFremIIV.html">addFremIIV()</a></code> used directly, what the renumber pass does to <code>ETA</code> / <code>MU_</code> / <code>COV</code> / <code>THETA</code> indices, why the added definition uses the <code>TV&lt;par&gt;</code> / <code>MU_k = LOG(TV&lt;par&gt;)</code> house form rather than a direct <code>MU_k = THETA(j)</code>, and why the <code>.ext</code> / <code>.phi</code> are not migrated (the model must be re-estimated).</p>
@@ -121,8 +109,8 @@
 </ul><p>Either way the user should not have to know that the reference is 0, or type four names to say so.</p>
 </div>
 <div class="section level2">
-<h2 id="t22-211-lines-over-120-characters-and-the-linter-that-would-catch-them">T22 — 211 lines over 120 characters, and the linter that would catch them<a class="anchor" aria-label="anchor" href="#t22-211-lines-over-120-characters-and-the-linter-that-would-catch-them"></a></h2>
-<p><code>line_length_linter</code> is disabled in <code>.lintr</code>. PMXForest keeps it at 120 and passes; PMXFrem has 211 lines over, with a long tail — 100 in 120-139, but also 11 over 200 and one at 306. No limit short of meaningless reaches green, and hand-wrapping 211 lines is a large mechanical diff with real risk of breaking an expression, which is not what to do immediately before an independent review.</p>
+<h2 id="t22-179-lines-over-120-characters-and-the-linter-that-would-catch-them">T22 — 179 lines over 120 characters, and the linter that would catch them<a class="anchor" aria-label="anchor" href="#t22-179-lines-over-120-characters-and-the-linter-that-would-catch-them"></a></h2>
+<p><code>line_length_linter</code> is disabled in <code>.lintr</code>. PMXForest keeps it at 120 and passes. PMXFrem has 179 lines over (counted 2026-11-18 with <code>awk 'length&gt;120' R/*.R</code>; 211 when the item was written, the figure the comment in <code>.lintr</code> still gives), with a long tail: 91 in 121-139, but also 17 over 200 and one at 306. No limit short of meaningless reaches green, and hand-wrapping 179 lines is a large mechanical diff with real risk of breaking an expression.</p>
 <p>Reduce them in a dedicated PR, then re-enable the linter at 120 and converge with PMXForest. Worst offenders first: <code>awk 'length&gt;200' R/*.R</code>.</p>
 </div>
 <div class="section level2">
@@ -139,20 +127,16 @@
 <p>The helper bounds each <code>_REL_</code> column to <code>[1e-3, 1e3]</code> on the reasoning that a ratio to a reference is of order 1. That is a judgement, not a measurement: it was chosen to catch a x1000 units slip and checked only against the two calls that use it. Run it over a range of real forest results - several models, wide covariate ranges - and either narrow the band to what those actually occupy or record why it has to stay this wide.</p>
 </div>
 <div class="section level2">
-<h2 id="t28-two-verifiergenerator-paths-no-bundled-fixture-can-reach">T28 — two verifier/generator paths no bundled fixture can reach<a class="anchor" aria-label="anchor" href="#t28-two-verifiergenerator-paths-no-bundled-fixture-can-reach"></a></h2>
-<p>From the round-B mutation audit; both are real gaps, neither fixable from tests in this package alone.</p>
-<ul><li>
-<code><a href="reference/verifyFREMParamFunction.html">verifyFREMParamFunction()</a></code> gates the splice checks on <code>scale == "exp" &amp; spliceable</code>. The <code>scale</code> half is shadowed on every fixture: <code><a href="https://rdrr.io/pkg/PMXForest/man/createParamFunction.html" class="external-link">PMXForest::createParamFunction()</a></code> never places an additive eta in <code>etaMap</code>, so a non-log-normal parameter is already excluded by <code>spliceable</code>. Removing the <code>scale</code> gate changes no test. The code comments say the scale decides it; on current fixtures the reference does. Either give PMXForest’s <code>nmEtaMap()</code> the additive idiom or reword the comments. <strong>Done 2026-11-09:</strong> PMXForest 1.4.1 maps additive etas, PMXFrem requires it, and a test with an additive <code>V</code> goes red when the scale gate is removed.</li>
-<li>
-<code><a href="reference/getExplainedVar.html">getExplainedVar()</a></code>’s placeholder eta vectors are now <code>rep(0, numSkipOm + numParCov)</code> instead of <code>rep(0, 3 * length(thetas))</code>. No bundled model has <code>numSkipOm + numParCov &gt; 3 * numNonFREMThetas</code>, so no test distinguishes the two. A small FREM fixture with many skip omegas and few structural thetas would.</li>
-</ul></div>
+<h2 id="t28-a-getexplainedvar-path-no-bundled-fixture-can-reach">T28 — a <code>getExplainedVar()</code> path no bundled fixture can reach<a class="anchor" aria-label="anchor" href="#t28-a-getexplainedvar-path-no-bundled-fixture-can-reach"></a></h2>
+<p>From the round-B mutation audit. The placeholder eta vectors of <code><a href="reference/getExplainedVar.html">getExplainedVar()</a></code> are now <code>rep(0, numSkipOm + numParCov)</code> instead of <code>rep(0, 3 * length(thetas))</code>. No bundled model has <code>numSkipOm + numParCov &gt; 3 * numNonFREMThetas</code>, so no test distinguishes the two. A small FREM fixture with many skip omegas and few structural thetas would.</p>
+</div>
 <div class="section level2">
 <h2 id="t32-fremparametertable-gives-one-non-finite-rse-on-openblas">T32 — <code>fremParameterTable()</code> gives one non-finite RSE on OpenBLAS<a class="anchor" aria-label="anchor" href="#t32-fremparametertable-gives-one-non-finite-rse-on-openblas"></a></h2>
 <p>On this machine (R 4.2.3, OpenBLAS 0.3.32) <code>test-fremParameterTable.R:155</code> fails four times - “every RSE should be finite” - on unchanged <code>epic/2.1.1</code>, while the same commit passes CI (R 4.2.2, the runner’s BLAS) and passed on the previous machine. <code>fremParameterTable(runno = 31, bsFile = bs31.dir/raw_results_run31.csv, includeRSE = TRUE, ...)</code> returns <code>NA</code> for the RSE of parameter-table row 11 (an OMEGA) with “NaNs produced”; the thread count makes no difference (<code>OPENBLAS_NUM_THREADS</code> 1 and 8 agree). Likely a variance that is zero in exact arithmetic coming out slightly negative under this BLAS before a <code><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt()</a></code>, but not yet traced to the line. Worth finding: a user on OpenBLAS gets the same <code>NA</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="t40-a-report-that-createfremmodel-needs-pmxforest-attached">T40 — a report that <code>createFREMmodel()</code> needs PMXForest attached<a class="anchor" aria-label="anchor" href="#t40-a-report-that-createfremmodel-needs-pmxforest-attached"></a></h2>
-<p>A user had to load PMXForest as well as PMXFrem. Not reproduced: the package calls PMXForest only as <code>PMXForest::</code>, and <code><a href="reference/createFREMmodel.html">createFREMmodel()</a></code> runs with PMXForest loaded but not attached. The report used <code>PMXRenv</code>’s versioned library loading, so the likely cause is that PMXForest was not on the library path PMXRenv set up. Get the error message before changing anything; if it is PMXRenv, the fix belongs in the installation instructions, not the vignette.</p>
+<p>A user had to load PMXForest as well as PMXFrem. Not reproduced: the package calls PMXForest only as <code>PMXForest::</code>, and <code><a href="reference/createFREMmodel.html">createFREMmodel()</a></code> runs with PMXForest loaded but not attached. The report used <code>PMXRenv</code>’s versioned library loading, so the likely cause is that PMXForest was not on the library path PMXRenv set up. Get the error message before changing anything; if it is PMXRenv, the fix belongs in the installation instructions, not the vignette. Backlog rows PRRS-304 and PRRS-327 (point 2); the Resolution of PRRS-327 asks the reporter for the error message and the calls that gave it.</p>
 </div>
 <div class="section level2">
 <h2 id="t47-say-in-the-generated-model-what-a-recoded-covariates-level-means">T47 — say in the generated model what a recoded covariate’s level means<a class="anchor" aria-label="anchor" href="#t47-say-in-the-generated-model-what-a-recoded-covariates-level-means"></a></h2>
@@ -161,6 +145,14 @@
 <div class="section level2">
 <h2 id="done">Done<a class="anchor" aria-label="anchor" href="#done"></a></h2>
 <ul><li>
+<strong>T50</strong> - a reference subject at another level than the indicator coding of the FREM model. <code><a href="reference/getForestDFFREM.html">getForestDFFREM()</a></code> recodes indicator columns that leave out another level than the model to the columns of the model (#128), so <code>catRef</code> in <code>setupDfCovs()</code> sets the reference level and the coding is taken care of. The <code>catRef</code> helper from <code><a href="reference/getCovNames.html">getCovNames()</a></code> and a reference setting in PMXForest were not needed. Shown in the Forest plot references deep dive. Assumes the levels of the data are those of the model.</li>
+<li>
+<strong>T28, the skip</strong> - removed with the requirement <code>PMXForest (&gt;= 1.4.1)</code> in 2.5.0: the test of the scale gate of <code><a href="reference/verifyFREMParamFunction.html">verifyFREMParamFunction()</a></code> always runs.</li>
+<li>
+<strong>Release plan 2.4.0</strong> - released 2026-11-10 (tag <code>v2.4.0</code>, #109). The backlog rows PRRS-328, 321, 327 and 293 were addressed in #102-#106: <code><a href="reference/createFFEMmodel.html">createFFEMmodel()</a></code> keeps THETA bounds and FIX, the <code><a href="reference/calcFFEM.html">calcFFEM()</a></code> help describes covariate subsets and the shift added to the ETA, covariate means keep 3 significant digits, the data set arguments are named <code>dataFile</code> and <code>fremDataFile</code> (old names deprecated), and <code><a href="reference/createFREMmodel.html">createFREMmodel()</a></code> takes <code>fremDataFile</code>. <code>keepIgnoredRecords</code> (PRRS-322) was withdrawn on 2026-11-10 and reverted before the release (#107, #111); a sensitivity analysis on excluded records uses a new base model run. The backlog rows were updated on 2026-11-11.</li>
+<li>
+<strong>T28, first half</strong> - the scale gate of <code><a href="reference/verifyFREMParamFunction.html">verifyFREMParamFunction()</a></code> is tested since PMXForest 1.4.1 maps additive etas (#110): a test with an additive <code>V</code> goes red when the gate is removed. The test is skipped under PMXForest &lt; 1.4.1.</li>
+<li>
 <strong>T49</strong> - <code><a href="reference/createFFEMdata.html">createFFEMdata()</a></code> matched the columns of a covariate with <code>grepl(cov, ...)</code>, so a subject missing <code>WT</code> also lost <code>LBWT</code> and got the FFEM without it (reproduced with <code>run31</code>: CL coefficient -0.1574 instead of -0.1532). Present since at least v1.2.1; the bundled data never triggers it. <code>.fremCovColumns()</code> now holds the rule for both <code><a href="reference/createFFEMdata.html">createFFEMdata()</a></code> and <code><a href="reference/getExplainedVar.html">getExplainedVar()</a></code>.</li>
 <li>
 <strong>T48</strong> - <code><a href="reference/getExplainedVar.html">getExplainedVar()</a></code> and <code><a href="reference/createFFEMdata.html">createFFEMdata()</a></code> gave about a hundred warnings on fresh workers (Windows, <code>ncores &gt; 1</code>). The parameter functions now get the extra arguments through a captured <code>dots</code> list instead of <code>...</code> in a nested function, and <code>.export</code> names only what foreach cannot find (<code>cstrExports</code>). The two fresh-worker tests assert no warnings; a new test checks that extra arguments reach the parameter functions in types 1-3.</li>
