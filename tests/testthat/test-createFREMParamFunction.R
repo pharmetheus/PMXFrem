@@ -1259,7 +1259,6 @@ test_that("an additive FREM parameter is kept out of the exp() splice checks by 
   # entry, so it was excluded as not spliceable and the scale gate was never
   # reached. Now the reference places its eta, and only the scale keeps the
   # exp() splice from being applied to V = TVV + ETA(4).
-  skip_if(utils::packageVersion("PMXForest") < "1.4.1", "needs the additive etaMap of PMXForest 1.4.1")
   td <- withr::local_tempdir()
   m <- .fremModReplacing(td, "^V[[:space:]]+= EXP[(]MU_4", "V     = TVV + ETA(4)", "addv.mod")
   fl <- readLines(.ffemMod(), warn = FALSE)
@@ -1284,4 +1283,70 @@ test_that("an additive FREM parameter is kept out of the exp() splice checks by 
   expect_true(is.na(d$ETASPLICE[d$PARAMETER == "V"]))
   expect_lt(d$STRUCTURAL[d$PARAMETER == "V"], 1e-6)
   expect_true(isTRUE(d$PASS[d$PARAMETER == "CL"]))
+})
+
+# ---------------------------------------------------------------------------
+# the covariates the generated function reads (attribute pmxCovariates)
+# ---------------------------------------------------------------------------
+
+test_that("the generated function carries the structural covariates it reads", {
+  out <- createFREMParamFunction(.fremMod(),
+    parameters = c("CL", "V", "MAT"),
+    extFile = .fremExt(), quiet = TRUE
+  )
+  fn <- eval(parse(text = out$code))
+  expect_true(is.function(fn))
+  ## MAT depends on FOOD; the FREM covariates enter through covthetas
+  expect_identical(attr(fn, "pmxCovariates"), "FOOD")
+  expect_identical(attr(fn, "pmxCovariates"), names(out$covRef))
+
+  ## CL and V read no structural covariate: an empty list, not a missing one
+  out2 <- createFREMParamFunction(.fremMod(),
+    parameters = c("CL", "V"),
+    extFile = .fremExt(), quiet = TRUE
+  )
+  expect_identical(attr(eval(parse(text = out2$code)), "pmxCovariates"), character(0))
+})
+
+test_that("the list of covariates survives writing the source to a file and source()", {
+  f <- withr::local_tempfile(fileext = ".R")
+  createFREMParamFunction(.fremMod(),
+    parameters = c("CL", "V", "MAT"),
+    extFile = .fremExt(), file = f, quiet = TRUE
+  )
+  e <- new.env()
+  source(f, local = e)
+  expect_identical(attr(e$paramFunction, "pmxCovariates"), "FOOD")
+})
+
+test_that("columns a secondary entry reads through dfrow or df are added to the list", {
+  out <- createFREMParamFunction(.fremMod(),
+    parameters = c("CL", "V", "MAT"),
+    extFile = .fremExt(), quiet = TRUE,
+    secondary = list(
+      AUC = "dfrow$DOSE / CL",
+      CLH = 'CL * df[["HT"]] / 170',
+      KEL = "CL / V"
+    )
+  )
+  fn <- eval(parse(text = out$code))
+  expect_identical(attr(fn, "pmxCovariates"), c("FOOD", "DOSE", "HT"))
+})
+
+test_that("a secondary entry that uses df in another way leaves the function without a list", {
+  out <- createFREMParamFunction(.fremMod(),
+    parameters = c("CL", "V", "MAT"),
+    extFile = .fremExt(), quiet = TRUE,
+    secondary = list(N = "nrow(df) * CL")
+  )
+  fn <- eval(parse(text = out$code))
+  expect_true(is.function(fn))
+  expect_null(attr(fn, "pmxCovariates"))
+
+  out2 <- createFREMParamFunction(.fremMod(),
+    parameters = c("CL", "V", "MAT"),
+    extFile = .fremExt(), quiet = TRUE,
+    secondary = list(X = "dfrow[[names(dfrow)[1]]] * CL")
+  )
+  expect_null(attr(eval(parse(text = out2$code)), "pmxCovariates"))
 })

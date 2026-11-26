@@ -120,6 +120,17 @@
 #' @return A list:
 #'   \itemize{
 #'     \item `code` - the generated R source, class `"pmxFREMParamFunction"`.
+#'       The function in it is wrapped in `structure()` and carries the
+#'       attribute `pmxCovariates`: the structural covariates it reads,
+#'       followed by any column a `secondary` entry reads as `dfrow$NAME`,
+#'       `df$NAME`, `dfrow[["NAME"]]` or `df[["NAME"]]`. A FREM covariate is
+#'       in the list only when a `secondary` entry reads it, because the FREM
+#'       covariates reach the function through `covthetas`. [getForestDFFREM()] checks the columns of `dfCovs`
+#'       against the list and the FREM covariates. When `dfrow` or `df`
+#'       appears in a `secondary` entry in any other way, such as `nrow(df)`,
+#'       the columns read are not known, and the function carries no
+#'       attribute and is not checked. Edit the attribute too if you edit the
+#'       source to read other columns.
 #'     \item `functionListName` - `parameters`, with any `secondary` names
 #'       appended (so `getForestDFFREM()` / `getExplainedVar()` pick them up).
 #'     \item `primaryNames` - `parameters` alone.
@@ -398,10 +409,14 @@ createFREMParamFunction <- function(fremModel = NULL,
     )
   }
 
+  ## The function carries the columns it reads, so that getForestDFFREM() can
+  ## check the names in dfCovs against the model. NULL when a secondary block
+  ## uses dfrow or df in a way that hides which columns it reads.
   code <- .fremEmit(kept, covs, p$covRef, parameters, fremParams, numSkipOm,
     functionName, fremModel, missVal, quiet,
     secondary = sec, numTotEta = numTotEta,
-    fremEtaIdx = fremEtaIdx, keepEta = keepEta
+    fremEtaIdx = fremEtaIdx, keepEta = keepEta,
+    reads = .fremFunctionReads(covs, sec)
   )
   class(code) <- c("pmxFREMParamFunction", "character")
 
@@ -680,15 +695,95 @@ createFREMParamFunction <- function(fremModel = NULL,
 }
 
 ## ---------------------------------------------------------------------------
+## Internal: the columns of dfrow a generated function reads
+## ---------------------------------------------------------------------------
+
+#' The columns of `dfrow` a generated FREM parameter function reads
+#'
+#' The structural covariates are read by name in the preamble. A secondary
+#' block is arbitrary R code that sees the row as `dfrow` and as its alias
+#' `df`, so its reads are found by walking the parse tree: a literal
+#' `dfrow$NAME`, `df$NAME`, `dfrow[["NAME"]]` or `df[["NAME"]]` names a
+#' column. Any other use of either symbol - passed whole to a function,
+#' indexed by a variable, assigned to, or shadowed by an argument of the same
+#' name - leaves the set of columns unknown, and the result is `NULL` rather
+#' than a list that is quietly incomplete. The same rule, and the same
+#' attribute name, as `nmFunctionReads()` in PMXForest (epic/1.5.0), written
+#' out here because PMXFrem does not require that version.
+#'
+#' @return A character vector, possibly empty, or `NULL` when unknown.
+#' @keywords internal
+#' @noRd
+.fremFunctionReads <- function(covariates, secondary = list()) {
+  reads <- covariates
+  for (s in secondary) {
+    exprs <- tryCatch(parse(text = s$lines), error = function(e) NULL)
+    cols <- if (is.null(exprs)) NULL else .fremDfReads(exprs)
+    if (is.null(cols)) {
+      return(NULL)
+    }
+    reads <- c(reads, cols)
+  }
+  unique(reads)
+}
+
+#' @keywords internal
+#' @noRd
+.fremDfReads <- function(exprs, rowNames = c("dfrow", "df")) {
+  isRow <- function(e) is.symbol(e) && as.character(e) %in% rowNames
+  cols <- character(0)
+  open <- FALSE
+  walk <- function(e) {
+    if (open) {
+      return(invisible())
+    }
+    if (is.symbol(e)) {
+      if (isRow(e)) open <<- TRUE
+      return(invisible())
+    }
+    if (!is.call(e)) {
+      return(invisible())
+    }
+    fn <- e[[1]]
+    if (length(e) == 3 && isRow(e[[2]])) {
+      key <- e[[3]]
+      if (identical(fn, as.symbol("$")) && (is.symbol(key) || is.character(key))) {
+        cols <<- c(cols, as.character(key))
+        return(invisible())
+      }
+      if (identical(fn, as.symbol("[[")) && is.character(key) && length(key) == 1) {
+        cols <<- c(cols, key)
+        return(invisible())
+      }
+    }
+    if (identical(fn, as.symbol("function"))) {
+      if (any(rowNames %in% names(e[[2]]))) open <<- TRUE
+      walk(e[[3]])
+      return(invisible())
+    }
+    ## Index into the call rather than loop over as.list(e): an empty
+    ## argument, as in m[1, ], is the empty symbol, and a loop variable bound
+    ## to it is a missing argument, an error when read.
+    for (i in seq_along(e)) walk(e[[i]])
+    invisible()
+  }
+  for (x in exprs) walk(x)
+  if (open) NULL else unique(cols)
+}
+
+## ---------------------------------------------------------------------------
 ## Internal: emit the source
 ## ---------------------------------------------------------------------------
 
+#' @param reads The columns of `dfrow` the function reads, from
+#'   `.fremFunctionReads()`. When not `NULL`, the function is wrapped in
+#'   `structure()` so that it carries them as the attribute `pmxCovariates`.
 #' @keywords internal
 #' @noRd
 .fremEmit <- function(stmts, covs, covRef, parameters, fremParams, numSkipOm,
                       functionName, fremModel, missVal, quiet,
                       secondary = list(), numTotEta = NULL,
-                      fremEtaIdx = NULL, keepEta = integer(0)) {
+                      fremEtaIdx = NULL, keepEta = integer(0), reads = NULL) {
   nEtas <- if (is.null(numTotEta)) numSkipOm + length(fremParams) else numTotEta
   dep <- function(node, etaVal = "0") {
     PMXForest::nmDeparse(node, thetaVar = "basethetas", etaValue = etaVal)
@@ -836,6 +931,29 @@ createFREMParamFunction <- function(fremModel = NULL,
     "  )"
   )
 
+  ## structure(), not a separate attr<- line after the definition: the source
+  ## is read in with eval(parse()), whose value is that of the last
+  ## expression, and the assignment has to stay the last expression.
+  closing <- if (is.null(reads)) {
+    "}"
+  } else {
+    c(
+      "},",
+      "## The columns of dfrow read above. getForestDFFREM() checks the columns",
+      "## of dfCovs against this list and the FREM covariates; edit it too if",
+      "## you edit what is read.",
+      paste0(
+        "pmxCovariates = ",
+        if (length(reads) == 0) {
+          "character(0)"
+        } else {
+          paste0("c(", paste0('"', reads, '"', collapse = ", "), ")")
+        }
+      ),
+      ")"
+    )
+  }
+
   c(
     paste0(
       "## Generated by PMXFrem::createFREMParamFunction() from ",
@@ -850,8 +968,8 @@ createFREMParamFunction <- function(fremModel = NULL,
     "## ETA() -> 0. Review against the control stream before use.",
     "",
     paste0(
-      functionName,
-      " <- function(basethetas, covthetas, dfrow, etas = rep(0, ", nEtas,
+      functionName, " <- ", if (!is.null(reads)) "structure(",
+      "function(basethetas, covthetas, dfrow, etas = rep(0, ", nEtas,
       "), ...) {"
     ),
     "",
@@ -874,7 +992,7 @@ createFREMParamFunction <- function(fremModel = NULL,
     if (length(secblock)) c("", "  ## ---- secondary parameters ----", secblock),
     "",
     retval,
-    "}"
+    closing
   )
 }
 

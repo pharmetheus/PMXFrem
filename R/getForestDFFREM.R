@@ -4,6 +4,59 @@
 #' `PMXForest` package. Statistics for covariate combination in the input
 #' data frame will be computed.
 #'
+#' @details
+#'   **Indicator columns are recoded to the coding of the FREM model.** The
+#'   indicator columns of a categorical FREM covariate leave out one level,
+#'   the reference level of the model: `RACEL_2` and `RACEL_3` in the bundled
+#'   run31, where level 1 is left out. [PMXForest::setupDfCovs()] and
+#'   [PMXForest::setupDfRefRow()] leave out the level set by `catRef`, which
+#'   is also the level of the reference subject and, with
+#'   `useMissVal = FALSE`, of the background of the other rows. With
+#'   `catRef = list(RACEL = 2)`, for a reference subject at level 2, the
+#'   columns are `RACEL_1` and `RACEL_3`. When the indicator columns of
+#'   `dfCovs` or `dfRefRow` and those of the model leave out one level each of
+#'   the same levels, the columns are recoded to those of the model, and each
+#'   row keeps its level. A reference subject at any level is therefore built
+#'   with `catRef` alone, without editing `dfCovs` and `dfRefRow` by hand. A row
+#'   with fractions of the levels is recoded as well. With `quiet = FALSE`, a
+#'   message names the recoded columns. The levels of the data are assumed to be
+#'   those of the model: indicator columns that name more or fewer levels than
+#'   the model are not recoded, and a data set that lacks a level of the model
+#'   and has a level that the model lacks would be recoded with the wrong
+#'   reference level.
+#'
+#'   **Covariate names are checked against the FREM model and a generated
+#'   parameter function.** A function made by [createFREMParamFunction()]
+#'   carries the names of the structural covariates it reads, as the attribute
+#'   `pmxCovariates`. `getForestDFFREM()` compares the columns of `dfCovs`,
+#'   after the encoding set by `oneHot` and without `COVARIATEGROUPS`, with
+#'   those names and with the FREM covariates in `covNames`. It warns when two
+#'   differences occur together: a column that is neither a FREM covariate nor
+#'   read by a function in `functionList`, so that the rows on which only that
+#'   column is set have no effect, and a covariate of the model that `dfCovs`
+#'   lacks. A name spelled differently from the model always gives that pair,
+#'   for example `RACEL2` in `dfCovs` for the FREM covariate `RACEL_2` (the
+#'   separator, `sep` in [PMXForest::setupDfCovs()] or `oneHotSep`), or a
+#'   `RACEL_4` column for a level that the model lacks. The check is made
+#'   after the recoding of indicator columns. Either difference alone gives
+#'   no warning.
+#'   Most Forest plots leave some FREM covariates out of `dfCovs`, so in
+#'   practice a column that nothing reads is reported whenever it occurs. A
+#'   hand-written function carries no names, so no check is made when
+#'   `functionList` holds one. The warning is given whatever the value of
+#'   `quiet`. It has the class `pmxCovariateMismatch`, so an intended pair can
+#'   be silenced alone:
+#'   `withCallingHandlers(getForestDFFREM(...), pmxCovariateMismatch = function(w) invokeRestart("muffleWarning"))`.
+#'
+#'   **The columns of `dfRefRow` are checked against `dfCovs`.** A column of
+#'   `dfRefRow` that `dfCovs` lacks, after the encoding set by `oneHot`, gives
+#'   a warning of the same class, with the names in the field `refOnly`. With
+#'   a name spelled differently, such as `wt` in `dfRefRow` for `WT` in
+#'   `dfCovs`, the reference subject is not conditioned on that covariate, and
+#'   every row is shifted. This check is made for hand-written functions too.
+#'   A reference row from [PMXForest::setupDfRefRow()] has the columns of
+#'   `dfCovs` and is never reported.
+#'
 #' @import doParallel
 #' @import foreach
 #' @import dplyr
@@ -28,8 +81,11 @@
 #'   distribution. The vector of final parameter estimates is assumed to be in
 #'   the first row. The column order is assumed the same as in the NONMEM ext
 #'   file except the ITERATION and OBJ columns whichshould not be included.
-#' @param quiet If output should be allowed during the function call, default=
-#'   TRUE. (This option is mainly for debugging purposes.)
+#' @param quiet If `FALSE` (default), the FFEM model of each calculation is
+#'   printed by [calcFFEM()], and with `ncores > 1` the progress of the
+#'   parallel loop is shown. If `TRUE`, nothing is printed. Mainly for
+#'   debugging. The warning about covariate names described in Details is given
+#'   whatever the value.
 #' @param probs A vector of probabilities that should be computed for each of
 #'   the parameters from functionList. These will be used as the as the
 #'   uncertainties in the Forest plots. The probs vector position one and two
@@ -40,7 +96,8 @@
 #'   the reference covariate combination
 #' @param dfRefRow A data frame  (one row or equal number of rows as dfCovs)
 #'   with the covariate values that will be used as the reference, if NULL the
-#'   typical subject is used as reference.
+#'   typical subject is used as reference. Indicator columns of another
+#'   reference level than the model are recoded, as described in Details.
 #' @param cGrouping A vector of numbers defining how to group the y-axis of the
 #'   Forest plot, the length of the vector should match the number of rows in
 #'   dfCovs. If NULL (default) an educated guess of the grouping will be set
@@ -68,9 +125,15 @@
 #'   `modName` / `modDevDir`, it is derived via [fremModelInfo()] (warn-and-keep
 #'   on a disagreeing explicit value); otherwise it defaults to 0.
 #' @param parNames Names of the parameters
-#' @param covNames Names of the covariates. If `NULL` (default), locate the model
-#'   file via `runno` / `modName` / `modDevDir` so they can be derived; otherwise
-#'   required.
+#' @param covNames Names of the FREM covariates, in the order of the model. If
+#'   `NULL` (default), they are read from the model file found with `runno` /
+#'   `modName` / `modDevDir`; otherwise required. The FFEM coefficients are
+#'   attached to the names by position. When the model file is found, a
+#'   `covNames` that differs from the covariates of the model in content or
+#'   order stops the function. A copy of the column names of `dfCovs` is not
+#'   the same: the indicator columns follow the levels of the data and
+#'   `catRef`, not the order of the model. Without the model file, nothing is
+#'   compared.
 #' @param availCov Names of the covariates to use in the calculation of the FFEM
 #'   model.
 #' @param oneHot An optional one-hot encoding specification (see
@@ -205,6 +268,7 @@ getForestDFFREM <- function(dfCovs,
       numSkipOm = numSkipOm
     )
     if (is.null(covNames)) covNames <- .info$covNames
+    .fremCheckCovNamesModel(covNames, .info$covNames, modFile)
     if (is.null(numNonFREMThetas)) numNonFREMThetas <- .info$numNonFREMThetas
     if (is.null(numSkipOm)) numSkipOm <- .info$numSkipOm
   }
@@ -219,11 +283,18 @@ getForestDFFREM <- function(dfCovs,
   ## Optionally one-hot encode raw multi-level categorical columns so dfCovs can
   ## be built without the FREM <cov>_<level> dummy columns.
   if (!is.null(oneHot)) {
+    ## The levels are resolved against dfCovs and reused for dfRefRow, as in
+    ## PMXForest. Resolved from a one-row dfRefRow, a covariate had one level,
+    ## got no indicator columns and kept the raw column, so the reference
+    ## subject was not conditioned on it.
+    oneHot <- .fremResolveOneHot(oneHot, dfCovs, missVal)
     dfCovs <- PMXForest::oneHotEncode(dfCovs,
       spec = oneHot, sep = oneHotSep,
       missVal = missVal, dropOriginal = TRUE
     )
     if (!is.null(dfRefRow) && is.data.frame(dfRefRow)) {
+      ## A dfRefRow that already has the indicator columns and not the raw one
+      ## is left as it is, apart from a warning.
       dfRefRow <- suppressWarnings(
         PMXForest::oneHotEncode(dfRefRow,
           spec = oneHot, sep = oneHotSep,
@@ -233,9 +304,38 @@ getForestDFFREM <- function(dfCovs,
     }
   }
 
-  # If a needed covariate is not present in dfCovs, set it to missing
+  ## Indicator columns of another reference level than the model, as from
+  ## setupDfCovs() with another catRef, are recoded to the columns of the
+  ## model, so that the reference subject can be at any level. After the
+  ## one-hot encoding, which can give such columns too, and before the checks.
+  dfCovs <- .fremRecodeIndicators(dfCovs, covNames, missVal, "dfCovs", quiet)
+  if (!is.null(dfRefRow) && is.data.frame(dfRefRow)) {
+    dfRefRow <- .fremRecodeIndicators(dfRefRow, covNames, missVal, "dfRefRow", quiet)
+  }
+
+  ## After the one-hot encoding, so the dummy columns are compared and not the
+  ## raw covariate, and before the FREM covariates that dfCovs lacks are added
+  ## as missing columns below.
+  .fremCheckCovariateNames(
+    functionList, covNames, setdiff(names(dfCovs), "COVARIATEGROUPS"),
+    hint = paste0(
+      "Check the separator of indicator columns (sep in setupDfCovs(), oneHotSep ",
+      "in getForestDFFREM()), which gives RACEL2 against RACEL_2, and the levels ",
+      "of a categorical covariate: indicator columns of another reference level ",
+      "are recoded to those of the model, but a level that the model lacks is not."
+    )
+  )
+  ## Before the FREM covariates that dfCovs lacks are added below, so that a
+  ## FREM covariate set only in dfRefRow is reported.
+  if (!is.null(dfRefRow) && is.data.frame(dfRefRow)) {
+    .fremCheckRefRowNames(names(dfRefRow), names(dfCovs))
+  }
+
+  ## A FREM covariate that dfCovs lacks is set to missing on every row, so
+  ## that the FFEM conditions only on the covariates given. Leaving some out
+  ## is the usual case and gives no message; a misspelled name is reported by
+  ## the check above.
   if (!all(covNames %in% names(dfCovs))) {
-    if (!quiet) warning("Not all covariates in frem model are present in dfCovs, setting them to missing")
     dfCovs[, covNames[!(covNames %in% names(dfCovs))]] <- missVal
   }
 
@@ -302,22 +402,19 @@ getForestDFFREM <- function(dfCovs,
     p <- 0L
 
     for (i in seq_len(nrow(dfCovs))) {
-      currentNames <- names(dfCovs[i, , drop = FALSE])[as.numeric(dfCovs[i, , drop = FALSE]) != missVal]
-
-      if (any(!currentNames %in% covNames) && !quiet) {
-        warning(paste0("Can't find some of the covariates: ", currentNames, " in the FREM model, perhaps they are structural covariates!"))
-      }
-
       ## Calculate the ffemObj in case reference covariates have been specified
       if (!is.null(dfRefRow)) {
         indi <- min(i, nrow(dfRefRow))
+        refRow <- dfRefRow[indi, , drop = FALSE]
+        availRef <- names(refRow)[as.numeric(refRow) != missVal]
+        availRef <- availRef[availRef %in% covNames]
 
         ffemObjRef <- calcFFEM(
           numSkipOm        = numSkipOm,
           numNonFREMThetas = numNonFREMThetas,
           dfext            = dfext,
           covNames         = covNames,
-          availCov         = names(dfRefRow[indi, , drop = FALSE])[as.numeric(dfRefRow[indi, , drop = FALSE]) != missVal][names(dfRefRow[indi, , drop = FALSE])[as.numeric(dfRefRow[indi, , drop = FALSE]) != missVal] %in% covNames],
+          availCov         = availRef,
           quiet            = quiet
         )
       }
@@ -345,7 +442,11 @@ getForestDFFREM <- function(dfCovs,
           coveffects[j] <- as.numeric(eval(parse(text = ffem_expr)))
         }
 
-        if (!is.null(dfRefRow)) {
+        ## A reference row without FREM covariates has no covariate effect, as
+        ## a row of dfCovs without them. The FFEM expression of no covariates
+        ## still names every FREM covariate, and dfRefRow, unlike dfCovs, is not
+        ## given the FREM covariates it lacks, so it cannot be evaluated.
+        if (!is.null(dfRefRow) && length(availRef) > 0) {
           data47_jxrtp_ref <- dfRefRow[indi, , drop = FALSE]
           ffem_expr_base <- str_replace_all(ffemObjRef$Expr[j], pattern = "data\\$", replacement = "data47_jxrtp_ref$")
           coveffects_base[j] <- as.numeric(eval(parse(text = ffem_expr_base)))
@@ -508,4 +609,307 @@ getForestDFFREM <- function(dfCovs,
   dfret$PARAMETER <- factor(dfret$PARAMETER, levels = unique(dfret$PARAMETER))
 
   return(dfret)
+}
+
+#' Check the covariate columns of dfCovs against the FREM model and the
+#' parameter functions
+#'
+#' A function made by [createFREMParamFunction()] carries the structural
+#' covariates it reads as the attribute `pmxCovariates`; the FREM covariates
+#' are `covNames`. A name in `dfCovs` spelled differently from the model, such
+#' as `RACEL2` for `RACEL_2`, gives two differences at once: a column that is
+#' neither a FREM covariate nor read by a function, so its rows have no
+#' effect, and a covariate of the model that `dfCovs` lacks. Only that pair is
+#' reported, because either difference alone is often a deliberate choice of
+#' rows. A FREM covariate left out of `dfCovs` is the usual case, so for a
+#' FREM model the pair is close to "a column nothing reads". The check is made
+#' only when every function carries the list: a hand-written function may
+#' read any column as a structural covariate, and the FREM covariates alone
+#' cannot tell such a column from a misspelled one. The rule is the one
+#' PMXForest applies in getForestDFSCM() (epic/1.5.0). Used by
+#' getForestDFFREM() and getExplainedVar().
+#'
+#' @param functionList The parameter functions.
+#' @param covNames The FREM covariates, after one-hot encoding.
+#' @param cols The column names of `dfCovs`, with every categorical covariate
+#'   under its FREM names (`RACEL_2`, `RACEL_3`) and without
+#'   `COVARIATEGROUPS`.
+#' @param hint The last paragraph of the message: where a misspelled name
+#'   usually comes from in the calling function.
+#' @return `NULL`, invisibly. Warns with class `pmxCovariateMismatch`, whose
+#'   fields `unread` and `absent` hold the names.
+#' @keywords internal
+#' @noRd
+.fremCheckCovariateNames <- function(functionList, covNames, cols, hint) {
+  reads <- lapply(functionList, attr, which = "pmxCovariates", exact = TRUE)
+  ## A function without the list may read any column, so no column can be
+  ## called unread, and the pair cannot be found.
+  if (any(vapply(reads, is.null, logical(1)))) {
+    return(invisible(NULL))
+  }
+  known <- unique(c(covNames, unlist(reads)))
+  unread <- setdiff(cols, known)
+  absent <- setdiff(known, cols)
+  ## Either alone is an extra row or a deliberate subset; a misspelled name
+  ## always gives both.
+  if (length(unread) == 0 || length(absent) == 0) {
+    return(invisible(NULL))
+  }
+
+  msg <- c(
+    paste0(
+      "The covariate columns of dfCovs and the covariates of the FREM model and ",
+      "the parameter function differ in both directions, as they do when a name ",
+      "in dfCovs is spelled differently from the model."
+    ),
+    paste0(
+      "These columns of dfCovs are neither FREM covariates nor read by a ",
+      "parameter function: ", paste(unread, collapse = ", "),
+      ". Rows on which only these columns are set have no effect."
+    ),
+    paste0(
+      "dfCovs has no column for these FREM covariates or covariates the ",
+      "parameter function reads: ", paste(absent, collapse = ", "),
+      ". A FREM covariate among them is treated as missing on every row, and ",
+      "any other covariate stays at the reference value of the function."
+    ),
+    paste(hint, "If both lists are intended, the warning can be ignored.")
+  )
+  warning(structure(
+    class = c("pmxCovariateMismatch", "warning", "condition"),
+    list(
+      message = paste(msg, collapse = "\n"), call = NULL,
+      unread = unread, absent = absent
+    )
+  ))
+  invisible(NULL)
+}
+
+#' Stop when covNames differs from the FREM covariates of the model
+#'
+#' [calcFFEM()] attaches the coefficient of the c-th FREM covariate to
+#' `covNames[c]`, so a `covNames` in another order than the model, or with
+#' other names, puts the effects on the wrong covariates without an error. A
+#' `covNames` copied from the columns of a `dfCovs` is such a case: the
+#' indicator columns follow the levels of the data, not the order of the model,
+#' and follow `catRef`. The covariate-name check of the columns of `dfCovs`
+#' cannot see it, because `dfCovs` and `covNames` then agree.
+#'
+#' @param covNames The `covNames` that will be used.
+#' @param modelCovNames The FREM covariates of the model, from [getCovNames()].
+#' @param modFile The model file, named in the message.
+#' @return `NULL`, invisibly; stops when the two differ in content or order.
+#' @keywords internal
+#' @noRd
+.fremCheckCovNamesModel <- function(covNames, modelCovNames, modFile) {
+  if (identical(as.character(covNames), as.character(modelCovNames))) {
+    return(invisible(NULL))
+  }
+  if (length(covNames) == length(modelCovNames)) {
+    pos <- which(covNames != modelCovNames)
+    detail <- paste0(
+      "Position ", pos, ": ", covNames[pos], " in `covNames`, ",
+      modelCovNames[pos], " in the model."
+    )
+  } else {
+    detail <- paste0(
+      "`covNames` has ", length(covNames), " names and the model ",
+      length(modelCovNames), "."
+    )
+    notCov <- setdiff(modelCovNames, covNames)
+    notMod <- setdiff(covNames, modelCovNames)
+    if (length(notCov) > 0) detail <- c(detail, paste0("Not in `covNames`: ", paste(notCov, collapse = ", "), "."))
+    if (length(notMod) > 0) detail <- c(detail, paste0("Not in the model: ", paste(notMod, collapse = ", "), "."))
+    detail <- paste(detail, collapse = " ")
+  }
+  stop(
+    paste(
+      c(
+        paste0(
+          "`covNames` differs from the FREM covariates of the model ",
+          basename(modFile), ". The FFEM coefficients are attached to `covNames` ",
+          "by position, so the effects would be given to the wrong covariates."
+        ),
+        detail,
+        paste0(
+          "Leave `covNames` out to read the names from the model. A copy of the ",
+          "column names of dfCovs is not the same: the indicator columns follow ",
+          "the levels of the data and catRef, not the order of the model."
+        )
+      ),
+      collapse = "\n"
+    ),
+    call. = FALSE
+  )
+}
+
+#' Recode indicator columns to the indicator columns of the FREM model
+#'
+#' The indicator columns of a categorical FREM covariate leave out one level,
+#' the reference level of the model: `RACEL_2` and `RACEL_3` in run31.
+#' `PMXForest::setupDfCovs()` and `setupDfRefRow()` leave out the level set by
+#' `catRef`, which is also the level of the reference subject and of the
+#' background rows, so a reference subject at another level than the model
+#' gives other columns: `RACEL_1` and `RACEL_3` for `catRef = list(RACEL = 2)`.
+#' When the columns of `df` and of the model leave out one level each of the
+#' same levels, the columns of `df` are recoded to those of the model. Each row
+#' keeps its level, or the fraction of each level, since a row of zeros in `df`
+#' is the level that `df` leaves out. A row with every indicator column missing
+#' stays missing. Columns that name more or fewer levels than the model are
+#' left as they are, for the covariate-name check to report. The levels of
+#' `df` and of the model are assumed to be the same: a data set that lacks a
+#' level of the model and has a level that the model lacks would be recoded
+#' with the wrong reference level.
+#'
+#' @param df `dfCovs` or `dfRefRow`, after one-hot encoding.
+#' @param covNames The FREM covariates of the model.
+#' @param missVal The missing value.
+#' @param what `"dfCovs"` or `"dfRefRow"`, for the messages.
+#' @param quiet If `FALSE`, a message names the recoded columns.
+#' @return `df`, with the indicator columns of the model in place of the
+#'   recoded ones.
+#' @keywords internal
+#' @noRd
+.fremRecodeIndicators <- function(df, covNames, missVal, what, quiet) {
+  isLevel <- function(x) grepl("^[0-9]+$", x)
+  ## the indicator columns of base among nms, in the order of the levels
+  colsOf <- function(nms, base) {
+    pre <- paste0(base, "_")
+    out <- nms[startsWith(nms, pre) & isLevel(substring(nms, nchar(pre) + 1))]
+    out[order(as.numeric(substring(out, nchar(pre) + 1)))]
+  }
+  bases <- unique(sub("_[0-9]+$", "", covNames[grepl("_[0-9]+$", covNames)]))
+  for (base in bases) {
+    modCols <- colsOf(covNames, base)
+    dfCols <- colsOf(names(df), base)
+    if (length(dfCols) == 0 || setequal(dfCols, modCols)) next
+    modLev <- substring(modCols, nchar(base) + 2)
+    dfLev <- substring(dfCols, nchar(base) + 2)
+    allLev <- union(modLev, dfLev)
+    if (length(dfLev) != length(modLev) || length(allLev) != length(modLev) + 1) next
+    dfRef <- setdiff(allLev, dfLev)
+    modRef <- setdiff(allLev, modLev)
+
+    m <- vapply(dfCols, function(cc) as.numeric(df[[cc]]), numeric(nrow(df)))
+    m <- matrix(m, nrow = nrow(df), dimnames = list(NULL, dfLev))
+    nMiss <- rowSums(m == missVal)
+    partly <- which(nMiss > 0 & nMiss < ncol(m))
+    if (length(partly) > 0) {
+      stop(
+        "Row ", paste(partly, collapse = ", "), " of ", what, " has missing and ",
+        "non-missing values in the indicator columns ", paste(dfCols, collapse = ", "),
+        ", so it cannot be recoded to the indicator columns ",
+        paste(modCols, collapse = ", "), " of the FREM model. Set every ",
+        "indicator column of ", base, " in a row to the missing value, or none.",
+        call. = FALSE
+      )
+    }
+    full <- cbind(m, 1 - rowSums(m))
+    colnames(full) <- c(dfLev, dfRef)
+    new <- full[, modLev, drop = FALSE]
+    new[nMiss == ncol(m), ] <- missVal
+    colnames(new) <- modCols
+
+    ## the columns of the model take the place of the first recoded column
+    pos <- seq_along(names(df))
+    at <- min(match(dfCols, names(df)))
+    before <- setdiff(names(df)[pos < at], dfCols)
+    after <- setdiff(names(df)[pos > at], dfCols)
+    attrs <- attributes(df)[setdiff(names(attributes(df)), c("names", "row.names", "class"))]
+    df <- cbind(df[, before, drop = FALSE], as.data.frame(new), df[, after, drop = FALSE])
+    for (a in names(attrs)) attr(df, a) <- attrs[[a]]
+
+    if (!quiet) {
+      message(
+        "The indicator columns ", paste(dfCols, collapse = ", "), " of ", what,
+        " (reference level ", dfRef, ") are recoded to the indicator columns ",
+        paste(modCols, collapse = ", "), " of the FREM model (reference level ",
+        modRef, "). Each row keeps its level of ", base, "."
+      )
+    }
+  }
+  df
+}
+
+#' Warn when dfRefRow has a column that dfCovs lacks
+#'
+#' A column of `dfRefRow` that `dfCovs` lacks is either a name spelled
+#' differently from `dfCovs`, which leaves the reference subject unconditioned
+#' on that covariate (or at the reference of the parameter function, for a
+#' structural covariate), or a covariate set in the reference subject and in no
+#' row. Either way every row of the Forest plot is shifted. The check needs no
+#' list of the columns a function reads, so it is made for hand-written
+#' functions too. A column of `dfCovs` that `dfRefRow` lacks is not reported.
+#' The rule is the one PMXForest applies in getForestDFSCM() (epic/1.5.0).
+#'
+#' @param refNames The column names of `dfRefRow` after one-hot encoding.
+#' @param covNames The column names of `dfCovs` after one-hot encoding, before
+#'   the FREM covariates that `dfCovs` lacks are added.
+#' @return `NULL`, invisibly. Warns with class `pmxCovariateMismatch`, whose
+#'   field `refOnly` holds the names.
+#' @keywords internal
+#' @noRd
+.fremCheckRefRowNames <- function(refNames, covNames) {
+  ## PMXForest::setupDfRefRow() copies COVARIATEGROUPS from dfCovs.
+  refOnly <- setdiff(refNames, c(covNames, "COVARIATEGROUPS"))
+  if (length(refOnly) == 0) {
+    return(invisible(NULL))
+  }
+
+  msg <- c(
+    paste0("dfRefRow has columns that dfCovs lacks: ", paste(refOnly, collapse = ", "), "."),
+    paste0(
+      "With a name spelled differently from dfCovs, such as wt for WT, the reference ",
+      "subject is not conditioned on that covariate, or is held at the reference of ",
+      "the parameter function for a structural covariate, and every row of the ",
+      "Forest plot is shifted."
+    ),
+    paste0(
+      "A covariate set in dfRefRow and in no column of dfCovs has a value in the ",
+      "reference subject and none in the rows, so every row is shifted."
+    ),
+    paste0(
+      "PMXForest::setupDfRefRow() builds dfRefRow with the columns of dfCovs. If the ",
+      "columns are intended, the warning can be ignored."
+    )
+  )
+  warning(structure(
+    class = c("pmxCovariateMismatch", "warning", "condition"),
+    list(message = paste(msg, collapse = "\n"), call = NULL, refOnly = refOnly)
+  ))
+  invisible(NULL)
+}
+
+#' Resolve a one-hot specification against dfCovs
+#'
+#' Gives each covariate of `oneHot` that `dfCovs` has an explicit reference
+#' level and an explicit list of the levels that get an indicator column, both
+#' taken from `dfCovs`, in the form [PMXForest::oneHotEncode()] accepts. The same
+#' specification then encodes `dfRefRow`, whose single row would otherwise give
+#' one level and no indicator columns. A covariate with explicit `levels`, one
+#' that `dfCovs` lacks, one with fewer than two levels in `dfCovs`, and one whose
+#' reference level does not occur in `dfCovs` are left as they are, so that
+#' `oneHotEncode()` gives the same warnings as before.
+#'
+#' @param oneHot The `oneHot` argument: a character vector or a named list.
+#' @param dfCovs The covariate data frame, before encoding.
+#' @param missVal The missing value.
+#' @return The specification as a named list.
+#' @keywords internal
+#' @noRd
+.fremResolveOneHot <- function(oneHot, dfCovs, missVal) {
+  if (is.character(oneHot)) {
+    oneHot <- stats::setNames(vector("list", length(oneHot)), oneHot)
+  }
+  for (cov in intersect(names(oneHot), names(dfCovs))) {
+    el <- oneHot[[cov]]
+    if (is.list(el) && !is.null(el$levels)) next
+    obs <- dfCovs[[cov]]
+    levs <- sort(unique(obs[!is.na(obs) & obs != missVal]))
+    ref <- if (is.list(el)) el$ref else el
+    if (is.null(ref)) ref <- levs[1]
+    if (length(levs) < 2 || !ref %in% levs) next
+    oneHot[[cov]] <- list(ref = ref, levels = setdiff(levs, ref))
+  }
+  oneHot
 }

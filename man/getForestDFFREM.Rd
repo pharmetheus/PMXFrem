@@ -51,9 +51,15 @@ will be calculated. If the function returns a vector of values, each value
 will be used but functionListName must contain the names with a length of
 all return for all functions in the functionList}
 
-\item{covNames}{Names of the covariates. If \code{NULL} (default), locate the model
-file via \code{runno} / \code{modName} / \code{modDevDir} so they can be derived; otherwise
-required.}
+\item{covNames}{Names of the FREM covariates, in the order of the model. If
+\code{NULL} (default), they are read from the model file found with \code{runno} /
+\code{modName} / \code{modDevDir}; otherwise required. The FFEM coefficients are
+attached to the names by position. When the model file is found, a
+\code{covNames} that differs from the covariates of the model in content or
+order stops the function. A copy of the column names of \code{dfCovs} is not
+the same: the indicator columns follow the levels of the data and
+\code{catRef}, not the order of the model. Without the model file, nothing is
+compared.}
 
 \item{functionListName}{A vector of strings (names) of the parameters for
 each function in the functionList}
@@ -92,8 +98,11 @@ directory, i.e. ".".}
 \item{availCov}{Names of the covariates to use in the calculation of the FFEM
 model.}
 
-\item{quiet}{If output should be allowed during the function call, default=
-TRUE. (This option is mainly for debugging purposes.)}
+\item{quiet}{If \code{FALSE} (default), the FFEM model of each calculation is
+printed by \code{\link[=calcFFEM]{calcFFEM()}}, and with \code{ncores > 1} the progress of the
+parallel loop is shown. If \code{TRUE}, nothing is printed. Mainly for
+debugging. The warning about covariate names described in Details is given
+whatever the value.}
 
 \item{probs}{A vector of probabilities that should be computed for each of
 the parameters from functionList. These will be used as the as the
@@ -107,7 +116,8 @@ the reference covariate combination}
 
 \item{dfRefRow}{A data frame  (one row or equal number of rows as dfCovs)
 with the covariate values that will be used as the reference, if NULL the
-typical subject is used as reference.}
+typical subject is used as reference. Indicator columns of another
+reference level than the model are recoded, as described in Details.}
 
 \item{cGrouping}{A vector of numbers defining how to group the y-axis of the
 Forest plot, the length of the vector should match the number of rows in
@@ -150,6 +160,59 @@ covariate combinations:
 Create a data frame with the input to the \code{forestPlot} function in the
 \code{PMXForest} package. Statistics for covariate combination in the input
 data frame will be computed.
+}
+\details{
+\strong{Indicator columns are recoded to the coding of the FREM model.} The
+indicator columns of a categorical FREM covariate leave out one level,
+the reference level of the model: \code{RACEL_2} and \code{RACEL_3} in the bundled
+run31, where level 1 is left out. \code{\link[PMXForest:setupDfCovs]{PMXForest::setupDfCovs()}} and
+\code{\link[PMXForest:setupDfRefRow]{PMXForest::setupDfRefRow()}} leave out the level set by \code{catRef}, which
+is also the level of the reference subject and, with
+\code{useMissVal = FALSE}, of the background of the other rows. With
+\code{catRef = list(RACEL = 2)}, for a reference subject at level 2, the
+columns are \code{RACEL_1} and \code{RACEL_3}. When the indicator columns of
+\code{dfCovs} or \code{dfRefRow} and those of the model leave out one level each of
+the same levels, the columns are recoded to those of the model, and each
+row keeps its level. A reference subject at any level is therefore built
+with \code{catRef} alone, without editing \code{dfCovs} and \code{dfRefRow} by hand. A row
+with fractions of the levels is recoded as well. With \code{quiet = FALSE}, a
+message names the recoded columns. The levels of the data are assumed to be
+those of the model: indicator columns that name more or fewer levels than
+the model are not recoded, and a data set that lacks a level of the model
+and has a level that the model lacks would be recoded with the wrong
+reference level.
+
+\strong{Covariate names are checked against the FREM model and a generated
+parameter function.} A function made by \code{\link[=createFREMParamFunction]{createFREMParamFunction()}}
+carries the names of the structural covariates it reads, as the attribute
+\code{pmxCovariates}. \code{getForestDFFREM()} compares the columns of \code{dfCovs},
+after the encoding set by \code{oneHot} and without \code{COVARIATEGROUPS}, with
+those names and with the FREM covariates in \code{covNames}. It warns when two
+differences occur together: a column that is neither a FREM covariate nor
+read by a function in \code{functionList}, so that the rows on which only that
+column is set have no effect, and a covariate of the model that \code{dfCovs}
+lacks. A name spelled differently from the model always gives that pair,
+for example \code{RACEL2} in \code{dfCovs} for the FREM covariate \code{RACEL_2} (the
+separator, \code{sep} in \code{\link[PMXForest:setupDfCovs]{PMXForest::setupDfCovs()}} or \code{oneHotSep}), or a
+\code{RACEL_4} column for a level that the model lacks. The check is made
+after the recoding of indicator columns. Either difference alone gives
+no warning.
+Most Forest plots leave some FREM covariates out of \code{dfCovs}, so in
+practice a column that nothing reads is reported whenever it occurs. A
+hand-written function carries no names, so no check is made when
+\code{functionList} holds one. The warning is given whatever the value of
+\code{quiet}. It has the class \code{pmxCovariateMismatch}, so an intended pair can
+be silenced alone:
+\code{withCallingHandlers(getForestDFFREM(...), pmxCovariateMismatch = function(w) invokeRestart("muffleWarning"))}.
+
+\strong{The columns of \code{dfRefRow} are checked against \code{dfCovs}.} A column of
+\code{dfRefRow} that \code{dfCovs} lacks, after the encoding set by \code{oneHot}, gives
+a warning of the same class, with the names in the field \code{refOnly}. With
+a name spelled differently, such as \code{wt} in \code{dfRefRow} for \code{WT} in
+\code{dfCovs}, the reference subject is not conditioned on that covariate, and
+every row is shifted. This check is made for hand-written functions too.
+A reference row from \code{\link[PMXForest:setupDfRefRow]{PMXForest::setupDfRefRow()}} has the columns of
+\code{dfCovs} and is never reported.
 }
 \examples{
 \donttest{

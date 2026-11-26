@@ -3,43 +3,15 @@
 Items parked for future consideration. Not a substitute for GitHub issues; move an
 item there when it becomes active work.
 
-## Release plan: 2.4.0
+## Backlog rows left open after 2.4.0
 
-Agreed 2026-11-09 (Niclas): address the open backlog rows for PMXFrem before
-the next release - PRRS-328, 321, 327, 322, 304 and 293. Branch `epic/2.4.0`
-from `main`, `DESCRIPTION` `2.3.1.9000`, one PR per item into it:
-
-1. `createFFEMmodel()` keeps THETA bounds and FIX (PRRS-328).
-2. `calcFFEM()` help: subsets of covariates, not missing values; the
-   equations are the shift added to the ETA (PRRS-321, 293).
-3. Covariate means default to 3 significant digits (PRRS-327).
-4. One name per data set: the original data set `dataFile`, the FREM data
-   set `fremDataFile`; "FFEM" only for the data set of individual covariate
-   effects. Old names deprecated (PRRS-327).
-5. `createFREMmodel(fremDataFile =)` (PRRS-327).
-6. ~~`keepIgnoredRecords`~~ (PRRS-322): withdrawn 2026-11-10. Niclas and
-   Siv decided that keeping every record gets too complicated; a sensitivity
-   analysis on excluded records needs a new base model run and a new
-   `createFREMmodel()` call. The option (#107, #111) was reverted before any
-   release.
-
-The version number is an assumption; merging into `main` and the tag are
-Niclas's go-ahead.
-
-Status 2026-11-10: 1-5 merged (#102-#106); 6 merged (#107) and reverted.
-NEWS reviewed once by Niclas; its first section, on item 6, is removed.
-
-Open, outside the code:
 - PRRS-293: the report template `Eq_final_cov_mod.Rnw` (ReportBuilder
   directory, not this repository) prints `CL=CLstruct+...`; the FFEM is
-  `CL = CLstruct*EXP(<expression> + ETA)` for an exponential IIV. Its owners
-  change the template text.
-- PRRS-304 / 327 point 2 (T40): ask the reporter for the error message when
-  PMXForest is not attached, with the PMXRenv calls used.
-- PRRS-327 points 4 and 5: `$COVARIANCE` and `$ESTIMATION` are copied from
-  the base model; an answer, no code change.
-- After the release: Status, release and Resolution of each PRRS row, on
-  Niclas's go-ahead.
+  `CL = CLstruct*EXP(<expression> + ETA)` for an exponential IIV. The owners
+  of the template change the text. The PMXFrem side (the `calcFFEM()` help
+  and `eqFile`) shipped in 2.4.0.
+- PRRS-327 point 2: see T40. The other points of PRRS-327 are answered in the
+  Resolution of the backlog row (2026-11-11).
 
 ## Deep-dive vignette — extending a FREM model with THETAs and IIVs
 
@@ -185,13 +157,15 @@ Options:
 Either way the user should not have to know that the reference is 0, or type
 four names to say so.
 
-## T22 — 211 lines over 120 characters, and the linter that would catch them
+## T22 — 179 lines over 120 characters, and the linter that would catch them
 
 `line_length_linter` is disabled in `.lintr`. PMXForest keeps it at 120 and
-passes; PMXFrem has 211 lines over, with a long tail — 100 in 120-139, but also
-11 over 200 and one at 306. No limit short of meaningless reaches green, and
-hand-wrapping 211 lines is a large mechanical diff with real risk of breaking an
-expression, which is not what to do immediately before an independent review.
+passes. PMXFrem has 179 lines over (counted 2026-11-18 with
+`awk 'length>120' R/*.R`; 211 when the item was written, the figure the
+comment in `.lintr` still gives), with a long tail: 91 in 121-139, but also
+17 over 200 and one at 306. No limit short of meaningless reaches green, and
+hand-wrapping 179 lines is a large mechanical diff with real risk of breaking
+an expression.
 
 Reduce them in a dedicated PR, then re-enable the linter at 120 and converge
 with PMXForest. Worst offenders first: `awk 'length>200' R/*.R`.
@@ -227,25 +201,14 @@ that use it. Run it over a range of real forest results - several models, wide
 covariate ranges - and either narrow the band to what those actually occupy or
 record why it has to stay this wide.
 
-## T28 — two verifier/generator paths no bundled fixture can reach
+## T28 — a `getExplainedVar()` path no bundled fixture can reach
 
-From the round-B mutation audit; both are real gaps, neither fixable from
-tests in this package alone.
-
-- `verifyFREMParamFunction()` gates the splice checks on
-  `scale == "exp" & spliceable`. The `scale` half is shadowed on every fixture:
-  `PMXForest::createParamFunction()` never places an additive eta in `etaMap`,
-  so a non-log-normal parameter is already excluded by `spliceable`. Removing
-  the `scale` gate changes no test. The code comments say the scale decides
-  it; on current fixtures the reference does. Either give PMXForest's
-  `nmEtaMap()` the additive idiom or reword the comments. **Done
-  2026-11-09:** PMXForest 1.4.1 maps additive etas, PMXFrem requires it,
-  and a test with an additive `V` goes red when the scale gate is removed.
-- `getExplainedVar()`'s placeholder eta vectors are now
-  `rep(0, numSkipOm + numParCov)` instead of `rep(0, 3 * length(thetas))`. No
-  bundled model has `numSkipOm + numParCov > 3 * numNonFREMThetas`, so no test
-  distinguishes the two. A small FREM fixture with many skip omegas and few
-  structural thetas would.
+From the round-B mutation audit. The placeholder eta vectors of
+`getExplainedVar()` are now `rep(0, numSkipOm + numParCov)` instead of
+`rep(0, 3 * length(thetas))`. No bundled model has
+`numSkipOm + numParCov > 3 * numNonFREMThetas`, so no test distinguishes the
+two. A small FREM fixture with many skip omegas and few structural thetas
+would.
 
 
 ## T32 — `fremParameterTable()` gives one non-finite RSE on OpenBLAS
@@ -268,6 +231,8 @@ PMXForest loaded but not attached. The report used `PMXRenv`'s versioned
 library loading, so the likely cause is that PMXForest was not on the library
 path PMXRenv set up. Get the error message before changing anything; if it is
 PMXRenv, the fix belongs in the installation instructions, not the vignette.
+Backlog rows PRRS-304 and PRRS-327 (point 2); the Resolution of PRRS-327 asks
+the reporter for the error message and the calls that gave it.
 
 ## T47 — say in the generated model what a recoded covariate's level means
 
@@ -281,6 +246,29 @@ result) before and after, and a check of the snapshots that hold model text.
 
 ## Done
 
+- **T50** - a reference subject at another level than the indicator coding
+  of the FREM model. `getForestDFFREM()` recodes indicator columns that
+  leave out another level than the model to the columns of the model (#128),
+  so `catRef` in `setupDfCovs()` sets the reference level and the coding is
+  taken care of. The `catRef` helper from `getCovNames()` and a reference
+  setting in PMXForest were not needed. Shown in the Forest plot references
+  deep dive. Assumes the levels of the data are those of the model.
+- **T28, the skip** - removed with the requirement `PMXForest (>= 1.4.1)` in
+  2.5.0: the test of the scale gate of `verifyFREMParamFunction()` always runs.
+- **Release plan 2.4.0** - released 2026-11-10 (tag `v2.4.0`, #109). The
+  backlog rows PRRS-328, 321, 327 and 293 were addressed in #102-#106:
+  `createFFEMmodel()` keeps THETA bounds and FIX, the `calcFFEM()` help
+  describes covariate subsets and the shift added to the ETA, covariate means
+  keep 3 significant digits, the data set arguments are named `dataFile` and
+  `fremDataFile` (old names deprecated), and `createFREMmodel()` takes
+  `fremDataFile`. `keepIgnoredRecords` (PRRS-322) was withdrawn on
+  2026-11-10 and reverted before the release (#107, #111); a sensitivity
+  analysis on excluded records uses a new base model run. The backlog rows
+  were updated on 2026-11-11.
+- **T28, first half** - the scale gate of `verifyFREMParamFunction()` is
+  tested since PMXForest 1.4.1 maps additive etas (#110): a test with an
+  additive `V` goes red when the gate is removed. The test is skipped under
+  PMXForest < 1.4.1.
 - **T49** - `createFFEMdata()` matched the columns of a covariate with
   `grepl(cov, ...)`, so a subject missing `WT` also lost `LBWT` and got the
   FFEM without it (reproduced with `run31`: CL coefficient -0.1574 instead of

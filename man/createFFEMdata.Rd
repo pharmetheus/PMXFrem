@@ -24,6 +24,7 @@ createFFEMdata(
   dfext = NULL,
   missVal = -99,
   omegaToData = FALSE,
+  keepDoseOnlySubjects = FALSE,
   ...
 )
 }
@@ -99,6 +100,14 @@ $EST.}
 
 \item{omegaToData}{Logical. If \code{TRUE}, the variance-covariance matrix elements
 are appended to the output dataset as V-columns (e.g., V11, V21). Defaults to \code{FALSE}.}
+
+\item{keepDoseOnlySubjects}{Logical. If \code{FALSE} (default), the FFEM data set
+keeps the subjects of the FREM fit, as listed in the \code{.phi} file of the
+FREM model, so that it has the same subjects as the FREM data set. A FREM
+model from \code{\link[=createFREMmodel]{createFREMmodel()}} leaves out subjects without observations,
+such as subjects with only dose records, unless its own
+\code{keepDoseOnlySubjects} is \code{TRUE}. Without a \code{.phi} file, every subject is
+kept, with a warning. If \code{TRUE}, every subject of \code{dataFile} is kept.}
 
 \item{...}{Additional arguments passed on to \code{getFileNames()}.}
 }
@@ -200,7 +209,8 @@ ffemDataDerived <- createFFEMdata(
 
 Other FFEM Conversion: 
 \code{\link{calcFFEM}()},
-\code{\link{createFFEMmodel}()}
+\code{\link{createFFEMmodel}()},
+\code{\link{fremEqLatex}()}
 }
 \concept{FFEM Conversion}
 \concept{ffem_conversion}

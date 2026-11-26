@@ -89,6 +89,17 @@ columns are \code{dfrow$NAME}. Handled by \code{\link[PMXForest:nmResolveSeconda
 A list:
 \itemize{
 \item \code{code} - the generated R source, class \code{"pmxFREMParamFunction"}.
+The function in it is wrapped in \code{structure()} and carries the
+attribute \code{pmxCovariates}: the structural covariates it reads,
+followed by any column a \code{secondary} entry reads as \code{dfrow$NAME},
+\code{df$NAME}, \code{dfrow[["NAME"]]} or \code{df[["NAME"]]}. A FREM covariate is
+in the list only when a \code{secondary} entry reads it, because the FREM
+covariates reach the function through \code{covthetas}. \code{\link[=getForestDFFREM]{getForestDFFREM()}} checks the columns of \code{dfCovs}
+against the list and the FREM covariates. When \code{dfrow} or \code{df}
+appears in a \code{secondary} entry in any other way, such as \code{nrow(df)},
+the columns read are not known, and the function carries no
+attribute and is not checked. Edit the attribute too if you edit the
+source to read other columns.
 \item \code{functionListName} - \code{parameters}, with any \code{secondary} names
 appended (so \code{getForestDFFREM()} / \code{getExplainedVar()} pick them up).
 \item \code{primaryNames} - \code{parameters} alone.

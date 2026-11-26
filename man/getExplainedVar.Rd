@@ -103,8 +103,10 @@ type=1: one row per individual in \code{data}, in the order in which each
 individual first appears in \code{data}. If \code{NULL} when type=1 the etas are read
 from the phi-file and matched to \code{data} by \code{strID}.}
 
-\item{quiet}{If output should be allowed during the function call, default=
-FALSE,}
+\item{quiet}{If \code{FALSE} (default), the FFEM model of each calculation is
+printed by \code{\link[=calcFFEM]{calcFFEM()}}. If \code{TRUE}, nothing is printed. Mainly for
+debugging. The warning about covariate names described in Details is given
+whatever the value.}
 
 \item{ncores}{the number of cores to use for the calculations, default = 1
 which means no parallellization.
@@ -194,6 +196,19 @@ The \code{availCov} argument specifies the covariates in the frem model that sho
 of the maximum variability (TOTCOVVAR). If NULL (default), all covariates in the frem model will be used for the derivation of TOTCOVVAR.
 A multi-level categorical covariate may be given by its original name (\code{RACEL}) or by its binarized FREM
 names (\code{RACEL_2}, \code{RACEL_3}); a name that is neither is an error.
+
+\code{getExplainedVar()} gives a warning when the columns of \code{dfCovs} and the
+covariates of the model differ in the way a misspelled name makes them
+differ: a column that is neither a FREM covariate nor read by a function in
+\code{functionList}, so that the rows on which only that column is set explain
+nothing, and a covariate of the model that \code{dfCovs} lacks. A categorical
+covariate counts under its original name and under its FREM names. The rule
+is the one of \code{\link[=getForestDFFREM]{getForestDFFREM()}}: either difference alone gives no warning,
+no check is made when \code{functionList} holds a hand-written function, the
+warning is given whatever the value of \code{quiet}, and it has the class
+\code{pmxCovariateMismatch}. With \code{type} 1, 2 or 3, the values of the covariates
+are taken from \code{data}, and a column that is set on a row of \code{dfCovs} but
+missing from \code{data} stops the function with the name of the column.
 }
 \examples{
 \donttest{

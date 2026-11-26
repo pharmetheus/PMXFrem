@@ -138,7 +138,7 @@ functionList <- list(
 )
 ```
 
-`RACEL` is coded 1 Caucasian, 2 Black and 3 Asian, with level 1 as the
+`RACEL` is coded 1 Caucasian, 2 Black and 3 Other, with level 1 as the
 reference, so the one-hot columns `RACEL_2` and `RACEL_3` carry the other two.
 
 For didactic purposes in this vignette, the default labels are kept in full. The
@@ -221,6 +221,78 @@ fp(dfres_typRef,
   referenceInfo = "Reference: the typical subject - median AGE and WT, most common GENO2 and RACEL"
 )
 ```
+
+## A reference subject at another level of a categorical covariate
+
+The most common level of `RACEL` is level 1. Level 1 is also the level that is
+left out of the indicator columns of the FREM model, `RACEL_2` and `RACEL_3`.
+A reference subject at another level, here level 2 (Black), is built with
+`catRef` in `setupDfCovs()`. `setupDfCovs()` records `catRef` in an attribute
+of `dfCovs`, and `setupDfRefRow()` reads it from there, so `catRef` is given
+once:
+
+```{r ref_level}
+dfCovsBlack <- setupDfCovs(
+  data       = data,
+  covariates = covariates,
+  probs      = c(0.05, 0.9),
+  idVar      = "ID",
+  missVal    = -99,
+  catRef     = list(RACEL = 2)
+)
+
+dfRefRowBlack <- setupDfRefRow(
+  dfCovs     = dfCovsBlack,
+  data       = data,
+  covariates = covariates,
+  singleRef  = TRUE
+)
+
+dfRefRowBlack
+```
+
+In `dfCovsBlack` and `dfRefRowBlack`, the indicator columns are `RACEL_1` and
+`RACEL_3`: level 2 is left out, and a row of zeros is level 2. The model has
+`RACEL_2` and `RACEL_3`. `getForestDFFREM()` recodes the columns of `dfCovs`
+and `dfRefRow` to the columns of the model, and every row describes the same
+subject after the recoding: the reference row, a row of zeros before, has
+`RACEL_2 = 1` and `RACEL_3 = 0` after. With `quiet = FALSE`,
+`getForestDFFREM()` prints a message with the recoded columns.
+
+```{r ref_level_df}
+dfres_blackRef <- getForestDFFREM(
+  dfCovs           = dfCovsBlack,
+  runno            = 31,
+  modDevDir        = modDevDir,
+  dfParameters     = dfParameters,
+  functionList     = functionList,
+  functionListName = "CL",
+  dfRefRow         = dfRefRowBlack,
+  quiet            = TRUE
+)
+```
+
+The rows of `dfCovsBlack` describe the same subjects as the rows of `dfCovs`,
+so the point estimates are those of the plot with the typical subject as the
+reference. Only the reference has moved, from level 1 to level 2 of `RACEL`:
+
+```{r ref_level_check}
+all.equal(dfres_blackRef$POINT, dfres_typRef$POINT)
+
+c(level1 = dfres_typRef$REFFUNC[1], level2 = dfres_blackRef$REFFUNC[1])
+```
+
+```{r ref_level_plot, fig.width = 10, fig.height = 5, out.width = "100%"}
+fp(dfres_blackRef,
+  referenceInfo = "Reference: median AGE and WT, most common GENO2, RACEL level 2 (Black)"
+)
+```
+
+In PMXFrem 2.4.0 and earlier, the indicator columns were not recoded. A
+reference subject at level 2 then needed a `dfCovs` and a `dfRefRow` in the
+coding of the model, with `RACEL_2 = 1` written by hand into `dfRefRow` and,
+with `useMissVal = FALSE`, into every row of `dfCovs` that does not vary
+`RACEL`.
 
 # 7. Conditioning the predictions: mimicking SCM
 
@@ -325,11 +397,11 @@ fp(dfres_varRef,
 
 # 9. Which plot answers which question
 
-The two readings can disagree, and on this model they do. Take Asian subjects -
-`RACEL` level 3:
+The two readings can disagree, and on this model they do. Take the subjects of
+`RACEL` level 3, Other:
 
 ```{r estimands}
-# the dfCovs row for Asian subjects. Match on the row number rather than
+# the dfCovs row for RACEL level 3. Match on the row number rather than
 # the label: conditioning rewrites the label to carry every covariate it fixes.
 iRacel3 <- which(dfCovs$COVARIATEGROUPS == "RACEL" & dfCovs$RACEL_3 == 1)
 
@@ -342,12 +414,397 @@ c(unconditional = pick(dfres_varRef), conditional = pick(dfres_scm))
 ```
 
 * **Unconditional**, `r pick(dfres_varRef)` of the reference: a subject known
-  only to be Asian can be expected to have a *lower* CL than a Caucasian one.
-  This is the reading for a label statement or a dosing recommendation.
-* **Conditional**, `r pick(dfres_scm)` of the reference: an Asian subject who is
-  otherwise typical can be expected to have a slightly *higher* CL than an
-  otherwise identical Caucasian subject. This is the mechanistic reading, and
+  only to be in the Other group can be expected to have a *lower* CL than a
+  Caucasian one. This is the reading for a label statement or a dosing
+  recommendation.
+* **Conditional**, `r pick(dfres_scm)` of the reference: a subject of the Other
+  group who is otherwise typical can be expected to have a slightly *higher* CL
+  than an otherwise identical Caucasian subject. This is the mechanistic reading, and
   the one an SCM Forest plot gives.
 
 Neither number is wrong. They answer different questions, and a plot that does
 not say which one it answers invites the reader to take the wrong one.
+
+# 10. Worked example: an SCM model and a FREM model of the same data
+
+On the same data, a Forest plot from a full random effects model (FREM) agrees
+with the Forest plot of a model built by stepwise covariate modelling (SCM), for
+the covariates in the SCM model, when two conditions hold: the FREM predictions
+are fully conditioned, and the FREM plot has the reference subject of the SCM
+plot. The differences that remain arise because, in FREM, every covariate has an
+effect on every parameter. For a label statement or a dose recommendation, the
+recommended FREM plot is unconditional, with a reference per covariate.
+
+## Two models of one data set
+
+PMXForest includes two models of the same simulated data set,
+`DAT-1-MI-PMX-2.csv`, in which every dose is oral. Each model comes with a
+bootstrap of 175 resamples, run with PsN, and the confidence intervals of the
+worked example are computed from the bootstrap.
+
+* **SCM model:** `run7.mod` was built with scmplus, the stepwise covariate
+  search of PsN, with stage-wise filtering. In `run7.mod`, weight has effects
+  on the clearance `CL` and the volume `V`, and genotype has effects on `CL`
+  and on the relative bioavailability `FREL`. Sex and formulation have effects
+  on `FREL`, and food has an effect on `CL`.
+* **FREM model:** `run22-3.mod` is a FREM model of the data set, built on the
+  mechanistic and structural covariates of the SCM model `run7.mod`. In
+  `run22-3.mod`, weight, formulation, food and genotype have the fixed effects
+  of `run7.mod`, and sex is a FREM covariate instead of a fixed effect on
+  `FREL`. The 11 FREM covariates are the data columns `AGE`, `ALT`, `AST`,
+  `BILI`, `BMI`, `CRCL`, `ETHNIC`, `HT`, `NCIL`, `RACEL2` and `SEX`, which
+  include age, height and creatinine clearance.
+
+Genotype is the 2D6 genotype, with four levels: ultrarapid (2D6 UM), extensive
+(2D6 EM), intermediate (2D6 IM) and poor (2D6 PM) metabolisers.
+
+Every plot of the worked example is a plot of the apparent clearance `CL/F`,
+which is `CL` divided by `FREL`. After an oral dose, the area under the
+concentration curve is the dose divided by `CL/F`, so the exposure of a subject
+is inversely proportional to `CL/F`.
+
+```{r we_setup}
+simVal <- system.file("extdata/SimVal", package = "PMXForest")
+dataWE <- read.csv(file.path(simVal, "DAT-1-MI-PMX-2.csv"))
+
+# the covariates on the rows of the plots
+shownWE <- c("WT", "SEX", "FORM", "FOOD", "GENO", "AGE", "CRCL")
+# the FREM covariates of run22-3
+fremCovsWE <- getCovNames(modFile = file.path(simVal, "run22-3.mod"))$orgCovNames
+fremCovsWE
+
+# apparent clearance as a secondary parameter of both models
+secondaryWE <- list(CLF = "CL / FREL")
+
+# covRef sets the reference of the genotype indicators GENO1 and GENO3, for
+# which the control streams have no reference; the reference of GENO4 is in
+# the control streams
+genSCM <- createParamFunction(
+  file.path(simVal, "run7.mod"),
+  parameters = c("FREL", "CL"),
+  covRef     = list(GENO1 = 0, GENO3 = 0),
+  secondary  = secondaryWE,
+  quiet      = TRUE
+)
+funSCM <- eval(parse(text = paste(genSCM$code, collapse = "\n")))
+
+genFREM <- createFREMParamFunction(
+  file.path(simVal, "run22-3.mod"),
+  parameters = c("FREL", "CL"),
+  covRef     = list(GENO1 = 0, GENO3 = 0),
+  secondary  = secondaryWE,
+  quiet      = TRUE
+)
+funFREM <- eval(parse(text = genFREM$code))
+
+# the bootstrap resamples of each model, all 175 of them
+samplesSCM <- getSamples(file.path(simVal, "bs7.dir/raw_results_run7bs.csv"),
+  extFile = file.path(simVal, "run7.ext")
+)
+samplesFREM <- getSamples(file.path(simVal, "bs22-3.dir/raw_results_run22-3bs.csv"),
+  extFile = file.path(simVal, "run22-3.ext")
+)
+
+# row labels, with the names and level names of the PMXForest walkthrough
+# vignette
+labelWE <- function(dfCovs, dfres) {
+  generateCovNames(dfCovs, dfres,
+    name_map = c(
+      WT = "Weight", SEX = "Sex", FORM = "Formulation", FOOD = "Food status",
+      GENO = "2D6 genotype", AGE = "Age", CRCL = "CRCL"
+    ),
+    unit_map = c(WT = "kg", AGE = "y", CRCL = "mL/min"),
+    level_map = list(
+      SEX  = c("1" = "Male", "2" = "Female"),
+      FORM = c("0" = "Oral tablet", "1" = "FDC"),
+      FOOD = c("0" = "Fasted", "1" = "Fed"),
+      GENO = c("1" = "2D6 UM", "2" = "2D6 EM", "3" = "2D6 IM", "4" = "2D6 PM")
+    ),
+    group_map = c(CRCL = "Creatinine\nclearance")
+  )
+}
+
+# the CL/F rows, with a panel name in PARAMETER, for plots side by side
+panelWE <- function(dfres, panel) {
+  dfres <- dfres[dfres$PARAMETER == "CLF", ]
+  dfres$PARAMETER <- panel
+  dfres
+}
+
+# a logarithmic x axis for the error-bar panels of forestPlot()
+logAxisWE <- "scale_x_log10(breaks = c(0.125, 0.25, 0.5, 1, 2))"
+
+# the relative value on one row, as forestPlot() shows it; used for the
+# numbers in the text
+rel <- function(dfres, row, par) {
+  x <- dfres$POINT_NOVAR_REL_REFFUNC[dfres$COVNAME == row & dfres$PARAMETER == par]
+  formatC(x, format = "f", digits = 2)
+}
+```
+
+## The fully conditioned FREM plot agrees with the SCM plot on apparent clearance
+
+A FREM plot can be compared with an SCM plot only when both of two conditions
+hold:
+
+* **Fully conditioned predictions:** on each row of the FREM plot, every FREM
+  covariate is set to the value of the reference subject, apart from the
+  covariate that varies on the row, so that no FREM covariate is integrated
+  out. Every FREM covariate is set in this way, not only the covariates on the
+  plot. The rows of an SCM plot are conditioned in this way by construction.
+  When the other FREM covariates of a row are left missing (at `missVal`), the
+  effect on the row is unconditional and includes the effects of the
+  covariates that go with the varied covariate in the data.
+* **The reference subject of the SCM plot:** a relative value is the
+  prediction on a row divided by the prediction for the reference subject, so
+  the relative values of two plots with different reference subjects differ
+  even where the predictions agree. Without a reference row (`dfRefRow`), the
+  reference of a FREM plot is the mean prediction over the data, which is not
+  the reference subject of the SCM plot.
+
+In the worked example, the reference subject has the median of each continuous
+covariate and the most common level of each categorical covariate. The same
+rows (`dfCovs`) and the same reference row (`dfRefRow`) are used for both
+models. The rows are built with the covariates in `shownWE` and the FREM
+covariates, with `useMissVal = FALSE`, so that every FREM covariate is set on
+every row. The rows that vary a FREM covariate outside `shownWE` are then
+dropped, to keep the plot short. Each continuous covariate has a row at the 5th
+and a row at the 95th percentile of the data, the default of `setupDfCovs()`,
+and each categorical covariate has one row per level.
+
+In both models, genotype is coded as the indicators `GENO1`, `GENO3` and
+`GENO4`, with level 2 as the reference. With `catRef = list(GENO = 2)`,
+`setupDfCovs()` and `setupDfRefRow()` leave out level 2, and with `sep = ""`,
+the two functions write the indicator columns without a separator, as `GENO1`
+rather than `GENO_1`.
+
+```{r we_conditioned}
+allCovsWE <- unique(c(shownWE, fremCovsWE))
+dfCovsAllWE <- setupDfCovs(dataWE,
+  covariates = allCovsWE, useMissVal = FALSE, idVar = "ID",
+  catRef = list(GENO = 2), sep = ""
+)
+dfCovsWE <- dfCovsAllWE[dfCovsAllWE$COVARIATEGROUPS %in% shownWE, ]
+dfRefRowWE <- setupDfRefRow(dfCovsAllWE,
+  data = dataWE, covariates = allCovsWE, idVar = "ID",
+  catRef = list(GENO = 2), sep = ""
+)
+
+dfresSCM <- getForestDFSCM(
+  dfCovs           = dfCovsWE,
+  dfRefRow         = dfRefRowWE,
+  functionList     = list(funSCM),
+  functionListName = genSCM$functionListName,
+  noBaseThetas     = genSCM$noBaseThetas,
+  dfParameters     = samplesSCM,
+  quiet            = TRUE
+)
+dfresSCM <- labelWE(dfCovsWE, dfresSCM)
+
+dfresFREMcond <- getForestDFFREM(
+  dfCovs           = dfCovsWE,
+  dfRefRow         = dfRefRowWE,
+  modName          = "run22-3",
+  modDevDir        = simVal,
+  dfParameters     = samplesFREM,
+  functionList     = list(funFREM),
+  functionListName = genFREM$functionListName,
+  quiet            = TRUE
+)
+dfresFREMcond <- labelWE(dfCovsWE, dfresFREMcond)
+
+# one data frame with a panel per model
+cols <- intersect(names(dfresSCM), names(dfresFREMcond))
+dfresCLF <- rbind(
+  panelWE(dfresSCM, "SCM")[cols],
+  panelWE(dfresFREMcond, "FREM")[cols]
+)
+```
+
+In the relative plots of the worked example, the bars are 90% confidence
+intervals from the bootstrap. The grey band is the range of relative values
+from 0.8 to 1.25. The x axis is logarithmic, so that an effect and the inverse
+of the effect, such as 0.5 and 2, are at the same distance from 1.
+
+```{r we_clf_plot, fig.width = 10, fig.height = 7, out.width = "100%"}
+forestPlot(dfresCLF,
+  parameters = c("SCM", "FREM"),
+  xlb = "Relative CL/F",
+  rightStrip = FALSE,
+  addcodeErr = logAxisWE,
+  referenceInfo = "Reference: median of each continuous covariate, most common level of each categorical one"
+)
+```
+
+For the covariates in the SCM model, the two plots agree. The weight
+rows are equal in the two models and have no uncertainty, because the
+allometric exponents of weight are fixed in both models. `CL/F` with the
+fixed-dose combination (FDC) is `r rel(dfresSCM, "FDC", "CLF")` times `CL/F`
+with the oral tablet in the SCM model, and
+`r rel(dfresFREMcond, "FDC", "CLF")` times in FREM. `CL/F` of fasted subjects
+is `r rel(dfresSCM, "Fasted", "CLF")` times that of fed subjects in the SCM
+model, and `r rel(dfresFREMcond, "Fasted", "CLF")` times in FREM. In both
+models, genotype has an effect on `CL`, and the poor metaboliser genotype has
+an effect on `FREL` as well. `CL/F` of poor metabolisers is
+`r rel(dfresSCM, "2D6 PM", "CLF")` times that of extensive metabolisers in the
+SCM model, and `r rel(dfresFREMcond, "2D6 PM", "CLF")` times in FREM.
+
+In the SCM model, sex has an effect on `FREL` alone, while in FREM, sex has an
+effect on every parameter. `CL/F` of females is
+`r rel(dfresSCM, "Female", "CLF")` times that of males in the SCM model, and
+`r rel(dfresFREMcond, "Female", "CLF")` times in FREM, with overlapping
+confidence intervals. Age and creatinine clearance are not in the SCM model, so
+every row of the two covariates is at 1 in the SCM plot. In FREM, age and
+creatinine clearance have effects on `CL/F` as well, but the effects are close
+to 1, and the confidence intervals include 1. In an SCM, only the effects that
+pass the selection are kept in the model, so small effects of this size are
+left out.
+
+## Without a reference row, the reference of a FREM plot lies between the levels of a categorical covariate
+
+In the default FREM plot, the predictions are unconditional and no reference
+row is given. On each row, only the covariate that varies on the row is set,
+and the other FREM covariates are integrated out over the data. The reference
+is the prediction with every FREM covariate integrated out, which is the mean
+prediction over the population. For a categorical FREM covariate, the reference
+is therefore a mix of the levels and lies between them, so no level of the
+covariate is at 1. A categorical covariate without a level at 1 is often found
+hard to understand.
+
+With a reference per covariate, each covariate is compared with the median or
+the most common level of the same covariate, and the other FREM covariates are
+integrated out in the reference as on the rows. The reference per covariate is
+set with `singleRef = FALSE` in `setupDfRefRow()`. On the relative scale, the
+reference level of each categorical covariate is then at 1, as in an SCM plot,
+so that the plot is less surprising to read.
+
+```{r we_unconditional}
+# unconditional rows: one covariate set per row, the others missing
+dfCovsUncondWE <- setupDfCovs(dataWE,
+  covariates = shownWE, idVar = "ID",
+  catRef = list(GENO = 2), sep = ""
+)
+
+# the FREM default, without dfRefRow
+dfresFREMdefault <- getForestDFFREM(
+  dfCovs           = dfCovsUncondWE,
+  modName          = "run22-3",
+  modDevDir        = simVal,
+  dfParameters     = samplesFREM,
+  functionList     = list(funFREM),
+  functionListName = genFREM$functionListName,
+  quiet            = TRUE
+)
+dfresFREMdefault <- labelWE(dfCovsUncondWE, dfresFREMdefault)
+
+# a reference per covariate: in each reference row, the covariate of the
+# row is at the median or the most common level, and the others are missing
+dfRefRowVaryingWE <- setupDfRefRow(dfCovsUncondWE,
+  data = dataWE, covariates = shownWE, singleRef = FALSE, idVar = "ID",
+  catRef = list(GENO = 2), sep = ""
+)
+dfresFREMuncond <- getForestDFFREM(
+  dfCovs           = dfCovsUncondWE,
+  dfRefRow         = dfRefRowVaryingWE,
+  modName          = "run22-3",
+  modDevDir        = simVal,
+  dfParameters     = samplesFREM,
+  functionList     = list(funFREM),
+  functionListName = genFREM$functionListName,
+  quiet            = TRUE
+)
+dfresFREMuncond <- labelWE(dfCovsUncondWE, dfresFREMuncond)
+
+# one data frame with a panel per reference
+cols <- intersect(names(dfresFREMdefault), names(dfresFREMuncond))
+dfresRefWE <- rbind(
+  panelWE(dfresFREMdefault, "No reference row")[cols],
+  panelWE(dfresFREMuncond, "Reference per covariate")[cols]
+)
+
+# the number of subjects with each formulation, one record per subject
+baseWE <- dataWE[!duplicated(dataWE$ID), ]
+table(baseWE$FORM)
+```
+
+```{r we_reference_plot, fig.width = 10, fig.height = 7, out.width = "100%"}
+forestPlot(dfresRefWE,
+  parameters = c("No reference row", "Reference per covariate"),
+  xlb = "Relative CL/F",
+  statisticsLabel = "",
+  rightStrip = FALSE,
+  errbartabwidth = c(2, 1.3, 2, 1.3),
+  addcodeErr = logAxisWE,
+  referenceInfo = "Unconditional effects, without a reference row and with a reference per covariate"
+)
+```
+
+Without a reference row, `CL/F` of males is
+`r rel(dfresFREMdefault, "Male", "CLF")` times the reference, and `CL/F` of
+females is `r rel(dfresFREMdefault, "Female", "CLF")` times the reference. With
+a reference per covariate, males are at 1, and `CL/F` of females is
+`r rel(dfresFREMuncond, "Female", "CLF")` times that of males.
+
+Weight, formulation, food and genotype are not FREM covariates in
+`run22-3.mod`. When one of the four covariates is missing, on a row or in a
+reference, the parameter function puts the covariate at the reference of the
+model, which is the value at which the covariate effect in the control stream
+is 1. The reference of the model is 75 kg for weight, the FDC for formulation,
+fed for food and the extensive metaboliser genotype. In the panel without a
+reference row, these values are the reference of the plot. In the panel with a
+reference per covariate, the reference of each covariate is the median or the
+most common level in the data. For food and genotype, the two references are
+the same level, which is at 1 in both panels. For weight and formulation, the
+two references differ. The median weight in the data is `r dfRefRowWE$WT` kg.
+The most common formulation in the data is the oral tablet, with
+`r sum(baseWE$FORM == 0)` of `r nrow(baseWE)` subjects.
+
+## The recommended FREM plot is unconditional, with a reference per covariate
+
+The unconditional effect of a covariate is the effect to expect in a subject
+known only by that covariate, which is the effect that a label statement or a
+dose recommendation is about. With a reference per covariate, the reference
+level of each categorical covariate is at 1 on the relative scale, as in an SCM
+plot, while the effects stay unconditional. The unconditional plot with a
+reference per covariate is therefore the recommended way to present a FREM-based
+Forest plot.
+
+```{r we_height}
+# mean height of males and females in the data, one record per subject
+heightWE <- round(tapply(baseWE$HT, baseWE$SEX, mean))
+heightWE
+```
+
+In the unconditional plot with a reference per covariate, `CL/F` of females is
+`r rel(dfresFREMuncond, "Female", "CLF")` times that of males, against
+`r rel(dfresFREMcond, "Female", "CLF")` in the fully conditioned FREM plot. In
+the data, females are shorter than males on average, at `r heightWE[["2"]]`
+against `r heightWE[["1"]]` cm, and height is a FREM covariate. The
+unconditional effect of sex includes the effect of a difference in height,
+while in the fully conditioned plot, height is held at the reference.
+
+On the absolute scale, the reference of each covariate can be seen. Each
+covariate has a reference line, at the predicted `CL/F` for the reference
+subject of the covariate. The grey band around each line is the range from 0.8
+to 1.25 times the reference.
+
+```{r we_absolute_plot, fig.width = 10, fig.height = 7, out.width = "100%"}
+forestPlot(dfresFREMuncond,
+  parameters = "CLF",
+  parameterLabels = "CL/F",
+  plotRelative = FALSE,
+  sigdigits = 3,
+  xlb = "CL/F",
+  rightStrip = FALSE,
+  addcodeErr = "scale_x_log10(breaks = c(1, 2, 5, 10, 20, 50))",
+  referenceInfo = "Reference per covariate: the median or most common level of each"
+)
+```
+
+The reference lines are at different values of `CL/F`, because the reference
+subject differs between covariates. The reference subject of each covariate has
+the median or the most common level of that covariate, and every other
+covariate is missing. The other FREM covariates are therefore integrated out,
+and weight, formulation, food and genotype are at the reference of the model.
+The reference subject for weight weighs `r dfRefRowWE$WT` kg, and the reference
+subjects for the other covariates weigh 75 kg.

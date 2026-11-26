@@ -151,6 +151,19 @@
     data[[cov]] <- ifelse(data[[myCov]] == myCovNum, 1, 0)
   }
 
+  ## Each covariate row passes the columns set on that row, taken from data, to
+  ## the functions. A name that data lacks stopped deep inside the loop with
+  ## "undefined columns selected".
+  isSet <- vapply(dfCovs, function(x) any(as.numeric(x) != missVal, na.rm = TRUE), logical(1))
+  lacking <- setdiff(.get_frem_cov_names(names(dfCovs)[isSet], fremCovs), names(data))
+  if (length(lacking) > 0) {
+    stop("dfCovs sets ", paste(lacking, collapse = ", "), " on at least one row, ",
+      "but data has no column of that name. With type 1, 2 or 3 the values of ",
+      "the covariates are taken from data; check the spelling in dfCovs.",
+      call. = FALSE
+    )
+  }
+
   dataI <- data[!duplicated(data[[strID]]), ]
 
   if (type == 1 && !is.null(etaIDs)) {

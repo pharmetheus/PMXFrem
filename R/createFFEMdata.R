@@ -61,6 +61,13 @@
 #'   FFEM may use. For each subject, the covariates that subject has a value
 #'   for (not `missVal`) are used, among these.
 #' @param missVal Numeric. The value representing missing data in the covariates. Defaults to -99.
+#' @param keepDoseOnlySubjects Logical. If `FALSE` (default), the FFEM data set
+#'   keeps the subjects of the FREM fit, as listed in the `.phi` file of the
+#'   FREM model, so that it has the same subjects as the FREM data set. A FREM
+#'   model from [createFREMmodel()] leaves out subjects without observations,
+#'   such as subjects with only dose records, unless its own
+#'   `keepDoseOnlySubjects` is `TRUE`. Without a `.phi` file, every subject is
+#'   kept, with a warning. If `TRUE`, every subject of `dataFile` is kept.
 #' @seealso [createFFEMmodel()]
 #' @return A list with objects:
 #'
@@ -145,6 +152,7 @@ createFFEMdata <- function(runno = NULL,
                            dfext = NULL,
                            missVal = -99,
                            omegaToData = FALSE,
+                           keepDoseOnlySubjects = FALSE,
                            ...) {
   retList <- list()
   retList$newDataFileName <- newDataFile
@@ -216,6 +224,21 @@ createFFEMdata <- function(runno = NULL,
     data <- dataFile %>%
       rename("ID" = all_of(idvar))
   }
+  ## Keep the subjects of the FREM fit: a FREM model from createFREMmodel()
+  ## leaves out subjects without observations, PsN keeps them, and the .phi
+  ## file says which it was.
+  if (!keepDoseOnlySubjects) {
+    if (!is.null(phiFile) && file.exists(phiFile)) {
+      fitIds <- getPhi(phiFile, warn = FALSE)$ID
+      data <- data[data$ID %in% fitIds, , drop = FALSE]
+    } else {
+      warning("createFFEMdata: the FREM model has no .phi file (", phiFile, "), so the FFEM data set keeps ",
+        "every subject of `dataFile`, including any the FREM fit left out.",
+        call. = FALSE
+      )
+    }
+  }
+
   ## Add the FREM covariates to the data file
   data <- addFREMcovariates(data = data, modFile = modFile, missVal = missVal)
 

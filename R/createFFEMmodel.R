@@ -164,6 +164,7 @@ createFFEMmodel <- function(runno = NULL,
                             ffemTabName = "ffemtab",
                             ffemModName = NULL,
                             omegaToData = FALSE,
+                            keepDoseOnlySubjects = FALSE,
                             ...) {
   ## Check input
   # if(is.null(newDataFile)) stop("newDataFile must be a character string.")
@@ -218,6 +219,7 @@ createFFEMmodel <- function(runno = NULL,
     cores = cores,
     dfext = dfext,
     omegaToData = omegaToData,
+    keepDoseOnlySubjects = keepDoseOnlySubjects,
     ...
   )
 
